@@ -5,6 +5,13 @@
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Aetheris": { "$path": "src" }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "AetherisTest": { "$path": "example/Aetheris_Test.client.luau" }
+      }
     }
   }
 }

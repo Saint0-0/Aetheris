@@ -4,7 +4,7 @@
 --  Organized with each section having <=5 components, all stored in locals.
 -- ============================================================================
 
-local Aetheris = require(game:GetService("StarterGui"):WaitForChild("NewScripts").Init)
+local Aetheris = require(game:GetService("ReplicatedStorage"):WaitForChild("Aetheris").Init)
 -- Icons are reached through the facade: Aetheris.Icons["search"].
 local Icons = Aetheris.Icons
 
@@ -14,7 +14,7 @@ local Icons = Aetheris.Icons
 -- ============================================================================
 
 local window = Aetheris:CreateWindow({
-	Title = "Saint X Test",
+	Title = "Aetheris",
 	Description = '<font color="#777780">SAINT X</font> <font color="#55555F">/</font> <font color="#6C8CFF">v0.1.0</font> <font color="#55555F">/</font> <font color="#777780">BETA</font>',
 	AnimationStyle = "Smooth",
 	DragStyle = "Smooth", -- "Instant" (snaps to cursor) | "Smooth" (glides behind cursor)
