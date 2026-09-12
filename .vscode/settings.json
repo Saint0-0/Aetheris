@@ -11,6 +11,8 @@
     "editor.formatOnSave": true
   },
   "robloxLsp.diagnostics.globals": [
-    "writefile"
+    "writefile",
+    "readfile",
+    "isfile"
   ]
 }
