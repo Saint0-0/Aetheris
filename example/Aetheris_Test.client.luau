@@ -1,362 +1,422 @@
-﻿-- ============================================================================
---  Aetheris_Test.lua
---  Quick manual test harness for the Saint X UI library.
---  Organized with each section having <=5 components, all stored in locals.
--- ============================================================================
+--[[
+============================================================================
+  Aetheris  ·  Full Component Demo  (example/Aetheris_Test.client.luau)
+============================================================================
 
-local Aetheris = require(game:GetService("ReplicatedStorage"):WaitForChild("Aetheris").Init)
--- Icons are reached through the facade: Aetheris.Icons["search"].
+  A living showcase of the ENTIRE Aetheris UI library. Every element the
+  library exposes is created at least once here, and every block is heavily
+  commented so this file doubles as the reference documentation.
+
+  What it demonstrates
+  --------------------
+    Window API : CreateWindow, :Tab, :Divider, :SetTheme, :Alert, :Error,
+                 :VariableNotification, :UINotification, :DropdownPopUp,
+                 :ColorPickerPopUp, :Destroy
+    Layout     : Tabs, Left/Right Sections
+    Components : Toggle, Slider, Keybind, TextInput, Stepper, RadioButtonGroup
+                 (+ RadioButton), Dropdown, ColorPicker, Status, ProgressBar,
+                 Button, Label, Paragraph, Divider, Video
+
+  How to run
+  ----------
+    Drop this LocalScript into StarterPlayerScripts, or paste it into the
+    command bar while the game is running. The whole window is built purely
+    with Instance.new by the library - no pre-built assets required.
+============================================================================
+]]
+
+-- == 0. LIBRARY BOOTSTRAP ==================================================
+-- Aetheris is the single facade for the whole library. Requiring Init gives
+-- us every public entry point (CreateWindow, Icons, ThemeManager, ...).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init)
 local Icons = Aetheris.Icons
 
+-- Tiny helper: a missing icon key falls back to the crosshair icon (which
+-- always exists) so the demo never crashes on a typo'd icon name.
+local function ico(name)
+	return Icons[name] or Icons.crosshair
+end
 
--- ============================================================================
---  1. CREATE THE MAIN WINDOW
--- ============================================================================
+-- Grab the local player + humanoid once, so the Health ProgressBar can bind
+-- to real health changes later on.
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
+-- == 1. CREATE THE MAIN WINDOW =============================================
+-- CreateWindow is the preferred entry point. Everything you see is themed by
+-- the library; the theme name below is the starting theme.
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
-	Description = '<font color="#777780">SAINT X</font> <font color="#55555F">/</font> <font color="#6C8CFF">v0.1.0</font> <font color="#55555F">/</font> <font color="#777780">BETA</font>',
-	AnimationStyle = "Smooth",
-	DragStyle = "Smooth", -- "Instant" (snaps to cursor) | "Smooth" (glides behind cursor)
-	Theme = "Forest",  -- Use a predefined theme name ("Default", "Black", "Light")
-	MinimizeKey = "LeftControl",  -- default keybind to minimize/restore the UI
-	SettingsPages = {
-		{ Name = "Keybinds", Icon = Icons["keyboard"] },
-		{ Name = "Macros", Icon = Icons["mouse-pointer-click"] },
+	Description = '<font color="#777780">AETHERIS</font> <font color="#55555F">/</font> <font color="#6C8CFF">v0.2.0</font> <font color="#55555F">/</font> <font color="#777780">DEMO</font>',
+	Theme = "Default",           -- any name from ThemeDefinitions
+	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
+	DragStyle = "Smooth",        -- "Smooth" (glides) | "Instant" (snaps)
+	MinimizeKey = "LeftControl", -- press to minimize / restore the window
+	SettingsPages = {            -- extra pages shown in the Settings tab
+		{ Name = "Keybinds", Icon = ico("keyboard") },
+		{ Name = "Macros",   Icon = ico("mouse-pointer-click") },
 	},
 	DefaultSettingsPage = "Themes",
 })
 
--- ============================================================================
---  2. HELPERS (shared across tabs)
--- ============================================================================
-local function showNotification(settings)
-	return window:UINotification(settings)
-end
+-- Helpers handed to components that open popups, so the popups inherit the
+-- window's theme + positioning instead of building their own.
+local function notify(settings) return window:UINotification(settings) end
+local function openDropdown(id, settings) return window:DropdownPopUp(id, settings) end
+local function openColorPicker(id, settings) return window:ColorPickerPopUp(id, settings) end
 
-local function showDropdown(id, settings)
-	return window:DropdownPopUp(id, settings)
-end
-
-local function showColorPicker(id, settings)
-	return window:ColorPickerPopUp(id, settings)
-end
-
-local dropdownItems = {
-	{ name = "Apple", icon = Icons["apple"], value = "apple" },
-	{ name = "Banana", icon = Icons["banana"], value = "banana" },
-	{ name = "Orange", icon = Icons["orange"], value = "orange" },
-	{ name = "Grapes", icon = Icons["grapes"], value = "grapes" },
-	{ name = "Strawberry", icon = Icons["strawberry"], value = "strawberry" },
-	{ name = "Watermelon", icon = Icons["watermelon"], value = "watermelon" },
-}
-
--- ============================================================================
---  3. CREATE TABS
--- ============================================================================
-local aimbotTab = window:Tab("Aimbot", Icons.crosshair)
-local visualsTab = window:Tab("Visuals", Icons.eye)
+-- == 2. CREATE THE TABS ====================================================
+-- window:Tab(name, icon) adds a page to the sidebar. window:Divider() inserts
+-- a thin separator (used here to visually detach the Settings tab).
+local homeTab     = window:Tab("Home", ico("home"))
+local controlsTab = window:Tab("Controls", ico("sliders-horizontal"))
+local inputsTab   = window:Tab("Inputs", ico("list"))
+local feedbackTab = window:Tab("Feedback", ico("bell"))
+local mediaTab    = window:Tab("Media", ico("play"))
 window:Divider()
-local settingsTab = window:Tab("Settings", Icons.settings)
+local settingsTab = window:Tab("Settings", ico("settings"))
 
--- ============================================================================
---  4. AIMBOT TAB – LEFT COLUMN SECTIONS
--- ============================================================================
+-- =========================================================================
+--  3. HOME TAB  -  Paragraph, Label, Divider, Button
+-- =========================================================================
+local heroSection = homeTab:Section({ Name = "Welcome", Side = "Left" })
 
--- 4.1 Video section (Left)
-local videoSection = aimbotTab:Section({ Name = "Video", Side = "Left" })
-local videoPlayer = videoSection:Video({
-	VideoId = "rbxassetid://5670794788",
-	Loop = true,
-	Height = 70,
+-- Paragraph: a titled block of descriptive text.
+heroSection:Paragraph({
+	Title = "Aetheris Component Showcase",
+	Description = "Every element the library offers, on one screen.\nSwitch tabs on the sidebar, tweak the settings, and watch the theme engine repaint everything live.",
 })
 
--- 4.2 Main Toggles (Left)
-local toggleSection = aimbotTab:Section({ Name = "Main Toggles", Side = "Left" })
-local enableAimbotToggle = toggleSection:Toggle({
-	Name = "Enable Aimbot",
+-- Divider: a horizontal rule. Pass Color to tint it (defaults to the theme).
+heroSection:Divider()
+
+-- Label: single-line text. ShowContainer/ShowStroke toggle its card styling.
+heroSection:Label({
+	Text = "Plain label - no container, no stroke",
+	ShowContainer = false,
+	ShowStroke = false,
+})
+
+-- Label with a heavier font weight, and the default container styling.
+heroSection:Label({
+	Text = "Bold label with container",
+	FontWeight = "Bold",
+})
+
+-- Divider with a custom accent color.
+heroSection:Divider({ Color = Color3.fromRGB(108, 140, 255) })
+
+-- Button section (right column).
+local actionSection = homeTab:Section({ Name = "Actions", Side = "Right" })
+
+actionSection:Button({
+	Name = "Do The Thing",
+	Callback = function() print("[Demo] Button clicked") end,
+})
+
+-- A button that fires a themed toast notification with clickable actions.
+actionSection:Button({
+	Name = "Send a toast",
+	Callback = function()
+		window:VariableNotification({
+			Title = "Hello!",
+			Description = "This is a variable notification with an action.",
+			Duration = 6,
+			ShowBackground = true,
+			Actions = {
+				{ Text = "Nice", Callback = function() print("[Demo] toast action") end },
+			},
+		})
+	end,
+})
+
+-- =========================================================================
+--  4. CONTROLS TAB  -  Toggle, Slider, Keybind, TextInput, Stepper, Radio
+-- =========================================================================
+local switchSection = controlsTab:Section({ Name = "Switches", Side = "Left" })
+
+-- Toggle: an on/off switch. `Default` sets the initial state.
+switchSection:Toggle({
+	Name = "Enable Feature",
 	Default = true,
-	Callback = function(state) print("[Aimbot] Toggle:", state) end
+	Callback = function(state) print("[Demo] Toggle:", state) end,
 })
-local dangerousToggle = toggleSection:Toggle({
+
+-- Toggle with a confirmation prompt. When Confirm.Enabled is true, flipping
+-- the switch shows a modal; the 2nd arg (notify) is the notification engine.
+switchSection:Toggle({
 	Name = "Dangerous Toggle",
 	Default = false,
 	Confirm = {
 		Enabled = true,
-		Title = "Warning!",
-		Description = "This feature may cause performance issues. Are you sure you want to <font color=\"rgb(255,0,0)\">enable</font> it?",
+		Title = "Are you sure?",
+		Description = 'This may cause <font color="rgb(255,0,0)">performance issues</font>. Continue?',
 		TitleColor = Color3.fromRGB(255, 100, 100),
 		ConfirmText = "Yes, enable it",
 		CancelText = "No, cancel",
 	},
-	Callback = function(state)
-		print("[Aimbot] Dangerous toggle changed to:", state)
-	end
-}, showNotification)
+	Callback = function(state) print("[Demo] Dangerous toggle:", state) end,
+}, notify)
 
-local mainTogglesDivider = toggleSection:Divider({ Color = Color3.fromRGB(255, 0, 0) })
-local mainTogglesDivider = toggleSection:Divider()
+local valueSection = controlsTab:Section({ Name = "Values", Side = "Left" })
 
--- 4.3 Adjustments (Left)
-local adjustSection = aimbotTab:Section({ Name = "Adjustments", Side = "Left" })
-local smoothnessSlider = adjustSection:Slider({
+-- Slider: numeric range. Precision = decimal places shown/stored.
+valueSection:Slider({
 	Name = "Smoothness",
 	Min = 0,
 	Max = 100,
 	Default = 50,
 	Precision = 1,
-	Callback = function(value) print("[Aimbot] Smoothness:", value) end
-})
-local aimbotKeybind = adjustSection:Keybind({
-	Name = "Aimbot Key",
-	Default = "G",
-	Callback = function(key) print("[Aimbot] Keybind:", key) end
-})
-local playerNameInput = adjustSection:TextInput({
-	Name = "Player Name",
-	Placeholder = "Enter name...",
-	Default = "",
-	Callback = function(text) print("[Aimbot] Text input:", text) end
-})
-local statusElement = adjustSection:Status({
-	Name = "System Status",
-	Entries = {
-		{ "info", "All systems nominal", "green" },
-		{ "alert", "CPU usage high", "orange" },
-		{ "error", "Critical failure", "red" },
-		{ "custom", "Custom color", Color3.fromRGB(255, 200, 100) },
-	}
+	Callback = function(v) print("[Demo] Slider:", v) end,
 })
 
--- 4.4 Player Stats (Left)
-local statsSection = aimbotTab:Section({ Name = "Player Stats", Side = "Left" })
-local healthBar = statsSection:ProgressBar({
-	Name = "Health",
-	MinValue = 0,
-	MaxValue = 100,
-	Value = 100,
-	Color = Color3.fromRGB(255, 50, 50),
-	ShowPercentage = true,
-	ShowFraction = true,
-	Animate = true,
-})
-local player = game:GetService("Players").LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-humanoid.HealthChanged:Connect(function(health)
-	healthBar:SetValue(health)
-end)
-local ammoStepper = statsSection:Stepper({
+-- Stepper: +/- numeric field. Integer=true forces whole numbers, Step sets the
+-- increment per click.
+valueSection:Stepper({
 	Name = "Ammo Count",
 	Min = 0,
 	Max = 100,
 	Default = 30,
 	Step = 5,
 	Integer = true,
-	Callback = function(value)
-		print("[Stepper] Ammo set to:", value)
-	end
+	Callback = function(v) print("[Demo] Stepper:", v) end,
 })
 
--- ============================================================================
---  5. AIMBOT TAB – RIGHT COLUMN SECTIONS
--- ============================================================================
+local textSection = controlsTab:Section({ Name = "Text", Side = "Right" })
 
--- 5.1 Right Controls (Right)
-local rightControls = aimbotTab:Section({ Name = "Right Controls", Side = "Right" })
-local rightToggle = rightControls:Toggle({
-	Name = "Right Toggle",
-	Default = true,
-	Callback = function(state) print("[Aimbot Right] Toggle:", state) end
+-- Keybind: capture a keyboard key. Default is the starting key ("G").
+textSection:Keybind({
+	Name = "Primary Key",
+	Default = "G",
+	Callback = function(key) print("[Demo] Keybind:", key) end,
 })
-local rightSlider = rightControls:Slider({
-	Name = "Right Slider",
-	Min = 0,
-	Max = 200,
-	Default = 100,
-	Precision = 0,
-	Callback = function(value) print("[Aimbot Right] Slider:", value) end
-})
-local radioGroup = rightControls:RadioButtonGroup()
-local radioA = radioGroup:RadioButton({ Name = "Option A", Default = true, Callback = function() print("[Radio] A selected") end })
-local radioB = radioGroup:RadioButton({ Name = "Option B", Callback = function() print("[Radio] B selected") end })
-local radioC = radioGroup:RadioButton({ Name = "Option C", Callback = function() print("[Radio] C selected") end })
 
--- 5.2 Dropdowns (Right)
-local dropdownSection = aimbotTab:Section({ Name = "Dropdowns", Side = "Right" })
-local dropdownCapped = dropdownSection:Dropdown({
-	Name = "Fruit Selection (cap: 2)",
+-- TextInput: free-form single-line text with a placeholder.
+textSection:TextInput({
+	Name = "Player Name",
+	Placeholder = "Enter a name...",
+	Default = "",
+	Callback = function(text) print("[Demo] TextInput:", text) end,
+})
+
+-- RadioButtonGroup: mutually-exclusive choices. Create the group, then add
+-- RadioButtons to it; only one can be selected at a time.
+local choiceSection = controlsTab:Section({ Name = "Choices", Side = "Right" })
+local radioGroup = choiceSection:RadioButtonGroup()
+radioGroup:RadioButton({ Name = "Option A", Default = true, Callback = function() print("[Demo] Radio A") end })
+radioGroup:RadioButton({ Name = "Option B", Callback = function() print("[Demo] Radio B") end })
+radioGroup:RadioButton({ Name = "Option C", Callback = function() print("[Demo] Radio C") end })
+
+-- =========================================================================
+--  5. INPUTS TAB  -  Dropdown, ColorPicker
+-- =========================================================================
+local dropdownItems = {
+	{ name = "Apple",      icon = ico("apple"),      value = "apple" },
+	{ name = "Banana",     icon = ico("banana"),     value = "banana" },
+	{ name = "Orange",     icon = ico("orange"),     value = "orange" },
+	{ name = "Grapes",     icon = ico("grapes"),     value = "grapes" },
+	{ name = "Strawberry", icon = ico("strawberry"), value = "strawberry" },
+	{ name = "Watermelon", icon = ico("watermelon"), value = "watermelon" },
+}
+
+local dropSection = inputsTab:Section({ Name = "Dropdowns", Side = "Left" })
+
+-- Dropdown, single-select (MaxItemsChoosable = 1). Opens a themed popup.
+dropSection:Dropdown({
+	Name = "Favourite Fruit",
+	Items = dropdownItems,
+	Default = { "apple" },
+	MaxItemsChoosable = 1,
+	Placeholder = "Pick one...",
+	Callback = function(selected)
+		if selected[1] then print("[Demo] Dropdown (single):", selected[1].name) end
+	end,
+}, openDropdown)
+
+-- Dropdown, multi-select capped at 2.
+dropSection:Dropdown({
+	Name = "Snack Selection (max 2)",
 	Items = dropdownItems,
 	Default = { "apple", "banana" },
 	MaxItemsChoosable = 2,
-	Placeholder = "Select fruits...",
+	Placeholder = "Pick up to two...",
 	Callback = function(selected)
 		local names = {}
 		for _, item in ipairs(selected) do table.insert(names, item.name) end
-		print("[Dropdown] Selected (cap 2):", table.concat(names, ", "))
-	end
-}, showDropdown)
-local dropdownUncapped = dropdownSection:Dropdown({
-	Name = "Fruit Selection (no cap)",
+		print("[Demo] Dropdown (multi):", table.concat(names, ", "))
+	end,
+}, openDropdown)
+
+-- Dropdown, uncapped multi-select (omit MaxItemsChoosable).
+dropSection:Dropdown({
+	Name = "Fruit Salad (any amount)",
 	Items = dropdownItems,
-	Default = { "apple" },
-	Placeholder = "Select any fruits...",
-	Callback = function(selected)
-		local names = {}
-		for _, item in ipairs(selected) do table.insert(names, item.name) end
-		print("[Dropdown] Selected (no cap):", table.concat(names, ", "))
-	end
-}, showDropdown)
+	Default = {},
+	Placeholder = "Choose freely...",
+	Callback = function(selected) print("[Demo] Dropdown (uncapped):", #selected, "items") end,
+}, openDropdown)
 
--- 5.3 Misc (Right) – labels and button
-local miscSection = aimbotTab:Section({ Name = "Misc", Side = "Right" })
-local testButton = miscSection:Button({
-	Name = "Test Button",
-	Callback = function()
-		print("[Button] Clicked!")
-		showNotification({
-			Title = "Button Clicked",
-			Description = "You clicked the test button.",
-		})
-	end
-})
-local labelWithContainer = miscSection:Label({
-	Text = "Label with container (default)",
-})
-local plainLabel = miscSection:Label({
-	Text = "Plain label (no container)",
-	ShowContainer = false,
-	ShowStroke = false,
-})
-local boldLabel = miscSection:Label({
-	Text = "Bold label (with container)",
-	FontWeight = "Bold",
-})
+local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
 
--- ============================================================================
---  6. VISUALS TAB – SECTIONS & COMPONENTS
--- ============================================================================
-local visualSection = visualsTab:Section({ Name = "Visual Settings", Side = "Left" })
-local visualToggle = visualSection:Toggle({
-	Name = "Show Crosshair",
-	Default = false,
-	Callback = function(state) print("[Visuals] Crosshair:", state) end
-})
-local visualParagraph = visualSection:Paragraph({
-	Title = "Visual Settings",
-	Description = "Configure your visual preferences here.\nThis is a multi-line description.",
-})
-local plainLabel2 = visualSection:Label({
-	Text = "Another plain label",
-	ShowContainer = false,
-	ShowStroke = false,
+-- ColorPicker: opens a themed colour-picker popup; the 2nd arg is the popup
+-- factory so it renders consistently with the rest of the window.
+colorSection:ColorPicker({
+	Name = "Accent Colour",
+	Default = Color3.fromRGB(108, 140, 255),
+	Callback = function(color) print("[Demo] ColorPicker:", color) end,
+}, openColorPicker)
+
+colorSection:ColorPicker({
+	Name = "Crosshair Colour",
+	Default = Color3.fromRGB(255, 80, 80),
+	Callback = function(color) print("[Demo] ColorPicker 2:", color) end,
+}, openColorPicker)
+
+-- =========================================================================
+--  6. FEEDBACK TAB  -  Status, ProgressBar, Notifications, Video
+-- =========================================================================
+local statusSection = feedbackTab:Section({ Name = "System Status", Side = "Left" })
+
+-- Status: a list of labelled entries. Each entry is { kind, text, color }
+-- where color is a named colour ("green"/"orange"/"red") or a Color3.
+statusSection:Status({
+	Name = "Diagnostics",
+	Entries = {
+		{ "info",  "All systems nominal",   "green" },
+		{ "alert", "CPU usage high",        "orange" },
+		{ "error", "Cache miss detected",   "red" },
+		{ "custom", "Custom-tinted entry",  Color3.fromRGB(255, 200, 100) },
+	},
 })
 
--- 6.15 Notification tests (Left)
-local notifSection = visualsTab:Section({ Name = "Notifications", Side = "Left" })
-notifSection:Button({
+local progressSection = feedbackTab:Section({ Name = "Progress", Side = "Left" })
+
+-- ProgressBar bound to the local player's health. Animate tweens the fill.
+local healthBar = progressSection:ProgressBar({
+	Name = "Health",
+	MinValue = 0,
+	MaxValue = 100,
+	Value = humanoid.Health,
+	Color = Color3.fromRGB(255, 60, 60),
+	ShowPercentage = true,
+	ShowFraction = true,
+	Animate = true,
+})
+humanoid.HealthChanged:Connect(function(hp) healthBar:SetValue(hp) end)
+
+-- A second, static progress bar to show the default styling.
+progressSection:ProgressBar({
+	Name = "Download",
+	MinValue = 0,
+	MaxValue = 100,
+	Value = 42,
+	ShowPercentage = true,
+	Animate = false,
+})
+
+local toastSection = feedbackTab:Section({ Name = "Notifications", Side = "Right" })
+
+-- Alert toast.
+toastSection:Button({
 	Name = "Alert",
 	Callback = function()
-		window:Alert({
-			Title = "Alert",
-			Description = "This is an alert notification.",
-			Duration = 4,
-		})
+		window:Alert({ Title = "Alert", Description = "This is an alert notification.", Duration = 4 })
 	end,
 })
-notifSection:Button({
+
+-- Error toast.
+toastSection:Button({
 	Name = "Error",
 	Callback = function()
-		window:Error({
-			Title = "Error",
-			Description = "Something went wrong.",
-			Duration = 4,
-		})
+		window:Error({ Title = "Error", Description = "Something went wrong.", Duration = 4 })
 	end,
 })
-notifSection:Button({
-	Name = "Variable (success)",
+
+-- Variable toast with a gradient icon + action buttons.
+toastSection:Button({
+	Name = "Rich Toast",
 	Callback = function()
 		window:VariableNotification({
-			Title = "Changes saved!",
-			Description = "Your settings have been saved successfully.",
-			Duration = 5,
-			ShowBackground = true,
-		})
-	end,
-})
-notifSection:Button({
-	Name = "Variable (custom + actions)",
-	Callback = function()
-		window:VariableNotification({
-			Title = "New update available",
+			Title = "Update available",
 			Description = "Version 2.0 is ready to install.",
 			Duration = 8,
-			Icon = "rbxassetid://8445470559",
+			Icon = ico("download"),
 			IconColor = Color3.fromRGB(96, 165, 250),
 			GradientColor = Color3.fromRGB(139, 92, 246),
 			ShowBackground = true,
 			Actions = {
-				{ Text = "Install", Callback = function() print("[Notif] Install") end },
-				{ Text = "Later", Callback = function() print("[Notif] Later") end }
+				{ Text = "Install", Callback = function() print("[Demo] Install") end },
+				{ Text = "Later",   Callback = function() print("[Demo] Later") end },
 			},
 		})
 	end,
 })
 
--- 6.2 Color Settings (Right)
-local colorSection = visualsTab:Section({ Name = "Color Settings", Side = "Right" })
-local crosshairColor = colorSection:ColorPicker({
-	Name = "Crosshair Color",
-	Default = Color3.fromRGB(255, 0, 0),
-	Callback = function(value) print("[Visuals] Crosshair color:", value) end
-}, showColorPicker)
+-- =========================================================================
+--  7. MEDIA TAB  -  Video
+-- =========================================================================
+local mediaSection = mediaTab:Section({ Name = "Video Player", Side = "Left" })
 
--- ============================================================================
---  7. SETTINGS TAB – theme switcher
--- ============================================================================
+-- Video: embeds a Roblox VideoFrame. Loop repeats; Height is in pixels.
+mediaSection:Video({
+	VideoId = "rbxassetid://5670794788",
+	Loop = true,
+	Height = 90,
+})
+
+mediaSection:Paragraph({
+	Title = "Video Element",
+	Description = "The Video component wraps a VideoFrame with the library's stroke, rounding and shadow styling, all theme-aware.",
+})
+
+-- =========================================================================
+--  8. SETTINGS TAB  -  live theme switcher
+-- =========================================================================
 local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
+settingsSection:Paragraph({
+	Title = "Settings",
+	Description = "The Settings tab also hosts the Themes card grid that the library builds automatically. Use the dropdown opposite to switch themes live and watch every element crossfade.",
+})
 
--- Theme switcher (right column)
-local themeSection = settingsTab:Section({ Name = "Themes", Side = "Right" })
-local themeItems = {
-	{ name = "Default", value = "Default" },
-	{ name = "Black", value = "Black" },
-	{ name = "Light", value = "Light" },
-	{ name = "Midnight", value = "Midnight" },
-	{ name = "Graphite", value = "Graphite" },
-	{ name = "Pearl", value = "Pearl" },
-	{ name = "Slate", value = "Slate" },
-}
-local themeDropdown = themeSection:Dropdown({
+local themeSection = settingsTab:Section({ Name = "Theme Switcher", Side = "Right" })
+local themeItems = {}
+for _, name in ipairs(Aetheris.ThemeManager.ThemeOrder or {}) do
+	table.insert(themeItems, { name = name, value = name })
+end
+-- Fallback: if ThemeOrder isn't exposed, list the ones we know are safe.
+if #themeItems == 0 then
+	for _, name in ipairs({ "Default", "Black", "Light", "Midnight", "Graphite", "Ocean", "Nord", "Forest", "Glass", "Azure", "Fjord", "Summit" }) do
+		table.insert(themeItems, { name = name, value = name })
+	end
+end
+
+themeSection:Dropdown({
 	Name = "Theme",
 	Items = themeItems,
-	Default = { "Black" }, -- matches the initial theme set in CreateWindow
-	MaxItemsChoosable = 1, -- limit to single selection
+	Default = { "Default" },
+	MaxItemsChoosable = 1,
 	Placeholder = "Select theme...",
 	Callback = function(selected)
-		if selected and #selected > 0 then
-			local themeName = selected[1].value
-			window:SetTheme(themeName)
-			print("[Settings] Theme changed to:", themeName)
+		if selected[1] then
+			window:SetTheme(selected[1].value)
+			print("[Demo] Theme ->", selected[1].value)
 		end
-	end
-}, showDropdown)
+	end,
+}, openDropdown)
 
--- ============================================================================
---  8. SUMMARY & STARTUP LOG
--- ============================================================================
-print("[Aetheris_Test] Window created, tabs: Aimbot, Visuals, Settings")
-print("[Aetheris_Test] Active tab: " .. window.TabGroup.ActiveTab.Name)
-print("[Aetheris_Test] Components: Toggle, Slider, Keybind, TextInput, Status, Radio, Video, Dropdown, ProgressBar, Stepper, Button, Label, Paragraph, ColorPicker")
-print("[Aetheris_Test] Labels now support FontWeight option (Regular, Medium, SemiBold, Bold, Heavy, ExtraBold).")
-print("[Aetheris_Test] Click the dangerous toggle to see a confirmation notification.")
-print("[Aetheris_Test] Health bar is linked to your player's health.")
-print("[Aetheris_Test] Click the Crosshair Color picker to open the color picker popup.")
-print("[Aetheris_Test] Each section has <=5 components and all are stored in local variables.")
+-- =========================================================================
+--  9. STARTUP LOG
+-- =========================================================================
+print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Settings")
+print("[Aetheris Demo] Active tab:", window.TabGroup.ActiveTab.Name)
+print("[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video.")
 
--- ============================================================================
---  9. OPTIONAL: AUTO-DESTROY AFTER 5 SECONDS (uncomment to test)
--- ============================================================================
--- task.wait(5)
+-- =========================================================================
+-- 10. OPTIONAL: auto-destroy after 10s (uncomment to test teardown)
+-- =========================================================================
+-- task.wait(10)
 -- window:Destroy()

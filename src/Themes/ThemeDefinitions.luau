@@ -1755,35 +1755,41 @@ end
 -- Black and Nord are fully opaque. { WindowTransparency, SidebarTransparency,
 -- ContentBackgroundTransparency }.
 local THEME_TRANSPARENCY = {
-    -- Fully opaque (2)
+    -- Fully opaque, solid chrome (window + sidebar + content all solid).
     Black     = { 0,    0,    0    },
     Nord      = { 0,    0,    0    },
-    -- Default mirrors the original Aetheris window (near-black, slightly see-
-    -- through window, transparent sidebar over it).
-    Default   = { 0.1,  1,    0.1  },
-    -- Translucent sidebar, opaque content
-    Light     = { 0.2,  0.45, 0    },
-    Midnight  = { 0.2,  0.45, 0    },
-    Graphite  = { 0.2,  0.45, 0    },
-    Pearl     = { 0.2,  0.45, 0    },
-    Slate     = { 0.2,  0.45, 0    },
-    Forest    = { 0.2,  0.45, 0    },
-    Amethyst  = { 0.2,  0.45, 0    },
-    Rose      = { 0.2,  0.45, 0    },
-    Retro     = { 0.2,  0.45, 0    },
-    Azure     = { 0.2,  0.45, 0    },
-    Blossom   = { 0.2,  0.45, 0    },
-    Fjord     = { 0.2,  0.45, 0    },
-    Summit    = { 0.2,  0.45, 0    },
-    -- Translucent content, opaque sidebar
-    Ocean     = { 0.3,  0,    0.35 },
-    Mist      = { 0.3,  0,    0.35 },
-    Sandstone = { 0.3,  0,    0.35 },
-    Dusk      = { 0.3,  0,    0.35 },
-    Frost     = { 0.3,  0,    0.35 },
-    -- Stronger glass (already translucent)
-    Glass     = { 0.4,  0.55, 0.25 },
-    Porcelain = { 0.3,  0.55, 0    },
+
+    -- Default: near-black window, frosted-glass sidebar, near-solid content.
+    Default   = { 0.15, 0.65, 0.1  },
+
+    -- Translucent SIDEBAR over an opaque content area (the classic frosted
+    -- sidebar look). Sidebar transparency raised from 0.45 -> 0.6/0.65 so it
+    -- reads as genuinely see-through instead of merely tinted.
+    Light     = { 0.2,  0.6,  0    },
+    Midnight  = { 0.2,  0.6,  0    },
+    Graphite  = { 0.2,  0.6,  0    },
+    Pearl     = { 0.2,  0.6,  0    },
+    Slate     = { 0.2,  0.6,  0    },
+    Forest    = { 0.2,  0.6,  0    },
+    Amethyst  = { 0.2,  0.65, 0    },
+    Rose      = { 0.2,  0.6,  0    },
+    Retro     = { 0.2,  0.6,  0    },
+    Azure     = { 0.2,  0.6,  0    },
+    Blossom   = { 0.2,  0.6,  0    },
+    Fjord     = { 0.2,  0.6,  0    },
+    Summit    = { 0.2,  0.6,  0    },
+
+    -- Translucent CONTENT over an opaque sidebar (content floats above the
+    -- wallpaper while the sidebar stays solid for readability).
+    Ocean     = { 0.3,  0,    0.45 },
+    Mist      = { 0.3,  0,    0.45 },
+    Sandstone = { 0.3,  0,    0.45 },
+    Dusk      = { 0.3,  0,    0.45 },
+    Frost     = { 0.3,  0,    0.45 },
+
+    -- Full glass: both sidebar and content are strongly translucent.
+    Glass     = { 0.45, 0.7,  0.4  },
+    Porcelain = { 0.3,  0.6,  0    },
 }
 
 for name, t in pairs(THEME_TRANSPARENCY) do
