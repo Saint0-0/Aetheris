@@ -1,0 +1,13 @@
+# Normalise line endings to LF for all text files so the repo is
+# consistent across platforms (Windows autocrlf would otherwise flip them).
+* text=auto eol=lf
+
+# Binary-ish files Git should never try to merge/normalise
+*.rbxl  binary
+*.rbxlx binary
+*.rbxm  binary
+*.rbxmx binary
+*.png   binary
+*.jpg   binary
+*.zip   binary
+*.exe   binary

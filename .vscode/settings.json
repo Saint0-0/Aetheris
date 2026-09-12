@@ -1,0 +1,13 @@
+﻿{
+  "files.eol": "\n",
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    "editor.formatOnSave": true
+  },
+  "[luau]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    "editor.formatOnSave": true
+  }
+}
