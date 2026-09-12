@@ -250,8 +250,24 @@ function ThemeManager.ApplyTheme(window, themeInput)
         end
     end
 
+    -- Invalidate the page-fade caches FIRST. They hold per-tab base
+    -- transparencies captured at build time, but component ApplyTheme above just
+    -- changed those bases (Section background, UIStroke, etc.). Clearing +
+    -- re-priming here captures the NEW bases from the freshly-themed content.
+    -- This MUST run BEFORE RestoreActiveTab below: otherwise the restore pulls
+    -- the OLD cached bases and stomps the new theme values, and the re-prime
+    -- then captures those stale values (the "section backgrounds / strokes don't
+    -- return" bug).
+    if window.TabGroup and window.TabGroup.InvalidateCaches then
+        window.TabGroup:InvalidateCaches()
+    end
+    if window.SettingsTabGroup and window.SettingsTabGroup.InvalidateCaches then
+        window.SettingsTabGroup:InvalidateCaches()
+    end
+
     -- The CancelAll pass also killed any in-flight page fade, which could leave
-    -- the active page stuck transparent. Restore both active pages to natural.
+    -- the active page stuck transparent. Restore both active pages to natural,
+    -- using the freshly-primed caches from just above.
     if window.TabGroup and window.TabGroup.RestoreActiveTab then
         window.TabGroup:RestoreActiveTab()
     end

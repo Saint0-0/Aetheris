@@ -643,14 +643,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	function self:_Confirm()
 		if self._resolved then return end
 		self._resolved = true
-		Sound.Play("Click")
 		self:Close()
 		self.OnConfirm(self._currentColor)
 	end
 	function self:_Cancel()
 		if self._resolved then return end
 		self._resolved = true
-		Sound.Play("Click")
 		self:Close()
 		self.OnCancel()
 	end

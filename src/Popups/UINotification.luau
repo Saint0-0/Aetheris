@@ -277,7 +277,6 @@ function UINotification.new(parent, Settings)
 			return
 		end
 		self._resolved = true
-		Sound.Play("Click")
 		self:Close()
 		task.spawn(function()
 			self.OnConfirm()
@@ -288,7 +287,6 @@ function UINotification.new(parent, Settings)
 			return
 		end
 		self._resolved = true
-		Sound.Play("Click")
 		self:Close()
 		task.spawn(function()
 			self.OnCancel()

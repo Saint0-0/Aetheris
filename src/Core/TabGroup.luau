@@ -113,6 +113,22 @@ function TabGroup:PrimeCaches()
 		end
 	end
 end
+
+-- Drop every tab's cached base transparencies so they get re-captured from the
+-- CURRENT (freshly-themed) content. Called by ThemeManager after a theme switch:
+-- component ApplyTheme changes base transparency values (e.g. Section background
+-- + UIStroke), which would otherwise leave the OLD bases cached and make the
+-- next page switch restore stale values. Re-prime immediately while the content
+-- rests at its natural (just-themed) state.
+function TabGroup:InvalidateCaches()
+	for _, t in ipairs(self.Tabs) do
+		t._cache = nil
+	end
+	self._fadeCaches = {}
+	if self.Window and self.Window.MainFrame and self.Window.MainFrame.Visible then
+		self:PrimeCaches()
+	end
+end
 -- Fade all elements in a cache to a target transparency or back to base.
 -- targetTransparency: number or nil (revert to base). instant: set immediately.
 function TabGroup:_fadeElements(cache, targetTransparency, callback, instant)

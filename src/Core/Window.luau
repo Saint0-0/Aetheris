@@ -1274,6 +1274,14 @@ function Window.new(Settings)
 			if self.TabGroup and self.TabGroup.RefreshVisuals then
 				self.TabGroup:RefreshVisuals()
 			end
+			-- Also re-apply the ACTIVE page's own base transparencies. The window
+			-- fade cache is captured once at minimize time, so if the active tab
+			-- changed while minimized (e.g. via a pill button) its section
+			-- backgrounds/strokes would be restored from the OLD page's values.
+			-- RestoreActiveTab uses the tab's own (freshly-invalidated) cache.
+			if self.TabGroup and self.TabGroup.RestoreActiveTab then
+				self.TabGroup:RestoreActiveTab()
+			end
 			minimizeState = "shown"
 		end)
 		-- Fade the pill out in parallel, then hide it.

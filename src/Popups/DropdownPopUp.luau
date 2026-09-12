@@ -563,7 +563,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	function self:_Confirm()
 		if self._resolved then return end
 		self._resolved = true
-		Sound.Play("Click")
 		local selected = {}
 		for _, obj in ipairs(self._itemObjects) do
 			if obj.selected then
@@ -576,7 +575,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	function self:_Cancel()
 		if self._resolved then return end
 		self._resolved = true
-		Sound.Play("Click")
 		self:Close()
 		self.OnCancel()
 	end
