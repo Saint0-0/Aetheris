@@ -2,108 +2,61 @@
   <img src="assets/banner.png" alt="Aetheris" width="100%" />
 </p>
 
-<h1 align="center">Aetheris</h1>
+Aetheris is a UI library for Roblox with a clean, modern look inspired by WinUI3. Everything is built at runtime with `Instance.new`, so there are no image dependencies and nothing to pre-build — you get the whole interface from code.
 
-<p align="center">
-  A modern, WinUI3-styled UI library for Roblox — built entirely with <code>Instance.new</code>, with no external assets required.
-</p>
+It comes with a theming system that ships with 23 hand-tuned themes, live theme switching with a smooth colour fade, a full set of components, popups and notifications, and it runs both in Studio and inside a script executor.
 
-<p align="center">
-  <a href="https://github.com/Saint0-0/Aetheris/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Saint0-0/Aetheris?style=flat-square" /></a>
-  <a href="https://github.com/Saint0-0/Aetheris/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/Saint0-0/Aetheris?style=flat-square" /></a>
-  <img alt="Luau" src="https://img.shields.io/badge/language-Luau-00A2FF?style=flat-square" />
-  <img alt="Rojo" src="https://img.shields.io/badge/build-Rojo-FF7A7A?style=flat-square" />
-</p>
+## What's inside
 
----
-
-## Overview
-
-**Aetheris** is a fully customisable Roblox UI library with a clean, modern, WinUI3-inspired aesthetic. Every element is constructed at runtime with `Instance.new` — there are no image dependencies, no pre-built GUI hierarchies, and no third-party UI frameworks. Drop the library in and build interfaces entirely from code.
-
-It ships with a **theme engine** covering 23 hand-tuned themes (with live switching and a colour crossfade), a full component set, popups and notifications, and support for running both inside Roblox Studio and within a script executor.
-
-## Features
-
-- **Pure `Instance.new`** — no external assets or image dependencies.
-- **23 built-in themes** with live switching and a smooth colour crossfade. Every component is fully theme-aware.
-- **Complete component set** — toggles, sliders, steppers, keybinds, text inputs, dropdowns, colour pickers, radio groups, progress bars, status lists, buttons, labels, paragraphs, dividers, video, and more.
-- **Popups & notifications** — dropdowns, colour pickers, tooltips, and toast notifications (alert / error / variable).
-- **Per-element transparency controls** — glass-style sidebars, frosted content areas, and per-theme window chrome.
-- **Studio & executor support** — designed to run in both environments.
-- **Rojo-based workflow** — clean, version-controlled source tree.
+- Every element is created with `Instance.new` — no external assets.
+- 23 built-in themes, all switchable at runtime, and every component follows the active theme.
+- Components: toggles, sliders, steppers, keybinds, text inputs, dropdowns, colour pickers, radio groups, progress bars, status lists, buttons, labels, paragraphs, dividers and video.
+- Popups and notifications: dropdowns, colour pickers, tooltips and toasts (alert, error and variable).
+- Per-element transparency, so you can do glass-style sidebars and frosted content areas.
+- Works in Studio and in executors.
 
 ## Documentation
 
-Full documentation — installation, theming, the component API, and examples — lives in the official GitBook:
+Everything — setup, theming, the component API and examples — lives in the docs:
 
-> **[Aetheris Documentation →](https://example.gitbook.io/aetheris)** _<!-- TODO: replace with the live GitBook link -->_
+**[Aetheris documentation →](https://example.gitbook.io/aetheris)**
 
-## Installation
+## Getting the library
 
-### Roblox Studio (Rojo)
+Grab the single-file build from [`dist/Aetheris.luau`](dist/Aetheris.luau) and load it, or run it however you normally run a script.
 
-1. Clone this repository.
-2. Sync the project into Studio with [Rojo](https://rojo.space/) using the included `default.project.json`:
-   ```
-   rojo serve
-   ```
-3. Connect the Rojo plugin in Studio. The library is synced into `ReplicatedStorage.Aetheris`.
-
-### Prebuilt bundle
-
-A single-file bundle (`dist/Aetheris.luau`) can be generated and executed directly in an executor:
-
-```
-darklua process src/Init.luau dist/Aetheris.luau
+```lua
+loadstring(game:HttpGet("<raw url to dist/Aetheris.luau>"))()
 ```
 
-## Project structure
+## Repo layout
 
 ```
-Aetheris/
-├─ src/                    Library source (Rojo syncs into ReplicatedStorage.Aetheris)
-│  ├─ Core/                Window, TabGroup, Section, and settings
-│  ├─ Components/          UI components
-│  ├─ Themes/              Theme engine and definitions
-│  ├─ Popups/              Popups and notifications
-│  ├─ Utils/               Tween, sound, and helper utilities
-│  └─ Assets/              Icons
-├─ example/                Demo harness (full component showcase)
-├─ assets/                 README banner and branding
-├─ tools/                  rojo + darklua
-├─ default.project.json    Rojo project
-└─ .luaurc                 Luau language config
+src/          the library source
+  Core/         Window, TabGroup, Section and settings
+  Components/   the UI components
+  Themes/       the theme engine and definitions
+  Popups/       popups and notifications
+  Utils/        tween, sound and helpers
+  Assets/       icons
+example/      a demo that shows off every component
+dist/         the built single-file library
+assets/       the banner and other branding
+tools/        rojo + darklua (dev tools)
 ```
 
-## Building
+## Building from source
 
-Build a place file from source:
-
-```
-rojo build default.project.json -o build/Aetheris.rbxl
-```
-
-Bundle the library into a single file:
+If you want to rebuild `dist/Aetheris.luau` yourself:
 
 ```
-darklua process src/Init.luau dist/Aetheris.luau
+tools\darklua.exe process src/Init.luau dist/Aetheris.luau
 ```
-
-## Requirements
-
-- Roblox Studio (or a Luau-compatible executor)
-- [Rojo](https://rojo.space/) 7.x for live sync
-- [darklua](https://darklua.com/) for single-file bundling
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss larger changes before submitting a pull request, and keep the code style consistent with the existing modules (string-based `require`, no `script.Parent` references).
+If you want to add something or fix a bug, open an issue first for anything bigger so we can talk it through. Keep the existing style (string requires, no `script.Parent`).
 
 ## License
 
-Released under the MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-<p align="center"><sub>Built with Luau · Themed with care · Aetheris</sub></p>
+MIT.
