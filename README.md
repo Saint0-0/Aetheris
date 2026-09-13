@@ -17,8 +17,8 @@ Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI
 
 Two files are attached to each release:
 
-- **Aetheris.rbxl** - a ready-made place with the library synced in.
 - **Aetheris.luau** - the single-file build, load it with `loadstring`.
+- **Aetheris.rbxm** - a Roblox model (an `Aetheris` folder holding an `Init` ModuleScript). Drop it into `ReplicatedStorage` and require `Aetheris.Init`.
 
 ## Install
 
@@ -40,7 +40,10 @@ The build pipeline lives in `build/` and is run with [lune](https://github.com/l
 tools\lune.exe run build
 ```
 
-That bundles and minifies `src/` into `dist/Aetheris.luau` (gitignored - it is a build artefact, not source).
+That produces two artifacts in `dist/` (gitignored - they are build artefacts, not source):
+
+- `dist/Aetheris.luau` - the bundle, minified with darklua, header prepended.
+- `dist/Aetheris.rbxm` - the Roblox model, built with rojo from the bundle.
 
 ## Credits
 

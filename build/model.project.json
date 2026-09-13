@@ -1,0 +1,10 @@
+{
+  "name": "Aetheris",
+  "tree": {
+    "$className": "Folder",
+    "Aetheris": {
+      "$className": "Folder",
+      "Init": { "$path": "../dist/Aetheris.luau" }
+    }
+  }
+}
