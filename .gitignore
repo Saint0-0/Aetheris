@@ -1,5 +1,6 @@
 # Rojo / Studio place output
 *.rbxl
+*.rbxl.lock
 *.rbxlx
 *.rbxm
 *.rbxmx
