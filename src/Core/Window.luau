@@ -688,10 +688,14 @@ function Window.new(Settings)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
 
-	-- Clicking the display name masks both the display name and username.
+	-- Clicking the display name toggles masking of both the display name and username.
+	local originalDisplayName = DisplayName.Text
+	local originalUsername = Username.Text
+	local masked = false
 	DisplayName.MouseButton1Click:Connect(function()
-		DisplayName.Text = "********"
-		Username.Text = "********"
+		masked = not masked
+		DisplayName.Text = masked and "********" or originalDisplayName
+		Username.Text = masked and "********" or originalUsername
 	end)
 
 	local TimeLabel = Instance.new("TextLabel")

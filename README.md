@@ -2,7 +2,7 @@
   <img src="assets/banner rectangular.png" alt="Aetheris" width="100%" />
 </p>
 
-Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI3 and maclib. Everything is built at runtime with `Instance.new`, so there are no image dependencies and nothing to pre-build. You get the whole interface from code.
+Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI3, maclib and Fluent. Everything is built at runtime with `Instance.new`, so there are no image dependencies and nothing to pre-build. You get the whole interface from code.
 
 > **Work in progress.** Aetheris is not finished. Some features are still being built, and it may not have full exploit integration or full save-state support yet.
 
@@ -30,6 +30,7 @@ tools\darklua.exe process src/Init.luau dist/Aetheris.luau
 
 - **WinUI3** by Microsoft, for the visual language Aetheris is built around.
 - **[maclib](https://brady-xyz.gitbook.io/maclib-ui-library)** by brady-xyz, for inspiration.
+- **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration.
 
 ## License
 
