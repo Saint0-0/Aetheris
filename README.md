@@ -46,7 +46,7 @@ That bundles and minifies `src/` into `dist/Aetheris.luau` (gitignored - it is a
 
 - **WinUI3** by Microsoft, for the visual language Aetheris is built around.
 - **[maclib](https://brady-xyz.gitbook.io/maclib-ui-library)** by brady-xyz, for inspiration.
-- **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration.
+- **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration, and for the build tooling - the files in [`build/`](build) are adapted from [Fluent's `build/` folder](https://github.com/dawid-scripts/Fluent/tree/master/build).
 
 ## License
 
