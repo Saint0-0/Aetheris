@@ -737,8 +737,8 @@ function Window.new(Settings)
 	ScriptLogo.Name = "ScriptLogo"
 	ScriptLogo.BorderSizePixel = 0
 	ScriptLogo.BackgroundTransparency = 1
-	ScriptLogo.Image = "rbxassetid://140238815705552"
-	ScriptLogo.Size = UDim2.new(0, 32, 0, 32)
+	ScriptLogo.Image = "rbxassetid://92458734285074"
+	ScriptLogo.Size = UDim2.new(0, 40, 0, 32)
 	ScriptLogo.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptLogo.LayoutOrder = 1
 	ScriptLogo.Parent = ScriptInfoGroup
