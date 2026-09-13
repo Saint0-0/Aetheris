@@ -1,0 +1,17 @@
+{
+  "bundle": {
+    "require_mode": "path"
+  },
+  "generator": {
+    "name": "dense",
+    "column_span": 10000000000
+  },
+  "rules": [
+    "remove_comments",
+    "remove_spaces",
+    {
+      "rule": "rename_variables",
+      "include_functions": true
+    }
+  ]
+}

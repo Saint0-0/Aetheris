@@ -34,9 +34,13 @@ Setup, theming, the component API and examples all live in the docs:
 
 ## Build from source
 
+The build pipeline lives in `build/` and is run with [lune](https://github.com/lune-org/lune):
+
 ```
-tools\darklua.exe process src/Init.luau dist/Aetheris.luau
+tools\lune.exe run build
 ```
+
+That bundles and minifies `src/` into `dist/Aetheris.luau` (gitignored - it is a build artefact, not source).
 
 ## Credits
 
