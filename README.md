@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://github.com/Saint0-0/Aetheris/releases/latest"><img src="https://img.shields.io/github/v/release/Saint0-0/Aetheris?include_prereleases&label=release" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" /></a>
+  <a href="https://dsc.gg/saintx"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI3, maclib and Fluent. Everything is built at runtime with `Instance.new`, so there are no image dependencies and nothing to pre-build. You get the whole interface from code.
@@ -40,7 +41,7 @@ The build pipeline lives in `build/` and is run with [lune](https://github.com/l
 tools\lune.exe run build
 ```
 
-That produces two artifacts in `dist/` (gitignored - they are build artefacts, not source):
+That produces two artifacts in `dist/`:
 
 - `dist/Aetheris.luau` - the bundle, minified with darklua, header prepended.
 - `dist/Aetheris.rbxm` - the Roblox model, built with rojo from the bundle.
@@ -54,3 +55,7 @@ That produces two artifacts in `dist/` (gitignored - they are build artefacts, n
 ## License
 
 MIT.
+
+## Discord
+
+https
