@@ -55,7 +55,3 @@ That produces two artifacts in `dist/`:
 ## License
 
 MIT.
-
-## Discord
-
-https
