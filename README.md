@@ -31,7 +31,7 @@ loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/do
 
 Setup, theming, the component API and examples all live in the docs:
 
-**[Aetheris documentation ->](https://app.gitbook.com/s/WPkBDlqrRRp8P5YpSOrg)**
+**[Aetheris documentation ->](https://saint-3.gitbook.io/aetheris)**
 
 ## Build from source
 
