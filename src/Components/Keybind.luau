@@ -22,6 +22,7 @@ local Tween = require("../Utils/Tween")
 local UserInputService = game:GetService("UserInputService")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
+local KeybindDispatcher = require("../Utils/KeybindDispatcher")
 local Keybind = {}
 Keybind.__index = Keybind
 
@@ -134,6 +135,10 @@ function Keybind.new(parent, Settings, theme)
 	local previousKey = currentKey  -- store the key before binding starts
 	local isBinding = false
 	local connection = nil
+	local pressToken = nil  -- KeybindDispatcher registration token (gameplay press)
+	-- Forward declaration: setKey re-registers the dispatcher entry whenever
+	-- the bind changes, so setKey needs to call a function defined below.
+	local updatePressRegistration
 	-- Helper to set the displayed key
 	local function setKey(key)
 		currentKey = key
@@ -144,28 +149,36 @@ function Keybind.new(parent, Settings, theme)
 		else
 			inputBox.Text = ""
 		end
+		-- Keep the dispatcher map in sync with the new bind.
+		if updatePressRegistration then
+			updatePressRegistration()
+		end
 		-- Rebinding notification (optional): fired whenever the bind CHANGES.
 		if Settings.OnRebind then
 			Settings.OnRebind(currentKey)
 		end
 	end
 	-- Gameplay dispatch: pressing the bound key calls Settings.Callback(key).
-	-- The Keybind owns this listener, so a caller only has to supply Callback --
-	-- no external registry or shared UserInputService listener required.
+	-- ONE shared KeybindDispatcher owns the single UserInputService.InputBegan
+	-- listener for every Keybind row (map lookup by KeyCode.Name), instead of
+	-- each row connecting its own listener that string-compares every key.
 	--  * Callback = fired when the bound key is PRESSED during gameplay.
 	--  * OnRebind = fired when the bind CHANGES (rebind in the box).
-	local pressConnection = UserInputService.InputBegan:Connect(function(input, processed)
-		-- Ignore while the box is capturing a new bind.
-		if isBinding then return end
-		-- Respect game-processed input (chat / a focused TextBox).
-		if processed then return end
-		if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-		if currentKey ~= "" and input.KeyCode.Name == currentKey then
-			if Settings.Callback then
-				Settings.Callback(currentKey)
-			end
+	updatePressRegistration = function()
+		if pressToken then
+			KeybindDispatcher.Unregister(pressToken)
+			pressToken = nil
 		end
-	end)
+		if currentKey and currentKey ~= "" then
+			pressToken = KeybindDispatcher.Register(currentKey, function()
+				-- Ignore while the box is capturing a new bind.
+				if isBinding then return end
+				if Settings.Callback then
+					Settings.Callback(currentKey)
+				end
+			end)
+		end
+	end
 	-- Brighten stroke (hover/focus effect)
 	local function setStrokeBright(bright)
 		local liveTheme = ActiveTheme.theme or theme
@@ -261,7 +274,10 @@ function Keybind.new(parent, Settings, theme)
 	-- Cleanup: when this row is removed (e.g. the whole window is destroyed),
 	-- drop the input listeners so nothing fires on a dead UI.
 	local function disconnectAll()
-		if pressConnection then pressConnection:Disconnect() end
+		if pressToken then
+			KeybindDispatcher.Unregister(pressToken)
+			pressToken = nil
+		end
 		if connection then connection:Disconnect() end
 	end
 	row.Destroying:Connect(disconnectAll)
