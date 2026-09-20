@@ -1,7 +1,0 @@
-Fix blank page when clicking a pill button for the active tab
-
-TabGroup:SetActiveTab early-returns when the target tab is already active,
-so it never re-snaps that tab's FadeLayer. If the Settings page (or a prior
-crossfade) left the layer hidden, restoring the window showed a blank page.
-The pill click handler now force-shows the clicked tab's FadeLayer after
-SetActiveTab, so an explicit pill click always reveals that page.
