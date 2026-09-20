@@ -99,6 +99,11 @@ function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 	local existing = activeTweens[instance][key]
 	if existing and replace then
 		existing.Tween:Cancel()
+		-- Tween:Cancel() fires the OLD tween's Completed handler SYNCHRONOUSLY,
+		-- and that handler nils the whole bucket when it was the last entry.
+		-- Without this re-create, the assignment below indexes a nil table:
+		-- 'attempt to index nil with Position/TextTransparency'.
+		activeTweens[instance] = activeTweens[instance] or {}
 	end
 
 	local tween = TweenService:Create(instance, tweenInfo, properties)
