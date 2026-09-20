@@ -1508,6 +1508,14 @@ function Window.new(Settings)
 				if self.TabGroup then
 					self.TabGroup:SetActiveTab(tab)
 				end
+				-- SetActiveTab early-returns when the clicked tab is ALREADY active,
+				-- so it never re-snaps that page's FadeLayer. If the Settings page had
+				-- hidden it, the page would restore blank. An explicit pill click is
+				-- always an intent to SHOW this tab, so force its layer visible here.
+				if tab and tab.FadeLayer then
+					tab.FadeLayer.Visible = true
+					PageFade.Snap(tab.FadeLayer, 0)
+				end
 				restoreWindow()
 			end)
 			pillButtonByTab[tab] = btn
