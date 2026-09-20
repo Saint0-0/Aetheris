@@ -41,6 +41,14 @@ function UISettings.Build(window, tab)
 		Callback = function()
 			if window.ToggleMinimize then window.ToggleMinimize() end
 		end,
+		-- Persist a rebind: update the live window key AND save it so it survives
+		-- across sessions (Window reads SettingsStore 'MinimizeKey' on CreateWindow).
+		OnRebind = function(key)
+			if key and key ~= "" then
+				window._minimizeKey = key
+				SettingsStore.Set("MinimizeKey", key)
+			end
+		end,
 	})
 
 	-- == Minimize Pill ======================================================
