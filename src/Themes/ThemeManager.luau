@@ -610,8 +610,17 @@ function ThemeManager.ApplyTheme(window, themeInput)
     -- component walk above. Bindings skip overridden props, so an override
     -- re-stamped just above is preserved.
     compactBindings()
+    -- Scope the binding pass to THIS window's tree, matching the component walk
+    -- above. Without this, a second window's ApplyTheme would re-theme the first
+    -- window's instances too (bindings is a module-global registry). Everything
+    -- a window owns — chrome, tabs, popups, pill, tooltip — lives under
+    -- window.Base (the ScreenGui), so this covers them all.
+    local scopeRoot = window.Base
     for _, entry in ipairs(bindings) do
-        applyEntry(entry, theme, true)
+        local inst = entry.instance
+        if inst and (inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
+            applyEntry(entry, theme, true)
+        end
     end
 
     -- ApplyTheme cancelled all active tweens above. Restart the active tab
