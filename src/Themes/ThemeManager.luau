@@ -20,6 +20,7 @@
 local ThemeDefinitions = require("./ThemeDefinitions")
 local Tween = require("../Utils/Tween")
 local ActiveTheme = require("./ActiveTheme")
+local PageFade = require("../Utils/PageFade")
 
 local ThemeManager = {}
 
@@ -599,6 +600,15 @@ function ThemeManager.ApplyTheme(window, themeInput)
     -- The CancelAll pass also killed any in-flight page fade, which could leave
     -- the active page stuck transparent. Restore both active pages to natural,
     -- using the freshly-primed caches from just above.
+    --
+    -- Drop PageFade's per-decoration cached fade-bases BEFORE restoring. Each
+    -- decoration's resting transparency may have CHANGED with the theme (e.g. a
+    -- radio's selection-driven UIStroke), so a base captured before the switch
+    -- would restore a stale value forever -- the "stroke stays invisible until
+    -- hover" bug. The next fade re-captures from the freshly-themed values.
+    if PageFade.InvalidateDecorationBases then
+        PageFade.InvalidateDecorationBases()
+    end
     if window.TabGroup and window.TabGroup.RestoreActiveTab then
         window.TabGroup:RestoreActiveTab()
     end

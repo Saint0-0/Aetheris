@@ -54,7 +54,8 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
 	titleLabel.TextColor3 = (theme and theme.PrimaryTextColor)
 	titleLabel.BackgroundTransparency = 1
-	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)  -- height fixed for title
+	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)
+	titleLabel.AutomaticSize = Enum.AutomaticSize.Y  -- grow to fit larger/wrapped titles
 	titleLabel.Text = title
 	titleLabel.AnchorPoint = Vector2.new(0, 0.5)
 titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, vertically centred
