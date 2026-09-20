@@ -364,6 +364,25 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- thumb/track/stroke colours are declarative bindings (see the DECLARATIVE
 	-- THEME BINDINGS block above), so a theme switch re-resolves them with no
 	-- component code. applyState only swaps the binding key on a state change.
+	function self:Destroy()
+		-- Stop the sheen gradient spin before destroying.
+		Tween.StopSpin(sheenGradient)
+		-- Cancel any in-flight tweens on themed instances.
+		Tween.CancelAll(thumb)
+		Tween.CancelAll(track)
+		Tween.CancelAll(stroke)
+		Tween.CancelAll(label)
+		Tween.CancelAll(sheen)
+		-- Drop all ThemeManager bindings for every instance we registered.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(thumb)
+		ThemeManager.UnbindInstance(track)
+		ThemeManager.UnbindInstance(stroke)
+		-- Destroy the root instance (cascades to all children).
+		if row and row.Parent then
+			row:Destroy()
+		end
+	end
 	return self
 end
 return Toggle

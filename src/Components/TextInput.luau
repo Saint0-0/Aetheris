@@ -151,6 +151,18 @@ function TextInput.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	function self:Destroy()
+		-- Cancel any in-flight tweens on the stroke.
+		Tween.CancelAll(stroke)
+		-- Drop all ThemeManager bindings.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(inputBox)
+		ThemeManager.UnbindInstance(stroke)
+		-- Destroy the root instance.
+		if row and row.Parent then
+			row:Destroy()
+		end
+	end
 	return self
 end
 return TextInput

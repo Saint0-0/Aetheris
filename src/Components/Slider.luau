@@ -311,38 +311,60 @@ function Slider.new(parent, Settings, theme)
 		local value = min + percentage * (max - min)
 		updateSlider(value, false)
 	end
-	-- Drag handlers
+	-- Drag handling on-demand (only connected while active drag is in progress)
+	local UserInputService = game:GetService("UserInputService")
+	local dragChangedConnection = nil
+	local dragEndedConnection = nil
+
+	local function stopDragging()
+		if not isDragging then return end
+		isDragging = false
+		if dragChangedConnection then
+			dragChangedConnection:Disconnect()
+			dragChangedConnection = nil
+		end
+		if dragEndedConnection then
+			dragEndedConnection:Disconnect()
+			dragEndedConnection = nil
+		end
+		updateVisibility()
+	end
+
+	local function startDragging(input)
+		isDragging = true
+		updateVisibility()
+		if not dragChangedConnection then
+			dragChangedConnection = UserInputService.InputChanged:Connect(function(changedInput)
+				if isDragging and (changedInput.UserInputType == Enum.UserInputType.MouseMovement or changedInput.UserInputType == Enum.UserInputType.Touch) then
+					processInput(changedInput)
+				end
+			end)
+		end
+		if not dragEndedConnection then
+			dragEndedConnection = UserInputService.InputEnded:Connect(function(endedInput)
+				if endedInput.UserInputType == Enum.UserInputType.MouseButton1 or endedInput.UserInputType == Enum.UserInputType.Touch then
+					stopDragging()
+				end
+			end)
+		end
+	end
+
 	thumb.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			isDragging = true
-			updateVisibility()
+			startDragging(input)
 		end
 	end)
-	-- Global drag listeners. These live on UserInputService (NOT under the row),
-	-- so they MUST be disconnected when the slider is destroyed or they leak for
-	-- the session - one pair per slider ever created.
-	local UserInputService = game:GetService("UserInputService")
-	local dragChangedConnection = UserInputService.InputChanged:Connect(function(input)
-		if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			processInput(input)
-		end
-	end)
-	local dragEndedConnection = UserInputService.InputEnded:Connect(function(input)
-		if isDragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-			isDragging = false
-			updateVisibility()
-		end
-	end)
-	row.Destroying:Connect(function()
-		dragChangedConnection:Disconnect()
-		dragEndedConnection:Disconnect()
+
+	local function disconnectAll()
+		stopDragging()
 		Tween.StopSpin(gradient)
-	end)
+	end
+	row.Destroying:Connect(disconnectAll)
+
 	-- Click on track
 	holder.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			isDragging = true
-			updateVisibility()
+			startDragging(input)
 			processInput(input)
 		end
 	end)
@@ -388,7 +410,6 @@ function Slider.new(parent, Settings, theme)
 		Tween.StopSpin(gradient)
 	end
 	startSpin()
-	row.Destroying:Connect(stopSpin)
 	-- Initial value
 	updateSlider(default, false)
 	updateVisibility()
@@ -410,6 +431,21 @@ function Slider.new(parent, Settings, theme)
 			startSpin()
 		else
 			stopSpin()
+		end
+	end
+	self.Destroy = function()
+		disconnectAll()
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(holder)
+		ThemeManager.UnbindInstance(visual)
+		ThemeManager.UnbindInstance(resetBtn)
+		ThemeManager.UnbindInstance(percentLabel)
+		ThemeManager.UnbindInstance(statBox)
+		ThemeManager.UnbindInstance(statStroke)
+		ThemeManager.UnbindInstance(holderShadow)
+		ThemeManager.UnbindInstance(thumb)
+		if row.Parent then
+			row:Destroy()
 		end
 	end
 	-- Declarative theming: every colour / transparency property is a BINDING,

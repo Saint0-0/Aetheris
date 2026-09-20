@@ -174,11 +174,25 @@ function Button.new(parent, Settings, theme)
 	-- base on each theme switch: a switch cancels in-flight hover/click tweens
 	-- and the page-fade cache re-primes right after, so without this it would
 	-- capture a mid-tween value and the fingerprint would never restore.
-	local function restampInteractionBases()
-		fingerprint.ImageTransparency = FINGERPRINT_BASE
-		buttonColor.BackgroundTransparency = BUTTONCOLOR_BASE
+	local unregisterTheme = ThemeManager.OnThemeApplied(restampInteractionBases, row)
+
+	function self:Destroy()
+		if unregisterTheme then
+			unregisterTheme()
+			unregisterTheme = nil
+		end
+		ThemeManager.UnbindInstance(row)
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(buttonColor)
+		ThemeManager.UnbindInstance(fingerprint)
+		ThemeManager.UnbindInstance(stroke)
+		Tween.CancelAll(buttonColor)
+		Tween.CancelAll(fingerprint)
+		if row.Parent then
+			row:Destroy()
+		end
 	end
-	ThemeManager.OnThemeApplied(restampInteractionBases)
+
 	return self
 end
 return Button

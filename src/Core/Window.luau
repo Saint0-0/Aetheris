@@ -79,6 +79,7 @@ function Window.new(Settings)
 	-- disconnected in _teardown when the UI is closed/destroyed.
 	local dragInputConnection
 	local resizeInputConnection
+	local minimizeKeyConnection
 
 	----------------------------------------------------------------
 	-- Root
@@ -1658,6 +1659,17 @@ function Window.new(Settings)
 		self.ToggleMinimize()
 	end)
 
+	-- Global minimize keybind: pressing self._minimizeKey toggles minimize from
+	-- anywhere in-game. Ignored while a TextBox has focus (processed == true) so
+	-- typing the letter into an input never minimizes the window.
+	minimizeKeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then return end
+		if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+		if input.KeyCode.Name == self._minimizeKey and self.ToggleMinimize then
+			self.ToggleMinimize()
+		end
+	end)
+
 	-- Restore the window to its default position + size (used by UI Settings).
 	self.ResetLayout = function()
 		Tween.Play(MainFrame, minimizePreset(), {
@@ -1706,6 +1718,10 @@ function Window.new(Settings)
 		if resizeInputConnection then
 			resizeInputConnection:Disconnect()
 			resizeInputConnection = nil
+		end
+		if minimizeKeyConnection then
+			minimizeKeyConnection:Disconnect()
+			minimizeKeyConnection = nil
 		end
 
 		if tabListScrollbarTimer then
@@ -2005,7 +2021,10 @@ function Window:Destroy()
 
 	if self._teardown then self._teardown() end
 
-	local handle = Tween.Play(self.MainFrame, closePreset, { BackgroundTransparency = 1 })
+	-- Fade the WHOLE window out. MainFrame is a CanvasGroup, so a single
+	-- GroupTransparency tween fades every child; tweening BackgroundTransparency
+	-- would only fade the frame's own fill and leave children visible.
+	local handle = Tween.Play(self.MainFrame, closePreset, { GroupTransparency = 1 })
 	handle.Tween.Completed:Wait()
 
 	Tween.CancelAll(self.MainFrame)
@@ -2054,10 +2073,17 @@ local function spawnNotification(self, ntype, Settings)
 	end
 	Settings.Type = ntype
 	local notification = Notification.new(self.Notifications, Settings, self._theme)
-	-- Track live toasts so Window:SetTheme can recolor them in place. Entries
-	-- are pruned lazily once Notification:Close() clears their Root.
+	-- Track live toasts so Window:SetTheme can recolor them in place. Prune
+	-- entries whose Root was cleared by Notification:Close() on EVERY spawn, so
+	-- the table can't grow unbounded between theme switches.
 	if not self._toasts then
 		self._toasts = {}
+	end
+	for i = #self._toasts, 1, -1 do
+		local t = self._toasts[i]
+		if not (t and t.Root) then
+			table.remove(self._toasts, i)
+		end
 	end
 	table.insert(self._toasts, notification)
 	notification:Show()

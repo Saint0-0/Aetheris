@@ -241,6 +241,7 @@ local function makeHandle(entry)
     end
     function handle:Destroy()
         entry.dropped = true
+        entry.instance = nil
     end
     return handle
 end
@@ -259,6 +260,7 @@ local function bind(instance, property, themeKey, kind, opts)
             if props then
                 for _, e in pairs(props) do
                     e.dropped = true
+                    e.instance = nil
                 end
                 bindingIndex[instance] = nil
             end
@@ -267,6 +269,7 @@ local function bind(instance, property, themeKey, kind, opts)
     local old = byProp[property]
     if old then
         old.dropped = true
+        old.instance = nil
     end
     local entry = {
         instance = instance,
@@ -313,7 +316,19 @@ function ThemeManager.Unbind(instance, property)
     local byProp = bindingIndex[instance]
     if byProp and byProp[property] then
         byProp[property].dropped = true
+        byProp[property].instance = nil
         byProp[property] = nil
+    end
+end
+
+function ThemeManager.UnbindInstance(instance)
+    local props = bindingIndex[instance]
+    if props then
+        for _, e in pairs(props) do
+            e.dropped = true
+            e.instance = nil
+        end
+        bindingIndex[instance] = nil
     end
 end
 
@@ -328,13 +343,26 @@ end
 -- A component whose state is encoded in a property the theme does NOT own
 -- (e.g. Button's hover/click fingerprint transparency) uses this to re-stamp
 -- that state, because ApplyTheme's CancelAll can freeze it mid-tween.
+-- Passing an optional ownerInstance automatically unregisters the callback
+-- when the instance is destroyed.
 local themeAppliedCallbacks = {}
 
-function ThemeManager.OnThemeApplied(fn)
-    themeAppliedCallbacks[#themeAppliedCallbacks + 1] = fn
+function ThemeManager.OnThemeApplied(fn, ownerInstance)
+    local entry = { fn = fn, owner = ownerInstance }
+    themeAppliedCallbacks[#themeAppliedCallbacks + 1] = entry
+    if ownerInstance and typeof(ownerInstance) == "Instance" then
+        ownerInstance.Destroying:Connect(function()
+            for i, e in ipairs(themeAppliedCallbacks) do
+                if e == entry then
+                    table.remove(themeAppliedCallbacks, i)
+                    break
+                end
+            end
+        end)
+    end
     return function()
-        for i, f in ipairs(themeAppliedCallbacks) do
-            if f == fn then
+        for i, e in ipairs(themeAppliedCallbacks) do
+            if e == entry or e.fn == fn then
                 table.remove(themeAppliedCallbacks, i)
                 return
             end
@@ -351,26 +379,33 @@ local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
 local function snapshotColors(descendants)
     local snap = {}
     for _, d in ipairs(descendants) do
-        local props = {}
         local boundProps = bindingIndex[d]
-        for _, p in ipairs(COLOR_PROPS) do
-            -- Skip anything the caller has declared an override for, and
-            -- anything a declarative binding owns: the blanket crossfade must
-            -- not touch a property whose value the binding pass sets itself.
-            if not d:GetAttribute("ThemeOverride_" .. p) and not (boundProps and boundProps[p]) then
-                local ok, v = pcall(function() return d[p] end)
-                if ok and typeof(v) == "Color3" then
-                    table.insert(props, { p, v })
+        local props = nil
+
+        if d:IsA("GuiObject") then
+            if not d:GetAttribute("ThemeOverride_BackgroundColor3") and not (boundProps and boundProps["BackgroundColor3"]) then
+                props = props or {}
+                table.insert(props, { "BackgroundColor3", d.BackgroundColor3 })
+            end
+            if d:IsA("TextLabel") or d:IsA("TextBox") or d:IsA("TextButton") then
+                if not d:GetAttribute("ThemeOverride_TextColor3") and not (boundProps and boundProps["TextColor3"]) then
+                    props = props or {}
+                    table.insert(props, { "TextColor3", d.TextColor3 })
+                end
+            elseif d:IsA("ImageLabel") or d:IsA("ImageButton") then
+                if not d:GetAttribute("ThemeOverride_ImageColor3") and not (boundProps and boundProps["ImageColor3"]) then
+                    props = props or {}
+                    table.insert(props, { "ImageColor3", d.ImageColor3 })
                 end
             end
-        end
-        if d:IsA("UIStroke") and not d:GetAttribute("ThemeOverride_Color") then
-            local ok, v = pcall(function() return d.Color end)
-            if ok and typeof(v) == "Color3" then
-                table.insert(props, { "Color", v })
+        elseif d:IsA("UIStroke") and not d:GetAttribute("ThemeOverride_Color") then
+            if not (boundProps and boundProps["Color"]) then
+                props = props or {}
+                table.insert(props, { "Color", d.Color })
             end
         end
-        if #props > 0 then
+
+        if props then
             table.insert(snap, { instance = d, props = props })
         end
     end
@@ -508,14 +543,13 @@ function ThemeManager.ApplyTheme(window, themeInput)
         pcall(function() window:ApplyTheme(theme) end)
     end
 
-    -- Component-owned theming: any component that registered itself gets its
-    -- ApplyTheme(theme) called here. This is the robust path - new components
-    -- can theme themselves fully without ThemeManager having to know their
-    -- structure. Runs before the color crossfade so changes are still faded.
-    for _, descendant in ipairs(descendants) do
-        local comp = ThemeManager._components[descendant]
-        if comp and comp.ApplyTheme then
-            pcall(function() comp:ApplyTheme(theme) end)
+    -- Component-owned theming: iterate registered components directly instead
+    -- of scanning the entire descendant tree of Base.
+    for root, comp in pairs(ThemeManager._components) do
+        if root and root.Parent and root:IsDescendantOf(window.Base) then
+            if comp.ApplyTheme then
+                pcall(function() comp:ApplyTheme(theme) end)
+            end
         end
     end
 
@@ -621,8 +655,14 @@ function ThemeManager.ApplyTheme(window, themeInput)
 
     -- Let components re-stamp any non-theme state the CancelAll above may have
     -- frozen (e.g. a mid-hover interaction transparency).
-    for _, fn in ipairs(themeAppliedCallbacks) do
-        pcall(fn, theme)
+    -- Automatically prune dead callbacks if their owner was destroyed.
+    for i = #themeAppliedCallbacks, 1, -1 do
+        local entry = themeAppliedCallbacks[i]
+        if entry.owner and (not entry.owner.Parent or not entry.owner:IsDescendantOf(game)) then
+            table.remove(themeAppliedCallbacks, i)
+        else
+            pcall(entry.fn, theme)
+        end
     end
 end
 

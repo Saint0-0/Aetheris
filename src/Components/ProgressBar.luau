@@ -238,6 +238,23 @@ function ProgressBar.new(parent, Settings, theme)
 	ThemeManager.Bind(backImage, "Image", "Wallpaper")
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
+	function self:Destroy()
+		-- Stop the gradient spin.
+		stopSpin()
+		-- Cancel any in-flight tweens on the fill bar.
+		Tween.CancelAll(self.Visual)
+		-- Drop all ThemeManager bindings.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(stats)
+		ThemeManager.UnbindInstance(holder)
+		ThemeManager.UnbindInstance(visual)
+		ThemeManager.UnbindInstance(backImage)
+		ThemeManager.UnbindInstance(holderShadow)
+		-- Destroy the root instance.
+		if row and row.Parent then
+			row:Destroy()
+		end
+	end
 	return self
 end
 return ProgressBar

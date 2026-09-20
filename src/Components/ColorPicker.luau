@@ -171,10 +171,24 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
         label.Text = newName
         self._popupId = newName .. "ColorPicker"
     end
-    -- Row click handler
+    -- Row and display click handlers
     row.MouseButton1Click:Connect(function()
         self:TogglePopup()
     end)
+    display.MouseButton1Click:Connect(function()
+        self:TogglePopup()
+    end)
+    function self:Destroy()
+        if self._isOpen and self._popup and self._popup.Close then
+            self._popup:Close()
+        end
+        ThemeManager.UnbindInstance(label)
+        ThemeManager.UnbindInstance(chevron)
+        Tween.CancelAll(chevron)
+        if row.Parent then
+            row:Destroy()
+        end
+    end
     -- Declarative theming: label text + chevron follow the theme via bindings.
     -- The ColorDisplay itself is left alone (it shows the user's colour).
     ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")

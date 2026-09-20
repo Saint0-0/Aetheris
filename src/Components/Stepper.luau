@@ -282,6 +282,24 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindColor(stepDown, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(upStroke, "Color", "StrokeColor")
 	ThemeManager.BindColor(downStroke, "Color", "StrokeColor")
+	function self:Destroy()
+		-- Cancel any in-flight tweens on the buttons and stroke.
+		Tween.CancelAll(stepUp)
+		Tween.CancelAll(stepDown)
+		Tween.CancelAll(inputStroke)
+		-- Drop all ThemeManager bindings.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(inputBox)
+		ThemeManager.UnbindInstance(inputStroke)
+		ThemeManager.UnbindInstance(stepUp)
+		ThemeManager.UnbindInstance(stepDown)
+		ThemeManager.UnbindInstance(upStroke)
+		ThemeManager.UnbindInstance(downStroke)
+		-- Destroy the root instance.
+		if row and row.Parent then
+			row:Destroy()
+		end
+	end
 	return self
 end
 return Stepper

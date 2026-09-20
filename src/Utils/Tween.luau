@@ -60,6 +60,10 @@ local activeTweens = setmetatable({}, { __mode = "k" })
 local spinHandles
 
 local function propertyKey(properties)
+	local firstKey = next(properties)
+	if firstKey ~= nil and next(properties, firstKey) == nil then
+		return tostring(firstKey)
+	end
 	local keys = {}
 	for k in pairs(properties) do
 		table.insert(keys, tostring(k))
@@ -109,6 +113,9 @@ function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 		local bucket = activeTweens[instance]
 		if bucket and bucket[key] == handle then
 			bucket[key] = nil
+			if next(bucket) == nil then
+				activeTweens[instance] = nil
+			end
 		end
 	end)
 
@@ -146,6 +153,9 @@ function TweenUtil.Cancel(handle)
 	local bucket = activeTweens[handle.Instance]
 	if bucket then
 		bucket[handle.Key] = nil
+		if next(bucket) == nil then
+			activeTweens[handle.Instance] = nil
+		end
 	end
 	-- If this handle was a registered spin, drop it: a cancelled tween cannot
 	-- be resumed, so ResumeSpin must build a fresh one on the next call.
@@ -380,6 +390,8 @@ local function spinOnScreen(instance)
 	while node and node ~= game do
 		if node:IsA("GuiObject") and not node.Visible then
 			return false
+		elseif node:IsA("LayerCollector") then
+			return node.Enabled
 		end
 		node = node.Parent
 	end
@@ -422,6 +434,12 @@ function TweenUtil.GateSpinOnVisibility(instance)
 					state.connections,
 					node:GetPropertyChangedSignal("Visible"):Connect(sync)
 				)
+			elseif node:IsA("LayerCollector") then
+				table.insert(
+					state.connections,
+					node:GetPropertyChangedSignal("Enabled"):Connect(sync)
+				)
+				break
 			end
 			node = node.Parent
 		end

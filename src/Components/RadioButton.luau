@@ -330,6 +330,25 @@ function RadioButton.new(parent, group, Settings, theme)
 		end
 	end
 	ThemeManager.Register(row, self)
+	function self:Destroy()
+		-- Stop the gradient spin.
+		stopSpin()
+		-- Cancel any in-flight tweens.
+		Tween.CancelAll(label)
+		Tween.CancelAll(button)
+		Tween.CancelAll(activatedImage)
+		Tween.CancelAll(backImage)
+		Tween.CancelAll(holderStroke)
+		-- Drop all ThemeManager bindings and unregister the component.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(button)
+		ThemeManager.UnbindInstance(holderStroke)
+		ThemeManager.Unregister(row)
+		-- Destroy the root instance.
+		if row and row.Parent then
+			row:Destroy()
+		end
+	end
 	return self
 end
 return RadioButton
