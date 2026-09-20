@@ -433,7 +433,29 @@ local function applyColorFade(snap)
     end
 end
 
+-- Memo of merged tables for named themes (and nil -> Default). Section,
+-- TabGroup, and every component call GetTheme at construct, and ApplyTheme
+-- calls it again; without this each call re-allocated a full merged table.
+-- Custom TABLES are still merged fresh each time (they are caller-owned and
+-- may differ), so only the string/nil paths are cached.
+local themeMemo = {}
+
 function ThemeManager.GetTheme(themeInput)
+    -- Cache key: a named theme, or "Default" for nil/unknown input.
+    local key
+    if type(themeInput) == "string" then
+        key = themeInput
+    elseif themeInput == nil then
+        key = "Default"
+    end
+
+    if key then
+        local cached = themeMemo[key]
+        if cached then
+            return cached
+        end
+    end
+
     -- Determine theme table
     local themeTable
     if type(themeInput) == "string" then
@@ -452,6 +474,12 @@ function ThemeManager.GetTheme(themeInput)
     local theme = {}
     for k, v in pairs(ThemeDefinitions.Default) do
         theme[k] = themeTable[k] ~= nil and themeTable[k] or v
+    end
+
+    -- Only intern named/nil results; a missing name warns and falls back to
+    -- Default, so cache it under "Default" rather than the bad name.
+    if key then
+        themeMemo[key] = theme
     end
     return theme
 end

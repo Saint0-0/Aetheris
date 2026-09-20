@@ -37,10 +37,6 @@ local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
 
-local Time = os.date("*t")
-local Hour = Time.hour
-local Minute = Time.min
-
 local Window = {}
 Window.__index = Window
 
@@ -80,6 +76,8 @@ function Window.new(Settings)
 	local dragInputConnection
 	local resizeInputConnection
 	local minimizeKeyConnection
+	local inputEndedConnection -- shared, recreated per drag/resize gesture
+	local clockStopped = false
 
 	----------------------------------------------------------------
 	-- Root
@@ -139,9 +137,17 @@ function Window.new(Settings)
 				dragStart = input.Position
 				startPosition = MainFrame.AbsolutePosition
 
-				input.Changed:Connect(function()
-					if input.UserInputState == Enum.UserInputState.End then
+				if inputEndedConnection then
+					inputEndedConnection:Disconnect()
+				end
+				inputEndedConnection = UserInputService.InputEnded:Connect(function(endInput)
+					if endInput.UserInputType == Enum.UserInputType.MouseButton1
+					or endInput.UserInputType == Enum.UserInputType.Touch then
 						dragging = false
+						if inputEndedConnection then
+							inputEndedConnection:Disconnect()
+							inputEndedConnection = nil
+						end
 					end
 				end)
 			end
@@ -744,11 +750,28 @@ function Window.new(Settings)
 	TimeLabel.RichText = true
 	TimeLabel.Size = UDim2.new(0.1, 0, 0.7, 0)
 	TimeLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	TimeLabel.Text = "<b>"..string.format("%02d", Hour).."</b><br /><br />"..string.format("%02d", Minute)
+	local function clockText()
+		local t = os.date("*t")
+		return "<b>"..string.format("%02d", t.hour).."</b><br /><br />"..string.format("%02d", t.min)
+	end
+	TimeLabel.Text = clockText()
 	TimeLabel.LayoutOrder = 3
 	TimeLabel.AutomaticSize = Enum.AutomaticSize.XY
 	TimeLabel.Position = UDim2.new(0.83, 0, 0.89262, 0)
 	TimeLabel.Parent = UserInfoGroup
+
+	-- Refresh the clock once a second so it doesn't freeze at whatever time the
+	-- window was created. The loop exits on teardown (clockStopped) or once the
+	-- label is gone.
+	task.spawn(function()
+		while not clockStopped do
+			task.wait(1)
+			if clockStopped or not TimeLabel.Parent then
+				break
+			end
+			TimeLabel.Text = clockText()
+		end
+	end)
 
 	----------------------------------------------------------------
 	-- Sidebar: script info
@@ -967,10 +990,18 @@ function Window.new(Settings)
 				resizeStart = input.Position
 				startSize = MainFrame.AbsoluteSize
 
-				input.Changed:Connect(function()
-					if input.UserInputState == Enum.UserInputState.End then
+				if inputEndedConnection then
+					inputEndedConnection:Disconnect()
+				end
+				inputEndedConnection = UserInputService.InputEnded:Connect(function(endInput)
+					if endInput.UserInputType == Enum.UserInputType.MouseButton1
+					or endInput.UserInputType == Enum.UserInputType.Touch then
 						resizing = false
 						updateResizeVisual()
+						if inputEndedConnection then
+							inputEndedConnection:Disconnect()
+							inputEndedConnection = nil
+						end
 					end
 				end)
 			end
@@ -1059,6 +1090,7 @@ function Window.new(Settings)
 		local COMPACT_EXIT = 712   -- above this width -> expanded (hysteresis)
 		local compact = false
 		local saved = nil          -- captured expanded values for restore
+		local initialized = false  -- set true after the first deferred resolve; gates AUTO mode
 
 		local function captureExpanded()
 			return {
@@ -1723,16 +1755,23 @@ function Window.new(Settings)
 			minimizeKeyConnection:Disconnect()
 			minimizeKeyConnection = nil
 		end
+		if inputEndedConnection then
+			inputEndedConnection:Disconnect()
+			inputEndedConnection = nil
+		end
+		clockStopped = true
+
+		-- Persist any debounced settings change before the window goes away.
+		SettingsStore.Flush()
 
 		if tabListScrollbarTimer then
 			task.cancel(tabListScrollbarTimer)
 			tabListScrollbarTimer = nil
 		end
 
-		Tween.CancelAll(ScreenGui)
-		for _, d in ipairs(ScreenGui:GetDescendants()) do
-			Tween.CancelAll(d)
-		end
+		-- One sparse sweep over the active-tween registry (O(active tweens))
+		-- instead of a per-descendant hash probe (O(tree)).
+		Tween.CancelAllUnder(ScreenGui)
 
 		if self._notification then
 			self._notification:Destroy()
@@ -1750,16 +1789,11 @@ function Window.new(Settings)
 	end
 
 	local function doClose()
-		-- Fade the whole window out via its single GroupTransparency, THEN tear
-		-- everything down + destroy it.
-		PageFade.Hide(MainFrame)
-		Sound.Play("UIShutdown")
-		-- Unload keybind + input listeners immediately, so nothing responds
-		-- while the window fades out and nothing survives the destroy.
-		task.delay(0.4, function()
-			self._teardown()
-			self.Base:Destroy()
-		end)
+		-- Single close pipeline. Previously this had its own PageFade.Hide +
+		-- task.delay(0.4) path with a different sound and a different lifetime
+		-- than Window:Destroy(); both now go through Destroy so the close
+		-- behavior (sound, teardown order, destroy) is identical everywhere.
+		self:Destroy()
 	end
 
 	CloseButton.MouseButton1Click:Connect(function()
@@ -2015,9 +2049,15 @@ function Window:SetTheme(themeInput)
 end
 
 function Window:Destroy()
+	-- Re-entrancy guard: doClose funnels here now, and a confirm dialog or a
+	-- second close must not double-play the sound or double-destroy the tree.
+	if self._destroyed then return end
+
 	local closePreset = Window.AnimationStyle == "Snappy" and "FadeOut" or "Smooth"
 
-	Sound.Play("WindowClose")
+	-- "WindowClose" was never in Sound.Assets (every play warned + played
+	-- nothing). UIClose is the real close sound.
+	Sound.Play("UIClose")
 
 	if self._teardown then self._teardown() end
 

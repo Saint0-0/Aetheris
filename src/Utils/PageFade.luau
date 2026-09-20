@@ -213,7 +213,12 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 		PageFade.FadeDecorations(outgoing, true, false)
 		local h = Tween.Play(outgoing, PageFade.PRESET, { GroupTransparency = 1 })
 		if h and h.Tween then
-			h.Tween.Completed:Connect(done)
+			-- Only count a real finish. A rapid tab spam Cancels an in-flight
+			-- fade; the old code fired `done` on Cancelled too and could hide
+			-- the outgoing page while a newer fade was still running.
+			h.Tween.Completed:Connect(function(state)
+				if state == Enum.PlaybackState.Completed then done() end
+			end)
 		else
 			done()
 		end
@@ -225,7 +230,12 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 		PageFade.FadeDecorations(incoming, false, false)
 		local h = Tween.Play(incoming, PageFade.PRESET, { GroupTransparency = 0 })
 		if h and h.Tween then
-			h.Tween.Completed:Connect(done)
+			-- Only count a real finish. A rapid tab spam Cancels an in-flight
+			-- fade; the old code fired `done` on Cancelled too and could hide
+			-- the outgoing page while a newer fade was still running.
+			h.Tween.Completed:Connect(function(state)
+				if state == Enum.PlaybackState.Completed then done() end
+			end)
 		else
 			done()
 		end
