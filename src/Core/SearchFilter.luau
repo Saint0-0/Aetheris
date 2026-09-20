@@ -5,10 +5,13 @@
 	substring inside each component's ElementName label with the theme accent
 	color. Used by the sidebar search box (per active page).
 
-	One GetDescendants pass collects the sections + their ElementName labels,
-	marks which sections contain a match, toggles section visibility, and
-	rewrites matching labels as RichText spans. The original text and RichText
-	flag are stashed in attributes so they restore exactly on clear.
+	PERFORMANCE: the sections + ElementName labels for a page are indexed ONCE
+	and cached (weak-keyed by page), then reused across every Apply/Clear.
+	A DescendantAdded/DescendantRemoving pair marks the page dirty so the index
+	rebuilds only when the tree actually changes — search no longer walks the
+	whole page with GetDescendants() on every keystroke or tab switch. The
+	original text and RichText flag are still stashed in attributes so they
+	restore exactly on clear, keeping behavior identical to before.
 ]]
 
 local SearchFilter = {}
@@ -56,15 +59,59 @@ function SearchFilter.Highlight(base, query, color)
 	return buildHighlight(base, lower, lq, hex)
 end
 
-local function nearestSection(inst)
-	local p = inst.Parent
-	while p do
-		if p:GetAttribute("IsSection") then
-			return p
+----------------------------------------------------------------
+-- Page index (lazy, cached, invalidated on tree change)
+----------------------------------------------------------------
+
+-- Weak keys so a destroyed page's index + dirty flag are collected.
+local indexByPage = setmetatable({}, { __mode = "k" })
+local dirtyByPage = setmetatable({}, { __mode = "k" })
+local connectedByPage = setmetatable({}, { __mode = "k" })
+
+local function buildIndex(page)
+	local sections = {}
+	local entries = {}
+	for _, d in ipairs(page:GetDescendants()) do
+		if d:GetAttribute("IsSection") then
+			sections[d] = false
+		elseif d:IsA("TextLabel") and d.Name == "ElementName" then
+			-- Resolve the owning section once, at index time, instead of
+			-- walking parents on every keystroke.
+			local sec = nil
+			local p = d.Parent
+			while p do
+				if p:GetAttribute("IsSection") then
+					sec = p
+					break
+				end
+				p = p.Parent
+			end
+			table.insert(entries, { label = d, section = sec })
 		end
-		p = p.Parent
 	end
-	return nil
+	return { sections = sections, entries = entries }
+end
+
+local function getIndex(page)
+	local idx = indexByPage[page]
+	if idx and not dirtyByPage[page] then
+		return idx
+	end
+	idx = buildIndex(page)
+	indexByPage[page] = idx
+	dirtyByPage[page] = nil
+	if not connectedByPage[page] then
+		connectedByPage[page] = true
+		-- Connections live on the page's own signals, so they are torn down
+		-- with the page; the weak key just stops us re-connecting.
+		page.DescendantAdded:Connect(function()
+			dirtyByPage[page] = true
+		end)
+		page.DescendantRemoving:Connect(function()
+			dirtyByPage[page] = true
+		end)
+	end
+	return idx
 end
 
 function SearchFilter.Apply(page, query, theme)
@@ -77,17 +124,17 @@ function SearchFilter.Apply(page, query, theme)
 	local accent = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 	local hex = colorToHex(accent)
 
-	local sections = {}
-	local labels = {}
-	for _, d in ipairs(page:GetDescendants()) do
-		if d:GetAttribute("IsSection") then
-			sections[d] = false
-		elseif d:IsA("TextLabel") and d.Name == "ElementName" then
-			table.insert(labels, d)
-		end
+	local idx = getIndex(page)
+	local sections = idx.sections
+	local entries = idx.entries
+
+	-- Reset matched flags; the index is reused across applies.
+	for sec in pairs(sections) do
+		sections[sec] = false
 	end
 
-	for _, d in ipairs(labels) do
+	for _, entry in ipairs(entries) do
+		local d = entry.label
 		local base = d:GetAttribute("SearchBaseText")
 		if base == nil then
 			base = d.Text
@@ -96,7 +143,7 @@ function SearchFilter.Apply(page, query, theme)
 		end
 		local lower = string.lower(base)
 		if string.find(lower, query, 1, true) then
-			local sec = nearestSection(d)
+			local sec = entry.section
 			if sec and sections[sec] ~= nil then
 				sections[sec] = true
 			end
@@ -118,18 +165,20 @@ end
 
 function SearchFilter.Clear(page)
 	if not page then return end
-	for _, d in ipairs(page:GetDescendants()) do
-		if d:GetAttribute("IsSection") then
-			d.Visible = true
-		elseif d:IsA("TextLabel") and d.Name == "ElementName" then
-			local base = d:GetAttribute("SearchBaseText")
-			if base ~= nil then
-				d.Text = base
-				local br = d:GetAttribute("SearchBaseRich")
-				if br ~= nil then d.RichText = br end
-				d:SetAttribute("SearchBaseText", nil)
-				d:SetAttribute("SearchBaseRich", nil)
-			end
+	-- Reuse the cached index (rebuilding first only if the tree changed).
+	local idx = getIndex(page)
+	for sec in pairs(idx.sections) do
+		sec.Visible = true
+	end
+	for _, entry in ipairs(idx.entries) do
+		local d = entry.label
+		local base = d:GetAttribute("SearchBaseText")
+		if base ~= nil then
+			d.Text = base
+			local br = d:GetAttribute("SearchBaseRich")
+			if br ~= nil then d.RichText = br end
+			d:SetAttribute("SearchBaseText", nil)
+			d:SetAttribute("SearchBaseRich", nil)
 		end
 	end
 end
