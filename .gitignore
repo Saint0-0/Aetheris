@@ -29,3 +29,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local commit-message scratch file (never track)
+.commitmsg.tmp
