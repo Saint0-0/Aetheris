@@ -168,6 +168,22 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- True while a confirmation notification is open.
 	local confirmationPending = false
 	----------------------------------------------------------------
+	-- DECLARATIVE THEME BINDINGS (no ApplyTheme body)
+	----------------------------------------------------------------
+	-- Label colour is pure theme. The thumb/track/stroke palette is state-driven:
+	-- ON uses PrimaryColor, OFF uses SecondaryColor. Instead of re-stamping on
+	-- every switch, each is a binding whose KEY is swapped by applyState via
+	-- handle:SetKey -- the theme pass then resolves the right colour for the
+	-- current state automatically. duration keeps the swap as snappy as before.
+	local FAST = { duration = 0.2 }
+	local labelColorBinding = ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	local thumbColorBinding = ThemeManager.BindColor(thumb, "BackgroundColor3",
+		state and "PrimaryColor" or "SecondaryColor", FAST)
+	local trackColorBinding = ThemeManager.BindColor(track, "BackgroundColor3",
+		state and "PrimaryColor" or "SecondaryColor", FAST)
+	local strokeColorBinding = ThemeManager.BindColor(stroke, "Color",
+		state and "PrimaryColor" or "SecondaryColor", FAST)
+	----------------------------------------------------------------
 	-- APPLY STATE
 	----------------------------------------------------------------
 	local function applyState(newState, animate, fireCallback)
@@ -176,24 +192,17 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		end
 		state = newState
 		thumb:SetAttribute("IsOn", state)
-		-- Always read the LIVE theme so a theme switch doesn't leave this
-		-- toggle recomputing colors from a stale construction-time table.
-		-- Prefer the colors ThemeManager stamped on this thumb during the last
-		-- ApplyTheme (reliable across module-instance boundaries). Fall back
-		-- to the live shared theme, then the construction-time theme.
-		local livePrimary = thumb:GetAttribute("ThemePrimary")
-			or (ActiveTheme.theme and ActiveTheme.theme.PrimaryColor)
-			or theme.PrimaryColor
-		local liveSecondary = thumb:GetAttribute("ThemeSecondary")
-			or (ActiveTheme.theme and ActiveTheme.theme.SecondaryColor)
-			or theme.SecondaryColor
+		-- Swap which theme key drives the state-coloured parts; the bindings
+		-- resolve + crossfade the new colour. No manual colour stamping.
+		local onKey = state and "PrimaryColor" or "SecondaryColor"
+		thumbColorBinding:SetKey(onKey)
+		trackColorBinding:SetKey(onKey)
+		strokeColorBinding:SetKey(onKey)
 		local targetPos = state and onPos or offPos
 		local targetBgTransparency =
 			state and 0 or 1
 		local targetStrokeTransparency =
 			state and 0 or 0.7
-		local targetStrokeColor = state and livePrimary or liveSecondary
-		local targetTrackColor = state and livePrimary or liveSecondary
 		local targetTrackTransparency =
 			state and 0 or 0.9
 		local targetLabelTransparency =
@@ -201,18 +210,15 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		if animate then
 			Tween.Play(thumb, "Fast", {
 				Position = targetPos,
-				BackgroundColor3 = livePrimary,
 				BackgroundTransparency = targetBgTransparency
 			})
 			Tween.Play(stroke, "Fast", {
-				Transparency = targetStrokeTransparency,
-				Color = targetStrokeColor
+				Transparency = targetStrokeTransparency
 			})
 			Tween.Play(label, "Fast", {
 				TextTransparency = targetLabelTransparency
 			})
 			Tween.Play(track, "Fast", {
-				BackgroundColor3 = targetTrackColor,
 				BackgroundTransparency = targetTrackTransparency
 			})
 			Tween.Play(sheen, "Fast", {
@@ -221,15 +227,16 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		else
 			thumb:SetAttribute("IsOn", state)
 			thumb.Position = targetPos
-			thumb.BackgroundColor3 = livePrimary
 			thumb.BackgroundTransparency = targetBgTransparency
 			stroke.Transparency = targetStrokeTransparency
-			stroke.Color = targetStrokeColor
 			label.TextTransparency = targetLabelTransparency
-			track.BackgroundColor3 = targetTrackColor
 			track.BackgroundTransparency = targetTrackTransparency
 			sheen.ImageTransparency = state and 0 or 1
 		end
+		-- The sheen is only VISIBLE while ON, so don't let it spin while OFF:
+		-- pause it (angle preserved) and resume from where it left off next time
+		-- the toggle turns on. Composes with the shared visibility gate.
+		Tween.SetSpinWanted(sheenGradient, state)
 		if fireCallback and Settings.Callback then
 			Settings.Callback(state)
 		end
@@ -348,21 +355,10 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	function self:UpdateName(newName)
 		label.Text = newName
 	end
-	-- Component-owned theming. Re-stamps the live colors and re-applies the
-	-- current on/off state (no animation, no callback). ThemeManager calls this
-	-- via the component registry on a theme switch.
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		self._themeResolved = theme
-		thumb:SetAttribute("ThemePrimary", theme.PrimaryColor)
-		thumb:SetAttribute("ThemeSecondary", theme.SecondaryColor)
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		sheen.Image = theme.Wallpaper or "rbxassetid://11094025229"
-		sheen.Visible = not (theme.WallpaperEnabled == false)
-		applyState(state, false, false)
-	end
-	ThemeManager.Register(row, self)
+	-- No ApplyTheme: the label colour/transparency and the state-driven
+	-- thumb/track/stroke colours are declarative bindings (see the DECLARATIVE
+	-- THEME BINDINGS block above), so a theme switch re-resolves them with no
+	-- component code. applyState only swaps the binding key on a state change.
 	return self
 end
 return Toggle

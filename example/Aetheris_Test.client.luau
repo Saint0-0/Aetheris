@@ -57,8 +57,48 @@ local window = Aetheris:CreateWindow({
 	DragStyle = "Smooth",        -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl", -- press to minimize / restore the window
 	SettingsPages = {            -- extra pages shown in the Settings tab
-		{ Name = "Keybinds", Icon = ico("keyboard") },
-		{ Name = "Macros",   Icon = ico("mouse-pointer-click") },
+		{
+			Name = "Keybinds",
+			Icon = ico("keyboard"),
+			-- Dummy content so the custom-page pipeline is exercised end to end.
+			-- NOTE: these Build callbacks run DURING CreateWindow, so they can only
+			-- use component factories that don't need popup helpers (openDropdown,
+			-- openColorPicker, notify are all defined later in this file).
+			Build = function(window, tab)
+				local move = tab:Section({ Name = "Movement" })
+				move:Keybind({ Name = "Jump",   Default = "Space",       Callback = function() end })
+				move:Keybind({ Name = "Crouch", Default = "LeftControl", Callback = function() end })
+				move:Keybind({ Name = "Sprint", Default = "LeftShift",   Callback = function() end })
+
+				move:Divider({ Padding = 10 })
+				move:Toggle({ Name = "Toggle Sprint", Default = false, Callback = function() end })
+
+				local combat = tab:Section({ Name = "Combat" })
+				combat:Keybind({ Name = "Aim",    Default = "Q", Callback = function() end })
+				combat:Keybind({ Name = "Reload", Default = "R", Callback = function() end })
+				combat:Label({ Text = "Dummy keybind page built via the Build callback.", ShowContainer = false, ShowStroke = false })
+			end,
+		},
+		{
+			Name = "Macros",
+			Icon = ico("mouse-pointer-click"),
+			-- Dummy content exercising a wider mix of single-column components.
+			Build = function(window, tab)
+				local list = tab:Section({ Name = "Recorded Macros" })
+				list:Paragraph({
+					Title = "Macros",
+					Description = "Sample custom settings page. Everything here is a real Aetheris component, stacked in one column.",
+				})
+				list:Divider({ Padding = 10 })
+				list:Label({ Text = "No macros recorded yet.", FontWeight = "SemiBold", ShowContainer = false, ShowStroke = false })
+
+				local timing = tab:Section({ Name = "Timing" })
+				timing:Slider({ Name = "Loop Delay",  Min = 0, Max = 100, Default = 25, Precision = 0, Callback = function() end })
+				timing:Stepper({ Name = "Repeat Count", Min = 1, Max = 50, Default = 5, Step = 1, Integer = true, Callback = function() end })
+				timing:Toggle({ Name = "Loop Forever", Default = true, Callback = function() end })
+				timing:Button({ Name = "Record Macro", Callback = function() print("[Demo] Record Macro") end })
+			end,
+		},
 	},
 	DefaultSettingsPage = "Themes",
 })

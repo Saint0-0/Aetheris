@@ -66,6 +66,8 @@
     Section:
         SectionBackgroundColor          - Background of section containers.
         SectionBackgroundTransparency   - Transparency of section backgrounds.
+        SectionStrokeColor              - Color of the section's own border stroke (falls back to StrokeColor).
+        SectionStrokeTransparency       - Transparency of the section's own border stroke (falls back to StrokeTransparency).
         SectionDividerColor             - Background color of section dividers.
         SectionDividerTransparency      - Transparency of section dividers.
 
@@ -139,9 +141,12 @@ ThemeDefinitions.Default = {
     InactiveTabButtonTransparency = 1,
 
     -- Section
+    -- Section strokes are independent of the general StrokeColor/Transparency so
+    -- a theme can soften section borders without touching every other outline.
     SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
     SectionBackgroundTransparency = 0.98,
-    SectionStrokeTransparency = 0.95,
+    SectionStrokeColor = Color3.fromRGB(255, 255, 255),
+    SectionStrokeTransparency = 0.985,
     SectionDividerColor = Color3.fromRGB(255, 255, 255),
     SectionDividerTransparency = 0.9,
     SearchBarBackgroundColor = Color3.fromRGB(26, 30, 255),
@@ -168,8 +173,8 @@ ThemeDefinitions.Default = {
     NotificationDismissColor = Color3.fromRGB(203, 213, 225),
     NotificationActionButtonColor = Color3.fromRGB(51, 65, 85),
     NotificationActionButtonTextColor = Color3.fromRGB(241, 245, 249),
-    NotificationAlertAccent = Color3.fromRGB(219, 153, 10),
-    NotificationErrorAccent = Color3.fromRGB(220, 70, 60),
+    NotificationAlertAccent = Color3.fromRGB(249, 115, 22),
+    NotificationErrorAccent = Color3.fromRGB(226, 42, 42),
     NotificationVariableAccent = Color3.fromRGB(74, 200, 120),
 
     -- Wallpaper
@@ -606,13 +611,18 @@ ThemeDefinitions.Ocean = {
     InputBackgroundColor = Color3.fromRGB(26, 40, 61),
     InputBackgroundTransparency = 0,
     ComponentShadowColor = Color3.fromRGB(0, 0, 0),
-    StrokeColor = Color3.fromRGB(35, 53, 79),
+    StrokeColor = Color3.fromRGB(38, 51, 74),
     StrokeTransparency = 0.4,
     PrimaryColor = Color3.fromRGB(56, 189, 248),
-    SecondaryColor = Color3.fromRGB(71, 85, 105),
-    TertiaryColor = Color3.fromRGB(100, 116, 139),
-    Undercolor = Color3.fromRGB(35, 53, 79),
-    AccentColor = Color3.fromRGB(34, 211, 238),
+    -- Sunset over the sea: the sky-blue primary is balanced by a deeper, more
+    -- present dark orange so Ocean reads as blue AND warm, not monochrome. The
+    -- orange is pushed darker and richer than a plain amber so it stays in
+    -- family with the navy window rather than glowing out of it. Nudged warmer
+    -- again so the ember side reads clearly next to the sky-blue primary.
+    SecondaryColor = Color3.fromRGB(176, 84, 28),
+    TertiaryColor = Color3.fromRGB(224, 130, 58),
+    Undercolor = Color3.fromRGB(88, 46, 20),
+    AccentColor = Color3.fromRGB(244, 122, 28),
 
     -- Text
     PrimaryTextColor = Color3.fromRGB(226, 240, 253),
@@ -1685,29 +1695,31 @@ ThemeDefinitions.Summit = {
 -- Wallpapers (from the MaterialService decals). Assigned per theme so each
 -- keeps its character; the tab/backdrop images use these when present.
 local WALLPAPERS = {
-    Default   = "rbxassetid://11094025229",  -- branded Aetheris backdrop (original)
-    Black     = "rbxassetid://18571374017",  -- dark purple + slight orange
-    Light     = "rbxassetid://5164282825",   -- beige minimalist
-    Midnight  = "rbxassetid://107868116663356", -- purple minimalist
-    Graphite  = "rbxassetid://116321051235221", -- green with trees
-    Pearl     = "rbxassetid://117100465436400", -- beige/orange/red
-    Slate     = "rbxassetid://121017686291110", -- pale blue
-    Ocean     = "rbxassetid://135568871834704", -- blue mountain range
-    Nord      = "rbxassetid://121017686291110", -- pale blue
-    Forest    = "rbxassetid://116321051235221", -- green with trees
-    Rose      = "rbxassetid://8350591200",   -- pink minimalist
-    Amethyst  = "rbxassetid://107868116663356", -- purple minimalist
-    Retro     = "rbxassetid://12868775918",  -- sun orange
-    Glass     = "rbxassetid://15955473206",  -- blue + slight purple
-    Porcelain = "rbxassetid://121017686291110", -- pale blue
-    Mist      = "rbxassetid://309321999",     -- white and black
-    Dusk      = "rbxassetid://123519222162021", -- pink/orange/yellow sunset
-    Frost     = "rbxassetid://84403490778114", -- blue river/ocean sunset
-    Sandstone = "rbxassetid://123519222162021", -- pink/orange/yellow sunset
-    Azure     = "rbxassetid://121017686291110", -- pale blue
-    Blossom   = "rbxassetid://131979800493713", -- pink waves
-    Fjord     = "rbxassetid://98228102412425",  -- soft blue / greyish-yellow mountain
-    Summit    = "rbxassetid://123969479560901", -- blue + white mountain range
+    -- Big Sur-era wallpapers. Dark themes take the dark variants, light themes
+    -- the light/morning ones, mid-tone themes the saturated or neutral ones.
+    Default   = "rbxassetid://126475867393987", -- Monterey dark
+    Black     = "rbxassetid://114699504726298", -- Sonoma dark
+    Light     = "rbxassetid://81270141924137",  -- WhiteSur light
+    Midnight  = "rbxassetid://126475867393987", -- Monterey dark
+    Graphite  = "rbxassetid://100629172964437", -- Ventura dark
+    Pearl     = "rbxassetid://88171125327716",  -- Monterey morning
+    Slate     = "rbxassetid://98569091830887",  -- WhiteSur
+    Ocean     = "rbxassetid://78613064348772",  -- Monterey
+    Nord      = "rbxassetid://100629172964437", -- Ventura dark
+    Forest    = "rbxassetid://78613064348772",  -- Monterey
+    Rose      = "rbxassetid://107522899082679", -- pink mountains
+    Amethyst  = "rbxassetid://126475867393987", -- Monterey dark
+    Retro     = "rbxassetid://88171125327716",  -- Monterey morning
+    Glass     = "rbxassetid://98569091830887",  -- WhiteSur
+    Porcelain = "rbxassetid://81270141924137",  -- WhiteSur light
+    Mist      = "rbxassetid://79886157813963",  -- WhiteSur morning
+    Dusk      = "rbxassetid://88171125327716",  -- Monterey morning
+    Frost     = "rbxassetid://78613064348772",  -- Monterey
+    Sandstone = "rbxassetid://88171125327716",  -- Monterey morning
+    Azure     = "rbxassetid://98569091830887",  -- WhiteSur
+    Blossom   = "rbxassetid://107522899082679", -- pink mountains
+    Fjord     = "rbxassetid://79886157813963",  -- WhiteSur morning
+    Summit    = "rbxassetid://81270141924137",  -- WhiteSur light
 }
 
 for name, wallpaper in pairs(WALLPAPERS) do
@@ -1752,44 +1764,44 @@ end
 
 -- Per-theme transparency. Most themes use a translucent sidebar over an opaque
 -- content area; a few invert it (translucent content, opaque sidebar). Only
--- Black and Nord are fully opaque. { WindowTransparency, SidebarTransparency,
+-- Black is fully opaque. { WindowTransparency, SidebarTransparency,
 -- ContentBackgroundTransparency }.
 local THEME_TRANSPARENCY = {
     -- Fully opaque, solid chrome (window + sidebar + content all solid).
     Black     = { 0,    0,    0    },
-    Nord      = { 0,    0,    0    },
 
-    -- Default: near-black window, frosted-glass sidebar, near-solid content.
-    Default   = { 0.15, 0.65, 0.1  },
+    -- Flagship: near-black window, deeply frosted sidebar, faint content tint.
+    Default   = { 0.15, 0.72, 0.1  },
 
-    -- Translucent SIDEBAR over an opaque content area (the classic frosted
-    -- sidebar look). Sidebar transparency raised from 0.45 -> 0.6/0.65 so it
-    -- reads as genuinely see-through instead of merely tinted.
-    Light     = { 0.2,  0.6,  0    },
-    Midnight  = { 0.2,  0.6,  0    },
-    Graphite  = { 0.2,  0.6,  0    },
-    Pearl     = { 0.2,  0.6,  0    },
-    Slate     = { 0.2,  0.6,  0    },
-    Forest    = { 0.2,  0.6,  0    },
-    Amethyst  = { 0.2,  0.65, 0    },
-    Rose      = { 0.2,  0.6,  0    },
-    Retro     = { 0.2,  0.6,  0    },
-    Azure     = { 0.2,  0.6,  0    },
-    Blossom   = { 0.2,  0.6,  0    },
-    Fjord     = { 0.2,  0.6,  0    },
-    Summit    = { 0.2,  0.6,  0    },
+    -- Frosted SIDEBAR over an opaque content area. Pushed to genuine
+    -- see-through levels (0.6-0.72) so the wallpaper actually reads through
+    -- the chrome instead of merely tinting it.
+    Light     = { 0.22, 0.62, 0    },
+    Midnight  = { 0.22, 0.68, 0    },
+    Graphite  = { 0.22, 0.68, 0    },
+    Nord      = { 0.22, 0.68, 0    },
+    Pearl     = { 0.22, 0.62, 0    },
+    Slate     = { 0.22, 0.64, 0    },
+    Forest    = { 0.22, 0.66, 0    },
+    Amethyst  = { 0.22, 0.7,  0    },
+    Rose      = { 0.22, 0.62, 0    },
+    Retro     = { 0.22, 0.6,  0    },
+    Azure     = { 0.22, 0.64, 0    },
+    Blossom   = { 0.22, 0.62, 0    },
+    Fjord     = { 0.22, 0.64, 0    },
+    Summit    = { 0.22, 0.62, 0    },
 
-    -- Translucent CONTENT over an opaque sidebar (content floats above the
-    -- wallpaper while the sidebar stays solid for readability).
-    Ocean     = { 0.3,  0,    0.45 },
-    Mist      = { 0.3,  0,    0.45 },
-    Sandstone = { 0.3,  0,    0.45 },
-    Dusk      = { 0.3,  0,    0.45 },
-    Frost     = { 0.3,  0,    0.45 },
+    -- Translucent CONTENT floating over the wallpaper; the sidebar stays solid
+    -- so navigation labels never lose contrast.
+    Ocean     = { 0.28, 0,    0.42 },
+    Mist      = { 0.28, 0,    0.42 },
+    Sandstone = { 0.28, 0,    0.42 },
+    Dusk      = { 0.28, 0,    0.42 },
+    Frost     = { 0.28, 0,    0.42 },
 
     -- Full glass: both sidebar and content are strongly translucent.
-    Glass     = { 0.45, 0.7,  0.4  },
-    Porcelain = { 0.3,  0.6,  0    },
+    Glass     = { 0.5,  0.75, 0.45 },
+    Porcelain = { 0.3,  0.62, 0    },
 }
 
 for name, t in pairs(THEME_TRANSPARENCY) do
@@ -1817,8 +1829,8 @@ for name, t in pairs(ThemeDefinitions) do
         t.NotificationDismissColor = t.SecondaryTextColor or Color3.fromRGB(203, 213, 225)
         t.NotificationActionButtonColor = t.InputBackgroundColor or t.PopupNeutralColor or Color3.fromRGB(51, 65, 85)
         t.NotificationActionButtonTextColor = t.PopupTextColor or Color3.fromRGB(241, 245, 249)
-        t.NotificationAlertAccent = Color3.fromRGB(219, 153, 10)
-        t.NotificationErrorAccent = Color3.fromRGB(220, 70, 60)
+        t.NotificationAlertAccent = Color3.fromRGB(249, 115, 22)
+        t.NotificationErrorAccent = Color3.fromRGB(226, 42, 42)
         t.NotificationVariableAccent = t.PrimaryColor or Color3.fromRGB(74, 200, 120)
     end
 end

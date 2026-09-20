@@ -20,6 +20,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
+local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
 UINotification.__index = UINotification
 local function colorToString(color)
@@ -57,22 +58,6 @@ function UINotification.new(parent, Settings)
 	self.IsOpen = false
 	self._resolved = false
 	----------------------------------------------------------------
-	-- SCRIM
-	----------------------------------------------------------------
-	local scrim = Instance.new("ImageButton")
-	scrim.Name = "UINotification"
-	scrim.Image = "rbxassetid://9313765853"
-	scrim.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	scrim.BackgroundTransparency = 1
-	scrim.ImageTransparency = 1
-	scrim.BorderSizePixel = 0
-	scrim.Size = UDim2.new(1, 0, 1, 0)
-	scrim.Position = UDim2.new(0, 0, 0, 0)
-	scrim.AutoButtonColor = false
-	scrim.Visible = false
-	scrim.ZIndex = 10
-	scrim.Parent = parent
-	----------------------------------------------------------------
 	-- POPUP
 	----------------------------------------------------------------
 	local popup = Instance.new("Frame")
@@ -87,7 +72,7 @@ function UINotification.new(parent, Settings)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.ZIndex = 11
-	popup.Parent = scrim
+	popup.Parent = parent
 	----------------------------------------------------------------
 	-- SHADOW
 	----------------------------------------------------------------
@@ -185,12 +170,30 @@ function UINotification.new(parent, Settings)
 	local interactions = Instance.new("Frame")
 	interactions.Name = "Interactions"
 	interactions.BorderSizePixel = 0
-	interactions.BackgroundTransparency = 1
-	interactions.AnchorPoint = Vector2.new(0.5, 0.5)
-	interactions.Size = UDim2.new(0.9375, 0, 0.20291, 0)
-	interactions.Position = UDim2.new(0.5, 0, 0.87569, 0)
+	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
+	interactions.BackgroundTransparency = 0.8
+	interactions.AnchorPoint = Vector2.new(0.5, 1)
+	interactions.Size = UDim2.new(1, 0, 0, 55)
+	interactions.Position = UDim2.new(0.5, 0, 1, 0)
 	interactions.ZIndex = 12
 	interactions.Parent = popup
+	local interactionsCorner = Instance.new("UICorner")
+	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
+	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
+	interactionsCorner.TopRightRadius = UDim.new(0, 0)
+	interactionsCorner.Parent = interactions
+	local interactionsLayout = Instance.new("UIListLayout")
+	interactionsLayout.FillDirection = Enum.FillDirection.Horizontal
+	interactionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	interactionsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	interactionsLayout.Padding = UDim.new(0, 8)
+	interactionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	interactionsLayout.Parent = interactions
+	local interactionsPadding = Instance.new("UIPadding")
+	interactionsPadding.PaddingLeft = UDim.new(0, 10)
+	interactionsPadding.PaddingRight = UDim.new(0, 10)
+	interactionsPadding.Parent = interactions
 	----------------------------------------------------------------
 	-- CONFIRM BUTTON
 	----------------------------------------------------------------
@@ -207,10 +210,11 @@ function UINotification.new(parent, Settings)
 		Enum.FontWeight.Bold,
 		Enum.FontStyle.Normal
 	)
-	confirmBtn.AnchorPoint = Vector2.new(0.5, 0)
-	confirmBtn.Size = UDim2.new(1, 0, 0.43911, 0)
+	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
+	confirmBtn.AnchorPoint = Vector2.new(0, 0)
+	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
 	confirmBtn.Text = confirmText
-	confirmBtn.Position = UDim2.new(0.5, 0, 0, 0)
+	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
 	confirmBtn.ZIndex = 13
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
@@ -238,10 +242,11 @@ function UINotification.new(parent, Settings)
 		Enum.FontWeight.Regular,
 		Enum.FontStyle.Normal
 	)
-	cancelBtn.AnchorPoint = Vector2.new(0.5, 1)
-	cancelBtn.Size = UDim2.new(1, 0, 0.43882, 0)
+	-- Right half, with a small gap from confirm.
+	cancelBtn.AnchorPoint = Vector2.new(0, 0)
+	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
 	cancelBtn.Text = cancelText
-	cancelBtn.Position = UDim2.new(0.5, 0, 1, 0)
+	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
 	cancelBtn.ZIndex = 13
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
@@ -255,7 +260,6 @@ function UINotification.new(parent, Settings)
 	----------------------------------------------------------------
 	-- STORE REFERENCES
 	----------------------------------------------------------------
-	self.Scrim = scrim
 	self.Popup = popup
 	self.Shadow = shadow
 	self.ConfirmShadow = confirmShadow
@@ -269,6 +273,10 @@ function UINotification.new(parent, Settings)
 	self.OnConfirm = onConfirm
 	self.OnCancel = onCancel
 	self.Settings = Settings -- store for later content updates
+	-- Remember the header's origin so ApplyTheme can rebuild its RichText colour
+	-- without clobbering a caller-supplied custom TitleColor.
+	self._title = title
+	self._customTitleColor = Settings.TitleColor ~= nil
 	----------------------------------------------------------------
 	-- INTERNAL RESOLVE FUNCTIONS
 	----------------------------------------------------------------
@@ -302,23 +310,17 @@ function UINotification.new(parent, Settings)
 		self:_Cancel()
 	end)
 	----------------------------------------------------------------
-	-- SCRIM EVENT
-	----------------------------------------------------------------
-	scrim.MouseButton1Click:Connect(function()
-		self:_Cancel()
-	end)
-	----------------------------------------------------------------
 	-- HOVER EFFECTS
 	----------------------------------------------------------------
 	-- Confirm button shadow on hover
 	confirmBtn.MouseEnter:Connect(function()
-		Tween.Play(confirmShadow, "Smooth", {
+		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 50),
 			Transparency = 0
 		})
 	end)
 	confirmBtn.MouseLeave:Connect(function()
-		Tween.Play(confirmShadow, "Smooth", {
+		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 20),
 			Transparency = 1
 		})
@@ -329,10 +331,10 @@ function UINotification.new(parent, Settings)
 	local CANCEL_TEXT_REST = 0.5
 	local CANCEL_TEXT_HOVER = 0.2
 	cancelBtn.MouseEnter:Connect(function()
-		Tween.Play(cancelBtn, "Smooth", { TextTransparency = CANCEL_TEXT_HOVER })
+		Tween.Play(cancelBtn, "Fast", { TextTransparency = CANCEL_TEXT_HOVER })
 	end)
 	cancelBtn.MouseLeave:Connect(function()
-		Tween.Play(cancelBtn, "Smooth", { TextTransparency = CANCEL_TEXT_REST })
+		Tween.Play(cancelBtn, "Fast", { TextTransparency = CANCEL_TEXT_REST })
 	end)
 	----------------------------------------------------------------
 	-- IMPORTANT
@@ -342,6 +344,57 @@ function UINotification.new(parent, Settings)
 	--
 	-- No event should be connected to popup.MouseButton1Click.
 	return self
+end
+----------------------------------------------------------------
+-- CLICK-OUTSIDE (UserInputService)
+----------------------------------------------------------------
+-- The connection exists only while the popup is open: created in Open(),
+-- disconnected in Close()/Hide()/Destroy(). Replaces the old scrim button.
+function UINotification:_connectOutsideClick()
+	if self._outsideConn then
+		return
+	end
+	self._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		local inputType = input.UserInputType
+		if inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if not self.IsOpen or not self.Popup or not self.Popup.Visible then
+			return
+		end
+		local p = input.Position
+		-- Inside if the point is within the popup's rect OR lands on any of its
+		-- descendants. The descendant check makes this robust when visually-
+		-- belonging content (overlays, shadows, indicators) extends past the
+		-- frame's own rect; a pure rect test would misread those as "outside".
+		local pos = self.Popup.AbsolutePosition
+		local size = self.Popup.AbsoluteSize
+		local inside = p.X >= pos.X and p.X <= pos.X + size.X
+			and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+		if not inside then
+			local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
+			if playerGui then
+				for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
+					if obj == self.Popup or obj:IsDescendantOf(self.Popup) then
+						inside = true
+						break
+					end
+				end
+			end
+		end
+		if not inside then
+			self:_Cancel()
+		end
+	end)
+end
+function UINotification:_disconnectOutsideClick()
+	if self._outsideConn then
+		self._outsideConn:Disconnect()
+		self._outsideConn = nil
+	end
 end
 ----------------------------------------------------------------
 -- OPEN
@@ -354,7 +407,6 @@ function UINotification:Open()
 	self._resolved = false
 	Sound.Play("Notification")
 	-- Reset to transparent before showing
-	self.Scrim.ImageTransparency = 1
 	self.Popup.BackgroundTransparency = 1
 	-- Internal elements: start fully transparent
 	self.Header.TextTransparency = 1
@@ -363,37 +415,34 @@ function UINotification:Open()
 	self.Interactions.BackgroundTransparency = 1
 	self.ConfirmBtn.TextTransparency = 1
 	self.CancelBtn.TextTransparency = 1
-	self.Scrim.Visible = true
 	self.Popup.Visible = true
-	-- Fade in scrim
-	--Tween.Play(self.Scrim, "Smooth", {
-	--	ImageTransparency = 0
-	--})
+	-- Arm the click-outside listener for as long as the popup is open.
+	self:_connectOutsideClick()
 	-- Fade in popup background
-	Tween.Play(self.Popup, "Smooth", {
+	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 0.07
 	})
 	-- Fade in shadow
-	Tween.Play(self.Shadow, "Smooth", {
+	Tween.Play(self.Shadow, "Fast", {
 		Transparency = 0.5
 	})
 	-- Fade in internal elements
-	Tween.Play(self.Header, "Smooth", {
+	Tween.Play(self.Header, "Fast", {
 		TextTransparency = 0.4
 	})
-	Tween.Play(self.NotifText, "Smooth", {
+	Tween.Play(self.NotifText, "Fast", {
 		TextTransparency = 0.45
 	})
-	Tween.Play(self.Divider, "Smooth", {
+	Tween.Play(self.Divider, "Fast", {
 		BackgroundTransparency = 0.9
 	})
-	Tween.Play(self.Interactions, "Smooth", {
-		BackgroundTransparency = 1
+	Tween.Play(self.Interactions, "Fast", {
+		BackgroundTransparency = 0.8
 	})
-	Tween.Play(self.ConfirmBtn, "Smooth", {
+	Tween.Play(self.ConfirmBtn, "Fast", {
 		TextTransparency = 0.2
 	})
-	Tween.Play(self.CancelBtn, "Smooth", {
+	Tween.Play(self.CancelBtn, "Fast", {
 		TextTransparency = 0.5
 	})
 end
@@ -406,53 +455,50 @@ function UINotification:Close()
 	end
 	self.IsOpen = false
 	-- Fade out internal elements
-	Tween.Play(self.Header, "Smooth", {
+	Tween.Play(self.Header, "Fast", {
 		TextTransparency = 1
 	})
-	Tween.Play(self.NotifText, "Smooth", {
+	Tween.Play(self.NotifText, "Fast", {
 		TextTransparency = 1
 	})
-	Tween.Play(self.Divider, "Smooth", {
+	Tween.Play(self.Divider, "Fast", {
 		BackgroundTransparency = 1
 	})
-	Tween.Play(self.Interactions, "Smooth", {
+	Tween.Play(self.Interactions, "Fast", {
 		BackgroundTransparency = 1
 	})
-	Tween.Play(self.ConfirmBtn, "Smooth", {
+	Tween.Play(self.ConfirmBtn, "Fast", {
 		TextTransparency = 1,
 		BackgroundTransparency = 1
 	})
-	Tween.Play(self.CancelBtn, "Smooth", {
+	Tween.Play(self.CancelBtn, "Fast", {
 		TextTransparency = 1,
 		BackgroundTransparency = 1
 	})
 	-- Fade out popup shadow
-	Tween.Play(self.Shadow, "Smooth", {
+	Tween.Play(self.Shadow, "Fast", {
 		Transparency = 1
 	})
 	
 	-- Reset confirm shadow to default (fade out)
-	Tween.Play(self.ConfirmShadow, "Smooth", {
+	Tween.Play(self.ConfirmShadow, "Fast", {
 		BlurRadius = UDim.new(0, 20),
 		Transparency = 1
 	})
 	
 	-- Reset cancel shadow to default (fade out)
-	Tween.Play(self.CancelShadow, "Smooth", {
+	Tween.Play(self.CancelShadow, "Fast", {
 		Transparency = 1
 	})
+	-- Disarm the click-outside listener immediately on close.
+	self:_disconnectOutsideClick()
 	-- Fade out popup background
-	Tween.Play(self.Popup, "Smooth", {
+	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 1
 	})
-	-- Fade out scrim
-	--Tween.Play(self.Scrim, "Smooth", {
-	--	ImageTransparency = 1
-	--})
 	task.delay(0.35, function()
 		if not self.IsOpen then
 			self.Popup.Visible = false
-			self.Scrim.Visible = false
 		end
 	end)
 end
@@ -509,14 +555,45 @@ end
 -- DESTROY
 ----------------------------------------------------------------
 function UINotification:Destroy()
-	if self.Scrim then
-		self.Scrim:Destroy()
+	self:_disconnectOutsideClick()
+	if self.Popup then
+		self.Popup:Destroy()
 	end
 end
 -- Hide the popup (keep it alive for reuse)
 function UINotification:Hide()
 	self.Popup.Visible = false
-	self.Scrim.Visible = false
 	self.IsOpen = false
+	self:_disconnectOutsideClick()
 end
+
+-- Live theme switch: recolour every themed element in place so an already-open
+-- dialog crossfades with the rest of the window instead of being destroyed and
+-- rebuilt by Window:SetTheme.
+function UINotification:ApplyTheme(themeInput)
+	local t = ThemeManager.GetTheme(themeInput)
+	if not t or not self.Popup then
+		return
+	end
+	self.Popup.BackgroundColor3 = t.PopupBackgroundColor
+	self.Popup.BackgroundTransparency = t.PopupBackgroundTransparency or 1
+	self.Shadow.Color = t.PopupShadowColor
+	self.Header.TextColor3 = t.PopupTextColor
+	self.Header.TextTransparency = t.PopupTextTransparency or 0.4
+	if not self._customTitleColor then
+		local colorStr = colorToString(t.PopupTextColor or Color3.fromRGB(255, 255, 255))
+		self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, self._title or "Notification")
+	end
+	self.NotifText.TextColor3 = t.PopupTextColor
+	self.NotifText.TextTransparency = t.PopupTextTransparency or 0.45
+	self.Divider.BackgroundColor3 = t.AccentColor
+	self.Interactions.BackgroundColor3 = t.PopupShadowColor or Color3.fromRGB(15, 15, 16)
+	self.ConfirmBtn.BackgroundColor3 = t.PrimaryColor
+	self.ConfirmBtn.TextColor3 = t.PopupTextColor
+	self.ConfirmShadow.Color = t.PrimaryColor
+	self.CancelBtn.BackgroundColor3 = t.PopupNeutralColor
+	self.CancelBtn.TextColor3 = t.PopupTextColor
+	self.CancelShadow.Color = t.PopupNeutralColor
+end
+
 return UINotification

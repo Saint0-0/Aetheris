@@ -39,6 +39,9 @@ function Label.new(parent, Settings, theme)
 	local showContainer = (Settings.ShowContainer == nil) and true or Settings.ShowContainer
 	local showStroke = (Settings.ShowStroke == nil) and true or Settings.ShowStroke
 	local fontWeight = getFontWeight(Settings.FontWeight or "Regular")
+	local textSize = Settings.TextSize or 14
+	local customTextTransparency = Settings.TextTransparency
+	local paddingOverride = Settings.Padding
 	-- Container (matches Paragraph's style)
 	local container = Instance.new("Frame")
 	container.Name = text .. " [Label]"
@@ -67,10 +70,17 @@ function Label.new(parent, Settings, theme)
 	stroke.Parent = container
 	-- Padding inside container
 	local padding = Instance.new("UIPadding")
-	padding.PaddingTop = UDim.new(0, 15)
-	padding.PaddingBottom = UDim.new(0, 15)
-	padding.PaddingLeft = UDim.new(0, 11)
-	padding.PaddingRight = UDim.new(0, 11)
+	if paddingOverride then
+		padding.PaddingTop = UDim.new(0, paddingOverride.Top or 0)
+		padding.PaddingBottom = UDim.new(0, paddingOverride.Bottom or 0)
+		padding.PaddingLeft = UDim.new(0, paddingOverride.Left or 0)
+		padding.PaddingRight = UDim.new(0, paddingOverride.Right or 0)
+	else
+		padding.PaddingTop = UDim.new(0, 15)
+		padding.PaddingBottom = UDim.new(0, 15)
+		padding.PaddingLeft = UDim.new(0, 11)
+		padding.PaddingRight = UDim.new(0, 11)
+	end
 	padding.Parent = container
 	-- Label
 	local label = Instance.new("TextLabel")
@@ -79,10 +89,10 @@ function Label.new(parent, Settings, theme)
 	label.Text = text
 	label.RichText = true
 	label.TextColor3 = (theme and theme.PrimaryTextColor)
-	label.TextSize = 14
+	label.TextSize = textSize
 	label.AnchorPoint = Vector2.new(0, 0.5)
 	label.Position = UDim2.new(0, 0, 0.5, 0)
-	label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
+	label.TextTransparency = customTextTransparency or ((theme and theme.PrimaryTextTransparency) or 0.45)
 	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -99,6 +109,27 @@ function Label.new(parent, Settings, theme)
 	self._showContainer = showContainer
 	self._showStroke = showStroke
 	self._fontWeight = fontWeight
+	self._hasCustomTextTransparency = (customTextTransparency ~= nil)
+	-- Declarative theming: every themed property is a BINDING. No ApplyTheme.
+	local bgColorBinding = ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
+	local bgTransBinding = ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	local textColorBinding = ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	local strokeColorBinding = ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	-- Conditional properties: a binding drives the value only while its
+	-- condition holds; otherwise it is disabled and the value set directly.
+	if not showContainer then
+		bgTransBinding:SetEnabled(false)
+		container.BackgroundTransparency = 1
+	end
+	if not showStroke then
+		strokeTransBinding:SetEnabled(false)
+		stroke.Transparency = 1
+	end
+	if customTextTransparency ~= nil then
+		textTransBinding:SetEnabled(false)
+	end
 	-- Public API
 	self.SetVisibility = function(visible)
 		container.Visible = visible
@@ -107,7 +138,13 @@ function Label.new(parent, Settings, theme)
 		label.Text = newText
 	end
 	self.SetTextTransparency = function(transparency)
-		label.TextTransparency = transparency
+		self._hasCustomTextTransparency = (transparency ~= nil)
+		if transparency ~= nil then
+			textTransBinding:SetEnabled(false)
+			label.TextTransparency = transparency
+		else
+			textTransBinding:SetEnabled(true)
+		end
 	end
 	self.SetFontWeight = function(weight)
 		local newWeight = getFontWeight(weight)
@@ -116,35 +153,24 @@ function Label.new(parent, Settings, theme)
 	end
 	self.SetShowContainer = function(show)
 		self._showContainer = show
-		container.BackgroundTransparency = show and 0.985 or 1
-		-- Also hide/show corner? Corner is always there but doesn't matter if background transparent.
-		-- We keep corner and padding always, just toggle background.
+		if show then
+			bgTransBinding:SetEnabled(true)
+		else
+			bgTransBinding:SetEnabled(false)
+			container.BackgroundTransparency = 1
+		end
 	end
 	self.SetShowStroke = function(show)
 		self._showStroke = show
 		stroke:SetAttribute("HiddenStroke", not show)
-		stroke.Transparency = show and ((self._theme and self._theme.StrokeTransparency) or 0.95) or 1
-	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		container.BackgroundColor3 = theme.ComponentBackgroundColor or container.BackgroundColor3
-		if self._showContainer then
-			container.BackgroundTransparency = theme.ComponentBackgroundTransparency or container.BackgroundTransparency
+		if show then
+			strokeTransBinding:SetEnabled(true)
 		else
-			container.BackgroundTransparency = 1
-		end
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		stroke.Color = theme.StrokeColor or stroke.Color
-		if self._showStroke then
-			stroke.Transparency = theme.StrokeTransparency or 0.95
-		else
+			strokeTransBinding:SetEnabled(false)
 			stroke.Transparency = 1
 		end
 	end
-	ThemeManager.Register(container, self)
+	-- No ApplyTheme / Register: all themed properties are bindings above.
 	return self
 end
 return Label

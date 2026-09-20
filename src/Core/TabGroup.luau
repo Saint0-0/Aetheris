@@ -19,7 +19,7 @@ local Section = require("./Section")
 local FallbackImage = require("../Constants").FallbackImage
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("./SearchFilter")
-local VideoFade = require("../Utils/VideoFade")
+local PageFade = require("../Utils/PageFade")
 local TabGroup = {}
 TabGroup.__index = TabGroup
 -- Tab handle metatable for methods like :Section()
@@ -38,7 +38,6 @@ function TabGroup.new(window, theme)
 	self._theme = theme or {}  -- store resolved theme
 	self.Tabs = {} -- ordered list of tab handles
 	self.ActiveTab = nil
-	self._fadeCaches = {}
 	self._transitioning = false
 	self._spinHandles = {}
 	-- Register with ThemeManager so ApplyTheme reaches this group's tab
@@ -55,142 +54,32 @@ end
 -- Snapshot a tab's base transparencies. Only valid while the page is
 -- natural (not faded); re-captured whenever the tab is natural so pages whose
 -- content is added after creation are captured fully.
-function TabGroup:_captureCache(tab)
-	local cache = {}
-	local function scan(instance)
-		-- Video fade handle (UIGradient tagged by the Video component).
-		if instance:IsA("UIGradient") and instance:GetAttribute("IsVideoFade") then
-			table.insert(cache, {instance = instance, isVideo = true, base = VideoFade.get(instance)})
-			return
-		end
-		local props = {}
-		local function addProp(propName)
-			local success, value = pcall(function() return instance[propName] end)
-			if success and value ~= nil then
-				table.insert(props, {propName, value})
-			end
-		end
-		if instance:IsA("GuiObject") then
-			addProp("BackgroundTransparency")
-			addProp("TextTransparency")
-			addProp("ImageTransparency")
-		end
-		if instance:IsA("UIStroke") or instance:IsA("UIShadow") then
-			addProp("Transparency")
-		end
-		if #props > 0 then
-			table.insert(cache, {instance = instance, props = props})
-		end
-		for _, child in ipairs(instance:GetChildren()) do
-			scan(child)
-		end
-	end
-	scan(tab.ContentScroller)
-	return cache
-end
+-- NOTE: the old per-element transparency cache system was REMOVED in the
+-- PageFade rework. Page transitions are now driven by ONE CanvasGroup per tab
+-- (tab.FadeLayer, see Utils/PageFade), so nothing inside a page is ever
+-- transparency-faded and no base state can be stomped.
 -- A tab's base transparencies are captured ONCE, then reused forever.
 -- INVARIANT: tab content always rests at its base (hidden tabs are just
 -- Visible=false, NOT faded to 1). That makes a single capture permanently
 -- valid, so the window fade can snapshot/restore any tab without guards.
-function TabGroup:_getFadeCache(tab)
-	if tab._cache then
-		return tab._cache
-	end
-	-- Don't snapshot while the window is faded out (everything reads 1 then).
-	if self.Window and not self.Window.MainFrame.Visible then
-		return {}
-	end
-	tab._cache = self:_captureCache(tab)
-	return tab._cache
-end
-
--- Capture every tab's base now, while all content is still natural. Called
--- before the window fades out so the window fade always has valid bases.
-function TabGroup:PrimeCaches()
-	for _, t in ipairs(self.Tabs) do
-		if not t._cache then
-			t._cache = self:_captureCache(t)
-		end
-	end
-end
-
--- Drop every tab's cached base transparencies so they get re-captured from the
--- CURRENT (freshly-themed) content. Called by ThemeManager after a theme switch:
--- component ApplyTheme changes base transparency values (e.g. Section background
--- + UIStroke), which would otherwise leave the OLD bases cached and make the
--- next page switch restore stale values. Re-prime immediately while the content
--- rests at its natural (just-themed) state.
-function TabGroup:InvalidateCaches()
-	for _, t in ipairs(self.Tabs) do
-		t._cache = nil
-	end
-	self._fadeCaches = {}
-	if self.Window and self.Window.MainFrame and self.Window.MainFrame.Visible then
-		self:PrimeCaches()
-	end
-end
--- Fade all elements in a cache to a target transparency or back to base.
--- targetTransparency: number or nil (revert to base). instant: set immediately.
-function TabGroup:_fadeElements(cache, targetTransparency, callback, instant)
-	if not cache or #cache == 0 then
-		if callback then callback() end
-		return
-	end
-	local total = 0
-	local completed = 0
-	local function onComplete()
-		completed = completed + 1
-		if completed >= total and callback then
-			callback()
-		end
-	end
-	for _, entry in ipairs(cache) do
-		local instance = entry.instance
-		if entry.isVideo then
-			if instance.Parent then
-				local target = targetTransparency
-				if target == nil then target = entry.base end
-				if instant then
-					VideoFade.set(instance, target)
-				else
-					total = total + 1
-					VideoFade.fade(instance, target, 0.2, "Out", onComplete)
-				end
-			end
-		elseif instance.Parent then
-			for _, propInfo in ipairs(entry.props) do
-				local prop = propInfo[1]
-				local base = propInfo[2]
-				local target = targetTransparency
-				if target == nil then
-					target = base
-				end
-				if instant then
-					instance[prop] = target
-				elseif instance[prop] ~= target then
-					total = total + 1
-					local handle = Tween.Play(instance, "Fast", {[prop] = target})
-					handle.Tween.Completed:Connect(onComplete)
-				end
-			end
-		end
-	end
-	if total == 0 and callback then
-		callback()
-	end
-end
--- Tab backdrop spins route through the CENTRAL spin system (Tween.StartSpin)
--- so the global Tween.SetSpinsEnabled toggle controls them too. Only the active
--- tab is registered (pausing on switch unregisters it), so a global restart
--- only resumes the visible tab.
+-- (Page transitions are handled entirely by Utils/PageFade now: one
+-- CanvasGroup per tab, faded via PageFade.Crossfade/Show/Snap. The old
+-- per-element transparency cache functions were removed.)
+-- Tab backdrop spins route through the CENTRAL spin system so the global
+-- Tween.SetSpinsEnabled toggle controls them too. Inactive tab backdrops are
+-- PAUSED (angle preserved) rather than stopped, so switching back resumes the
+-- sweep where it left off instead of snapping to 0.
 function TabGroup:_pauseSpin(gradient)
-	Tween.StopSpin(gradient)
+	if not gradient then return end
+	Tween.PauseSpin(gradient)
 end
--- If reset is true, set rotation to 0 before starting (first activation).
--- StartSpin handles the disabled case (registers + resets but does not tween),
--- so re-enabling via Tween.SetSpinsEnabled(true) restarts the active tab too.
+-- Resume from the paused angle; only start fresh if this gradient has never
+-- been registered (the first time a tab is shown).
 function TabGroup:_resumeSpin(gradient, reset)
-	Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
+	if not gradient then return end
+	if not Tween.ResumeSpin(gradient) then
+		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
+	end
 end
 --[[
 	Tab(Settings)
@@ -264,8 +153,11 @@ function TabGroup:Tab(Settings)
 	-- Mark as a true backdrop so ThemeManager updates its image/visibility
 	-- without touching the component sheens (which also use the brand asset).
 	BackImage:SetAttribute("IsTabBackdrop", true)
-	-- Set visibility based on current theme's WallpaperEnabled
-	BackImage.Visible = theme.WallpaperEnabled
+	-- Set visibility based on current theme's WallpaperEnabled. Use the same
+	-- `~= false` form as TabGroup:ApplyTheme so construction and a live theme
+	-- switch agree (a plain truthy test treats a nil value as hidden, whereas
+	-- `~= false` treats it as shown).
+	BackImage.Visible = theme.WallpaperEnabled ~= false
 	local BackImageCorner = Instance.new("UICorner")
 	BackImageCorner.CornerRadius = UDim.new(0, 6)
 	BackImageCorner.Parent = BackImage
@@ -326,8 +218,17 @@ function TabGroup:Tab(Settings)
 	ContentScroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ContentScroller.ScrollBarThickness = 1
 	ContentScroller.ScrollBarImageColor3 = theme.TertiaryColor
-	ContentScroller.Visible = false -- SetActive() below shows the initial one
-	ContentScroller.Parent = self.Window.TabContent
+	-- Visibility is now owned by the FadeLayer (CanvasGroup) below, NOT by the
+	-- scroller: the scroller stays Visible=true inside the layer, and the layer
+	-- is what fades in/out. (Previously the scroller itself was toggled.)
+	ContentScroller.Visible = true
+	-- Page transition layer: ONE CanvasGroup per tab owns the page fade.
+	-- The scroller (and everything inside it) is never transparency-faded,
+	-- so component state encoded as transparency (radio selection, slider
+	-- fill, etc.) can never be stomped by a page switch. See Utils/PageFade.
+	local FadeLayer = PageFade.Layer(self.Window.TabContent, name .. "Page")
+	FadeLayer.Visible = false
+	ContentScroller.Parent = FadeLayer
 	-- Scrollbar: only visible while scrolling
 	local scrollerScrollbarTimer
 	ContentScroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
@@ -389,8 +290,11 @@ function TabGroup:Tab(Settings)
 		TabImage = TabImage,
 		SelectionStatus = SelectionStatus,
 		ContentScroller = ContentScroller,
+		FadeLayer = FadeLayer,
 		ColumnLeft = ColumnLeft,
 		ColumnRight = ColumnRight,
+		_layout = ContentScrollerLayout,
+		_scrollerPadding = ContentScrollerPadding,
 		_theme = theme,
 	}, TabHandle)
 	Button.MouseButton1Click:Connect(function()
@@ -400,10 +304,56 @@ function TabGroup:Tab(Settings)
 		self:SetActiveTab(tab)
 	end)
 	table.insert(self.Tabs, tab)
+	-- A tab created while the window is already compact must not start out in
+	-- the 2-column layout, or it would render side-by-side until the next
+	-- compact toggle.
+	if self._compact then
+		self:_applyTabCompact(tab, true)
+	end
 	if Settings.Active or isFirst then
 		self:SetActiveTab(tab)
 	end
 	return tab
+end
+-- Flip one tab between the 2-column (expanded) and 1-column (compact)
+-- layout. In compact the UIListLayout that holds ColumnLeft/ColumnRight goes
+-- Vertical and each column spans the full width, so ColumnLeft's sections
+-- stack directly above ColumnRight's -- one scrolling column of content.
+-- Nothing is reparented: Sections keep their parent column, so search
+-- filtering, layout orders and fade caches are all untouched, and the change
+-- is a pure property swap that reverses exactly.
+local EXPANDED_COLUMN_SIZE = UDim2.new(0.5, -10, 0, 0)
+-- Per-tab scroller right padding. Compact gets a little more breathing room so
+-- the single column doesn't sit flush against the scrollbar edge.
+local EXPANDED_SCROLLER_PAD_RIGHT = UDim.new(0, 3)
+local COMPACT_SCROLLER_PAD_RIGHT = UDim.new(0, 10)
+function TabGroup:_applyTabCompact(tab, on)
+	local layout = tab and tab._layout
+	if not layout or not tab.ColumnLeft or not tab.ColumnRight then return end
+	local padding = tab._scrollerPadding
+	if on then
+		layout.FillDirection = Enum.FillDirection.Vertical
+		tab.ColumnLeft.Size = UDim2.new(1, 0, 0, 0)
+		tab.ColumnRight.Size = UDim2.new(1, 0, 0, 0)
+		tab.ColumnLeft.Position = UDim2.new(0, 0, 0, 0)
+		tab.ColumnRight.Position = UDim2.new(0, 0, 0, 0)
+		if padding then padding.PaddingRight = COMPACT_SCROLLER_PAD_RIGHT end
+	else
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		tab.ColumnLeft.Size = EXPANDED_COLUMN_SIZE
+		tab.ColumnRight.Size = EXPANDED_COLUMN_SIZE
+		tab.ColumnLeft.Position = UDim2.new(0.512, 0, 0, 0)
+		tab.ColumnRight.Position = UDim2.new(0.512, 0, 0, 0)
+		if padding then padding.PaddingRight = EXPANDED_SCROLLER_PAD_RIGHT end
+	end
+end
+-- Public: called by Window's compact mode. 
+function TabGroup:SetCompact(on)
+	on = on and true or false
+	self._compact = on
+	for _, tab in ipairs(self.Tabs) do
+		self:_applyTabCompact(tab, on)
+	end
 end
 -- A plain visual separator between groups of tabs in the sidebar.
 function TabGroup:Divider()
@@ -411,8 +361,11 @@ function TabGroup:Divider()
 	local Divider = Instance.new("Frame")
 	Divider.Name = "Divider"
 	Divider.BorderSizePixel = 0
-	Divider.BackgroundColor3 = theme.TertiaryColor
-	Divider.BackgroundTransparency = 0.5 -- fixed; not theme-driven
+	-- Dividers now share the same theme keys as the Divider component
+	-- (SectionDividerColor / SectionDividerTransparency) so there is ONE notion
+	-- of divider styling. Falls back to the old TertiaryColor/0.5 defaults.
+	Divider.BackgroundColor3 = theme.SectionDividerColor or theme.TertiaryColor
+	Divider.BackgroundTransparency = theme.SectionDividerTransparency or 0.5
 	Divider.Size = UDim2.new(0.85227, 0, 0, 1)
 	Divider.LayoutOrder = #self.Tabs + 1
 	Divider.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -420,30 +373,6 @@ function TabGroup:Divider()
 	Divider.Parent = self.Window.TabList
 	return Divider
 end
--- Instantly re-apply every tab button's active/inactive visuals. Used after a
--- minimize/restore, where the window fade overwrote the tab button transparencies.
-function TabGroup:RefreshVisuals()
-	local theme = self._theme or {}
-	for _, t in ipairs(self.Tabs) do
-		local isActive = (t == self.ActiveTab)
-		if isActive then
-			Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.ActiveTabButtonColor, BackgroundTransparency = theme.ActiveTabButtonTransparency })
-			Tween.Play(t.TabName, "Fast", { TextTransparency = theme.ActiveTabTextTransparency or 0.2, TextColor3 = theme.ActiveTabTextColor or Color3.fromRGB(255, 255, 255) })
-			Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
-			Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.ActiveTabIconTransparency or 0.2, ImageColor3 = theme.ActiveTabIconColor or Color3.fromRGB(255, 255, 255) })
-			Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
-			self:_resumeSpin(t.BackImageGradient, true)
-		else
-			Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.InactiveTabButtonColor, BackgroundTransparency = theme.InactiveTabButtonTransparency })
-			Tween.Play(t.TabName, "Fast", { TextTransparency = theme.InactiveTabTextTransparency or 0.6, TextColor3 = theme.InactiveTabTextColor or Color3.fromRGB(200, 200, 200) })
-			Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-			Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.InactiveTabIconTransparency or 0.6, ImageColor3 = theme.InactiveTabIconColor or Color3.fromRGB(200, 200, 200) })
-			Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) })
-			self:_pauseSpin(t.BackImageGradient)
-		end
-	end
-end
-
 -- Switches the active tab with fade transitions for content and title.
 -- First activation fades in; subsequent switches fade out current, swap, fade in new.
 -- Called by ThemeManager after a blanket CancelAll (theme switch), which
@@ -451,15 +380,15 @@ end
 function TabGroup:RestoreActiveTab()
 	local tab = self.ActiveTab
 	if not tab then return end
+	-- Show only the active tab's fade layer; hide the rest.
 	for _, other in ipairs(self.Tabs) do
-		if other ~= tab then
-			other.ContentScroller.Visible = false
+		if other.FadeLayer then
+			other.FadeLayer.Visible = (other == tab)
 		end
 	end
-	local cache = self:_getFadeCache(tab)
-	tab.ContentScroller.Visible = true
-	self:_fadeElements(cache, nil, nil, true)
-	tab._faded = false
+	if tab.FadeLayer then
+		PageFade.Snap(tab.FadeLayer, 0) -- fully visible, no tween
+	end
 	if self.Window and self.Window.PageTitle then
 		self.Window.PageTitle.TextTransparency = 0.4
 	end
@@ -499,36 +428,38 @@ function TabGroup:SetActiveTab(tab)
 	if w and w.SearchBox and w.SearchBox.Text ~= "" then
 		SearchFilter.Apply(tab.ContentScroller, w.SearchBox.Text, w._theme)
 	end
-	local theme = self._theme or {}
-	if not next(theme) then
-		theme = ThemeManager.GetTheme(nil)
-		self._theme = theme
-	end
 	local title = self.Window and self.Window.PageTitle
 
 	if previous then self:_applyTabVisuals(previous, false) end
 	self:_applyTabVisuals(tab, true)
 
-	-- While the window is faded out, don't animate page content: the window fade
-	-- owns the reveal. Just swap which page is shown and update the title. Every
-	-- page rests at its base transparency (see _getFadeCache invariant), so the
-	-- window restore will bring the chosen page in correctly.
+	-- While the window is faded out, don't animate page content: the window
+	-- fade owns the reveal. Just swap which page is shown.
 	if self.Window and self.Window._windowFaded then
+		-- Window fade owns the reveal while faded. Still SNAP each layer fully
+		-- to its end state: Visible alone does NOT reset GroupTransparency, so a
+		-- page whose layer was left at 1 by an earlier crossfade would render
+		-- blank when shown. Snapping keeps the shown page opaque and the rest
+		-- hidden regardless of where their fades were interrupted.
 		for _, other in ipairs(self.Tabs) do
-			other.ContentScroller.Visible = (other == tab)
+			if other.FadeLayer then
+				local isTarget = (other == tab)
+				other.FadeLayer.Visible = isTarget
+				PageFade.Snap(other.FadeLayer, isTarget and 0 or 1)
+			end
 		end
 		if title then title.Text = self:_titleText(tab) end
 		return
 	end
 
-	local newCache = self:_getFadeCache(tab)
-
+	-- PAGE TRANSITION via PageFade: one CanvasGroup per tab. Nothing inside a
+	-- page is transparency-faded, so component state (radio selection, slider
+	-- fill, etc.) can never be stomped by a page switch.
 	if previous == nil then
-		-- First activation: reveal hidden, fade in.
-		tab.ContentScroller.Visible = true
-		self:_fadeElements(newCache, 1, nil, true)
-		if title then title.TextTransparency = 1 end
-		self:_fadeElements(newCache, nil, nil, false)
+		-- First activation: reveal + fade in.
+		tab.FadeLayer.Visible = true
+		PageFade.Snap(tab.FadeLayer, 1)
+		PageFade.Show(tab.FadeLayer, false)
 		if title then
 			title.Text = self:_titleText(tab)
 			Tween.Play(title, "Fast", { TextTransparency = 0.4 })
@@ -536,21 +467,13 @@ function TabGroup:SetActiveTab(tab)
 		return
 	end
 
-	-- Crossfade: fade the outgoing page out, swap, fade the incoming page in.
-	-- The outgoing page is snapped back to its base after hiding, keeping the
-	-- "every page rests at base" invariant intact.
-	local prevCache = self:_getFadeCache(previous)
-	self:_fadeElements(newCache, 1, nil, true)
-	tab.ContentScroller.Visible = false
-	if title then Tween.Play(title, "Fast", { TextTransparency = 1 }) end
-	self:_fadeElements(prevCache, 1, function()
-		previous.ContentScroller.Visible = false
-		self:_fadeElements(prevCache, nil, nil, true) -- restore base while hidden
-		tab.ContentScroller.Visible = true
-		if title then title.Text = self:_titleText(tab) end
-		self:_fadeElements(newCache, nil, nil, false)
-		if title then Tween.Play(title, "Fast", { TextTransparency = 0.4 }) end
-	end, false)
+	-- Standardized overlapped crossfade: incoming fades in while outgoing
+	-- fades out, both at PageFade.TIME so every page transition matches.
+	tab.FadeLayer.Visible = true
+	if title then title.Text = self:_titleText(tab) end
+	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
+		if previous.FadeLayer then previous.FadeLayer.Visible = false end
+	end)
 end
 
 -- Title text for a tab. The tab name is rendered Medium via a rich-text
@@ -605,7 +528,8 @@ function TabGroup:ApplyTheme(newTheme)
 	-- Tab dividers created via TabGroup:Divider()
 	for _, child in ipairs(self.Window.TabList:GetChildren()) do
 		if child:GetAttribute("IsDivider") then
-			child.BackgroundColor3 = theme.TertiaryColor or child.BackgroundColor3
+			child.BackgroundColor3 = theme.SectionDividerColor or theme.TertiaryColor or child.BackgroundColor3
+			child.BackgroundTransparency = theme.SectionDividerTransparency or child.BackgroundTransparency
 		end
 	end
 end

@@ -60,7 +60,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 0.5)
-	holder.Size = UDim2.new(0.16584, 0, 0.563, 0)
+	holder.Size = UDim2.new(0, 45, 0, 29)
 	holder.Position = UDim2.new(1, 0, 0.5, 0)
 	holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	holder.Parent = row
@@ -285,17 +285,36 @@ function RadioButton.new(parent, group, Settings, theme)
 	if default then
 		self._default = true
 	end
-	-- Component-owned theming (see ThemeManager registry).
+	-- Declarative theming for the STATELESS themed properties: these are
+	-- bindings, so a theme switch re-resolves them with no ApplyTheme body.
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(button, "BackgroundColor3", "PrimaryColor")
+	ThemeManager.BindColor(holderStroke, "Color", "StrokeColor")
+	-- What remains imperative: the wallpaper (Image/Visible are not Color3 or
+	-- number, so they can't be bindings) and the SELECTION-driven stroke
+	-- transparency (selected hides the stroke). ApplyTheme therefore stays,
+	-- slimmed to just those two concerns.
 	function self:ApplyTheme(newTheme)
 		theme = ThemeManager.GetTheme(newTheme)
 		self._theme = theme
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		button.BackgroundColor3 = theme.PrimaryColor or button.BackgroundColor3
-		holderStroke.Color = theme.StrokeColor or holderStroke.Color
 		holderStroke.Transparency = self.IsSelected and 1 or (theme.StrokeTransparency or 0.4)
 		backImage.Image = theme.Wallpaper or FallbackImage
 		backImage.Visible = not (theme.WallpaperEnabled == false)
+		-- Re-apply the selected visual state directly. ApplyTheme cancels all
+		-- in-flight tweens first, which could otherwise leave a just-selected
+		-- button (e.g. the default "Auto") looking unselected after the
+		-- startup theme pass.
+		if self.IsSelected then
+			button.BackgroundTransparency = 0
+			activatedImage.ImageTransparency = 0
+			activatedImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+			backImage.ImageTransparency = 0
+		else
+			button.BackgroundTransparency = 1
+			activatedImage.ImageTransparency = 1
+			backImage.ImageTransparency = 1
+		end
 	end
 	ThemeManager.Register(row, self)
 	return self

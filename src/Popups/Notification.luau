@@ -23,7 +23,7 @@ local Notification = {}
 Notification.__index = Notification
 
 local MAX_ACTIONS = 2
-local FADE_IN = 0.25
+local FADE_IN = 0.2
 local FADE_OUT = 0.2
 
 local function new(className, props)
@@ -250,7 +250,7 @@ function Notification.new(container, Settings, theme)
 		TextWrapped = true,
 		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
+		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
 		TextColor3 = theme.NotificationTextColor or Color3.fromRGB(255, 255, 255),
 		FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
@@ -401,7 +401,71 @@ function Notification.new(container, Settings, theme)
 	self._shown = false
 	self._closing = false
 
+	-- Theme context retained so ApplyTheme can recolor a toast that is already
+	-- on screen when the theme changes (toasts live outside the window tree,
+	-- so ThemeManager's own pass never reaches them).
+	self._type = ntype
+	self._accent = accent
+	self._gradientColor = gradientColor
+	self._iconColor = iconColor
+	self._grad = grad
+	self._header = header
+	self._icon = icon
+	self._desc = desc
+
 	return self
+end
+
+-- Live theme switch: re-resolve this toast's themed properties in place so an
+-- open notification crossfades with the rest of the UI instead of being
+-- destroyed and rebuilt (which is what Window:SetTheme does to popups that
+-- lack ApplyTheme).
+function Notification:ApplyTheme(themeInput)
+	if not self.Root then return end
+	local theme = ThemeManager.GetTheme(themeInput)
+	local accent = theme[ACCENT_KEY[self._type] or "NotificationAlertAccent"] or self._accent
+
+	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
+	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
+
+	local shadow = self.Root:FindFirstChildWhichIsA("UIShadow")
+	if shadow and theme.NotificationShadowColor then
+		shadow.Color = theme.NotificationShadowColor
+	end
+
+	if self._grad then
+		self._grad.BackgroundColor3 = self._gradientColor or accent
+	end
+
+	if self._header then
+		if theme.NotificationHeaderColor then self._header.TextColor3 = theme.NotificationHeaderColor end
+		if theme.NotificationHeaderTransparency then self._header.TextTransparency = theme.NotificationHeaderTransparency end
+		local divider = self._header:FindFirstChild("Divider")
+		if divider then
+			if theme.NotificationDividerColor then divider.BackgroundColor3 = theme.NotificationDividerColor end
+			if theme.NotificationDividerTransparency then divider.BackgroundTransparency = theme.NotificationDividerTransparency end
+		end
+	end
+
+	if self._icon then
+		self._icon.ImageColor3 = self._iconColor or accent
+	end
+
+	if self._desc then
+		if theme.NotificationTextColor then self._desc.TextColor3 = theme.NotificationTextColor end
+		if theme.NotificationTextTransparency then self._desc.TextTransparency = theme.NotificationTextTransparency end
+		local holder = self._desc:FindFirstChild("InterractionHolder")
+		if holder then
+			local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
+			local btnText = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255)
+			for _, btn in ipairs(holder:GetChildren()) do
+				if btn:IsA("TextButton") then
+					btn.BackgroundColor3 = baseBg
+					btn.TextColor3 = btnText
+				end
+			end
+		end
+	end
 end
 
 function Notification:_startTimer()

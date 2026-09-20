@@ -175,17 +175,11 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
     row.MouseButton1Click:Connect(function()
         self:TogglePopup()
     end)
-    -- Component-owned theming (see ThemeManager registry). The ColorDisplay
-    -- itself is left alone (it shows the user's colour); only text/chevron
-    -- follow the theme.
-    function self:ApplyTheme(newTheme)
-        theme = ThemeManager.GetTheme(newTheme)
-        self._theme = theme
-        label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-        label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-        chevron.ImageColor3 = theme.AccentColor or chevron.ImageColor3
-    end
-    ThemeManager.Register(row, self)
+    -- Declarative theming: label text + chevron follow the theme via bindings.
+    -- The ColorDisplay itself is left alone (it shows the user's colour).
+    ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+    ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+    ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
     -- Initialize display
     updateDisplay(defaultColor)
     return self

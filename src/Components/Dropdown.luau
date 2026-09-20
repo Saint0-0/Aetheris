@@ -78,7 +78,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.Image = Icons["chevron-down"] or "rbxassetid://134243273101015"
 	dropdownImage.ImageColor3 = (theme and theme.AccentColor)
 	dropdownImage.Size = UDim2.new(0, 14, 0, 14)
-	dropdownImage.Position = UDim2.new(0.9, 0, 0.5, 0)
+	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
 	dropdownImage.Parent = row
 	-- Label (always displays the dropdown name)
 	local label = Instance.new("TextLabel")
@@ -169,19 +169,14 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		-- Also update the ID to reflect the new name? We'll keep the original ID based on the initial name.
 	end
 	self.OpenPopup = openPopup
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		row.BackgroundColor3 = theme.ComponentBackgroundColor or row.BackgroundColor3
-		row.BackgroundTransparency = theme.ComponentBackgroundTransparency or row.BackgroundTransparency
-		stroke.Color = theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.StrokeTransparency or stroke.Transparency
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		dropdownImage.ImageColor3 = theme.AccentColor or dropdownImage.ImageColor3
-	end
-	ThemeManager.Register(row, self)
+	-- Declarative theming: every themed property is a BINDING.
+	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
 	return self
 end
 return Dropdown

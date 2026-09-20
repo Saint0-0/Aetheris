@@ -12,9 +12,9 @@ theme switches drop the cache so the next open rebuilds with current colors.
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
 local Icons = require("../Assets/Icons")
-local FallbackImage = require("../Constants").FallbackImage
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("../Core/SearchFilter")
+local UserInputService = game:GetService("UserInputService")
 local DropdownPopUp = {}
 DropdownPopUp.__index = DropdownPopUp
 local function sanitizeName(str)
@@ -24,7 +24,9 @@ end
 -- skip rebuilding every row when the list is unchanged (the common case: a
 -- dropdown re-sends the same items on each open).
 local function itemsEqual(a, b)
-	if #a ~= #b then return false end
+	if #a ~= #b then
+		return false
+	end
 	for i = 1, #a do
 		local x, y = a[i], b[i]
 		if x.name ~= y.name or x.value ~= y.value or x.icon ~= y.icon then
@@ -45,9 +47,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	local maxItems = Settings.MaxItemsChoosable or math.huge
 	local onConfirm = Settings.OnConfirm or function() end
 	local onCancel = Settings.OnCancel or function() end
-	-- ============================================================
-	-- Build UI from the existing export
-	-- ============================================================
+	-- Click-outside is handled by a UserInputService.InputBegan connection that
+	-- is created when the popup is shown and disconnected when it is hidden (see
+	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
+	-- needed, so the popup is parented directly to its parent.
 	local popup = Instance.new("Frame")
 	popup.Name = sanitizeName(title) .. "DropdownPopup"
 	popup.BorderSizePixel = 0
@@ -59,6 +62,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.ZIndex = 11
+	popup.Active = true
 	popup.Parent = parent
 	local shadow = Instance.new("UIShadow")
 	shadow.Color = (theme and theme.PopupShadowColor)
@@ -90,11 +94,31 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	local interactions = Instance.new("Frame")
 	interactions.Name = "Interactions"
 	interactions.BorderSizePixel = 0
-	interactions.BackgroundTransparency = 1
-	interactions.AnchorPoint = Vector2.new(0.5, 0.5)
-	interactions.Size = UDim2.new(0.9375, 0, 0.16328, 0)
-	interactions.Position = UDim2.new(0.5, 0, 0.89551, 0)
+	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
+	interactions.BackgroundTransparency = 0.8
+	-- Anchored bottom-right (1, 0.5), pinned flush to the popup's bottom edge
+	-- (center Y = 1 - height/2).
+	interactions.AnchorPoint = Vector2.new(0.5, 1)
+	interactions.Size = UDim2.new(1, 0, 0, 55)
+	interactions.Position = UDim2.new(0.5, 0, 1, 0)
 	interactions.Parent = popup
+	local interactionsCorner = Instance.new("UICorner")
+	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
+	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
+	interactionsCorner.TopRightRadius = UDim.new(0, 0)
+	interactionsCorner.Parent = interactions
+	local interactionsLayout = Instance.new("UIListLayout")
+	interactionsLayout.FillDirection = Enum.FillDirection.Horizontal
+	interactionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	interactionsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	interactionsLayout.Padding = UDim.new(0, 8)
+	interactionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	interactionsLayout.Parent = interactions
+	local interactionsPadding = Instance.new("UIPadding")
+	interactionsPadding.PaddingLeft = UDim.new(0, 10)
+	interactionsPadding.PaddingRight = UDim.new(0, 10)
+	interactionsPadding.Parent = interactions
 	local confirmBtn = Instance.new("TextButton")
 	confirmBtn.Name = "Confirm"
 	confirmBtn.BorderSizePixel = 0
@@ -106,9 +130,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
 	confirmBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-	confirmBtn.AnchorPoint = Vector2.new(0.5, 0)
-	confirmBtn.Size = UDim2.new(1, 0, 0.43911, 0)
-	confirmBtn.Position = UDim2.new(0.5, 0, 0, 0)
+	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
+	confirmBtn.AnchorPoint = Vector2.new(0, 0)
+	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
 	confirmCorner.CornerRadius = UDim.new(0, 4)
@@ -130,9 +155,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
-	cancelBtn.AnchorPoint = Vector2.new(0.5, 1)
-	cancelBtn.Size = UDim2.new(1, 0, 0.43882, 0)
-	cancelBtn.Position = UDim2.new(0.5, 0, 1, 0)
+	-- Right half, with a small gap from confirm.
+	cancelBtn.AnchorPoint = Vector2.new(0, 0)
+	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
 	cancelCorner.CornerRadius = UDim.new(0, 4)
@@ -162,8 +188,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	listLayout.Parent = list
 	local listPadding = Instance.new("UIPadding")
 	listPadding.PaddingTop = UDim.new(0, 2)
-	listPadding.PaddingRight = UDim.new(0, 8)
-	listPadding.PaddingLeft = UDim.new(0, 8)
+	listPadding.PaddingRight = UDim.new(0, 3)
+	listPadding.PaddingLeft = UDim.new(0, 14)
 	listPadding.Parent = list
 	local selectedText = Instance.new("TextLabel")
 	selectedText.Name = "SelectedItemsText"
@@ -178,7 +204,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedText.RichText = true
 	selectedText.AnchorPoint = Vector2.new(0.5, 0.5)
 	selectedText.Size = UDim2.new(0.91, 0, 0, 26)
-	selectedText.Position = UDim2.new(0.5, 0, 0.76384, 0)
+	selectedText.Position = UDim2.new(0.5, 0, 0.79, 0)
 	selectedText.Parent = popup
 	selectedText.Text = "None selected"
 	local selectedPadding = Instance.new("UIPadding")
@@ -193,7 +219,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedDivider.BackgroundTransparency = 0.9
 	selectedDivider.AnchorPoint = Vector2.new(0.5, 0.5)
 	selectedDivider.Size = UDim2.new(0.8, 0, 0, 2)
-	selectedDivider.Position = UDim2.new(0.5, 0, 2.6, 0)
+	selectedDivider.Position = UDim2.new(0.5, 0, 1, 14)
 	selectedDivider.Parent = selectedText
 	local searchArea = Instance.new("Frame")
 	searchArea.Name = "InteractionOrganizer"
@@ -228,7 +254,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchDivider.BackgroundTransparency = 0.9
 	searchDivider.AnchorPoint = Vector2.new(0, 0.5)
 	searchDivider.Size = UDim2.new(0.6, 0, 0, 1)
-	searchDivider.Position = UDim2.new(0, 0, 1, 0)
+	searchDivider.Position = UDim2.new(0, 0, 1, 7)
 	searchDivider.Parent = searchArea
 	local searchIcon = Instance.new("ImageLabel")
 	searchIcon.Name = "SearchImage"
@@ -311,6 +337,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- Store references
 	-- ============================================================
 	self.Popup = popup
+	self.Interactions = interactions
 	self.Shadow = shadow
 	self.Header = header
 	self.ConfirmBtn = confirmBtn
@@ -360,7 +387,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- live instead of being destroyed and recreated.
 	-- ============================================================
 	function self:ApplyTheme(theme)
-		if not self.Popup then return end
+		if not self.Popup then
+			return
+		end
 		local t = ThemeManager.GetTheme(theme)
 		self._theme = t
 		self.Popup.BackgroundColor3 = t.PopupBackgroundColor or self.Popup.BackgroundColor3
@@ -386,20 +415,27 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.List.ScrollBarImageColor3 = t.TertiaryColor or self.List.ScrollBarImageColor3
 		-- Re-tint every item row (bg accent, name + icon follow selection state).
 		for _, obj in ipairs(self._itemObjects) do
-			if obj.button then obj.button.BackgroundColor3 = t.AccentColor or obj.button.BackgroundColor3 end
-			if obj.nameLabel then obj.nameLabel.TextColor3 = t.PopupTextColor or obj.nameLabel.TextColor3 end
+			if obj.button then
+				obj.button.BackgroundColor3 = t.AccentColor or obj.button.BackgroundColor3
+			end
+			if obj.nameLabel then
+				obj.nameLabel.TextColor3 = t.PopupTextColor or obj.nameLabel.TextColor3
+			end
 			if obj.icon then
 				obj.icon.ImageColor3 = obj.selected and (t.ActiveTabIconColor or obj.icon.ImageColor3)
 					or (t.InactiveTabIconColor or obj.icon.ImageColor3)
 			end
-			if obj.stroke then obj.stroke.Color = t.StrokeColor or obj.stroke.Color end
-			if obj.shadow then obj.shadow.Color = t.ComponentShadowColor or obj.shadow.Color end
+			if obj.stroke then
+				obj.stroke.Color = t.StrokeColor or obj.stroke.Color
+			end
+			if obj.shadow then
+				obj.shadow.Color = t.ComponentShadowColor or obj.shadow.Color
+			end
 			-- Item sheen follows the theme wallpaper (was previously handled by
 			-- ThemeManager.updateThemeSheens; now owned here since rows are
 			-- recolored in place rather than rebuilt).
-			if obj.backImage then
-				obj.backImage.Image = t.Wallpaper or FallbackImage
-				obj.backImage.Visible = not (t.WallpaperEnabled == false)
+			if obj.selectionStatus then
+				obj.selectionStatus.BackgroundColor3 = t.SecondaryColor or obj.selectionStatus.BackgroundColor3
 			end
 		end
 	end
@@ -407,6 +443,36 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- ============================================================
 	-- Internal methods
 	-- ============================================================
+	function self:_flashDivider()
+		local divider = self.Divider
+		if not divider then
+			return
+		end
+		-- Token guards against overlapping flashes (e.g. Select-All selecting
+		-- many items in one frame): only the newest flash owns the divider.
+		self._dividerFlashToken = (self._dividerFlashToken or 0) + 1
+		local token = self._dividerFlashToken
+		-- Stage 1: Fast down to fully opaque.
+		local down = Tween.Play(divider, "Fast", { BackgroundTransparency = 0 })
+		if not (down and down.Tween) then
+			return
+		end
+		down.Tween.Completed:Connect(function(state)
+			if self._dividerFlashToken ~= token or state ~= Enum.PlaybackState.Completed then
+				return
+			end
+			-- Stage 2: Fast back up to the resting 0.9 transparency.
+			local up = Tween.Play(divider, "Fast", { BackgroundTransparency = 0.9 })
+			if up and up.Tween then
+				up.Tween.Completed:Connect(function(state2)
+					if self._dividerFlashToken == token and state2 == Enum.PlaybackState.Completed then
+						divider.BackgroundTransparency = 0.9
+					end
+				end)
+			end
+		end)
+	end
+
 	function self:_toggleItem(itemObj)
 		local isSelected = itemObj.selected
 		if self.MaxItems == 1 then
@@ -450,29 +516,58 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	function self:_setItemSelected(itemObj, selected)
 		itemObj.selected = selected
 		if selected then
+			self:_flashDivider()
 			itemObj.button.Name = "SelectedItem"
-			if itemObj.button then Tween.Play(itemObj.button, "Smooth", { BackgroundTransparency = 0 }) end
-			if itemObj.nameLabel then Tween.Play(itemObj.nameLabel, "Smooth", { TextTransparency = 0 }) end
-			if itemObj.backImage then Tween.Play(itemObj.backImage, "Smooth", { ImageTransparency = 0.5 }) end
+			if itemObj.button then
+				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 0.5 })
+			end
+			if itemObj.nameLabel then
+				Tween.Play(itemObj.nameLabel, "Fast", { TextTransparency = 0 })
+			end
 			if itemObj.icon then
 				itemObj.icon.ImageColor3 = (theme and theme.ActiveTabIconColor) or itemObj.icon.ImageColor3
-				Tween.Play(itemObj.icon, "Smooth", { ImageTransparency = 0 })
+				Tween.Play(itemObj.icon, "Fast", { ImageTransparency = 0 })
 			end
-			if itemObj.stroke then Tween.Play(itemObj.stroke, "Smooth", { Transparency = 0.95 }) end
-			if itemObj.shadow then Tween.Play(itemObj.shadow, "Smooth", { Transparency = 0.5 }) end
-			if itemObj.gradient then Tween.StartSpin(itemObj.gradient, { Rotation = 360 }, "SpinIdle") end
+			if itemObj.stroke then
+				Tween.Play(itemObj.stroke, "Fast", { Transparency = 1 })
+			end
+			if itemObj.shadow then
+				Tween.Play(itemObj.shadow, "Fast", { Transparency = 0.5 })
+			end
+			-- Show the selection bar (same OnOff animation as sidebar tabs).
+			if itemObj.selectionStatus then
+				Tween.Play(
+					itemObj.selectionStatus,
+					"Fast",
+					{ BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) }
+				)
+			end
 		else
 			itemObj.button.Name = "DeselectedItem"
-			if itemObj.button then Tween.Play(itemObj.button, "Smooth", { BackgroundTransparency = 1 }) end
-			if itemObj.nameLabel then Tween.Play(itemObj.nameLabel, "Smooth", { TextTransparency = 0.6 }) end
-			if itemObj.backImage then Tween.Play(itemObj.backImage, "Smooth", { ImageTransparency = 1 }) end
+			if itemObj.button then
+				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 1 })
+			end
+			if itemObj.nameLabel then
+				Tween.Play(itemObj.nameLabel, "Fast", { TextTransparency = 0.6 })
+			end
 			if itemObj.icon then
 				itemObj.icon.ImageColor3 = (theme and theme.InactiveTabIconColor) or itemObj.icon.ImageColor3
-				Tween.Play(itemObj.icon, "Smooth", { ImageTransparency = 0.9 })
+				Tween.Play(itemObj.icon, "Fast", { ImageTransparency = 0.9 })
 			end
-			if itemObj.stroke then Tween.Play(itemObj.stroke, "Smooth", { Transparency = 0.95 }) end
-			if itemObj.shadow then Tween.Play(itemObj.shadow, "Smooth", { Transparency = 1 }) end
-			if itemObj.gradient then Tween.StopSpin(itemObj.gradient) end
+			if itemObj.stroke then
+				Tween.Play(itemObj.stroke, "Fast", { Transparency = 0.95 })
+			end
+			if itemObj.shadow then
+				Tween.Play(itemObj.shadow, "Fast", { Transparency = 1 })
+			end
+			-- Collapse the selection bar.
+			if itemObj.selectionStatus then
+				Tween.Play(
+					itemObj.selectionStatus,
+					"Fast",
+					{ BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) }
+				)
+			end
 		end
 	end
 	function self:SetSelection(values)
@@ -507,7 +602,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local limit = self.MaxItems
 			local current = #self._selectedValues
 			local remaining = limit - current
-			if remaining <= 0 then return end
+			if remaining <= 0 then
+				return
+			end
 			local count = 0
 			for _, obj in ipairs(self._itemObjects) do
 				if not obj.selected and count < remaining then
@@ -561,7 +658,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end
 	function self:_Confirm()
-		if self._resolved then return end
+		if self._resolved then
+			return
+		end
 		self._resolved = true
 		local selected = {}
 		for _, obj in ipairs(self._itemObjects) do
@@ -573,7 +672,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.OnConfirm(selected)
 	end
 	function self:_Cancel()
-		if self._resolved then return end
+		if self._resolved then
+			return
+		end
 		self._resolved = true
 		self:Close()
 		self.OnCancel()
@@ -592,51 +693,36 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local name = itemData.name or "Item"
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
 			local value = itemData.value or name
+			local theme = Settings.Theme
 			local button = Instance.new("TextButton")
 			button.Name = "DeselectedItem"
 			button.BorderSizePixel = 0
 			button.TextTransparency = 1
 			button.AutoButtonColor = false
-			button.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+			-- Item background: theme-driven (AccentColor), matching ApplyTheme so a
+			-- live theme switch and a fresh build agree. Starts fully transparent
+			-- (deselected); selected items get a very subtle fill (transparency
+			-- 0.5) set in _setItemSelected.
+			button.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(255, 255, 255)
 			button.BackgroundTransparency = 1
 			button.Size = UDim2.new(1, 0, 0, 40)
 			button.Parent = self.List
 			local btnCorner = Instance.new("UICorner")
 			btnCorner.CornerRadius = UDim.new(0, 6)
 			btnCorner.Parent = button
-			local backImage = Instance.new("ImageLabel")
-			backImage.Name = "BackImage"
-			backImage.BorderSizePixel = 0
-			backImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-			backImage.ImageTransparency = 1
-			backImage.AnchorPoint = Vector2.new(0.5, 0.5)
-			local theme = Settings.Theme
-			local imageId = (theme and theme.Wallpaper) or FallbackImage
-			backImage.Image = imageId
-			backImage:SetAttribute("IsThemeSheen", true)
-			backImage.Size = UDim2.new(1, 0, 1, 0)
-			backImage.BackgroundTransparency = 1
-			backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
-			backImage.Parent = button
-			-- Set visibility based on theme's WallpaperEnabled
-			backImage.Visible = not (theme and theme.WallpaperEnabled == false)
-			local backCorner = Instance.new("UICorner")
-			backCorner.CornerRadius = UDim.new(0, 6)
-			backCorner.Parent = backImage
-			local gradient = Instance.new("UIGradient")
-			gradient.Transparency = NumberSequence.new{
-				NumberSequenceKeypoint.new(0.000, 0.72131),
-				NumberSequenceKeypoint.new(0.110, 0.68306),
-				NumberSequenceKeypoint.new(0.240, 0.63388),
-				NumberSequenceKeypoint.new(0.349, 0.57923),
-				NumberSequenceKeypoint.new(0.461, 0.48087),
-				NumberSequenceKeypoint.new(0.583, 0.37158),
-				NumberSequenceKeypoint.new(0.676, 0.2459),
-				NumberSequenceKeypoint.new(0.770, 0.0929),
-				NumberSequenceKeypoint.new(0.867, 0),
-				NumberSequenceKeypoint.new(1.000, 0)
-			}
-			gradient.Parent = backImage
+			-- Selection indicator: a thin left-edge bar, animated exactly like the
+			-- sidebar tab SelectionStatus (OnOff tween). Color is a theme option
+			-- (SecondaryColor), matching the other selection statuses in the UI.
+			local selectionStatus = Instance.new("Frame")
+			selectionStatus.Name = "SelectionStatus"
+			selectionStatus.BorderSizePixel = 0
+			selectionStatus.BackgroundColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
+			selectionStatus.BackgroundTransparency = 1 -- hidden until selected
+			selectionStatus.AnchorPoint = Vector2.new(0, 0.5)
+			selectionStatus.Size = UDim2.new(0, 2, 0, 0) -- start collapsed
+			selectionStatus.Position = UDim2.new(0, -8, 0.5, 0)
+			selectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			selectionStatus.Parent = button
 			local itemImage = Instance.new("ImageLabel")
 			itemImage.Name = "ItemImage"
 			itemImage.ImageTransparency = 0.9
@@ -645,7 +731,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			-- Item icons use the same theme keys as sidebar tab icons (selected ->
 			-- ActiveTabIconColor, deselected -> InactiveTabIconColor).
 			itemImage.ImageColor3 = (theme and theme.InactiveTabIconColor) or Color3.fromRGB(255, 255, 255)
-			itemImage.Size = UDim2.new(0, 24, 0, 24)
+			itemImage.Size = UDim2.new(0, 18, 0, 18)
 			itemImage.BackgroundTransparency = 1
 			itemImage.Position = UDim2.new(0, 20, 0.5, 0)
 			itemImage.Parent = button
@@ -656,7 +742,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemName.Name = "ItemName"
 			itemName.TextWrapped = true
 			itemName.BorderSizePixel = 0
-			itemName.TextSize = 16
+			itemName.TextSize = 14
 			itemName.TextXAlignment = Enum.TextXAlignment.Left
 			itemName.TextTransparency = 0.6
 			itemName.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
@@ -683,8 +769,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local obj = {
 				button = button,
 				nameLabel = itemName,
-				backImage = backImage,
-				gradient = gradient,
+				selectionStatus = selectionStatus,
 				icon = itemImage,
 				stroke = stroke,
 				shadow = itemShadow,
@@ -700,16 +785,26 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			-- Hover: icon and shadow
 			button.MouseEnter:Connect(function()
 				if obj.selected then
-					if obj.icon then Tween.Play(obj.icon, "HoverIn", { ImageTransparency = 0.2 }) end
-					if obj.shadow then Tween.Play(obj.shadow, "HoverIn", { Transparency = 0.35 }) end
+					if obj.icon then
+						Tween.Play(obj.icon, "HoverIn", { ImageTransparency = 0.2 })
+					end
+					if obj.shadow then
+						Tween.Play(obj.shadow, "HoverIn", { Transparency = 0.35 })
+					end
 				else
-					if obj.icon then Tween.Play(obj.icon, "HoverIn", { ImageTransparency = 0.7 }) end
+					if obj.icon then
+						Tween.Play(obj.icon, "HoverIn", { ImageTransparency = 0.7 })
+					end
 				end
 			end)
 			button.MouseLeave:Connect(function()
 				local iconTrans = obj.selected and 0.4 or 0.9
-				if obj.icon then Tween.Play(obj.icon, "HoverOut", { ImageTransparency = iconTrans }) end
-				if obj.shadow then Tween.Play(obj.shadow, "HoverOut", { Transparency = 1 }) end
+				if obj.icon then
+					Tween.Play(obj.icon, "HoverOut", { ImageTransparency = iconTrans })
+				end
+				if obj.shadow then
+					Tween.Play(obj.shadow, "HoverOut", { Transparency = 1 })
+				end
 			end)
 		end
 	end
@@ -739,40 +834,44 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	end)
 	-- Confirm button hover shadow (like UINotification)
 	confirmBtn.MouseEnter:Connect(function()
-		Tween.Play(confirmShadow, "Smooth", {
+		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 50),
-			Transparency = 0
+			Transparency = 0,
 		})
 	end)
 	confirmBtn.MouseLeave:Connect(function()
-		Tween.Play(confirmShadow, "Smooth", {
+		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 20),
-			Transparency = 1
+			Transparency = 1,
 		})
 	end)
 	-- Cancel button hover text (like UINotification)
 	cancelBtn.MouseEnter:Connect(function()
-		Tween.Play(cancelBtn, "Smooth", {
-			TextTransparency = 0.2
+		Tween.Play(cancelBtn, "Fast", {
+			TextTransparency = 0.2,
 		})
 	end)
 	cancelBtn.MouseLeave:Connect(function()
-		Tween.Play(cancelBtn, "Smooth", {
-			TextTransparency = 0.5
+		Tween.Play(cancelBtn, "Fast", {
+			TextTransparency = 0.5,
 		})
 	end)
 	-- ============================================================
 	-- Public API
 	-- ============================================================
 	function self:SetContent(Settings)
-		if not self.Popup then return end
+		if not self.Popup then
+			return
+		end
 		Settings = Settings or {}
 		local title = Settings.Title or "Select Items"
 		-- Read the LIVE theme, not the construction-time `theme` upvalue: SetContent
 		-- runs on every reopen and would otherwise overwrite the header color with
 		-- a stale value after a theme switch.
 		local liveTheme = ThemeManager.GetTheme(Settings.Theme or self._theme)
-		local titleColor = Settings.TitleColor or (liveTheme and liveTheme.PopupTextColor) or Color3.fromRGB(255,255,255)
+		local titleColor = Settings.TitleColor
+			or (liveTheme and liveTheme.PopupTextColor)
+			or Color3.fromRGB(255, 255, 255)
 		local items = Settings.Items or {}
 		local default = Settings.Default or {}
 		local maxItems = Settings.MaxItemsChoosable or math.huge
@@ -805,7 +904,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end
 	function self:Open()
-		if not self.Popup then return end
+		if not self.Popup then
+			return
+		end
 		-- Cancel any pending hide timer
 		if self._hideTimer then
 			task.cancel(self._hideTimer)
@@ -816,39 +917,76 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.IsOpen = true
 		self._resolved = false
 		-- Clear search and reset item visibility
-		if self.SearchBox then self.SearchBox.Text = "" end
+		if self.SearchBox then
+			self.SearchBox.Text = ""
+		end
 		for _, obj in ipairs(self._itemObjects) do
 			obj.button.Visible = true
 		end
 		-- Ensure the popup is visible immediately
 		self.Popup.Visible = true
+		-- Arm the click-outside listener for as long as the popup is open.
+		self:_connectOutsideClick()
 		-- Reset item visuals
 		for _, obj in ipairs(self._itemObjects) do
 			if obj.selected then
-				if obj.button then obj.button.BackgroundTransparency = 0 end
-				if obj.nameLabel then obj.nameLabel.TextTransparency = 0.2 end
-				if obj.backImage then obj.backImage.ImageTransparency = 0.5 end
-				if obj.icon then obj.icon.ImageTransparency = 0.4 end
-				if obj.stroke then obj.stroke.Transparency = 0.95 end
-				if obj.shadow then obj.shadow.Transparency = 0.5 end
-				if obj.gradient then Tween.StartSpin(obj.gradient, { Rotation = 360 }, "SpinIdle") end
+				if obj.button then
+					obj.button.BackgroundTransparency = 0.5
+				end
+				if obj.nameLabel then
+					obj.nameLabel.TextTransparency = 0.2
+				end
+				if obj.icon then
+					obj.icon.ImageTransparency = 0.4
+				end
+				if obj.stroke then
+					obj.stroke.Transparency = 0.95
+				end
+				if obj.shadow then
+					obj.shadow.Transparency = 0.5
+				end
+				if obj.selectionStatus then
+					obj.selectionStatus.BackgroundTransparency = 0
+					obj.selectionStatus.Size = UDim2.new(0, 2, 0.7, 0)
+				end
 			else
-				if obj.button then obj.button.BackgroundTransparency = 1 end
-				if obj.nameLabel then obj.nameLabel.TextTransparency = 0.6 end
-				if obj.backImage then obj.backImage.ImageTransparency = 1 end
-				if obj.icon then obj.icon.ImageTransparency = 0.9 end
-				if obj.stroke then obj.stroke.Transparency = 0.95 end
-				if obj.shadow then obj.shadow.Transparency = 1 end
-				if obj.gradient then Tween.StopSpin(obj.gradient) end
+				if obj.button then
+					obj.button.BackgroundTransparency = 1
+				end
+				if obj.nameLabel then
+					obj.nameLabel.TextTransparency = 0.6
+				end
+				if obj.icon then
+					obj.icon.ImageTransparency = 0.9
+				end
+				if obj.stroke then
+					obj.stroke.Transparency = 0.95
+				end
+				if obj.shadow then
+					obj.shadow.Transparency = 1
+				end
+				if obj.selectionStatus then
+					obj.selectionStatus.BackgroundTransparency = 1
+					obj.selectionStatus.Size = UDim2.new(0, 2, 0, 0)
+				end
 			end
 		end
 		-- Reset UI elements to transparent
 		self.Popup.BackgroundTransparency = 1
+		self.Interactions.BackgroundTransparency = 1
 		self.Shadow.Transparency = 1
-		if self.ConfirmShadow then self.ConfirmShadow.Transparency = 1 end
-		if self.CancelShadow then self.CancelShadow.Transparency = 1 end
-		if self.SelectAllShadow then self.SelectAllShadow.Transparency = 1 end
-		if self.ClearShadow then self.ClearShadow.Transparency = 1 end
+		if self.ConfirmShadow then
+			self.ConfirmShadow.Transparency = 1
+		end
+		if self.CancelShadow then
+			self.CancelShadow.Transparency = 1
+		end
+		if self.SelectAllShadow then
+			self.SelectAllShadow.Transparency = 1
+		end
+		if self.ClearShadow then
+			self.ClearShadow.Transparency = 1
+		end
 		self.Header.TextTransparency = 1
 		self.SearchBox.TextTransparency = 1
 		self.SelectedText.TextTransparency = 1
@@ -861,28 +999,72 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.ClearBtn.TextTransparency = 1
 		self.ClearBtn.BackgroundTransparency = 1
 		-- Reset icons and divider to hidden
-		if self.SearchIcon then self.SearchIcon.ImageTransparency = 1 end
-		if self.SelectAllIcon then self.SelectAllIcon.ImageTransparency = 1 end
-		if self.ClearBtnIcon then self.ClearBtnIcon.ImageTransparency = 1 end
-		if self.Divider then self.Divider.BackgroundTransparency = 1 end
+		if self.SearchIcon then
+			self.SearchIcon.ImageTransparency = 1
+		end
+		if self.SelectAllIcon then
+			self.SelectAllIcon.ImageTransparency = 1
+		end
+		if self.ClearBtnIcon then
+			self.ClearBtnIcon.ImageTransparency = 1
+		end
+		if self.Divider then
+			self.Divider.BackgroundTransparency = 1
+		end
 		self.Popup.Visible = true
 		-- Fade in
-		if self.Popup then Tween.Play(self.Popup, "Smooth", { BackgroundTransparency = 0.07 }) end
-		if self.Shadow then Tween.Play(self.Shadow, "Smooth", { Transparency = 0.5 }) end
-		if self.Header then Tween.Play(self.Header, "Smooth", { TextTransparency = 0.4 }) end
-		if self.SearchBox then Tween.Play(self.SearchBox, "Smooth", { TextTransparency = 0.4 }) end
-		if self.SelectedText then Tween.Play(self.SelectedText, "Smooth", { TextTransparency = 0.45 }) end
-		if self.ConfirmBtn then Tween.Play(self.ConfirmBtn, "Smooth", { TextTransparency = 0.2, BackgroundTransparency = 0 }) end
-		if self.CancelBtn then Tween.Play(self.CancelBtn, "Smooth", { TextTransparency = 0.5, BackgroundTransparency = 0.5 }) end
-		if self.SelectAllBtn then Tween.Play(self.SelectAllBtn, "Smooth", { TextTransparency = 1, BackgroundTransparency = 0 }) end
-		if self.ClearBtn then Tween.Play(self.ClearBtn, "Smooth", { TextTransparency = 1, BackgroundTransparency = 0 }) end
-		if self.SelectAllShadow then Tween.Play(self.SelectAllShadow, "Smooth", { Transparency = 0.5 }) end
-		if self.ClearShadow then Tween.Play(self.ClearShadow, "Smooth", { Transparency = 0.5 }) end
+		if self.Popup then
+			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07 })
+		end
+		if self.Shadow then
+			Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
+		end
+		if self.Header then
+			Tween.Play(self.Header, "Fast", { TextTransparency = 0.4 })
+		end
+		if self.SearchBox then
+			Tween.Play(self.SearchBox, "Fast", { TextTransparency = 0.4 })
+		end
+		if self.SelectedText then
+			Tween.Play(self.SelectedText, "Fast", { TextTransparency = 0.45 })
+		end
+		if self.ConfirmBtn then
+			Tween.Play(self.ConfirmBtn, "Fast", { TextTransparency = 0.2, BackgroundTransparency = 0 })
+		end
+		if self.CancelBtn then
+			Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5, BackgroundTransparency = 0.5 })
+		end
+		if self.Interactions then
+			Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 0.8 })
+		end
+		if self.SelectAllBtn then
+			Tween.Play(self.SelectAllBtn, "Fast", { TextTransparency = 1, BackgroundTransparency = 0 })
+		end
+		if self.ClearBtn then
+			Tween.Play(self.ClearBtn, "Fast", { TextTransparency = 1, BackgroundTransparency = 0 })
+		end
+		if self.SelectAllShadow then
+			Tween.Play(self.SelectAllShadow, "Fast", { Transparency = 0.5 })
+		end
+		if self.ClearShadow then
+			Tween.Play(self.ClearShadow, "Fast", { Transparency = 0.5 })
+		end
 		-- Fade in icons and divider
-		if self.SearchIcon then Tween.Play(self.SearchIcon, "Smooth", { ImageTransparency = 0.7 }) end
-		if self.SelectAllIcon then Tween.Play(self.SelectAllIcon, "Smooth", { ImageTransparency = 0.2 }) end
-		if self.ClearBtnIcon then Tween.Play(self.ClearBtnIcon, "Smooth", { ImageTransparency = 0.2 }) end
-		if self.Divider then Tween.Play(self.Divider, "Smooth", { BackgroundTransparency = 0.9 }) end
+		if self.SearchIcon then
+			Tween.Play(self.SearchIcon, "Fast", { ImageTransparency = 0.7 })
+		end
+		if self.SelectAllIcon then
+			Tween.Play(self.SelectAllIcon, "Fast", { ImageTransparency = 0.2 })
+		end
+		if self.ClearBtnIcon then
+			Tween.Play(self.ClearBtnIcon, "Fast", { ImageTransparency = 0.2 })
+		end
+		if self.Divider then
+			Tween.Play(self.Divider, "Fast", { BackgroundTransparency = 0.9 })
+		end
+		if self.SearchDivider then
+			Tween.Play(self.SearchDivider, "Fast", { BackgroundTransparency = 0.9 })
+		end
 		-- Show scrollbar initially hidden, will appear on scroll
 		if self.List then
 			Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 1 })
@@ -894,33 +1076,20 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				end)
 			end
 		end
-		-- Click-outside detection
-		local UserInputService = game:GetService("UserInputService")
-		local function onInputBegan(input, processed)
-			if processed then return end
-			if not self.Popup then return end
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				local pos = input.Position
-				local popupPos = self.Popup.AbsolutePosition
-				local popupSize = self.Popup.AbsoluteSize
-				local inside = pos.X >= popupPos.X and pos.X <= popupPos.X + popupSize.X
-					and pos.Y >= popupPos.Y and pos.Y <= popupPos.Y + popupSize.Y
-				if not inside then
-					self:_Confirm()
-				end
-			end
-		end
-		-- Disconnect any previous outside-click listener before making a new one,
-		-- otherwise reopening while already open leaks the old connection.
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-		end
-		self._inputConnection = UserInputService.InputBegan:Connect(onInputBegan)
+		-- Click-outside is handled by _connectOutsideClick() (called below on
+		-- open) and torn down again on close, so there is nothing to do here.
 	end
 	function self:Close()
-		if not self.Popup then return end
-		if not self.IsOpen then return end
+		if not self.Popup then
+			return
+		end
+		if not self.IsOpen then
+			return
+		end
 		self.IsOpen = false
+		-- Disarm the click-outside listener immediately on close so a click
+		-- during the fade-out cannot re-trigger it.
+		self:_disconnectOutsideClick()
 		-- Disconnect input
 		if self._inputConnection then
 			self._inputConnection:Disconnect()
@@ -933,61 +1102,160 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 		-- Fade out items
 		for _, obj in ipairs(self._itemObjects) do
-			if obj.button then Tween.Play(obj.button, "Smooth", { BackgroundTransparency = 1 }) end
-			if obj.nameLabel then Tween.Play(obj.nameLabel, "Smooth", { TextTransparency = 1 }) end
-			if obj.backImage then Tween.Play(obj.backImage, "Smooth", { ImageTransparency = 1 }) end
-			if obj.icon then Tween.Play(obj.icon, "Smooth", { ImageTransparency = 1 }) end
-			if obj.stroke then Tween.Play(obj.stroke, "Smooth", { Transparency = 1 }) end
-			if obj.shadow then Tween.Play(obj.shadow, "Smooth", { Transparency = 1 }) end
-			if obj.gradient then Tween.StopSpin(obj.gradient) end
+			if obj.button then
+				Tween.Play(obj.button, "Fast", { BackgroundTransparency = 1 })
+			end
+			if obj.nameLabel then
+				Tween.Play(obj.nameLabel, "Fast", { TextTransparency = 1 })
+			end
+			if obj.icon then
+				Tween.Play(obj.icon, "Fast", { ImageTransparency = 1 })
+			end
+			if obj.stroke then
+				Tween.Play(obj.stroke, "Fast", { Transparency = 1 })
+			end
+			if obj.shadow then
+				Tween.Play(obj.shadow, "Fast", { Transparency = 1 })
+			end
+			if obj.selectionStatus then
+				Tween.Play(obj.selectionStatus, "Fast", { BackgroundTransparency = 1 })
+			end
 		end
 		-- Fade out UI
-		if self.Header then Tween.Play(self.Header, "Smooth", { TextTransparency = 1 }) end
-		if self.SearchBox then Tween.Play(self.SearchBox, "Smooth", { TextTransparency = 1 }) end
-		if self.SelectedText then Tween.Play(self.SelectedText, "Smooth", { TextTransparency = 1 }) end
-		if self.ConfirmBtn then 
-			Tween.Play(self.ConfirmBtn, "Smooth", { TextTransparency = 1 })
-			Tween.Play(self.ConfirmBtn, "Smooth", { BackgroundTransparency = 1 })
+		if self.Header then
+			Tween.Play(self.Header, "Fast", { TextTransparency = 1 })
 		end
-		if self.ConfirmShadow then Tween.Play(self.ConfirmShadow, "Smooth", { Transparency = 1, BlurRadius = UDim.new(0, 20) }) end
+		if self.SearchBox then
+			Tween.Play(self.SearchBox, "Fast", { TextTransparency = 1 })
+		end
+		if self.SelectedText then
+			Tween.Play(self.SelectedText, "Fast", { TextTransparency = 1 })
+		end
+		if self.ConfirmBtn then
+			Tween.Play(self.ConfirmBtn, "Fast", { TextTransparency = 1 })
+			Tween.Play(self.ConfirmBtn, "Fast", { BackgroundTransparency = 1 })
+		end
+		if self.ConfirmShadow then
+			Tween.Play(self.ConfirmShadow, "Fast", { Transparency = 1, BlurRadius = UDim.new(0, 20) })
+		end
 		if self.CancelBtn then
-			Tween.Play(self.CancelBtn, "Smooth", { TextTransparency = 1 })
-			Tween.Play(self.CancelBtn, "Smooth", { BackgroundTransparency = 1 })
+			Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 1 })
+			Tween.Play(self.CancelBtn, "Fast", { BackgroundTransparency = 1 })
 		end
-		if self.CancelShadow then Tween.Play(self.CancelShadow, "Smooth", { Transparency = 1 }) end
+		if self.CancelShadow then
+			Tween.Play(self.CancelShadow, "Fast", { Transparency = 1 })
+		end
 		if self.SelectAllBtn then
-			Tween.Play(self.SelectAllBtn, "Smooth", { TextTransparency = 1 })
-			Tween.Play(self.SelectAllBtn, "Smooth", { BackgroundTransparency = 1 })
+			Tween.Play(self.SelectAllBtn, "Fast", { TextTransparency = 1 })
+			Tween.Play(self.SelectAllBtn, "Fast", { BackgroundTransparency = 1 })
 		end
-		if self.SelectAllShadow then Tween.Play(self.SelectAllShadow, "Smooth", { Transparency = 1 }) end
-		if self.SelectAllIcon then Tween.Play(self.SelectAllIcon, "Smooth", { ImageTransparency = 1 }) end
+		if self.SelectAllShadow then
+			Tween.Play(self.SelectAllShadow, "Fast", { Transparency = 1 })
+		end
+		if self.SelectAllIcon then
+			Tween.Play(self.SelectAllIcon, "Fast", { ImageTransparency = 1 })
+		end
 		if self.ClearBtn then
-			Tween.Play(self.ClearBtn, "Smooth", { TextTransparency = 1 })
-			Tween.Play(self.ClearBtn, "Smooth", { BackgroundTransparency = 1 })
+			Tween.Play(self.ClearBtn, "Fast", { TextTransparency = 1 })
+			Tween.Play(self.ClearBtn, "Fast", { BackgroundTransparency = 1 })
 		end
-		if self.ClearShadow then Tween.Play(self.ClearShadow, "Smooth", { Transparency = 1 }) end
-		if self.ClearBtnIcon then Tween.Play(self.ClearBtnIcon, "Smooth", { ImageTransparency = 1 }) end
-		if self.SearchIcon then Tween.Play(self.SearchIcon, "Smooth", { ImageTransparency = 1 }) end
-		if self.Divider then Tween.Play(self.Divider, "Smooth", { BackgroundTransparency = 1 }) end
-		if self.List then Tween.Play(self.List, "Smooth", { ScrollBarImageTransparency = 1 }) end
-		if self.Shadow then Tween.Play(self.Shadow, "Smooth", { Transparency = 1 }) end
-		if self.Popup then Tween.Play(self.Popup, "Smooth", { BackgroundTransparency = 1 }) end
+		if self.ClearShadow then
+			Tween.Play(self.ClearShadow, "Fast", { Transparency = 1 })
+		end
+		if self.ClearBtnIcon then
+			Tween.Play(self.ClearBtnIcon, "Fast", { ImageTransparency = 1 })
+		end
+		if self.SearchIcon then
+			Tween.Play(self.SearchIcon, "Fast", { ImageTransparency = 1 })
+		end
+		if self.Divider then
+			Tween.Play(self.Divider, "Fast", { BackgroundTransparency = 1 })
+		end
+		if self.SearchDivider then
+			Tween.Play(self.SearchDivider, "Fast", { BackgroundTransparency = 1 })
+		end
+		if self.List then
+			Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 1 })
+		end
+		if self.Shadow then
+			Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
+		end
+		if self.Popup then
+			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 1 })
+		end
+		if self.Interactions then
+			Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 1 })
+		end
 		-- Hide after fade-out, but do NOT destroy (keep for reuse)
 		if self._hideTimer then
 			task.cancel(self._hideTimer)
 			self._hideTimer = nil
 		end
 		self._hideTimer = task.delay(0.35, function()
-			if not self.IsOpen and self.Popup then
-				self.Popup.Visible = false
+			if not self.IsOpen then
+				if self.Popup then
+					self.Popup.Visible = false
+				end
 			end
 			self._hideTimer = nil
 		end)
 	end
+	-- Click-outside detection via UserInputService. The connection exists only
+	-- while the popup is open: created in Open(), disconnected in
+	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
+	function self:_connectOutsideClick()
+		if self._outsideConn then
+			return
+		end
+		self._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then
+				return
+			end
+			local inputType = input.UserInputType
+			if inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch then
+				return
+			end
+			if not self.IsOpen or not self.Popup or not self.Popup.Visible then
+				return
+			end
+			local p = input.Position
+			-- Inside if the point is within the popup's rect OR lands on any of its
+			-- descendants. The descendant check makes this robust when visually-
+			-- belonging content (overlays, shadows, indicators) extends past the
+			-- frame's own rect; a pure rect test would misread those as "outside".
+			local pos = self.Popup.AbsolutePosition
+			local size = self.Popup.AbsoluteSize
+			local inside = p.X >= pos.X and p.X <= pos.X + size.X
+				and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+			if not inside then
+				local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
+				if playerGui then
+					for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
+						if obj == self.Popup or obj:IsDescendantOf(self.Popup) then
+							inside = true
+							break
+						end
+					end
+				end
+			end
+			if not inside then
+				self:_Confirm()
+			end
+		end)
+	end
+	function self:_disconnectOutsideClick()
+		if self._outsideConn then
+			self._outsideConn:Disconnect()
+			self._outsideConn = nil
+		end
+	end
 	function self:Hide()
-		if not self.Popup then return end
+		if not self.Popup then
+			return
+		end
 		self.Popup.Visible = false
 		self.IsOpen = false
+		self:_disconnectOutsideClick()
 		if self._inputConnection then
 			self._inputConnection:Disconnect()
 			self._inputConnection = nil
@@ -1013,8 +1281,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			self._scrollConnection:Disconnect()
 			self._scrollConnection = nil
 		end
+		self:_disconnectOutsideClick()
 		if self.Popup then
-			self.Popup:Destroy()
 			self.Popup = nil
 		end
 		-- Call cleanup callback to notify Window that this popup is gone

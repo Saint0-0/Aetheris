@@ -161,18 +161,24 @@ function Button.new(parent, Settings, theme)
 	self.Click = function()
 		performClick()
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		row.BackgroundColor3 = theme.ComponentBackgroundColor or row.BackgroundColor3
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		buttonColor.BackgroundColor3 = theme.PrimaryColor or buttonColor.BackgroundColor3
-		fingerprint.ImageColor3 = theme.AccentColor or fingerprint.ImageColor3
-		stroke.Color = theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.StrokeTransparency or stroke.Transparency
+	-- Declarative theming: every themed property is a BINDING.
+	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(buttonColor, "BackgroundColor3", "PrimaryColor")
+	ThemeManager.BindColor(fingerprint, "ImageColor3", "AccentColor")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	-- Fingerprint / glow transparencies are INTERACTION state (hover/click),
+	-- not theme-driven, so they are NOT bound. Re-stamp them to their natural
+	-- base on each theme switch: a switch cancels in-flight hover/click tweens
+	-- and the page-fade cache re-primes right after, so without this it would
+	-- capture a mid-tween value and the fingerprint would never restore.
+	local function restampInteractionBases()
+		fingerprint.ImageTransparency = FINGERPRINT_BASE
+		buttonColor.BackgroundTransparency = BUTTONCOLOR_BASE
 	end
-	ThemeManager.Register(row, self)
+	ThemeManager.OnThemeApplied(restampInteractionBases)
 	return self
 end
 return Button

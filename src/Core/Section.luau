@@ -54,10 +54,15 @@ function Section.new(parent, Settings, theme)
 	local corner = Instance.new("UICorner")
 	corner.Name = "SectionUICorner"
 	corner.Parent = frame
+	-- Section strokes are their own thing: prefer the section-specific keys so
+	-- construction matches ApplyTheme (previously construction used the general
+	-- StrokeTransparency while ApplyTheme used SectionStrokeTransparency, so a
+	-- freshly-built section and a theme-switched one disagreed). Fall back to the
+	-- general stroke keys, then a sane default.
 	local stroke = Instance.new("UIStroke")
 	stroke.Name = "SectionUIStroke"
-	stroke.Transparency = theme.StrokeTransparency
-	stroke.Color = theme.StrokeColor
+	stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or 0.985
+	stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 	local layout = Instance.new("UIListLayout")
@@ -69,7 +74,7 @@ function Section.new(parent, Settings, theme)
 	layout.Parent = frame
 	local padding = Instance.new("UIPadding")
 	padding.Name = "SectionUIPadding"
-	padding.PaddingTop = UDim.new(0, 20)
+	padding.PaddingTop = UDim.new(0, 12)
 	padding.PaddingRight = UDim.new(0, 15)
 	padding.PaddingLeft = UDim.new(0, 15)
 	padding.PaddingBottom = UDim.new(0, 20)
@@ -78,6 +83,30 @@ function Section.new(parent, Settings, theme)
 	self.Layout = layout
 	self.Padding = padding
 	self.Parent = parent
+	-- Section title: a small, muted label naming what the section is for
+	-- (e.g. "Gameplay", "Interface"). Only shown when a Name is provided.
+	-- LayoutOrder -1 keeps it above the section's components (which default
+	-- to LayoutOrder 0), and its TextColor3 crossfades on theme switch via
+	-- the normal ThemeManager descendant pass (no override stamped).
+	if Settings.Name and Settings.Name ~= "" then
+		local title = Instance.new("TextLabel")
+		title.Name = "SectionTitle"
+		title.BackgroundTransparency = 1
+		title.BorderSizePixel = 0
+		title.Text = Settings.Name
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.TextYAlignment = Enum.TextYAlignment.Center
+		title.TextSize = 12
+		title.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+		-- Match ScriptDescription exactly: TitleTextColor + 0.7 transparency.
+		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
+		title.TextTransparency = 0.7
+		title.AutomaticSize = Enum.AutomaticSize.Y
+		title.Size = UDim2.new(1, 0, 0, 0)
+		title.LayoutOrder = -1
+		title.Parent = frame
+		self.Title = title
+	end
 	-- Register with ThemeManager so the section's own background + stroke are
 	-- themed without name-matching. The frame lives under window.Base.
 	ThemeManager.Register(frame, self)
@@ -98,13 +127,6 @@ end
 ]]
 function Section:Toggle(Settings, ShowNotification)
 	return Toggle.new(self.Frame, Settings, ShowNotification, self._theme)
-end
--- Stub methods for other components (waiting for GUI-to-Lua exports)
-local function stub(name)
-	return function(self, Settings)
-		warn(string.format("[Section] %s not yet implemented - waiting for GUI-to-Lua export", name))
-		return {}
-	end
 end
 function Section:Slider(Settings)
 	return Slider.new(self.Frame, Settings, self._theme)
@@ -161,8 +183,15 @@ function Section:ApplyTheme(newTheme)
 	end
 	local stroke = self.Frame:FindFirstChild("SectionUIStroke")
 	if stroke then
-		stroke.Color = theme.StrokeColor or stroke.Color
+		stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or stroke.Color
 		stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or stroke.Transparency
+	end
+	-- Re-stamp the section title. Previously ApplyTheme never touched it, so
+	-- the title kept its build-time colour across every theme switch.
+	local title = self.Title or self.Frame:FindFirstChild("SectionTitle")
+	if title then
+		title.TextColor3 = theme.TitleTextColor or title.TextColor3
+		title.TextTransparency = 0.7
 	end
 end
 

@@ -136,20 +136,15 @@ function TextInput.new(parent, Settings, theme)
 	self.SetPlaceholder = function(newPlaceholder)
 		inputBox.PlaceholderText = newPlaceholder
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		inputBox.TextColor3 = theme.SecondaryTextColor or inputBox.TextColor3
-		inputBox.TextTransparency = theme.SecondaryTextTransparency or inputBox.TextTransparency
-		inputBox.BackgroundColor3 = theme.InputBackgroundColor or inputBox.BackgroundColor3
-		inputBox.BackgroundTransparency = theme.InputBackgroundTransparency or inputBox.BackgroundTransparency
-		stroke.Color = theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.StrokeTransparency or stroke.Transparency
-	end
-	ThemeManager.Register(row, self)
+	-- Declarative theming: every themed property is a BINDING.
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
+	ThemeManager.BindTransparency(inputBox, "TextTransparency", "SecondaryTextTransparency")
+	ThemeManager.BindColor(inputBox, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	return self
 end
 return TextInput

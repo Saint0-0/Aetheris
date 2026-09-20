@@ -99,16 +99,12 @@ function Video.new(parent, Settings, theme)
 	self.SetFade = function(value, duration)
 		VideoFade.fade(fadeGradient, value, duration)
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		frame.BackgroundColor3 = theme.ComponentBackgroundColor or frame.BackgroundColor3
-		frame.BackgroundTransparency = theme.ComponentBackgroundTransparency or frame.BackgroundTransparency
-		stroke.Color = theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.StrokeTransparency or stroke.Transparency
-	end
-	ThemeManager.Register(frame, self)
+	-- Declarative theming: the themed properties are BINDINGS -- no ApplyTheme
+	-- body to forget. Bind applies immediately and re-resolves each switch.
+	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	return self
 end
 return Video

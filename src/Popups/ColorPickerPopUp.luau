@@ -22,6 +22,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local self = setmetatable({}, ColorPickerPopUp)
 	local theme = Settings.Theme
 	self._theme = theme
+	-- Click-outside is handled by a UserInputService.InputBegan connection that
+	-- is created when the popup is shown and disconnected when it is hidden (see
+	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
+	-- needed, so the popup is parented directly to its parent.
 	-- Popup root
 	local popup = Instance.new("Frame")
 	popup.Name = "ColorPickerPopup"
@@ -33,6 +37,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	popup.Position = UDim2.new(0.5, 0, 0.5, 0)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
+	popup.Active = true
 	popup.ZIndex = 11
 	popup.Parent = parent
 	local shadow = Instance.new("UIShadow")
@@ -321,12 +326,29 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local interactions = Instance.new("Frame")
 	interactions.Name = "Interactions"
 	interactions.BorderSizePixel = 0
-	interactions.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	interactions.AnchorPoint = Vector2.new(0.5, 0.5)
-	interactions.Size = UDim2.new(0.9375, 0, 0.13562, 0)
-	interactions.Position = UDim2.new(0.5, 0, 0.90934, 0)
-	interactions.BackgroundTransparency = 1
+	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
+	interactions.BackgroundTransparency = 0.8
+	interactions.AnchorPoint = Vector2.new(0.5, 1)
+	interactions.Size = UDim2.new(1, 0, 0, 55)
+	interactions.Position = UDim2.new(0.5, 0, 1, 0)
 	interactions.Parent = popup
+	local interactionsCorner = Instance.new("UICorner")
+	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
+	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
+	interactionsCorner.TopRightRadius = UDim.new(0, 0)
+	interactionsCorner.Parent = interactions
+	local interactionsLayout = Instance.new("UIListLayout")
+	interactionsLayout.FillDirection = Enum.FillDirection.Horizontal
+	interactionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	interactionsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	interactionsLayout.Padding = UDim.new(0, 8)
+	interactionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	interactionsLayout.Parent = interactions
+	local interactionsPadding = Instance.new("UIPadding")
+	interactionsPadding.PaddingLeft = UDim.new(0, 10)
+	interactionsPadding.PaddingRight = UDim.new(0, 10)
+	interactionsPadding.Parent = interactions
 	local confirmBtn = Instance.new("TextButton")
 	confirmBtn.Name = "Confirm"
 	confirmBtn.BorderSizePixel = 0
@@ -337,9 +359,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
 	confirmBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-	confirmBtn.AnchorPoint = Vector2.new(0.5, 0)
-	confirmBtn.Size = UDim2.new(1, 0, 0.43911, 0)
-	confirmBtn.Position = UDim2.new(0.5, 0, 0, 0)
+	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
+	confirmBtn.AnchorPoint = Vector2.new(0, 0)
+	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
 	confirmBtn.Text = "Confirm"
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
@@ -361,9 +384,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
-	cancelBtn.AnchorPoint = Vector2.new(0.5, 1)
-	cancelBtn.Size = UDim2.new(1, 0, 0.43882, 0)
-	cancelBtn.Position = UDim2.new(0.5, 0, 1, 0)
+	-- Right half, with a small gap from confirm.
+	cancelBtn.AnchorPoint = Vector2.new(0, 0)
+	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
 	cancelBtn.Text = "Cancel"
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
@@ -393,6 +417,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	}
 	self.OldWell = oldWell
 	self.NewWell = newWell
+	self.Interactions = interactions
 	self.ConfirmBtn = confirmBtn
 	self.ConfirmShadow = confirmShadow
 	self.CancelBtn = cancelBtn
@@ -556,46 +581,81 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			info.Stroke.Color = liveStroke.StrokeColor or Color3.fromRGB(255, 255, 255)
 			info.Stroke.Transparency = baseStrokeT
 		end
-		Tween.Play(self.Popup, "Smooth", { BackgroundTransparency = 0.07 })
-		Tween.Play(self.Shadow, "Smooth", { Transparency = 0.5 })
-		Tween.Play(self.Header, "Smooth", { TextTransparency = 0.4 })
-		Tween.Play(self.SatOverlay, "Smooth", { BackgroundTransparency = 0 })
-		Tween.Play(self.ValOverlay, "Smooth", { BackgroundTransparency = 0 })
-		Tween.Play(self.ColorValue, "Smooth", { BackgroundTransparency = 0 })
+		Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07 })
+		Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
+		Tween.Play(self.Header, "Fast", { TextTransparency = 0.4 })
+		Tween.Play(self.SatOverlay, "Fast", { BackgroundTransparency = 0 })
+		Tween.Play(self.ValOverlay, "Fast", { BackgroundTransparency = 0 })
+		Tween.Play(self.ColorValue, "Fast", { BackgroundTransparency = 0 })
 		for _, info in pairs(self.Inputs) do
-			Tween.Play(info.Input, "Smooth", { TextTransparency = 0.5 })
+			Tween.Play(info.Input, "Fast", { TextTransparency = 0.5 })
 			local label = info.Row:FindFirstChild("InputName")
-			if label then Tween.Play(label, "Smooth", { TextTransparency = 0.5 }) end
+			if label then Tween.Play(label, "Fast", { TextTransparency = 0.5 }) end
 		end
-		Tween.Play(self.ConfirmBtn, "Smooth", { TextTransparency = 0.2, BackgroundTransparency = 0 })
-		Tween.Play(self.CancelBtn, "Smooth", { TextTransparency = 0.5, BackgroundTransparency = 0.5 })
-		Tween.Play(self.ConfirmShadow, "Smooth", { Transparency = 0.5 })
+		Tween.Play(self.ConfirmBtn, "Fast", { TextTransparency = 0.2, BackgroundTransparency = 0 })
+		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5, BackgroundTransparency = 0.5 })
+		Tween.Play(self.ConfirmShadow, "Fast", { Transparency = 0.5 })
+		Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 0.8 })
 		self:_setColorAndUpdate(self._currentColor)
-		local UserInputService = game:GetService("UserInputService")
-		-- Avoid stacking duplicate connections if Open() is called twice in a row
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-			self._inputConnection = nil
+		-- Arm the click-outside listener for as long as the popup is open.
+		self:_connectOutsideClick()
+	end
+	-- Click-outside detection via UserInputService. The connection exists only
+	-- while the popup is open: created in Open(), disconnected in
+	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
+	function self:_connectOutsideClick()
+		if self._outsideConn then
+			return
 		end
-		local function onInputBegan(input, processed)
-			if processed then return end
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				local pos = input.Position
-				local popupPos = self.Popup.AbsolutePosition
-				local popupSize = self.Popup.AbsoluteSize
-				local inside = pos.X >= popupPos.X and pos.X <= popupPos.X + popupSize.X
-					and pos.Y >= popupPos.Y and pos.Y <= popupPos.Y + popupSize.Y
-				if not inside then
-					self:_Confirm()
+		local UserInputService = game:GetService("UserInputService")
+		self._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then
+				return
+			end
+			local inputType = input.UserInputType
+			if inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch then
+				return
+			end
+			if not self.IsOpen or not self.Popup or not self.Popup.Visible then
+				return
+			end
+			local p = input.Position
+			-- Inside if the point is within the popup's rect OR lands on any of its
+			-- descendants. The descendant check makes this robust when visually-
+			-- belonging content (overlays, shadows, indicators) extends past the
+			-- frame's own rect; a pure rect test would misread those as "outside".
+			local pos = self.Popup.AbsolutePosition
+			local size = self.Popup.AbsoluteSize
+			local inside = p.X >= pos.X and p.X <= pos.X + size.X
+				and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+			if not inside then
+				local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
+				if playerGui then
+					for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
+						if obj == self.Popup or obj:IsDescendantOf(self.Popup) then
+							inside = true
+							break
+						end
+					end
 				end
 			end
+			if not inside then
+				self:_Confirm()
+			end
+		end)
+	end
+	function self:_disconnectOutsideClick()
+		if self._outsideConn then
+			self._outsideConn:Disconnect()
+			self._outsideConn = nil
 		end
-		self._inputConnection = UserInputService.InputBegan:Connect(onInputBegan)
 	end
 	function self:Close()
 		if not self.Popup or not self.IsOpen then return end
 		self.IsOpen = false
 		self._isOpen = false
+		-- Disarm the click-outside listener immediately on close.
+		self:_disconnectOutsideClick()
 		if self._inputConnection then
 			self._inputConnection:Disconnect()
 			self._inputConnection = nil
@@ -604,8 +664,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			task.cancel(self._hideTimer)
 			self._hideTimer = nil
 		end
-		Tween.Play(self.Popup, "Smooth", { BackgroundTransparency = 1 })
-		Tween.Play(self.Shadow, "Smooth", { Transparency = 1 })
+		Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 1 })
+		Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
 		local function fadeObject(obj)
 			local goals = {}
 			if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
@@ -626,16 +686,18 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				goals.Transparency = 1
 			end
 			if next(goals) then
-				Tween.Play(obj, "Smooth", goals)
+				Tween.Play(obj, "Fast", goals)
 			end
 		end
 		for _, descendant in ipairs(self.Popup:GetDescendants()) do
 			fadeObject(descendant)
 		end
-		Tween.Play(self.Popup:FindFirstChildOfClass("UIScale"), "Smooth", { Scale = 0.9 })
+		Tween.Play(self.Popup:FindFirstChildOfClass("UIScale"), "Fast", { Scale = 0.9 })
 		self._hideTimer = task.delay(0.35, function()
-			if self.Popup and not self.IsOpen then
-				self.Popup.Visible = false
+			if not self.IsOpen then
+				if self.Popup then
+					self.Popup.Visible = false
+				end
 			end
 			self._hideTimer = nil
 		end)
@@ -669,6 +731,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			self._dragEndedConnection:Disconnect()
 			self._dragEndedConnection = nil
 		end
+		self:_disconnectOutsideClick()
 		if self.Popup then
 			self.Popup:Destroy()
 			self.Popup = nil
@@ -682,16 +745,16 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.ConfirmBtn.MouseButton1Click:Connect(function() self:_Confirm() end)
 	self.CancelBtn.MouseButton1Click:Connect(function() self:_Cancel() end)
 	self.ConfirmBtn.MouseEnter:Connect(function()
-		Tween.Play(self.ConfirmShadow, "Smooth", { BlurRadius = UDim.new(0, 50), Transparency = 0 })
+		Tween.Play(self.ConfirmShadow, "Fast", { BlurRadius = UDim.new(0, 50), Transparency = 0 })
 	end)
 	self.ConfirmBtn.MouseLeave:Connect(function()
-		Tween.Play(self.ConfirmShadow, "Smooth", { BlurRadius = UDim.new(0, 20), Transparency = 1 })
+		Tween.Play(self.ConfirmShadow, "Fast", { BlurRadius = UDim.new(0, 20), Transparency = 1 })
 	end)
 	self.CancelBtn.MouseEnter:Connect(function()
-		Tween.Play(self.CancelBtn, "Smooth", { TextTransparency = 0.2 })
+		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.2 })
 	end)
 	self.CancelBtn.MouseLeave:Connect(function()
-		Tween.Play(self.CancelBtn, "Smooth", { TextTransparency = 0.5 })
+		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5 })
 	end)
 	-- Drag functions
 	local function setFromSquarePosition(screenPosition)

@@ -2,7 +2,8 @@
 	Paragraph  ·  Aetheris UI Library
 
 	Container with a title and a wrapped description body. Accepts Title (or
-	Name) and Description (or Text).
+	Name) and Description (or Text). Themed properties are declarative BINDINGS
+	(ThemeManager.BindColor / BindTransparency) -- this component has no ApplyTheme.
 
 	Usage:
 		local paragraph = section:Paragraph({
@@ -55,7 +56,8 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)  -- height fixed for title
 	titleLabel.Text = title
-	titleLabel.Position = UDim2.new(0.043, 0, 0, 8)  -- left padding, top offset
+	titleLabel.AnchorPoint = Vector2.new(0, 0.5)
+titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, vertically centred
 	titleLabel.Parent = container
 	-- Description label (LabelDescription)
 	local descLabel = Instance.new("TextLabel")
@@ -93,20 +95,16 @@ function Paragraph.new(parent, Settings, theme)
 	self.SetDescription = function(newDesc)
 		descLabel.Text = newDesc
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		container.BackgroundColor3 = theme.ComponentBackgroundColor or container.BackgroundColor3
-		container.BackgroundTransparency = theme.ComponentBackgroundTransparency or container.BackgroundTransparency
-		stroke.Color = theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.StrokeTransparency or stroke.Transparency
-		titleLabel.TextColor3 = theme.PrimaryTextColor or titleLabel.TextColor3
-		titleLabel.TextTransparency = theme.PrimaryTextTransparency or titleLabel.TextTransparency
-		descLabel.TextColor3 = theme.SecondaryTextColor or descLabel.TextColor3
-		descLabel.TextTransparency = theme.SecondaryTextTransparency or descLabel.TextTransparency
-	end
-	ThemeManager.Register(container, self)
+	-- Declarative theming: every themed property is a BINDING. A theme switch
+	-- re-resolves them automatically -- no ApplyTheme body to forget.
+	ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	ThemeManager.BindColor(titleLabel, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(titleLabel, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
+	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
 	return self
 end
 return Paragraph

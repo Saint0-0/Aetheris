@@ -80,7 +80,7 @@ function ProgressBar.new(parent, Settings, theme)
 	local visual = Instance.new("Frame")
 	visual.Name = "Visual"
 	visual.BorderSizePixel = 0
-	visual.BackgroundColor3 = (theme and theme.PrimaryColor)
+	visual.BackgroundColor3 = color or (theme and theme.PrimaryColor)
 	visual.Size = UDim2.new(0, 0, 1, 0) -- start empty
 	visual.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	visual.Parent = holder
@@ -145,6 +145,11 @@ function ProgressBar.new(parent, Settings, theme)
 	self.MinValue = minValue
 	self.MaxValue = maxValue
 	self.Color = color
+	-- Declare a custom color as a theme override so the crossfade leaves it
+	-- alone and it survives theme switches without being re-stamped each pass.
+	if color then
+		ThemeManager.SetColorOverride(visual, "BackgroundColor3", color)
+	end
 	self.Animate = animate
 	self._spinTween = nil
 	self._currentValue = nil
@@ -208,7 +213,7 @@ function ProgressBar.new(parent, Settings, theme)
 	end
 	self.SetColor = function(newColor)
 		self.Color = newColor
-		self.Visual.BackgroundColor3 = newColor
+		ThemeManager.SetColorOverride(self.Visual, "BackgroundColor3", newColor)
 	end
 	self.SetVisibility = function(visible)
 		self.Row.Visible = visible
@@ -223,22 +228,16 @@ function ProgressBar.new(parent, Settings, theme)
 			stopSpin()
 		end
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		stats.TextColor3 = theme.PrimaryTextColor or stats.TextColor3
-		stats.TextTransparency = theme.PrimaryTextTransparency or stats.TextTransparency
-		holder.BackgroundColor3 = theme.Undercolor or holder.BackgroundColor3
-		-- A custom Color (Settings.Color) wins over the theme's PrimaryColor.
-		visual.BackgroundColor3 = self.Color or theme.PrimaryColor or visual.BackgroundColor3
-		backImage.Image = theme.Wallpaper or FallbackImage
-		backImage.Visible = not (theme.WallpaperEnabled == false)
-		holderShadow.Color = theme.ComponentShadowColor or holderShadow.Color
-	end
-	ThemeManager.Register(row, self)
+	-- Declarative theming: every themed property is a BINDING.
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(stats, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(stats, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(holder, "BackgroundColor3", "Undercolor")
+	ThemeManager.BindColor(visual, "BackgroundColor3", "PrimaryColor")
+	ThemeManager.Bind(backImage, "Image", "Wallpaper")
+	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
+	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	return self
 end
 return ProgressBar

@@ -99,6 +99,14 @@ function Status.new(parent, Settings, theme)
 	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	label.Text = name
 	label.Parent = frame
+	-- Declarative theming: every themed property is a BINDING -- no ApplyTheme
+	-- body to forget. Bind applies immediately and re-resolves each switch.
+	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	-- StatusTextHolder
 	local holder = Instance.new("Frame")
 	holder.Name = "StatusTextHolder"
@@ -141,6 +149,8 @@ function Status.new(parent, Settings, theme)
 		textLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		textLabel.Position = UDim2.new(0, 0, -0.4, 8)
 		textLabel.Parent = holder
+		ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
+		ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
 		-- Build rich text
 		local colorString = colorToString(color)
 		textLabel.Text = string.format('<font weight="SemiBold">%s: </font><font color="%s">%s</font>', title, colorString, description)
@@ -193,26 +203,14 @@ function Status.new(parent, Settings, theme)
 			textLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			textLabel.Position = UDim2.new(0, 0, -0.4, 8)
 			textLabel.Parent = self.Holder
+			ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
+			ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
 			local colorString = colorToString(color)
 			textLabel.Text = string.format('<font weight="SemiBold">%s: </font><font color="%s">%s</font>', title, colorString, description)
 			table.insert(statusLabels, textLabel)
 		end
 		self.StatusLabels = statusLabels
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		frame.BackgroundColor3 = theme.ComponentBackgroundColor or frame.BackgroundColor3
-		frame.BackgroundTransparency = theme.ComponentBackgroundTransparency or frame.BackgroundTransparency
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		if stroke then stroke.Color = theme.StrokeColor or stroke.Color end
-		for _, lbl in ipairs(self.StatusLabels or {}) do
-			lbl.TextColor3 = theme.SecondaryTextColor or lbl.TextColor3
-			lbl.TextTransparency = theme.SecondaryTextTransparency or lbl.TextTransparency
-		end
-	end
-	ThemeManager.Register(frame, self)
 	return self
 end
 return Status

@@ -27,6 +27,8 @@ SettingsStore.Defaults = {
 	SpinsEnabled = true,
 	ConfirmClose = true,
 	Volume = 1,
+	PillPosition = "right", -- minimize pill: "right" | "left" | "top" | "bottom"
+	CompactMode = "auto",   -- "auto" (by width) | "always" | "never"
 }
 
 SettingsStore.Data = {}

@@ -78,8 +78,9 @@ function Stepper.new(parent, Settings, theme)
 	inputBox.AnchorPoint = Vector2.new(1, 0.5)
 	inputBox.ClearTextOnFocus = false
 	inputBox.PlaceholderText = tostring(defaultValue)
-	inputBox.Size = UDim2.new(0.24189, 0, 0.563, 0)
-	inputBox.Position = UDim2.new(0.89655, 0, 0.5, 0)
+	inputBox.Size = UDim2.new(0, 60, 0.6, 0)
+	inputBox.AutomaticSize = Enum.AutomaticSize.X
+	inputBox.Position = UDim2.new(1, -30, 0.5, 0)
 	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	inputBox.Text = ""
 	inputBox.Parent = row
@@ -262,26 +263,21 @@ function Stepper.new(parent, Settings, theme)
 	self.UpdateName = function(newName)
 		label.Text = newName
 	end
-	-- Component-owned theming (see ThemeManager registry).
-	function self:ApplyTheme(newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
-		label.TextColor3 = theme.PrimaryTextColor or label.TextColor3
-		label.TextTransparency = theme.PrimaryTextTransparency or label.TextTransparency
-		inputBox.TextColor3 = theme.SecondaryTextColor or inputBox.TextColor3
-		inputBox.TextTransparency = theme.SecondaryTextTransparency or inputBox.TextTransparency
-		inputBox.BackgroundColor3 = theme.InputBackgroundColor or inputBox.BackgroundColor3
-		inputBox.BackgroundTransparency = theme.InputBackgroundTransparency or inputBox.BackgroundTransparency
-		inputStroke.Color = theme.StrokeColor or inputStroke.Color
-		inputStroke.Transparency = theme.StrokeTransparency or inputStroke.Transparency
-		stepUp.ImageColor3 = theme.AccentColor or stepUp.ImageColor3
-		stepUp.BackgroundColor3 = theme.AccentColor or stepUp.BackgroundColor3
-		stepDown.ImageColor3 = theme.AccentColor or stepDown.ImageColor3
-		stepDown.BackgroundColor3 = theme.AccentColor or stepDown.BackgroundColor3
-		upStroke.Color = theme.StrokeColor or upStroke.Color
-		downStroke.Color = theme.StrokeColor or downStroke.Color
-	end
-	ThemeManager.Register(row, self)
+	-- Declarative theming: every themed property is a BINDING.
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
+	ThemeManager.BindTransparency(inputBox, "TextTransparency", "SecondaryTextTransparency")
+	ThemeManager.BindColor(inputBox, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(inputStroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(inputStroke, "Transparency", "StrokeTransparency")
+	ThemeManager.BindColor(stepUp, "ImageColor3", "AccentColor")
+	ThemeManager.BindColor(stepUp, "BackgroundColor3", "AccentColor")
+	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
+	ThemeManager.BindColor(stepDown, "BackgroundColor3", "AccentColor")
+	ThemeManager.BindColor(upStroke, "Color", "StrokeColor")
+	ThemeManager.BindColor(downStroke, "Color", "StrokeColor")
 	return self
 end
 return Stepper

@@ -3,15 +3,15 @@
 
 	Horizontal settings tab bar inside SettingsPages. Mirrors Core/TabGroup
 	mechanics: spinning-gradient back images, a SelectionStatus indicator,
-	active/inactive theme keys, and per-tab content scrollers with left/right
-	columns for Section support.
+	active/inactive theme keys, and a per-tab SINGLE-COLUMN content area.
+	(Unlike Core/TabGroup, settings pages have no left/right split.)
 ]]
 
 local Tween = require("../../Utils/Tween")
 local Section = require("../Section")
 local FallbackImage = require("../../Constants").FallbackImage
 local ThemeManager = require("../../Themes/ThemeManager")
-local VideoFade = require("../../Utils/VideoFade")
+local PageFade = require("../../Utils/PageFade")
 
 local SettingsTabGroup = {}
 SettingsTabGroup.__index = SettingsTabGroup
@@ -21,7 +21,64 @@ SettingsTabHandle.__index = SettingsTabHandle
 
 function SettingsTabHandle:Section(Settings)
 	Settings = Settings or {}
-	return Section.new(self.Page, Settings, self._theme)
+	-- Sections go straight into the page (single vertical column). If a
+	-- scroller has been set up via :Scroller(), they stack into that instead.
+	return Section.new(self._contentParent or self.Page, Settings, self._theme)
+end
+
+-- Optional single-column scroller for this page. Settings pages are ONE
+-- column (no left/right split); call :Scroller() once to get an auto-sizing
+-- scrolling area, then every :Section() stacks into it top-to-bottom. The
+-- default pages (Themes/UISettings) build their own equivalent by hand.
+function SettingsTabHandle:Scroller()
+	if self._scroller then
+		return self._scroller
+	end
+	local theme = self._theme or {}
+	local scroller = Instance.new("ScrollingFrame")
+	scroller.Name = "SettingsScroller"
+	scroller.Active = true
+	scroller.BorderSizePixel = 0
+	scroller.ScrollBarImageTransparency = 1 -- hidden until scrolling
+	scroller.BackgroundTransparency = 1
+	scroller.AnchorPoint = Vector2.new(0.5, 0.5)
+	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	scroller.CanvasSize = UDim2.new(0, 0, 0, 0)
+	scroller.Size = UDim2.new(1, 0, 0.879, 0)
+	scroller.Position = UDim2.new(0.5, 0, 0.561, 0)
+	scroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	scroller.ScrollBarThickness = 1
+	scroller.ScrollBarImageColor3 = theme.TertiaryColor or Color3.fromRGB(160, 160, 160)
+	scroller.LayoutOrder = 1
+	scroller.Parent = self.Page
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 10)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = scroller
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingTop = UDim.new(0, 10)
+	padding.PaddingLeft = UDim.new(0, 5)
+	padding.PaddingRight = UDim.new(0, 15)
+	padding.Parent = scroller
+
+	-- Scrollbar: only visible while scrolling, matching the other settings pages.
+	local scrollTimer
+	scroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		Tween.Play(scroller, "Fast", { ScrollBarImageTransparency = 0.5 })
+		if scrollTimer then
+			task.cancel(scrollTimer)
+		end
+		scrollTimer = task.delay(1.5, function()
+			Tween.Play(scroller, "Fast", { ScrollBarImageTransparency = 1 })
+			scrollTimer = nil
+		end)
+	end)
+
+	self._scroller = scroller
+	self._contentParent = scroller
+	return scroller
 end
 
 function SettingsTabGroup.new(window, theme)
@@ -31,7 +88,6 @@ function SettingsTabGroup.new(window, theme)
 	self._theme = theme or {}
 	self.Tabs = {}
 	self.ActiveTab = nil
-	self._fadeCaches = {}
 	self._transitioning = false
 	self._spinHandles = {}
 
@@ -41,7 +97,7 @@ function SettingsTabGroup.new(window, theme)
 	self.Bar.BorderSizePixel = 0
 	self.Bar.BackgroundTransparency = 1
 	self.Bar.Size = UDim2.new(1, 0, 0.07969, 0)
-	self.Bar.Position = UDim2.new(0, 0, 0, 0)
+	self.Bar.Position = UDim2.new(0, 0, 0, 6)
 	self.Bar.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	self.Bar.Parent = window.SettingsPages
 
@@ -79,112 +135,23 @@ end
 -- the page is in its NATURAL (un-faded) state, so it is captured fresh each
 -- time the page is natural -- pages whose content is added after creation
 -- (e.g. the Themes page) are then captured fully instead of as empty.
-function SettingsTabGroup:_captureCache(tab)
-	local cache = {}
-	local function scan(instance)
-		-- Video fade handle (UIGradient tagged by the Video component).
-		if instance:IsA("UIGradient") and instance:GetAttribute("IsVideoFade") then
-			table.insert(cache, {instance = instance, isVideo = true, base = VideoFade.get(instance)})
-			return
-		end
-		local props = {}
-		local function addProp(propName)
-			local success, value = pcall(function() return instance[propName] end)
-			if success and value ~= nil then
-				table.insert(props, {propName, value})
-			end
-		end
-		if instance:IsA("GuiObject") then
-			addProp("BackgroundTransparency")
-			addProp("TextTransparency")
-			addProp("ImageTransparency")
-		end
-		if instance:IsA("UIStroke") or instance:IsA("UIShadow") then
-			addProp("Transparency")
-		end
-		if #props > 0 then
-			table.insert(cache, {instance = instance, props = props})
-		end
-		for _, child in ipairs(instance:GetChildren()) do
-			scan(child)
-		end
-	end
-	scan(tab.Page)
-	return cache
-end
+-- (Page transitions are handled entirely by Utils/PageFade now: one
+-- CanvasGroup per settings page, faded via PageFade.Crossfade/Show/Snap. The
+-- old per-element transparency cache functions were removed.)
 
--- Return a valid base cache for the tab. If the page is currently natural
--- (not faded), re-capture it so it stays fresh; otherwise reuse the stored
--- cache captured before the page was faded out.
-function SettingsTabGroup:_getFadeCache(tab)
-	if not tab._faded then
-		tab._cache = self:_captureCache(tab)
-	end
-	return tab._cache or {}
-end
-
--- Fade every element in a cache toward a target transparency.
---   targetTransparency == nil  -> fade back to each element's captured base
---   instant == true            -> set immediately (no tween)
-function SettingsTabGroup:_fadeElements(cache, targetTransparency, callback, instant)
-	if not cache or #cache == 0 then
-		if callback then callback() end
-		return
-	end
-	local total = 0
-	local completed = 0
-	local function onComplete()
-		completed = completed + 1
-		if completed >= total and callback then
-			callback()
-		end
-	end
-	for _, entry in ipairs(cache) do
-		local instance = entry.instance
-		if entry.isVideo then
-			if instance.Parent then
-				local target = targetTransparency
-				if target == nil then target = entry.base end
-				if instant then
-					VideoFade.set(instance, target)
-				else
-					total = total + 1
-					VideoFade.fade(instance, target, 0.2, "Out", onComplete)
-				end
-			end
-		elseif instance.Parent then
-			for _, propInfo in ipairs(entry.props) do
-				local prop = propInfo[1]
-				local base = propInfo[2]
-				local target = targetTransparency
-				if target == nil then
-					target = base
-				end
-				if instant then
-					instance[prop] = target
-				elseif instance[prop] ~= target then
-					total = total + 1
-					local handle = Tween.Play(instance, "Fast", {[prop] = target})
-					handle.Tween.Completed:Connect(onComplete)
-				end
-			end
-		end
-	end
-	if total == 0 and callback then
-		callback()
-	end
-end
-
--- Settings-tab backdrop spins route through the CENTRAL spin system
--- (Tween.StartSpin) so the global Tween.SetSpinsEnabled toggle controls them.
+-- Settings-tab backdrop spins route through the CENTRAL spin system so the
+-- global Tween.SetSpinsEnabled toggle controls them. Inactive page backdrops
+-- are PAUSED (angle preserved), not stopped.
 function SettingsTabGroup:_pauseSpin(gradient)
-	Tween.StopSpin(gradient)
+	if not gradient then return end
+	Tween.PauseSpin(gradient)
 end
 
 function SettingsTabGroup:_resumeSpin(gradient, reset)
-	-- StartSpin handles the disabled case (registers + resets, no tween), so a
-	-- later Tween.SetSpinsEnabled(true) restarts the active tab too.
-	Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
+	if not gradient then return end
+	if not Tween.ResumeSpin(gradient) then
+		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
+	end
 end
 
 function SettingsTabGroup:Tab(Settings)
@@ -239,7 +206,9 @@ function SettingsTabGroup:Tab(Settings)
 	BackImage.Position = UDim2.new(0.5, 0, 0.5, 0)
 	BackImage.Parent = Button
 	BackImage:SetAttribute("IsTabBackdrop", true)
-	BackImage.Visible = theme.WallpaperEnabled
+	-- Match SettingsTabGroup:ApplyTheme's `~= false` form so construction and a
+	-- live theme switch agree on WallpaperEnabled (nil => shown).
+	BackImage.Visible = theme.WallpaperEnabled ~= false
 
 	local BackImageCorner = Instance.new("UICorner")
 	BackImageCorner.CornerRadius = UDim.new(0, 4)
@@ -291,8 +260,13 @@ function SettingsTabGroup:Tab(Settings)
 	Page.BackgroundTransparency = 1
 	Page.Size = UDim2.new(1, 0, 1, 0)
 	Page.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	Page.Visible = false
-	Page.Parent = self.Content
+	Page.Visible = true
+	-- Page transition layer: ONE CanvasGroup per settings page owns the fade
+	-- (see Utils/PageFade). The Page itself is never transparency-faded, so
+	-- component state encoded as transparency can never be stomped.
+	local FadeLayer = PageFade.Layer(self.Content, name .. "SettingsPage")
+	FadeLayer.Visible = false
+	Page.Parent = FadeLayer
 
 	local tab = setmetatable({
 		Name = name,
@@ -303,6 +277,7 @@ function SettingsTabGroup:Tab(Settings)
 		TabImage = TabImage,
 		SelectionStatus = SelectionStatus,
 		Page = Page,
+		FadeLayer = FadeLayer,
 		_theme = theme,
 	}, SettingsTabHandle)
 
@@ -323,7 +298,7 @@ function SettingsTabGroup:_applyActiveVisuals(t)
 	local theme = self._theme or {}
 	Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.ActiveTabButtonColor, BackgroundTransparency = theme.ActiveTabButtonTransparency })
 	Tween.Play(t.TabName, "Fast", { TextTransparency = theme.ActiveTabTextTransparency or 0.2, TextColor3 = theme.ActiveTabTextColor or Color3.fromRGB(255, 255, 255) })
-	t.BackImage.Visible = theme.WallpaperEnabled
+	t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
 	Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.ActiveTabIconTransparency or 0.2, ImageColor3 = theme.ActiveTabIconColor or Color3.fromRGB(255, 255, 255) })
 	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
@@ -358,16 +333,12 @@ function SettingsTabGroup:SetActiveTab(tab)
 	self:RefreshTitle()
 
 	if previous == nil then
-		-- First activation: capture bases while natural, reveal hidden, fade in.
-		local cache = self:_getFadeCache(tab)
-		tab._faded = true
-		tab.Page.Visible = true
-		self:_fadeElements(cache, 1, nil, true)
+		-- First activation: reveal + fade in.
+		tab.FadeLayer.Visible = true
+		PageFade.Snap(tab.FadeLayer, 1)
+		PageFade.Show(tab.FadeLayer, false)
 		self:_applyActiveVisuals(tab)
 		self:_resumeSpin(tab.BackImageGradient, true)
-		self:_fadeElements(cache, nil, function()
-			tab._faded = false
-		end, false)
 		return
 	end
 
@@ -375,24 +346,13 @@ function SettingsTabGroup:SetActiveTab(tab)
 	self:_applyInactiveVisuals(previous)
 	self:_applyActiveVisuals(tab)
 
-	-- Capture the incoming page's bases (it is natural), then hide it.
-	local newCache = self:_getFadeCache(tab)
-	self:_fadeElements(newCache, 1, nil, true)
-
-	-- Fade the outgoing page fully out, THEN hide it and reveal/fade the new one.
-	local prevCache = previous._cache or {}
-	self:_fadeElements(prevCache, 1, function()
-		previous.Page.Visible = false
-		-- Previous is hidden/faded now: keep _faded true so its stored cache
-		-- (captured while natural) is reused instead of re-snapshotting from
-		-- this faded state.
-		previous._faded = true
-		tab.Page.Visible = true
-		tab._faded = true
-		self:_fadeElements(newCache, nil, function()
-			tab._faded = false
-		end, false)
-	end, false)
+	-- Standardized crossfade, IDENTICAL to the main TabGroup: incoming fades
+	-- in while outgoing fades out, both over PageFade.TIME. Uses one
+	-- CanvasGroup per page, so nothing inside a page is transparency-faded.
+	tab.FadeLayer.Visible = true
+	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
+		if previous.FadeLayer then previous.FadeLayer.Visible = false end
+	end)
 end
 
 -- Called by ThemeManager after a blanket CancelAll (theme switches cancel
@@ -402,14 +362,13 @@ function SettingsTabGroup:RestoreActivePage()
 	local tab = self.ActiveTab
 	if not tab then return end
 	for _, other in ipairs(self.Tabs) do
-		if other ~= tab then
-			other.Page.Visible = false
+		if other.FadeLayer then
+			other.FadeLayer.Visible = (other == tab)
 		end
 	end
-	local cache = self:_getFadeCache(tab)
-	tab.Page.Visible = true
-	self:_fadeElements(cache, nil, nil, true)
-	tab._faded = false
+	if tab.FadeLayer then
+		PageFade.Snap(tab.FadeLayer, 0) -- fully visible, no tween
+	end
 	self:RefreshTitle()
 end
 
