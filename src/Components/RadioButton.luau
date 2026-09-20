@@ -175,6 +175,10 @@ function RadioButton.new(parent, group, Settings, theme)
 		Tween.Play(holderStroke, "OnOff", {
 			Transparency = 1
 		})
+		-- Sync PageFade's cached fade-base: selection changes the stroke OUTSIDE
+		-- ApplyTheme, so a stale base would leave the stroke hidden after a page
+		-- switch (only a hover tween brought it back).
+		holderStroke:SetAttribute("PageFadeBase", 1)
 	end
 	----------------------------------------------------------------
 	-- DESELECTED
@@ -199,6 +203,8 @@ function RadioButton.new(parent, group, Settings, theme)
 		Tween.Play(holderStroke, "OnOff", {
 			Transparency = theme.StrokeTransparency or 0.4
 		})
+		-- Keep the cached fade-base in sync (see playOn).
+		holderStroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
 	end
 	----------------------------------------------------------------
 	-- HOVER
@@ -299,6 +305,13 @@ function RadioButton.new(parent, group, Settings, theme)
 		theme = ThemeManager.GetTheme(newTheme)
 		self._theme = theme
 		holderStroke.Transparency = self.IsSelected and 1 or (theme.StrokeTransparency or 0.4)
+		-- PageFade caches a decoration's base transparency once and restores to it
+		-- on every page show. This stroke's transparency is STATE/theme owned (1 when
+		-- selected, else the theme value), so a stale cached base of 1 left the stroke
+		-- permanently hidden after a theme+page switch -- only a hover tween brought
+		-- it back. Keep the cached base in sync so the page fade restores the CURRENT
+		-- themed value.
+		holderStroke:SetAttribute("PageFadeBase", holderStroke.Transparency)
 		backImage.Image = theme.Wallpaper or FallbackImage
 		backImage.Visible = not (theme.WallpaperEnabled == false)
 		-- Re-apply the selected visual state directly. ApplyTheme cancels all

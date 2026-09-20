@@ -207,6 +207,11 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			state and 0 or 0.9
 		local targetLabelTransparency =
 			state and 0.1 or 0.45
+		-- Keep PageFade's cached fade-base in sync with the CURRENT resting
+		-- stroke transparency. applyState changes the stroke OUTSIDE ApplyTheme,
+		-- so without this a page fade would restore a stale base (the
+		-- "stroke stays invisible until hover" bug).
+		stroke:SetAttribute("PageFadeBase", targetStrokeTransparency)
 		if animate then
 			Tween.Play(thumb, "Fast", {
 				Position = targetPos,

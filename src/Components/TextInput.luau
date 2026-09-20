@@ -97,9 +97,15 @@ function TextInput.new(parent, Settings, theme)
 	-- Brighten stroke (hover/focus effect) – same as keybind
 	local function setStrokeBright(bright)
 		local liveTheme = ActiveTheme.theme or theme
-		local targetTrans = bright and 0.3 or (liveTheme and liveTheme.StrokeTransparency or 0.95)
+		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
+		local targetTrans = bright and 0.3 or restTrans
 		local targetColor = liveTheme.StrokeColor
 		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
+		-- PageFade restores this stroke to its cached base on a page switch; pin
+		-- that base to the RESTING transparency so a transient hover/focus
+		-- brighten is never what a page fade restores (the "stroke stays
+		-- bright/invisible until re-hover" bug).
+		stroke:SetAttribute("PageFadeBase", restTrans)
 	end
 	-- Hover events on input box
 	inputBox.MouseEnter:Connect(function()

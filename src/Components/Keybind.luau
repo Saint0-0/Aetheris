@@ -169,9 +169,13 @@ function Keybind.new(parent, Settings, theme)
 	-- Brighten stroke (hover/focus effect)
 	local function setStrokeBright(bright)
 		local liveTheme = ActiveTheme.theme or theme
-		local targetTrans = bright and 0.3 or (liveTheme and liveTheme.StrokeTransparency or 0.95)
+		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
+		local targetTrans = bright and 0.3 or restTrans
 		local targetColor = liveTheme.StrokeColor
 		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
+		-- Keep PageFade's cached base at the RESTING transparency so a page fade
+		-- never restores a transient hover/focus brighten.
+		stroke:SetAttribute("PageFadeBase", restTrans)
 	end
 	-- Hover events on row and input box
 	local function onHoverEnter()

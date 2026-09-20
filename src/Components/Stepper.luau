@@ -210,12 +210,16 @@ function Stepper.new(parent, Settings, theme)
 	local function setStrokeBright(bright)
 		if not self.InputStroke then return end
 		local liveTheme = ActiveTheme.theme or theme
-		local targetTrans = bright and 0.3 or (liveTheme and liveTheme.StrokeTransparency or 0.95)
+		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
+		local targetTrans = bright and 0.3 or restTrans
 		local targetColor = liveTheme.StrokeColor
 		Tween.Play(self.InputStroke, "Fast", {
 			Transparency = targetTrans,
 			Color = targetColor
 		})
+		-- Keep PageFade's cached base at the RESTING transparency so a page fade
+		-- never restores a transient hover/focus brighten.
+		self.InputStroke:SetAttribute("PageFadeBase", restTrans)
 	end
 	inputBox.MouseEnter:Connect(function()
 		setStrokeBright(true)
