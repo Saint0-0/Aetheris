@@ -150,7 +150,7 @@ function Notification.new(container, Settings, theme)
 	new("UICorner", { Parent = grad, CornerRadius = UDim.new(0, 6) })
 	new("UIGradient", {
 		Parent = grad,
-		Rotation = 270,
+		Rotation = 45,
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0.000, 1),
 			NumberSequenceKeypoint.new(0.297, 1),
@@ -185,7 +185,7 @@ function Notification.new(container, Settings, theme)
 		new("UICorner", { Parent = bg, CornerRadius = UDim.new(0, 6) })
 		new("UIGradient", {
 			Parent = bg,
-			Rotation = 180,
+			Rotation = 45,
 			Transparency = NumberSequence.new({
 				NumberSequenceKeypoint.new(0.000, 0),
 				NumberSequenceKeypoint.new(0.134, 0.3),

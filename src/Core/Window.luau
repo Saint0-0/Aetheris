@@ -892,12 +892,27 @@ function Window.new(Settings)
 	ScriptDescriptionBadgeCorner.CornerRadius = UDim.new(1, 0)
 	ScriptDescriptionBadgeCorner.Parent = ScriptDescriptionBadge
 
+	-- Accent glow at the TOP-RIGHT of the badge. Rotation 45 runs the gradient
+	-- bottom-left (offset 0) -> top-right (offset 1), so the AccentColor lands in
+	-- the top-right corner over the TertiaryColor base. Rebuilt from the theme on
+	-- every switch via restampBadgeGradient (called in ApplyTheme below).
+	local ScriptDescriptionBadgeGradient = Instance.new("UIGradient")
+	ScriptDescriptionBadgeGradient.Name = "ScriptDescriptionBadgeGradient"
+	ScriptDescriptionBadgeGradient.Rotation = 45
+	ScriptDescriptionBadgeGradient.Parent = ScriptDescriptionBadge
+	local function restampBadgeGradient(t)
+		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
+		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
+		ScriptDescriptionBadgeGradient.Color = ColorSequence.new(base, accent)
+	end
+	restampBadgeGradient(theme)
+
 	local ScriptDescription = Instance.new("TextLabel")
 	ScriptDescription.Name = "ScriptDescription"
 	ScriptDescription.TextTruncate = Enum.TextTruncate.AtEnd
 	ScriptDescription.BorderSizePixel = 0
 	ScriptDescription.TextSize = 9
-	ScriptDescription.TextXAlignment = Enum.TextXAlignment.Center
+	ScriptDescription.TextXAlignment = Enum.TextXAlignment.Left
 	ScriptDescription.TextYAlignment = Enum.TextYAlignment.Center
 	ScriptDescription.TextTransparency = 0.1
 	ScriptDescription.BackgroundTransparency = 1
@@ -908,6 +923,12 @@ function Window.new(Settings)
 	ScriptDescription.Text = "build 0.0.1 ver 1.0"
 	ScriptDescription.Size = UDim2.new(1, 0, 1, 0)
 	ScriptDescription.Parent = ScriptDescriptionBadge
+
+	-- Left inset so the left-aligned text doesn't sit flush against the pill edge.
+	local ScriptDescriptionPadding = Instance.new("UIPadding")
+	ScriptDescriptionPadding.Name = "ScriptDescriptionPadding"
+	ScriptDescriptionPadding.PaddingLeft = UDim.new(0, 10)
+	ScriptDescriptionPadding.Parent = ScriptDescription
 
 	----------------------------------------------------------------
 	-- Resize handle
@@ -945,6 +966,7 @@ function Window.new(Settings)
 	self = setmetatable({}, Window)
 	self.AnimationStyle = animationStyle
 	self.DragStyle = dragStyle
+	self.MainFrameShadow = MainFrameShadow
 
 	-- Store the resolved theme BEFORE any settings pages/scripts build,
 	-- so components created there use the correct theme instead of Default.
@@ -1929,6 +1951,7 @@ function Window.new(Settings)
 	ThemeManager.BindColor(Sidebar, "BackgroundColor3", "SidebarColor")
 	ThemeManager.BindTransparency(Sidebar, "BackgroundTransparency", "SidebarTransparency")
 	ThemeManager.BindColor(MainFrameShadow, "Color", "MainframeShadowColor")
+	ThemeManager.BindColor(ResizeButton, "ImageColor3", "TitleTextColor")
 	for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
 		if ctrl then ThemeManager.BindColor(ctrl, "ImageColor3", "WindowControlColor") end
 	end
@@ -1965,6 +1988,7 @@ function Window.new(Settings)
 	function self:ApplyTheme(newTheme)
 		local t = ThemeManager.GetTheme(newTheme)
 		self._theme = t
+		restampBadgeGradient(t)
 
 		-- Shell colors/transparencies are BINDINGS now (see the Bind* block
 		-- above); a theme switch re-resolves them automatically. Only the bits
@@ -2083,6 +2107,11 @@ function Window:Destroy()
 	-- GroupTransparency tween fades every child; tweening BackgroundTransparency
 	-- would only fade the frame's own fill and leave children visible.
 	local handle = Tween.Play(self.MainFrame, closePreset, { GroupTransparency = 1 })
+	-- UIShadow is NOT covered by CanvasGroup GroupTransparency, so the window
+	-- shadow popped out instead of fading with the frame. Fade it explicitly.
+	if self.MainFrameShadow then
+		Tween.Play(self.MainFrameShadow, closePreset, { Transparency = 1 })
+	end
 	handle.Tween.Completed:Wait()
 
 	Tween.CancelAll(self.MainFrame)
