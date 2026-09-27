@@ -364,6 +364,11 @@ function SettingsTabGroup:SetActiveTab(tab)
 	self.ActiveTab = tab
 	self:RefreshTitle()
 
+	-- A page switch dismisses any open popup, same as the main TabGroup.
+	if self.Window and self.Window.HidePopups then
+		self.Window.HidePopups()
+	end
+
 	if previous == nil then
 		-- First activation: reveal + fade in.
 		tab.FadeLayer.Visible = true

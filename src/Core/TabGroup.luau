@@ -452,6 +452,12 @@ function TabGroup:SetActiveTab(tab)
 	if previous == tab then return end
 	self.ActiveTab = tab
 
+	-- A page switch dismisses any open popup (dropdown / color picker /
+	-- notification) so it can never linger over the newly shown page.
+	if self.Window and self.Window.HidePopups then
+		self.Window.HidePopups()
+	end
+
 	-- Keep the sidebar search consistent across a tab switch: restore the page
 	-- we are leaving, then re-apply the current query to the page we enter.
 	if previous and previous.ContentScroller then
