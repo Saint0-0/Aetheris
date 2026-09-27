@@ -679,16 +679,18 @@ function Window.new(Settings)
 	-- Settings button toggles between the settings pages and whatever tab the
 	-- user was last on. Clicking it while settings are open returns to that
 	-- previous page instead of leaving the user stranded on settings.
-	local onSettings = false
+	-- Toggle off the LIVE visibility of SettingsPages, not a separate local
+	-- flag. Other paths (the pill/minimized tab handler) also hide SettingsPages
+	-- without touching this closure; a stale flag there made the first settings
+	-- click take the wrong branch, so it looked like the button needed two
+	-- clicks to open/close after any tab interaction.
 	SettingsButton.MouseButton1Click:Connect(function()
-		if onSettings then
+		if SettingsPages.Visible then
 			SettingsPages.Visible = false
 			TabContent.Visible = true
-			onSettings = false
 		else
 			TabContent.Visible = false
 			SettingsPages.Visible = true
-			onSettings = true
 			if self.SettingsTabGroup then
 				self.SettingsTabGroup:RefreshTitle()
 			end
