@@ -335,11 +335,25 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	function self:UpdateName(newName)
 		label.Text = newName
 	end
-	-- No ApplyTheme: the label colour/transparency and the state-driven
-	-- thumb/track/stroke colours are declarative bindings (see the DECLARATIVE
-	-- THEME BINDINGS block above), so a theme switch re-resolves them with no
-	-- component code. applyState only swaps the binding key on a state change.
+	-- The label COLOUR and the state-driven thumb/track/stroke COLOURS are
+	-- declarative bindings (see the DECLARATIVE THEME BINDINGS block above), so a
+	-- theme switch re-resolves them with no component code. But the
+	-- thumb/track/stroke/label/sheet TRANSPARENCIES are set by applyState's own
+	-- tween, OUTSIDE ApplyTheme: a theme switch runs Tween.CancelAllUnder first,
+	-- which freezes those tweens at whatever intermediate transparency they held,
+	-- so the toggle can render half-faded ("disappears"). Re-stamp the resting
+	-- state (snap, no callback) after every theme apply so the current state's
+	-- transparencies are restored -- the same pattern Button uses for its
+	-- interaction transparencies.
+	local unregisterTheme = ThemeManager.OnThemeApplied(function()
+		applyState(state, false, false)
+	end, row)
+
 	function self:Destroy()
+		if unregisterTheme then
+			unregisterTheme()
+			unregisterTheme = nil
+		end
 		-- Stop the sheen gradient spin before destroying.
 		Tween.StopSpin(sheenGradient)
 		-- Cancel any in-flight tweens on themed instances.
