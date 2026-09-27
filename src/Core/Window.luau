@@ -1349,7 +1349,7 @@ function Window.new(Settings)
 					end
 				end
 				TabListLayout.FillDirection = Enum.FillDirection.Horizontal
-				TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+				TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 				TabListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 				restyleTabButtons(true)
 				-- Search -> docked INTO the window-controls cluster, leftmost (order 0,
