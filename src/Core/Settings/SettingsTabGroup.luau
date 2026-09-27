@@ -366,7 +366,7 @@ function SettingsTabGroup:SetActiveTab(tab)
 
 	-- A page switch dismisses any open popup, same as the main TabGroup.
 	if self.Window and self.Window.HidePopups then
-		self.Window.HidePopups()
+		self.Window:HidePopups()
 	end
 
 	if previous == nil then

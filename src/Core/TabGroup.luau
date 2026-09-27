@@ -455,7 +455,7 @@ function TabGroup:SetActiveTab(tab)
 	-- A page switch dismisses any open popup (dropdown / color picker /
 	-- notification) so it can never linger over the newly shown page.
 	if self.Window and self.Window.HidePopups then
-		self.Window.HidePopups()
+		self.Window:HidePopups()
 	end
 
 	-- Keep the sidebar search consistent across a tab switch: restore the page
