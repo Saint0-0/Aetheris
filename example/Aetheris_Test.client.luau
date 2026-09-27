@@ -10,7 +10,7 @@
   What it demonstrates
   --------------------
     Window API : CreateWindow, :Tab, :Divider, :SetTheme, :Alert, :Error,
-                 :VariableNotification, :UINotification, :DropdownPopUp,
+                 :Toast, :UINotification, :DropdownPopUp,
                  :ColorPickerPopUp, :Destroy
     Layout     : Tabs, Left/Right Sections
     Components : Toggle, Slider, Keybind, TextInput, Stepper, RadioButtonGroup
@@ -181,7 +181,7 @@ actionSection:Button({
 actionSection:Button({
 	Name = "Send a toast",
 	Callback = function()
-		window:VariableNotification({
+		window:Toast({
 			Title = "Hello!",
 			Description = "This is a variable notification with an action.",
 			Duration = 6,
@@ -399,7 +399,7 @@ toastSection:Button({
 toastSection:Button({
 	Name = "Rich Toast",
 	Callback = function()
-		window:VariableNotification({
+		window:Toast({
 			Title = "Update available",
 			Description = "Version 2.0 is ready to install.",
 			Duration = 8,

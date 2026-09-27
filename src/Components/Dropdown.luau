@@ -124,67 +124,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		})
 		popupInstance:Open()
 	end
-	-- Selection preview label: shows a compact summary of the current selection
-	-- inside the row (right-aligned, before the chevron).
-	local selectionLabel = Instance.new("TextLabel")
-	selectionLabel.Name = "SelectionPreview"
-	selectionLabel.BorderSizePixel = 0
-	selectionLabel.BackgroundTransparency = 1
-	selectionLabel.TextSize = 11
-	selectionLabel.TextXAlignment = Enum.TextXAlignment.Right
-	selectionLabel.TextTruncate = Enum.TextTruncate.AtEnd
-	selectionLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	selectionLabel.TextColor3 = (theme and theme.AccentColor)
-	selectionLabel.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
-	selectionLabel.AnchorPoint = Vector2.new(1, 0.5)
-	selectionLabel.Size = UDim2.new(0.45, -30, 0.5, 0)
-	selectionLabel.Position = UDim2.new(1, -34, 0.5, 0)
-	selectionLabel.Text = placeholder
-	selectionLabel.Parent = row
-	-- Helper to refresh the preview text after selection changes.
-	local function updateSelectionPreview()
-		if #selectedItems == 0 then
-			selectionLabel.Text = placeholder
-		elseif #selectedItems == 1 then
-			selectionLabel.Text = selectedItems[1].name
-		else
-			selectionLabel.Text = selectedItems[1].name .. " +" .. (#selectedItems - 1)
-		end
-	end
-	-- Initialise from pre-loaded defaults.
-	updateSelectionPreview()
-	-- Patch openPopup's OnConfirm to also refresh the label.
-	local _originalOpenPopup = openPopup
-	openPopup = function()
-		if popupInstance and popupInstance.IsOpen then return end
-		if not ShowPopup then
-			warn("[Dropdown] ShowPopup function not provided")
-			return
-		end
-		local defaultValues = {}
-		for _, item in ipairs(selectedItems) do
-			table.insert(defaultValues, item.value)
-		end
-		popupInstance = ShowPopup(self._id, {
-			Title = name,
-			Items = items,
-			Default = defaultValues,
-			MaxItemsChoosable = maxItems,
-			Theme = self._theme,
-			OnConfirm = function(selected)
-				selectedItems = selected
-				updateSelectionPreview()
-				if callback then
-					callback(selectedItems)
-				end
-				popupInstance = nil
-			end,
-			OnCancel = function()
-				popupInstance = nil
-			end,
-		})
-		popupInstance:Open()
-	end
 	-- Click handler: ONLY the interact button (avoid double-fire from row.InputBegan)
 	interact.MouseButton1Click:Connect(function()
 		openPopup()
@@ -193,7 +132,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	self.SetItems = function(newItems)
 		items = newItems
 		selectedItems = {}
-		updateSelectionPreview()
 	end
 	self.GetSelected = function()
 		return selectedItems
@@ -210,8 +148,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
-	ThemeManager.BindColor(selectionLabel, "TextColor3", "AccentColor")
-	ThemeManager.BindTransparency(selectionLabel, "TextTransparency", "PrimaryTextTransparency")
 	-- Uniform component API (p2-4).
 	function self:SetVisibility(visible)
 		row.Visible = visible
@@ -227,7 +163,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		ThemeManager.UnbindInstance(stroke)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(dropdownImage)
-		ThemeManager.UnbindInstance(selectionLabel)
 		-- Destroy the root instance.
 		if row and row.Parent then
 			row:Destroy()

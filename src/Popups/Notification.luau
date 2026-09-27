@@ -8,7 +8,7 @@
 	             icon, icon/gradient colours, an optional background image,
 	             and up to MAX_ACTIONS interaction buttons with callbacks.
 
-	Create via window:Alert() / window:Error() / window:VariableNotification().
+	Create via window:Alert() / window:Error() / window:Toast().
 	Each toast builds itself, fades in, counts down via TimerFrame, then fades
 	out and :Destroy()s itself to avoid leaking memory.
 ]]
@@ -185,7 +185,7 @@ function Notification.new(container, Settings, theme)
 		new("UICorner", { Parent = bg, CornerRadius = UDim.new(0, 6) })
 		new("UIGradient", {
 			Parent = bg,
-			Rotation = 45,
+			Rotation = 180,
 			Transparency = NumberSequence.new({
 				NumberSequenceKeypoint.new(0.000, 0),
 				NumberSequenceKeypoint.new(0.134, 0.3),

@@ -85,6 +85,10 @@ function Button.new(parent, Settings, theme)
 	-- Base transparencies
 	local FINGERPRINT_BASE = 0.5
 	local BUTTONCOLOR_BASE = 1
+	-- Hover/press scale bounce, matching the window-control buttons' feel.
+	local scale = Instance.new("UIScale")
+	scale.Scale = 1
+	scale.Parent = row
 	-- Hover state
 	local isHovered = false
 	-- Hover effects
@@ -94,6 +98,7 @@ function Button.new(parent, Settings, theme)
 		Tween.Play(fingerprint, "Smooth", {
 			ImageTransparency = 0.2
 		})
+		Tween.Play(scale, "HoverIn", { Scale = 1.02 })
 	end)
 	row.MouseLeave:Connect(function()
 		isHovered = false
@@ -101,6 +106,13 @@ function Button.new(parent, Settings, theme)
 		Tween.Play(fingerprint, "Smooth", {
 			ImageTransparency = FINGERPRINT_BASE
 		})
+		Tween.Play(scale, "HoverOut", { Scale = 1 })
+	end)
+	row.MouseButton1Down:Connect(function()
+		Tween.Play(scale, "Fast", { Scale = 0.97 })
+	end)
+	row.MouseButton1Up:Connect(function()
+		Tween.Play(scale, "HoverIn", { Scale = isHovered and 1.02 or 1 })
 	end)
 	-- Click flash sequence
 	local function performClick()

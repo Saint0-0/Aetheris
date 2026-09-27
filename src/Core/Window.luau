@@ -9,7 +9,7 @@
 	  :Tab / :Divider              - sidebar tabs (delegated to TabGroup)
 	  :SetTitle                    - script info title (tags below via Settings.Tags)
 	  :SetTheme(name|table)        - live theme switch (crossfades)
-	  :UINotification / :Alert / :Error / :VariableNotification
+	  :UINotification / :Alert / :Error / :Toast
 	  :DropdownPopUp / :ColorPickerPopUp / :HidePopups
 	  :ResetLayout                 - restore default size/position
 	  :Destroy                     - fade out + full teardown
@@ -1345,6 +1345,7 @@ function Window.new(Settings)
 				SearchBar.Size = UDim2.new(0, 120, 0, 20)
 				SearchBar.Position = UDim2.new(0, 0, 0, 0)
 				SearchBarBottomDivider.Position = UDim2.new(0.5, 0, 0, 30)
+				SearchBarBottomDivider.Visible = false -- hidden while docked in the controls
 				-- Content full width, below the tab row.
 				Content.Size = UDim2.new(1, -16, 1, -124)
 				Content.Position = UDim2.new(0, 8, 0, 90)
@@ -1406,6 +1407,7 @@ function Window.new(Settings)
 				SearchBar.Size = saved.searchBarSize
 				SearchBar.Position = saved.searchBarPos
 				SearchBarBottomDivider.Position = saved.searchBarDividerPos
+				SearchBarBottomDivider.Visible = true -- sidebar searchbar shows its divider again
 				Content.Size = saved.contentSize
 				Content.Position = saved.contentPos
 				ContentBackground.AnchorPoint = saved.contentBgAnchor
@@ -2209,7 +2211,7 @@ function Window:UINotification(Settings)
 	return self._notification
 end
 
--- Toast notifications (self-destroying). window:Alert/Error/VariableNotification.
+-- Toast notifications (self-destroying). window:Alert/Error/Toast.
 local Notification = require("../Popups/Notification")
 
 local function spawnNotification(self, ntype, Settings)
@@ -2243,7 +2245,7 @@ function Window:Error(Settings)
 	return spawnNotification(self, "Error", Settings)
 end
 
-function Window:VariableNotification(Settings)
+function Window:Toast(Settings)
 	return spawnNotification(self, "Variable", Settings)
 end
 

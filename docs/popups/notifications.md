@@ -31,7 +31,7 @@ window:Error({
 A flexible toast — custom icon, icon colour, gradient and action buttons.
 
 ```lua
-window:VariableNotification({
+window:Toast({
     Title = "Update available",
     Description = "Version 2.0 is ready to install.",
     Duration = 8,
