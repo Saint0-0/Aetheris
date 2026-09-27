@@ -872,19 +872,28 @@ function Window.new(Settings)
 	ScriptName.Position = UDim2.new(0, 0, 0, 0)
 	ScriptName.Parent = ScriptInfoContainer
 
-	-- Tag pills whose accent follows the theme (a custom-accent tag is excluded
-	-- so a theme switch never stomps a caller-pinned accent). Forward-declared
-	-- so restampThemeGradients can reach it before the tags are built.
+	-- Tag gradient base/accent tracking. Each gradient records any caller-pinned
+	-- colours as attributes (TagBaseColor / TagAccentColor); a nil one follows the
+	-- theme. Forward-declared so restampThemeGradients can reach it before the
+	-- tags are built.
 	local tagGradients = {}
 
-	-- Rebuild every theme-driven tag gradient. Called once at build and again on
-	-- each theme switch from ApplyTheme.
+	-- Rebuild every tag gradient. Called once at build and again on each theme
+	-- switch from ApplyTheme. A pinned base/accent is preserved; only the
+	-- theme-following side is re-resolved -- previously a pinned BackgroundColor
+	-- was overwritten by TertiaryColor here, which is why tag colours were lost
+	-- at startup and on every theme round-trip.
 	local function restampThemeGradients(t)
 		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
 		for _, g in ipairs(tagGradients) do
 			if g and g.Parent then
-				g.Color = ColorSequence.new(base, accent)
+				local pinnedBase = g:GetAttribute("TagBaseColor")
+				local pinnedAccent = g:GetAttribute("TagAccentColor")
+				g.Color = ColorSequence.new(
+					(typeof(pinnedBase) == "Color3") and pinnedBase or base,
+					(typeof(pinnedAccent) == "Color3") and pinnedAccent or accent
+				)
 			end
 		end
 	end
@@ -946,14 +955,18 @@ function Window.new(Settings)
 
 		local pillGradient = Instance.new("UIGradient")
 		pillGradient.Rotation = 45
+		if bgColor then
+			pillGradient:SetAttribute("TagBaseColor", bgColor)
+		end
+		if accColor then
+			pillGradient:SetAttribute("TagAccentColor", accColor)
+		end
 		pillGradient.Color = ColorSequence.new(
 			bgColor or theme.TertiaryColor,
 			accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
 		)
 		pillGradient.Parent = pill
-		if not accColor then
-			table.insert(tagGradients, pillGradient)
-		end
+		table.insert(tagGradients, pillGradient)
 
 		local label = Instance.new("TextLabel")
 		label.Name = "TagText"
