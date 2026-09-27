@@ -288,6 +288,19 @@ end
 local function bind(instance, property, themeKey, kind, opts)
     opts = opts or {}
 
+    -- Defensive: a caller passed a nil instance (typically an optional element
+    -- that never got built). Binding into bindingIndex[nil] throws "table index
+    -- is nil"; instead warn and hand back a no-op handle so a missing optional
+    -- element can never take the whole window down.
+    if instance == nil then
+        warn("[ThemeManager] Bind: nil instance for property '" .. tostring(property) .. "'")
+        return {
+            SetState = function() end,
+            SetEnabled = function() end,
+            Destroy = function() end,
+        }
+    end
+
     -- themeKey is either a single key (string) or a state map
     -- ({ StateName = "ThemeKey", ... }). For a state map, resolve the initial
     -- state up front so entry.themeKey always starts on a real string key.

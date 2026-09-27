@@ -854,7 +854,7 @@ function Window.new(Settings)
 
 	local ScriptInfoContainerLayout = Instance.new("UIListLayout")
 	ScriptInfoContainerLayout.Name = "UserAndDisplayFrameUIListLayout"
-	ScriptInfoContainerLayout.Padding = UDim.new(0, 4)
+	ScriptInfoContainerLayout.Padding = UDim.new(0, 7)
 	ScriptInfoContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	ScriptInfoContainerLayout.Parent = ScriptInfoContainer
 
@@ -877,25 +877,61 @@ function Window.new(Settings)
 	ScriptName.Position = UDim2.new(0, 0, 0, 0)
 	ScriptName.Parent = ScriptInfoContainer
 
+	-- ScriptDescription: a small, settable "version tag" badge. The badge is a
+	-- Frame (so it can carry its own background + UIStroke + left/right
+	-- UIPadding) wrapping a centred, end-truncated TextLabel. Colours / padding
+	-- come from Settings (DescriptionBackgroundColor,
+	-- DescriptionBackgroundTransparency, DescriptionStrokeColor,
+	-- DescriptionStrokeTransparency, DescriptionTextSize, DescriptionPadding),
+	-- falling back to theme-derived defaults. self.ScriptDescription stays the
+	-- TextLabel, so :SetDescription and the TextColor3 binding are unchanged.
+	local ScriptDescriptionBadge = Instance.new("Frame")
+	ScriptDescriptionBadge.Name = "ScriptDescriptionBadge"
+	ScriptDescriptionBadge.BorderSizePixel = 0
+	ScriptDescriptionBadge.BackgroundColor3 = Settings.DescriptionBackgroundColor or theme.TertiaryColor
+	ScriptDescriptionBadge.BackgroundTransparency = (Settings.DescriptionBackgroundTransparency ~= nil) and Settings.DescriptionBackgroundTransparency or 0.5
+	ScriptDescriptionBadge.Size = UDim2.new(1, 0, 0, 18)
+	ScriptDescriptionBadge.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ScriptDescriptionBadge.LayoutOrder = 3
+	ScriptDescriptionBadge.Parent = ScriptInfoContainer
+
+	local ScriptDescriptionBadgePadding = Instance.new("UIPadding")
+	ScriptDescriptionBadgePadding.Name = "ScriptDescriptionBadgePadding"
+	local descPad = Settings.DescriptionPadding or 6
+	ScriptDescriptionBadgePadding.PaddingLeft = UDim.new(0, descPad)
+	ScriptDescriptionBadgePadding.PaddingRight = UDim.new(0, descPad)
+	ScriptDescriptionBadgePadding.PaddingTop = UDim.new(0, 2)
+	ScriptDescriptionBadgePadding.PaddingBottom = UDim.new(0, 2)
+	ScriptDescriptionBadgePadding.Parent = ScriptDescriptionBadge
+
+	local ScriptDescriptionBadgeCorner = Instance.new("UICorner")
+	ScriptDescriptionBadgeCorner.Name = "ScriptDescriptionBadgeCorner"
+	ScriptDescriptionBadgeCorner.CornerRadius = UDim.new(0, 4)
+	ScriptDescriptionBadgeCorner.Parent = ScriptDescriptionBadge
+
+	local ScriptDescriptionBadgeStroke = Instance.new("UIStroke")
+	ScriptDescriptionBadgeStroke.Name = "ScriptDescriptionBadgeStroke"
+	ScriptDescriptionBadgeStroke.Color = Settings.DescriptionStrokeColor or theme.StrokeColor
+	ScriptDescriptionBadgeStroke.Transparency = (Settings.DescriptionStrokeTransparency ~= nil) and Settings.DescriptionStrokeTransparency or 0.5
+	ScriptDescriptionBadgeStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ScriptDescriptionBadgeStroke.Parent = ScriptDescriptionBadge
+
 	local ScriptDescription = Instance.new("TextLabel")
 	ScriptDescription.Name = "ScriptDescription"
-	ScriptDescription.TextTruncate = Enum.TextTruncate.SplitWord
+	ScriptDescription.TextTruncate = Enum.TextTruncate.AtEnd
 	ScriptDescription.BorderSizePixel = 0
-	ScriptDescription.TextSize = 10
-	ScriptDescription.TextXAlignment = Enum.TextXAlignment.Left
+	ScriptDescription.TextSize = Settings.DescriptionTextSize or 9
+	ScriptDescription.TextXAlignment = Enum.TextXAlignment.Center
+	ScriptDescription.TextYAlignment = Enum.TextYAlignment.Center
 	ScriptDescription.TextTransparency = 0.7 -- [THEME] secondary text transparency
-	ScriptDescription.TextYAlignment = Enum.TextYAlignment.Top
 	ScriptDescription.BackgroundTransparency = 1
 	ScriptDescription.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	ScriptDescription.TextColor3 = theme.TitleTextColor
 	ScriptDescription.RichText = true
-	ScriptDescription.Size = UDim2.new(1.36294, 0, 0.41379, 0)
 	ScriptDescription.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptDescription.Text = "build 0.0.1 ver 1.0"
-	ScriptDescription.LayoutOrder = 2
-	ScriptDescription.AutomaticSize = Enum.AutomaticSize.XY
-	ScriptDescription.Position = UDim2.new(0, 0, 0.58621, 0)
-	ScriptDescription.Parent = ScriptInfoContainer
+	ScriptDescription.Size = UDim2.new(1, 0, 1, 0)
+	ScriptDescription.Parent = ScriptDescriptionBadge
 
 	----------------------------------------------------------------
 	-- Resize handle
