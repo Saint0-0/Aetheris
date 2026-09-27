@@ -228,13 +228,22 @@ function Slider.new(parent, Settings, theme)
 	-- edge, and value 1 puts its RIGHT edge flush with the track's RIGHT edge.
 	-- The thumb centre therefore travels over (trackWidth - thumbWidth), inset
 	-- by half a thumb at each end -- that inset is what keeps it in frame.
-	local function positionThumb(percentage)
+	local function positionThumb(percentage, animate)
 		local trackWidth = holder.AbsoluteSize.X
 		local thumbWidth = thumb.AbsoluteSize.X
 		if trackWidth <= 0 then return end
 		local travel = math.max(trackWidth - thumbWidth, 0)
 		local x = percentage * travel + thumbWidth / 2
-		thumb.Position = UDim2.new(0, x, 0.5, 0)
+		local targetPos = UDim2.new(0, x, 0.5, 0)
+		-- Animate the thumb in step with the fill on programmatic changes
+		-- (reset / text input / UpdateValue); snap during drag and on resize so
+		-- the thumb tracks the cursor and re-clamps instantly. Same "Smooth"
+		-- preset as the fill keeps the two in lockstep.
+		if animate then
+			Tween.Play(thumb, "Smooth", { Position = targetPos })
+		else
+			thumb.Position = targetPos
+		end
 	end
 	-- Update slider visuals and text
 	local function updateSlider(value, snapSmooth)
@@ -248,7 +257,7 @@ function Slider.new(parent, Settings, theme)
 			visual.Size = targetSize
 		end
 		currentPercentage = percentage
-		positionThumb(percentage)
+		positionThumb(percentage, snapSmooth)
 		-- Update labels
 		percentLabel.Text = math.round(percentage * 100) .. "%"
 		statBox.Text = formatValue(value)
