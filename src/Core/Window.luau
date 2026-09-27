@@ -212,7 +212,7 @@ function Window.new(Settings)
 	MainFrameShadow.Parent = MainFrame
 
 	local MainFrameSizeConstraint = Instance.new("UISizeConstraint")
-	MainFrameSizeConstraint.MinSize = Vector2.new(420, 360)
+	MainFrameSizeConstraint.MinSize = Vector2.new(425, 360)
 	MainFrameSizeConstraint.Parent = MainFrame
 
 	----------------------------------------------------------------
@@ -960,7 +960,7 @@ function Window.new(Settings)
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
 		label.Text = name
-		label.TextSize = 9
+		label.TextSize = 8
 		label.TextTruncate = Enum.TextTruncate.AtEnd
 		label.TextXAlignment = Enum.TextXAlignment.Center
 		label.TextYAlignment = Enum.TextYAlignment.Center
@@ -1374,7 +1374,7 @@ function Window.new(Settings)
 					self.TabGroup:SetCompact(true)
 				end
 				-- Smaller minimum so the window can actually shrink.
-				MainFrameSizeConstraint.MinSize = Vector2.new(420, 380)
+				MainFrameSizeConstraint.MinSize = Vector2.new(425, 380)
 				-- Animate in: row slides down into place from slightly above.
 				TabList.Position = UDim2.new(0.5, 0, 0, 60)
 				Tween.Play(TabList, "Smooth", { Position = UDim2.new(0.5, 0, 0, 65) })

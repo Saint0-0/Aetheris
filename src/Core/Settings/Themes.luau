@@ -294,7 +294,7 @@ function Themes.Build(window, tab)
 
 	-- Grid lays the theme cards out directly on the scrolling PageHolder.
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(155, 75)
+	grid.CellSize = UDim2.fromOffset(145, 75)
 	grid.CellPadding = UDim2.fromOffset(17, 10)
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.FillDirection = Enum.FillDirection.Horizontal
