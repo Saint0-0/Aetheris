@@ -20,6 +20,7 @@ local FallbackImage = require("../Constants").FallbackImage
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("./SearchFilter")
 local PageFade = require("../Utils/PageFade")
+local Constants = require("../Constants")
 local TabGroup = {}
 TabGroup.__index = TabGroup
 -- Tab handle metatable for methods like :Section()
@@ -127,7 +128,7 @@ function TabGroup:Tab(Settings)
 	TabName.TextSize = 13
 	TabName.TextXAlignment = Enum.TextXAlignment.Left
 	TabName.TextTransparency = theme.InactiveTabTextTransparency
-	TabName.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	TabName.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	TabName.TextColor3 = theme.InactiveTabTextColor
 	TabName.BackgroundTransparency = 1
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -297,6 +298,33 @@ function TabGroup:Tab(Settings)
 		_scrollerPadding = ContentScrollerPadding,
 		_theme = theme,
 	}, TabHandle)
+	-- Declarative STATE-AWARE theming for the tab button visuals. Each handle
+	-- flips between the Active/Inactive theme keys via SetState (called from
+	-- _applyTabVisuals), so a THEME switch and a TAB switch both resolve through
+	-- the binding system -- no Tween.Play color stomps, no registry ApplyTheme
+	-- for these properties. duration = 0.2 matches the old "Fast" preset so the
+	-- tab-switch highlight animates at the same speed.
+	tab._bgHandle = ThemeManager.BindColor(Button, "BackgroundColor3",
+		{ Active = "ActiveTabButtonColor", Inactive = "InactiveTabButtonColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._bgTransHandle = ThemeManager.BindTransparency(Button, "BackgroundTransparency",
+		{ Active = "ActiveTabButtonTransparency", Inactive = "InactiveTabButtonTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._nameColorHandle = ThemeManager.BindColor(TabName, "TextColor3",
+		{ Active = "ActiveTabTextColor", Inactive = "InactiveTabTextColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._nameTransHandle = ThemeManager.BindTransparency(TabName, "TextTransparency",
+		{ Active = "ActiveTabTextTransparency", Inactive = "InactiveTabTextTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._iconColorHandle = ThemeManager.BindColor(TabImage, "ImageColor3",
+		{ Active = "ActiveTabIconColor", Inactive = "InactiveTabIconColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._iconTransHandle = ThemeManager.BindTransparency(TabImage, "ImageTransparency",
+		{ Active = "ActiveTabIconTransparency", Inactive = "InactiveTabIconTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	-- Static (state-independent) binds.
+	ThemeManager.BindColor(SelectionStatus, "BackgroundColor3", "SecondaryColor")
+	ThemeManager.BindColor(ContentScroller, "ScrollBarImageColor3", "TertiaryColor")
 	Button.MouseButton1Click:Connect(function()
 		-- Close the settings page and return to normal tab content.
 		self.Window.SettingsPages.Visible = false
@@ -396,19 +424,24 @@ end
 
 -- Apply the active/inactive tab-button visuals (bg, text, icon, indicator).
 function TabGroup:_applyTabVisuals(t, active)
-	local theme = self._theme or {}
+	-- STATE-AWARE theme properties resolve through the bindings (flip the key
+	-- Active<->Inactive; the binding crossfades at its own 0.2s duration).
+	local state = active and "Active" or "Inactive"
+	if t._bgHandle then t._bgHandle:SetState(state) end
+	if t._bgTransHandle then t._bgTransHandle:SetState(state) end
+	if t._nameColorHandle then t._nameColorHandle:SetState(state) end
+	if t._nameTransHandle then t._nameTransHandle:SetState(state) end
+	if t._iconColorHandle then t._iconColorHandle:SetState(state) end
+	if t._iconTransHandle then t._iconTransHandle:SetState(state) end
+	-- Literal-constant / non-theme visuals stay imperative (their values are
+	-- fixed constants, not theme keys): the backdrop reveal and the selection
+	-- indicator's size + spin state.
 	if active then
-		Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.ActiveTabButtonColor, BackgroundTransparency = theme.ActiveTabButtonTransparency })
-		Tween.Play(t.TabName, "Fast", { TextTransparency = theme.ActiveTabTextTransparency or 0.2, TextColor3 = theme.ActiveTabTextColor or Color3.fromRGB(255, 255, 255) })
 		Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
-		Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.ActiveTabIconTransparency or 0.2, ImageColor3 = theme.ActiveTabIconColor or Color3.fromRGB(255, 255, 255) })
 		Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
 		self:_resumeSpin(t.BackImageGradient, true)
 	else
-		Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.InactiveTabButtonColor, BackgroundTransparency = theme.InactiveTabButtonTransparency })
-		Tween.Play(t.TabName, "Fast", { TextTransparency = theme.InactiveTabTextTransparency or 0.6, TextColor3 = theme.InactiveTabTextColor or Color3.fromRGB(200, 200, 200) })
 		Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-		Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.InactiveTabIconTransparency or 0.6, ImageColor3 = theme.InactiveTabIconColor or Color3.fromRGB(200, 200, 200) })
 		Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) })
 		self:_pauseSpin(t.BackImageGradient)
 	end
@@ -492,38 +525,20 @@ function TabGroup:ApplyTheme(newTheme)
 	self._theme = theme
 	for _, t in ipairs(self.Tabs) do
 		t._theme = theme
-		local isActive = (t == self.ActiveTab)
-		if isActive then
-			t.Button.BackgroundColor3 = theme.ActiveTabButtonColor or t.Button.BackgroundColor3
-			if theme.ActiveTabButtonTransparency ~= nil then
-				t.Button.BackgroundTransparency = theme.ActiveTabButtonTransparency
-			end
-			t.TabName.TextColor3 = theme.ActiveTabTextColor or t.TabName.TextColor3
-			if theme.ActiveTabTextTransparency ~= nil then
-				t.TabName.TextTransparency = theme.ActiveTabTextTransparency
-			end
-			t.TabImage.ImageColor3 = theme.ActiveTabIconColor or t.TabImage.ImageColor3
-			if theme.ActiveTabIconTransparency ~= nil then
-				t.TabImage.ImageTransparency = theme.ActiveTabIconTransparency
-			end
-		else
-			t.Button.BackgroundColor3 = theme.InactiveTabButtonColor or t.Button.BackgroundColor3
-			if theme.InactiveTabButtonTransparency ~= nil then
-				t.Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
-			end
-			t.TabName.TextColor3 = theme.InactiveTabTextColor or t.TabName.TextColor3
-			if theme.InactiveTabTextTransparency ~= nil then
-				t.TabName.TextTransparency = theme.InactiveTabTextTransparency
-			end
-			t.TabImage.ImageColor3 = theme.InactiveTabIconColor or t.TabImage.ImageColor3
-			if theme.InactiveTabIconTransparency ~= nil then
-				t.TabImage.ImageTransparency = theme.InactiveTabIconTransparency
-			end
-		end
-		t.SelectionStatus.BackgroundColor3 = theme.SecondaryColor or t.SelectionStatus.BackgroundColor3
+		-- Tab button / label / icon colors + transparencies are now BINDINGS
+		-- (see TabGroup:Tab). Their state-aware handles re-resolve on a theme
+		-- switch automatically; nothing to stamp here. SetState is re-applied so
+		-- the active tab picks up the new theme's key values at once.
+		if t._bgHandle then t._bgHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._bgTransHandle then t._bgTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._nameColorHandle then t._nameColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._nameTransHandle then t._nameTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._iconColorHandle then t._iconColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._iconTransHandle then t._iconTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		-- Wallpaper Image/Visible are NOT Color3/number and use nil-safe fallback
+		-- semantics, so they stay imperative here.
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
-		t.ContentScroller.ScrollBarImageColor3 = theme.TertiaryColor or t.ContentScroller.ScrollBarImageColor3
 	end
 	-- Tab dividers created via TabGroup:Divider()
 	for _, child in ipairs(self.Window.TabList:GetChildren()) do

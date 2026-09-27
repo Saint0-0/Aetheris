@@ -76,9 +76,6 @@ function Divider.new(parent, Settings, theme)
 	self.Holder = holder
 	self.Frame = frame
 	-- Public API
-	self.SetVisibility = function(visible)
-		holder.Visible = visible
-	end
 	function self:SetColor(newColor)
 		hasCustomColor = true
 		ThemeManager.SetColorOverride(frame, "BackgroundColor3", newColor)
@@ -87,6 +84,13 @@ function Divider.new(parent, Settings, theme)
 		hasCustomTransparency = true
 		transparencyBinding:SetEnabled(false)
 		frame.BackgroundTransparency = newTransparency
+	end
+	-- Uniform component API (p2-4).
+	function self:SetVisibility(visible)
+		holder.Visible = visible
+	end
+	function self:Destroy()
+		if holder and holder.Parent then holder:Destroy() end
 	end
 	return self
 end

@@ -18,14 +18,17 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
+local Constants = require("../Constants")
+local ComponentRow = require("./ComponentRow")
 
 local Slider = {}
 Slider.__index = Slider
--- Global control for spinning animations (can be toggled later via settings)
-Slider.SpinningEnabled = true
+-- Spins are gated per-instance (Settings.SpinningEnabled) plus the central
+-- Tween.SpinsEnabled; there is no class-level toggle.
 function Slider.new(parent, Settings, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
+	local spinEnabled = (Settings.SpinningEnabled == nil) and true or Settings.SpinningEnabled
 	local self = setmetatable({}, Slider)
 	self._theme = theme
 	local name = Settings.Name or "Slider"
@@ -33,35 +36,17 @@ function Slider.new(parent, Settings, theme)
 	local max = Settings.Max or 100
 	local default = Settings.Default or 50
 	local precision = Settings.Precision or 0 -- decimal places for display
-	-- Main row frame
-	local row = Instance.new("Frame")
-	row.Name = name .. "Slider"
-	row.BorderSizePixel = 0
-	row.BackgroundColor3 = Color3.fromRGB(31, 32, 34)
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.new(1, 0, 0, 52)
-	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.Position = UDim2.new(0.5, 0, 0.5, 0)
-	row.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	row.Parent = parent
-	-- ElementName (label)
-	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
-	label.TextWrapped = true
-	label.TextTruncate = Enum.TextTruncate.AtEnd
-	label.BorderSizePixel = 0
-	label.TextSize = 14
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextTransparency = theme.PrimaryTextTransparency
-	label.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-	label.TextColor3 = theme.PrimaryTextColor
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.new(0.59985, 0, 0.31745, 0)
-	label.Position = UDim2.new(0, 0, 0.121, 0)
-	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	label.Text = name
-	label.Parent = row
+	-- Main row frame (shared factory; height 52 preserved).
+	local row, label = ComponentRow.new(parent, {
+		Name = name,
+		RowName = name .. "Slider",
+		Theme = theme,
+		Height = 52,
+		LabelWidth = 0.59985,
+		LabelHeight = 0.31745,
+		LabelPosition = UDim2.new(0, 0, 0.121, 0),
+	})
+	-- (name label is created by ComponentRow above)
 	-- SliderHolder (track background)
 	local holder = Instance.new("Frame")
 	holder.Name = "SliderHolder"
@@ -188,7 +173,7 @@ function Slider.new(parent, Settings, theme)
 	percentLabel.TextSize = 11
 	percentLabel.TextTransparency = theme.SecondaryTextTransparency
 	percentLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	percentLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+	percentLabel.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	percentLabel.TextColor3 = theme.SecondaryTextColor
 	percentLabel.BackgroundTransparency = 1
 	-- Right-anchored with fixed offsets so it stays clustered with the input box
@@ -208,7 +193,7 @@ function Slider.new(parent, Settings, theme)
 	statBox.TextSize = 10
 	statBox.TextColor3 = theme.SecondaryTextColor
 	statBox.BackgroundColor3 = theme.InputBackgroundColor
-	statBox.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+	statBox.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	statBox.AutomaticSize = Enum.AutomaticSize.X
 	statBox.AnchorPoint = Vector2.new(1, 0)
 	statBox.TextTruncate = Enum.TextTruncate.AtEnd
@@ -402,7 +387,7 @@ function Slider.new(parent, Settings, theme)
 	-- an off-screen slider pauses automatically and resumes from its frozen angle
 	-- when its tab/page returns -- no per-component visibility plumbing needed.
 	local function startSpin()
-		if not Slider.SpinningEnabled then return end
+		if not spinEnabled then return end
 		gradient.Rotation = 0
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
 	end
@@ -465,15 +450,21 @@ function Slider.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(statStroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	ThemeManager.BindColor(thumb, "BackgroundColor3", "AccentColor")
-	-- What remains imperative: the wallpaper (Image / Visible are not Color3 or
-	-- number, so they can't be bindings) plus a defensive re-stamp of the
+	-- Wallpaper image + visibility, now bindings (snap-kind; Image is a string,
+	-- Visible a boolean). Transforms match the old fallback semantics.
+	ThemeManager.Bind(backImage, "Image", "Wallpaper", {
+		transform = function(v) return v or "rbxassetid://11094025229" end,
+	})
+	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled", {
+		transform = function(v) return v ~= false end,
+	})
+	-- What remains imperative: a defensive re-stamp of the
 	-- NATURAL transparencies, which are constants here. ApplyTheme stays,
 	-- slimmed to just that.
 	function self:ApplyTheme(newTheme)
 		theme = ThemeManager.GetTheme(newTheme)
 		self._theme = theme
-		backImage.Image = theme.Wallpaper or "rbxassetid://11094025229"
-		backImage.Visible = not (theme.WallpaperEnabled == false)
+		-- Wallpaper Image + Visible are bindings now (see above).
 		holder.BackgroundTransparency = 0
 		visual.BackgroundTransparency = 0
 		resetBtn.ImageTransparency = 0

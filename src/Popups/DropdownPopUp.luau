@@ -14,6 +14,7 @@ local Sound = require("../Utils/Sound")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("../Core/SearchFilter")
+local Constants = require("../Constants")
 local UserInputService = game:GetService("UserInputService")
 local DropdownPopUp = {}
 DropdownPopUp.__index = DropdownPopUp
@@ -82,7 +83,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	header.TextXAlignment = Enum.TextXAlignment.Center
 	header.TextTransparency = 1
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	header.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = titleColor or (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
 	header.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -129,7 +130,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
-	confirmBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
@@ -154,7 +155,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
 	cancelBtn.BackgroundTransparency = 0.5
-	cancelBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
@@ -199,7 +200,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedText.TextXAlignment = Enum.TextXAlignment.Left
 	selectedText.TextTransparency = 1
 	selectedText.BackgroundTransparency = 1
-	selectedText.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	selectedText.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	selectedText.TextColor3 = (theme and theme.PopupTextColor)
 	selectedText.RichText = true
 	selectedText.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -239,7 +240,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchBox.TextSize = 14
 	searchBox.TextColor3 = (theme and theme.PopupTextColor)
 	searchBox.BackgroundTransparency = 1
-	searchBox.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	searchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	searchBox.AnchorPoint = Vector2.new(0.5, 0.5)
 	searchBox.PlaceholderText = "Search..."
 	searchBox.Size = UDim2.new(0.38996, 0, 1, 0)
@@ -746,7 +747,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemName.TextXAlignment = Enum.TextXAlignment.Left
 			itemName.TextTransparency = 0.6
 			itemName.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-			itemName.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+			itemName.FontFace = Constants.Font(Enum.FontWeight.Medium)
 			itemName.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 			itemName.BackgroundTransparency = 1
 			itemName.AnchorPoint = Vector2.new(0, 0.5)

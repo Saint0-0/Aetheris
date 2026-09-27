@@ -19,6 +19,8 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
+local Constants = require("../Constants")
+local ComponentRow = require("./ComponentRow")
 local Stepper = {}
 Stepper.__index = Stepper
 function Stepper.new(parent, Settings, theme)
@@ -34,34 +36,13 @@ function Stepper.new(parent, Settings, theme)
 	local callback = Settings.Callback or function() end
 	local isInteger = (Settings.Integer == nil) and true or Settings.Integer
 	-- Build UI from export
-	local row = Instance.new("Frame")
-	row.Name = name .. "Stepper"
-	row.BorderSizePixel = 0
-	row.BackgroundColor3 = Color3.fromRGB(31, 32, 34)
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.new(1, 0, 0, 45)
-	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.Position = UDim2.new(0.5, 0, 0.5, 0)
-	row.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	row.Parent = parent
-	-- ElementName
-	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
-	label.TextWrapped = true
-	label.BorderSizePixel = 0
-	label.TextSize = 14
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
-	label.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-	label.TextColor3 = (theme and theme.PrimaryTextColor)
-	label.BackgroundTransparency = 1
-	label.AnchorPoint = Vector2.new(0, 0.5)
-	label.Size = UDim2.new(0.48591, 0, 0.71359, 0)
-	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	label.Text = name
-	label.Position = UDim2.new(0, 0, 0.5, 0)
-	label.Parent = row
+	-- Shared row factory (row name + label width preserved for layout parity).
+	local row, label = ComponentRow.new(parent, {
+		Name = name,
+		RowName = name .. "Stepper",
+		Theme = theme,
+		LabelWidth = 0.48591,
+	})
 	-- StepperInputBox
 	local inputBox = Instance.new("TextBox")
 	inputBox.Name = "StepperInputBox"
@@ -74,7 +55,7 @@ function Stepper.new(parent, Settings, theme)
 	inputBox.BackgroundColor3 = theme.InputBackgroundColor
 	inputBox.BackgroundTransparency = theme.InputBackgroundTransparency
 	inputBox:SetAttribute("IsInputBackground", true)
-	inputBox.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	inputBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	inputBox.AnchorPoint = Vector2.new(1, 0.5)
 	inputBox.ClearTextOnFocus = false
 	inputBox.PlaceholderText = tostring(defaultValue)
@@ -261,9 +242,6 @@ function Stepper.new(parent, Settings, theme)
 	self.SetStep = function(newStep)
 		self.Step = newStep
 	end
-	self.SetVisibility = function(visible)
-		row.Visible = visible
-	end
 	self.UpdateName = function(newName)
 		label.Text = newName
 	end
@@ -282,6 +260,10 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindColor(stepDown, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(upStroke, "Color", "StrokeColor")
 	ThemeManager.BindColor(downStroke, "Color", "StrokeColor")
+	-- Uniform component API (p2-4).
+	function self:SetVisibility(visible)
+		row.Visible = visible
+	end
 	function self:Destroy()
 		-- Cancel any in-flight tweens on the buttons and stroke.
 		Tween.CancelAll(stepUp)

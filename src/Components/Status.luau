@@ -19,6 +19,7 @@
 
 local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
 
 local Status = {}
 Status.__index = Status
@@ -91,7 +92,7 @@ function Status.new(parent, Settings, theme)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.3
 	label.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	label.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	label.TextColor3 = (theme and theme.PrimaryTextColor)
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.new(0.90908, 0, 0, 20)
@@ -141,7 +142,7 @@ function Status.new(parent, Settings, theme)
 		textLabel.TextXAlignment = Enum.TextXAlignment.Left
 		textLabel.TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.45
 		textLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-		textLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+		textLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		textLabel.TextColor3 = (theme and theme.SecondaryTextColor)
 		textLabel.BackgroundTransparency = 1
 		textLabel.RichText = true
@@ -162,9 +163,6 @@ function Status.new(parent, Settings, theme)
 	self.StatusLabels = statusLabels
 	self.Entries = entries
 	-- Public API
-	self.SetVisibility = function(visible)
-		frame.Visible = visible
-	end
 	self.UpdateName = function(newName)
 		label.Text = newName
 	end
@@ -195,7 +193,7 @@ function Status.new(parent, Settings, theme)
 			textLabel.TextXAlignment = Enum.TextXAlignment.Left
 			textLabel.TextTransparency = 0.45
 			textLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-			textLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+			textLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 			textLabel.BackgroundTransparency = 1
 			textLabel.RichText = true
@@ -210,6 +208,13 @@ function Status.new(parent, Settings, theme)
 			table.insert(statusLabels, textLabel)
 		end
 		self.StatusLabels = statusLabels
+	end
+	-- Uniform component API (p2-4).
+	function self:SetVisibility(visible)
+		if self.Holder then self.Holder.Visible = visible end
+	end
+	function self:Destroy()
+		if self.Holder and self.Holder.Parent then self.Holder:Destroy() end
 	end
 	return self
 end

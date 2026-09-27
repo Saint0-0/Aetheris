@@ -21,6 +21,8 @@
 
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
+local ComponentRow = require("./ComponentRow")
 local Dropdown = {}
 Dropdown.__index = Dropdown
 local _counter = 0
@@ -38,25 +40,21 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	local maxItems = Settings.MaxItemsChoosable or math.huge
 	local placeholder = Settings.Placeholder or "Select..."
 	local callback = Settings.Callback or function() end
-	-- Build the dropdown button UI from the export
-	local row = Instance.new("Frame")
-	row.Name = name .. "Dropdown"
-	row.BorderSizePixel = 0
-	row.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
-	row.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
-	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.ClipsDescendants = true
-	row.Size = UDim2.new(1, 0, 0, 45)
-	row:SetAttribute("IsComponentContainer", true)
-	row.Parent = parent
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = row
-	local stroke = Instance.new("UIStroke")
-	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
-	stroke.Color = (theme and theme.StrokeColor)
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = row
+	-- Build the dropdown button UI from the export (shared row factory).
+	local row, label = ComponentRow.new(parent, {
+		Name = name,
+		RowName = name .. "Dropdown",
+		Theme = theme,
+		Clickable = false,
+		LabelWidth = 0.82748,
+		LabelPosition = UDim2.new(0, 10, 0.5, 0),
+		BackgroundColor = (theme and theme.ComponentBackgroundColor),
+		BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985,
+		ClipsDescendants = true,
+		CornerRadius = 6,
+		Stroke = true,
+		ComponentContainer = true,
+	})
 	-- Interact button (covers the whole row to capture clicks)
 	local interact = Instance.new("TextButton")
 	interact.Name = "Interact"
@@ -80,23 +78,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.Size = UDim2.new(0, 14, 0, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
 	dropdownImage.Parent = row
-	-- Label (always displays the dropdown name)
-	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
-	label.TextWrapped = true
-	label.BorderSizePixel = 0
-	label.TextSize = 14
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
-	label.BackgroundTransparency = 1
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-	label.TextColor3 = (theme and theme.PrimaryTextColor)
-	label.AnchorPoint = Vector2.new(0, 0.5)
-	label.Size = UDim2.new(0.82748, 0, 0.71359, 0)
-	label.Position = UDim2.new(0, 10, 0.5, 0)
-	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	label.Text = name
-	label.Parent = row
 	-- State
 	local selectedItems = {} -- array of { name, value }
 	-- Initialize from Default values
@@ -152,7 +133,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	selectionLabel.TextSize = 11
 	selectionLabel.TextXAlignment = Enum.TextXAlignment.Right
 	selectionLabel.TextTruncate = Enum.TextTruncate.AtEnd
-	selectionLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	selectionLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	selectionLabel.TextColor3 = (theme and theme.AccentColor)
 	selectionLabel.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
 	selectionLabel.AnchorPoint = Vector2.new(1, 0.5)
@@ -217,9 +198,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	self.GetSelected = function()
 		return selectedItems
 	end
-	self.SetVisibility = function(visible)
-		row.Visible = visible
-	end
 	self.UpdateName = function(newName)
 		label.Text = newName
 	end
@@ -234,6 +212,10 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(selectionLabel, "TextColor3", "AccentColor")
 	ThemeManager.BindTransparency(selectionLabel, "TextTransparency", "PrimaryTextTransparency")
+	-- Uniform component API (p2-4).
+	function self:SetVisibility(visible)
+		row.Visible = visible
+	end
 	function self:Destroy()
 		-- Close any open popup first to avoid it dangling.
 		if popupInstance and popupInstance.IsOpen then

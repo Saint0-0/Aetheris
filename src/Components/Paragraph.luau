@@ -13,6 +13,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
 local Paragraph = {}
 Paragraph.__index = Paragraph
 function Paragraph.new(parent, Settings, theme)
@@ -51,7 +52,7 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	titleLabel.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.3
 	titleLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	titleLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	titleLabel.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	titleLabel.TextColor3 = (theme and theme.PrimaryTextColor)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)
@@ -69,7 +70,7 @@ titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, ve
 	descLabel.TextXAlignment = Enum.TextXAlignment.Left
 	descLabel.TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.45
 	descLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	descLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	descLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	descLabel.TextColor3 = (theme and theme.SecondaryTextColor)
 	descLabel.BackgroundTransparency = 1
 	descLabel.Size = UDim2.new(0.91, 0, 0, 0)
@@ -86,9 +87,6 @@ titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, ve
 	self.TitleLabel = titleLabel
 	self.DescLabel = descLabel
 	-- Public API
-	self.SetVisibility = function(visible)
-		container.Visible = visible
-	end
 	self.SetTitle = function(newTitle)
 		titleLabel.Text = newTitle
 		container.Name = newTitle .. " [Paragraph]"
@@ -106,6 +104,13 @@ titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, ve
 	ThemeManager.BindTransparency(titleLabel, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
+	-- Uniform component API (p2-4): visibility toggle + teardown.
+	function self:SetVisibility(visible)
+		container.Visible = visible
+	end
+	function self:Destroy()
+		if container and container.Parent then container:Destroy() end
+	end
 	return self
 end
 return Paragraph

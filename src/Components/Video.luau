@@ -92,9 +92,6 @@ function Video.new(parent, Settings, theme)
 	self.SetHeight = function(newHeight)
 		frame.Size = UDim2.new(1, 0, 0, newHeight)
 	end
-	self.SetVisibility = function(visible)
-		frame.Visible = visible
-	end
 	-- Fade the video in (0) or out (1) via its gradient.
 	self.SetFade = function(value, duration)
 		VideoFade.fade(fadeGradient, value, duration)
@@ -105,6 +102,13 @@ function Video.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	-- Uniform component API (p2-4): visibility toggle + teardown.
+	function self:SetVisibility(visible)
+		frame.Visible = visible
+	end
+	function self:Destroy()
+		if frame and frame.Parent then frame:Destroy() end
+	end
 	return self
 end
 return Video

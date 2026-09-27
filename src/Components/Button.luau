@@ -14,6 +14,8 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
+local Constants = require("../Constants")
+local ComponentRow = require("./ComponentRow")
 local Button = {}
 Button.__index = Button
 function Button.new(parent, Settings, theme)
@@ -25,41 +27,19 @@ function Button.new(parent, Settings, theme)
 	local callback = Settings.Callback or function() end
 	local FINGERPRINT_IMAGE = Icons["fingerprint-pattern"]
 	-- Main row (TextButton)
-	local row = Instance.new("TextButton")
-	row.Name = name .. " [Button]"
-	row.BorderSizePixel = 0
-	row.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
-	row.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
-	row.Size = UDim2.new(1, 0, 0, 45)
-	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.Position = UDim2.new(0.5, 0, 0.5, 0)
-	row.Text = ""
-	row.TextTransparency = 1
-	row.AutoButtonColor = false
-	row:SetAttribute("IsComponentContainer", true)
-	row.Parent = parent
-	-- UI Corner Button
-	local corner = Instance.new("UICorner")
-	corner.Name = "UICorner"
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = row
-	-- Label
-	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-	label.Text = name
-	label.TextColor3 = (theme and theme.PrimaryTextColor)
-	label.TextSize = 14
-	label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
-	label.TextTruncate = Enum.TextTruncate.AtEnd
-	label.TextWrapped = true
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.AnchorPoint = Vector2.new(0, 0.5)
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.new(0.486, 0, 0.714, 0)
-	label.Position = UDim2.new(0, 10, 0.5, 0)
+	local row, label = ComponentRow.new(parent, {
+		Name = name,
+		RowName = name .. " [Button]",
+		Theme = theme,
+		Clickable = true,
+		LabelWidth = 0.486,
+		LabelPosition = UDim2.new(0, 10, 0.5, 0),
+		BackgroundColor = (theme and theme.ComponentBackgroundColor),
+		BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985,
+		CornerRadius = 6,
+		ComponentContainer = true,
+	})
 	label.ZIndex = 2
-	label.Parent = row
 	-- ButtonColor frame (background glow)
 	local buttonColor = Instance.new("Frame")
 	buttonColor.Name = "ButtonColor"
@@ -152,9 +132,6 @@ function Button.new(parent, Settings, theme)
 	end
 	row.MouseButton1Click:Connect(performClick)
 	-- Public API
-	self.SetVisibility = function(visible)
-		row.Visible = visible
-	end
 	self.UpdateName = function(newName)
 		label.Text = newName
 	end
@@ -176,6 +153,10 @@ function Button.new(parent, Settings, theme)
 	-- capture a mid-tween value and the fingerprint would never restore.
 	local unregisterTheme = ThemeManager.OnThemeApplied(restampInteractionBases, row)
 
+	-- Uniform component API (p2-4).
+	function self:SetVisibility(visible)
+		row.Visible = visible
+	end
 	function self:Destroy()
 		if unregisterTheme then
 			unregisterTheme()

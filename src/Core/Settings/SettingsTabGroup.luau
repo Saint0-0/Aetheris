@@ -12,6 +12,7 @@ local Section = require("../Section")
 local FallbackImage = require("../../Constants").FallbackImage
 local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
+local Constants = require("../../Constants")
 
 local SettingsTabGroup = {}
 SettingsTabGroup.__index = SettingsTabGroup
@@ -183,7 +184,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.TextSize = 11
 	TabName.TextXAlignment = Enum.TextXAlignment.Left
 	TabName.TextTransparency = theme.InactiveTabTextTransparency
-	TabName.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	TabName.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	TabName.TextColor3 = theme.InactiveTabTextColor
 	TabName.BackgroundTransparency = 1
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -280,6 +281,30 @@ function SettingsTabGroup:Tab(Settings)
 		FadeLayer = FadeLayer,
 		_theme = theme,
 	}, SettingsTabHandle)
+	-- Declarative STATE-AWARE theming for the settings tab button visuals.
+	-- Same pattern as Core/TabGroup: each handle flips Active<->Inactive via
+	-- SetState, so both a theme switch and a page switch resolve through the
+	-- binding system. duration = 0.2 matches the old "Fast" preset.
+	tab._bgHandle = ThemeManager.BindColor(Button, "BackgroundColor3",
+		{ Active = "ActiveTabButtonColor", Inactive = "InactiveTabButtonColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._bgTransHandle = ThemeManager.BindTransparency(Button, "BackgroundTransparency",
+		{ Active = "ActiveTabButtonTransparency", Inactive = "InactiveTabButtonTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._nameColorHandle = ThemeManager.BindColor(TabName, "TextColor3",
+		{ Active = "ActiveTabTextColor", Inactive = "InactiveTabTextColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._nameTransHandle = ThemeManager.BindTransparency(TabName, "TextTransparency",
+		{ Active = "ActiveTabTextTransparency", Inactive = "InactiveTabTextTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._iconColorHandle = ThemeManager.BindColor(TabImage, "ImageColor3",
+		{ Active = "ActiveTabIconColor", Inactive = "InactiveTabIconColor" },
+		{ state = "Inactive", duration = 0.2 })
+	tab._iconTransHandle = ThemeManager.BindTransparency(TabImage, "ImageTransparency",
+		{ Active = "ActiveTabIconTransparency", Inactive = "InactiveTabIconTransparency" },
+		{ state = "Inactive", duration = 0.2 })
+	-- Static (state-independent) bind.
+	ThemeManager.BindColor(SelectionStatus, "BackgroundColor3", "SecondaryColor")
 
 	Button.MouseButton1Click:Connect(function()
 		self:SetActiveTab(tab)
@@ -295,22 +320,29 @@ function SettingsTabGroup:Tab(Settings)
 end
 
 function SettingsTabGroup:_applyActiveVisuals(t)
+	-- STATE-AWARE theme properties resolve through the bindings.
+	if t._bgHandle then t._bgHandle:SetState("Active") end
+	if t._bgTransHandle then t._bgTransHandle:SetState("Active") end
+	if t._nameColorHandle then t._nameColorHandle:SetState("Active") end
+	if t._nameTransHandle then t._nameTransHandle:SetState("Active") end
+	if t._iconColorHandle then t._iconColorHandle:SetState("Active") end
+	if t._iconTransHandle then t._iconTransHandle:SetState("Active") end
+	-- Non-theme / constant visuals stay imperative.
 	local theme = self._theme or {}
-	Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.ActiveTabButtonColor, BackgroundTransparency = theme.ActiveTabButtonTransparency })
-	Tween.Play(t.TabName, "Fast", { TextTransparency = theme.ActiveTabTextTransparency or 0.2, TextColor3 = theme.ActiveTabTextColor or Color3.fromRGB(255, 255, 255) })
 	t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
-	Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.ActiveTabIconTransparency or 0.2, ImageColor3 = theme.ActiveTabIconColor or Color3.fromRGB(255, 255, 255) })
 	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
 	self:_resumeSpin(t.BackImageGradient)
 end
 
 function SettingsTabGroup:_applyInactiveVisuals(t)
-	local theme = self._theme or {}
-	Tween.Play(t.Button, "Fast", { BackgroundColor3 = theme.InactiveTabButtonColor, BackgroundTransparency = theme.InactiveTabButtonTransparency })
-	Tween.Play(t.TabName, "Fast", { TextTransparency = theme.InactiveTabTextTransparency or 0.6, TextColor3 = theme.InactiveTabTextColor or Color3.fromRGB(200, 200, 200) })
+	if t._bgHandle then t._bgHandle:SetState("Inactive") end
+	if t._bgTransHandle then t._bgTransHandle:SetState("Inactive") end
+	if t._nameColorHandle then t._nameColorHandle:SetState("Inactive") end
+	if t._nameTransHandle then t._nameTransHandle:SetState("Inactive") end
+	if t._iconColorHandle then t._iconColorHandle:SetState("Inactive") end
+	if t._iconTransHandle then t._iconTransHandle:SetState("Inactive") end
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-	Tween.Play(t.TabImage, "Fast", { ImageTransparency = theme.InactiveTabIconTransparency or 0.6, ImageColor3 = theme.InactiveTabIconColor or Color3.fromRGB(200, 200, 200) })
 	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) })
 	self:_pauseSpin(t.BackImageGradient)
 end
@@ -390,35 +422,16 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 	self._theme = theme
 	for _, t in ipairs(self.Tabs) do
 		t._theme = theme
-		local isActive = (t == self.ActiveTab)
-		if isActive then
-			t.Button.BackgroundColor3 = theme.ActiveTabButtonColor or t.Button.BackgroundColor3
-			if theme.ActiveTabButtonTransparency ~= nil then
-				t.Button.BackgroundTransparency = theme.ActiveTabButtonTransparency
-			end
-			t.TabName.TextColor3 = theme.ActiveTabTextColor or t.TabName.TextColor3
-			if theme.ActiveTabTextTransparency ~= nil then
-				t.TabName.TextTransparency = theme.ActiveTabTextTransparency
-			end
-			t.TabImage.ImageColor3 = theme.ActiveTabIconColor or t.TabImage.ImageColor3
-			if theme.ActiveTabIconTransparency ~= nil then
-				t.TabImage.ImageTransparency = theme.ActiveTabIconTransparency
-			end
-		else
-			t.Button.BackgroundColor3 = theme.InactiveTabButtonColor or t.Button.BackgroundColor3
-			if theme.InactiveTabButtonTransparency ~= nil then
-				t.Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
-			end
-			t.TabName.TextColor3 = theme.InactiveTabTextColor or t.TabName.TextColor3
-			if theme.InactiveTabTextTransparency ~= nil then
-				t.TabName.TextTransparency = theme.InactiveTabTextTransparency
-			end
-			t.TabImage.ImageColor3 = theme.InactiveTabIconColor or t.TabImage.ImageColor3
-			if theme.InactiveTabIconTransparency ~= nil then
-				t.TabImage.ImageTransparency = theme.InactiveTabIconTransparency
-			end
-		end
-		t.SelectionStatus.BackgroundColor3 = theme.SecondaryColor or t.SelectionStatus.BackgroundColor3
+		-- Tab button / label / icon colors + transparencies are BINDINGS now;
+		-- re-apply SetState so the active page picks up the new theme's keys.
+		local state = (t == self.ActiveTab) and "Active" or "Inactive"
+		if t._bgHandle then t._bgHandle:SetState(state) end
+		if t._bgTransHandle then t._bgTransHandle:SetState(state) end
+		if t._nameColorHandle then t._nameColorHandle:SetState(state) end
+		if t._nameTransHandle then t._nameTransHandle:SetState(state) end
+		if t._iconColorHandle then t._iconColorHandle:SetState(state) end
+		if t._iconTransHandle then t._iconTransHandle:SetState(state) end
+		-- Wallpaper Image/Visible stay imperative (not Color3/number).
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	end

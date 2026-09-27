@@ -12,6 +12,7 @@ local ThemeDefinitions = require("../../Themes/ThemeDefinitions")
 local ThemeManager = require("../../Themes/ThemeManager")
 local FallbackImage = require("../../Constants").FallbackImage
 local Tween = require("../../Utils/Tween")
+local Constants = require("../../Constants")
 
 local Themes = {}
 
@@ -182,7 +183,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	title.TextSize = 13
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextTransparency = active and 0.2 or 0.5
-	title.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	title.TextColor3 = theme.TitleTextColor or theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	title.BackgroundTransparency = 1
 	title.AnchorPoint = Vector2.new(0, 0.5)
@@ -198,7 +199,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	description.TextXAlignment = Enum.TextXAlignment.Left
 	description.TextYAlignment = Enum.TextYAlignment.Top
 	description.TextTransparency = 0.5
-	description.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	description.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	description.TextColor3 = theme.TitleTextColor or theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	description.BackgroundTransparency = 1
 	description.AnchorPoint = Vector2.new(0, 0.5)
@@ -245,7 +246,7 @@ function Themes.Build(window, tab)
 	pageTitle.TextTransparency = 0.4
 	pageTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	pageTitle.BackgroundTransparency = 1
-	pageTitle.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	pageTitle.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	pageTitle.TextColor3 = pageTheme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 	pageTitle.RichText = true
 	pageTitle.Size = UDim2.new(0, 0, 0.06849, 0)
@@ -327,7 +328,7 @@ function Themes.Build(window, tab)
 	currentText.TextTransparency = 0.5
 	currentText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	currentText.BackgroundTransparency = 1
-	currentText.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+	currentText.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	currentText.TextColor3 = pageTheme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 	currentText.RichText = true
 	currentText.Size = UDim2.new(0.32573, 0, 0.03814, 0)

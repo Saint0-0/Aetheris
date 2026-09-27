@@ -187,7 +187,15 @@ local function applyEntry(entry, theme, animate)
     if inst:GetAttribute("ThemeOverride_" .. entry.property) ~= nil then
         return
     end
-    local value = theme[entry.themeKey]
+    -- A binding is either a theme key lookup or a LITERAL value (a state map
+    -- entry of the form { value = <any> }). Literals are constant and do not
+    -- change on a theme switch, but still resolve through the binding system.
+    local value
+    if entry.literal ~= nil then
+        value = entry.literal
+    else
+        value = theme[entry.themeKey]
+    end
     if value == nil then
         return
     end
@@ -225,6 +233,37 @@ local function makeHandle(entry)
             error("[ThemeManager] SetKey: unknown theme key '" .. tostring(key) .. "'", 2)
         end
         entry.themeKey = key
+        entry.stateName = nil -- a raw SetKey clears any named state
+        local theme = ActiveTheme.theme
+        if theme then
+            applyEntry(entry, theme, true)
+        end
+    end
+    -- Multi-state binding: flip to the theme key mapped to `name`. No-op for
+    -- single-key bindings (no state map), so callers can invoke it blindly.
+    function handle:SetState(name)
+        local map = entry.stateMap
+        if not map then
+            return
+        end
+        local spec = map[name]
+        if spec == nil then
+            error("[ThemeManager] SetState: no state '" .. tostring(name) .. "' on this binding", 2)
+        end
+        -- A state spec is either a theme key (string) or a LITERAL
+        -- ({ value = <any> }). Literals are constant; they clear the theme
+        -- key so applyEntry uses entry.literal directly.
+        if type(spec) == "table" then
+            entry.literal = spec.value
+            entry.themeKey = nil
+        else
+            if ThemeManager.strict and not THEME_KEY_SET[spec] then
+                error("[ThemeManager] SetState: unknown theme key '" .. tostring(spec) .. "'", 2)
+            end
+            entry.literal = nil
+            entry.themeKey = spec
+        end
+        entry.stateName = name
         local theme = ActiveTheme.theme
         if theme then
             applyEntry(entry, theme, true)
@@ -248,9 +287,34 @@ end
 
 local function bind(instance, property, themeKey, kind, opts)
     opts = opts or {}
-    if ThemeManager.strict and not THEME_KEY_SET[themeKey] then
-        error("[ThemeManager] Bind: unknown theme key '" .. tostring(themeKey) .. "'", 3)
+
+    -- themeKey is either a single key (string) or a state map
+    -- ({ StateName = "ThemeKey", ... }). For a state map, resolve the initial
+    -- state up front so entry.themeKey always starts on a real string key.
+    local stateMap = nil
+    local initialStateName = nil
+    local initialKey = themeKey
+    if type(themeKey) == "table" then
+        stateMap = themeKey
+        initialStateName = opts.state or next(stateMap)
+        if initialStateName == nil then
+            error("[ThemeManager] Bind: empty state map for property '" .. tostring(property) .. "'", 3)
+        end
+        initialKey = stateMap[initialStateName]
+        if initialKey == nil then
+            error("[ThemeManager] Bind: state '" .. tostring(initialStateName) .. "' not in state map", 3)
+        end
+        if ThemeManager.strict then
+            for stateName, k in pairs(stateMap) do
+                if not THEME_KEY_SET[k] then
+                    error("[ThemeManager] Bind: unknown theme key '" .. tostring(k) .. "' for state '" .. tostring(stateName) .. "'", 3)
+                end
+            end
+        end
+    elseif ThemeManager.strict and not THEME_KEY_SET[initialKey] then
+        error("[ThemeManager] Bind: unknown theme key '" .. tostring(initialKey) .. "'", 3)
     end
+
     local byProp = bindingIndex[instance]
     if not byProp then
         byProp = {}
@@ -274,7 +338,9 @@ local function bind(instance, property, themeKey, kind, opts)
     local entry = {
         instance = instance,
         property = property,
-        themeKey = themeKey,
+        themeKey = initialKey,
+        stateMap = stateMap,
+        stateName = initialStateName,
         kind = kind,
         opts = opts,
     }
@@ -376,62 +442,12 @@ end
 -- the colors fading from the old theme into the new one (no dim/flash overlay).
 local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
 
-local function snapshotColors(descendants)
-    local snap = {}
-    for _, d in ipairs(descendants) do
-        local boundProps = bindingIndex[d]
-        local props = nil
+-- (snapshotColors removed: the old color-snapshot/crossfade system was the
+-- second theming system. All themed colors are declarative BINDINGS now and
+-- crossfade through the bindings pass in ApplyTheme.)
 
-        if d:IsA("GuiObject") then
-            if not d:GetAttribute("ThemeOverride_BackgroundColor3") and not (boundProps and boundProps["BackgroundColor3"]) then
-                props = props or {}
-                table.insert(props, { "BackgroundColor3", d.BackgroundColor3 })
-            end
-            if d:IsA("TextLabel") or d:IsA("TextBox") or d:IsA("TextButton") then
-                if not d:GetAttribute("ThemeOverride_TextColor3") and not (boundProps and boundProps["TextColor3"]) then
-                    props = props or {}
-                    table.insert(props, { "TextColor3", d.TextColor3 })
-                end
-            elseif d:IsA("ImageLabel") or d:IsA("ImageButton") then
-                if not d:GetAttribute("ThemeOverride_ImageColor3") and not (boundProps and boundProps["ImageColor3"]) then
-                    props = props or {}
-                    table.insert(props, { "ImageColor3", d.ImageColor3 })
-                end
-            end
-        elseif d:IsA("UIStroke") and not d:GetAttribute("ThemeOverride_Color") then
-            if not (boundProps and boundProps["Color"]) then
-                props = props or {}
-                table.insert(props, { "Color", d.Color })
-            end
-        end
-
-        if props then
-            table.insert(snap, { instance = d, props = props })
-        end
-    end
-    return snap
-end
-
-local function applyColorFade(snap)
-    for _, entry in ipairs(snap) do
-        local inst = entry.instance
-        if inst.Parent then
-            for _, pp in ipairs(entry.props) do
-                local prop, old = pp[1], pp[2]
-                local new = inst[prop]
-                if typeof(new) == "Color3" and new ~= old then
-                    inst[prop] = old
-                    local info = TweenInfo.new(
-                        ThemeManager.ColorFadeTime,
-                        Enum.EasingStyle.Quad,
-                        Enum.EasingDirection.Out
-                    )
-                    Tween.Play(inst, info, { [prop] = new })
-                end
-            end
-        end
-    end
-end
+-- (applyColorFade removed alongside snapshotColors -- the old second
+-- theming system. Theme color crossfades now run entirely through Bind*.)
 
 -- Memo of merged tables for named themes (and nil -> Default). Section,
 -- TabGroup, and every component call GetTheme at construct, and ApplyTheme
@@ -514,46 +530,14 @@ function ThemeManager.ApplyTheme(window, themeInput)
     -- (O(active tweens)) rather than a per-descendant hash probe (O(descendants)).
     Tween.CancelAllUnder(window.Base)
     -- One traversal of the tree, reused by every pass below (component registry
-    -- walk, override re-stamp, color snapshot).
+    -- walk, override re-stamp).
     local descendants = window.Base:GetDescendants()
 
-    -- Snapshot current colors so the switch can crossfade old -> new.
-    local colorSnap = snapshotColors(descendants)
-
-    -- Apply window background color and transparency
-    if theme.WindowColor then
-        window.MainFrame.BackgroundColor3 = theme.WindowColor
-    end
-    if theme.WindowTransparency ~= nil then
-        window.MainFrame.BackgroundTransparency = theme.WindowTransparency
-    end
-
-    -- Apply the content fill (region right of the sidebar). Falls back to the
-    -- window color/transparency so themes that don't define it are unchanged.
-    if window.ContentBackground then
-        window.ContentBackground.BackgroundColor3 = theme.ContentBackgroundColor or theme.WindowColor
-        local ct = theme.ContentBackgroundTransparency
-        if ct == nil then ct = theme.WindowTransparency end
-        if ct ~= nil then
-            window.ContentBackground.BackgroundTransparency = ct
-        end
-    end
-
-    -- Apply sidebar color and transparency
-    if theme.SidebarColor then
-        window.Sidebar.BackgroundColor3 = theme.SidebarColor
-    end
-    if theme.SidebarTransparency ~= nil then
-        window.Sidebar.BackgroundTransparency = theme.SidebarTransparency
-    end
-
-    -- Apply mainframe shadow color
-    if theme.MainframeShadowColor then
-        local shadow = window.MainFrame:FindFirstChildWhichIsA("UIShadow")
-        if shadow then
-            shadow.Color = theme.MainframeShadowColor
-        end
-    end
+    -- NOTE: window shell colors/transparencies (MainFrame, ContentBackground,
+    -- Sidebar, MainFrameShadow) are DECLARATIVE BINDINGS created in Window.new.
+    -- NOT stamped here anymore -- that was a DOUBLE-STAMP of the same four
+    -- properties window:ApplyTheme also set. The bindings pass below re-resolves
+    -- them now.
 
     -- Store theme values for later use by components
     window._theme = theme
@@ -687,8 +671,9 @@ function ThemeManager.ApplyTheme(window, themeInput)
         window.SettingsTabGroup:RestoreActivePage()
     end
 
-    -- Crossfade every color that changed from the old theme into the new one.
-    applyColorFade(colorSnap)
+    -- (No color-fade pass: all themed colors are DECLARATIVE BINDINGS now, and
+    -- the bindings pass above already crossfaded them. snapshotColors/
+    -- applyColorFade were the second theming system and have been removed.)
 
     -- Let components re-stamp any non-theme state the CancelAll above may have
     -- frozen (e.g. a mid-hover interaction transparency).

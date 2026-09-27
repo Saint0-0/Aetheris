@@ -18,6 +18,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local FallbackImage = require("../Constants").FallbackImage
 local Icons = require("../Assets/Icons")
 local Sound = require("../Utils/Sound")
+local Constants = require("../Constants")
 
 local Notification = {}
 Notification.__index = Notification
@@ -209,7 +210,7 @@ function Notification.new(container, Settings, theme)
 		TextTransparency = theme.NotificationHeaderTransparency or 0.3,
 		TextColor3 = theme.NotificationHeaderColor or Color3.fromRGB(255, 255, 255),
 		AutomaticSize = Enum.AutomaticSize.X,
-		FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Size = UDim2.new(0, 0, 0, 14),
 		Position = UDim2.new(0, 42, 0, 11),
 		ZIndex = 2,
@@ -253,7 +254,7 @@ function Notification.new(container, Settings, theme)
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
 		TextColor3 = theme.NotificationTextColor or Color3.fromRGB(255, 255, 255),
-		FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Size = UDim2.new(0.68, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Position = UDim2.new(0, 42, 0, 40),
@@ -297,7 +298,7 @@ function Notification.new(container, Settings, theme)
 				TextSize = 12,
 				TextColor3 = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255),
 				BackgroundColor3 = baseBg,
-				FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+				FontFace = Constants.Font(Enum.FontWeight.Medium),
 				Size = UDim2.new(0, 60, 0, 20),
 				Text = action.Text or "Click",
 				LayoutOrder = i,

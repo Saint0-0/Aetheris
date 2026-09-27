@@ -15,6 +15,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
 local Label = {}
 Label.__index = Label
 -- Map string to Enum.FontWeight
@@ -85,7 +86,7 @@ function Label.new(parent, Settings, theme)
 	-- Label
 	local label = Instance.new("TextLabel")
 	label.Name = "ElementName"
-	label.FontFace = Font.new("rbxassetid://12187365364", fontWeight, Enum.FontStyle.Normal)
+	label.FontFace = Constants.Font(fontWeight)
 	label.Text = text
 	label.RichText = true
 	label.TextColor3 = (theme and theme.PrimaryTextColor)
@@ -131,9 +132,6 @@ function Label.new(parent, Settings, theme)
 		textTransBinding:SetEnabled(false)
 	end
 	-- Public API
-	self.SetVisibility = function(visible)
-		container.Visible = visible
-	end
 	self.SetText = function(newText)
 		label.Text = newText
 	end
@@ -149,7 +147,7 @@ function Label.new(parent, Settings, theme)
 	self.SetFontWeight = function(weight)
 		local newWeight = getFontWeight(weight)
 		self._fontWeight = newWeight
-		label.FontFace = Font.new("rbxassetid://12187365364", newWeight, Enum.FontStyle.Normal)
+		label.FontFace = Constants.Font(newWeight)
 	end
 	self.SetShowContainer = function(show)
 		self._showContainer = show
@@ -169,6 +167,13 @@ function Label.new(parent, Settings, theme)
 			strokeTransBinding:SetEnabled(false)
 			stroke.Transparency = 1
 		end
+	end
+	-- Uniform component API (p2-4): visibility toggle + teardown.
+	function self:SetVisibility(visible)
+		container.Visible = visible
+	end
+	function self:Destroy()
+		if container and container.Parent then container:Destroy() end
 	end
 	-- No ApplyTheme / Register: all themed properties are bindings above.
 	return self

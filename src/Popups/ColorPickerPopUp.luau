@@ -9,6 +9,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
+local Constants = require("../Constants")
 local ColorPickerPopUp = {}
 ColorPickerPopUp.__index = ColorPickerPopUp
 local function sanitizeName(str)
@@ -59,7 +60,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.TextTransparency = (theme and theme.PopupTextTransparency) or 0.4
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	header.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = (theme and theme.PopupTextColor)
 	header.BackgroundTransparency = 1
 	header.RichText = true
@@ -237,7 +238,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.TextTransparency = 0.5
 		label.TextYAlignment = Enum.TextYAlignment.Top
 		label.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+		label.FontFace = Constants.Font(Enum.FontWeight.Regular)
 		label.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 		label.BackgroundTransparency = 1
 		label.AnchorPoint = Vector2.new(0, 0.5)
@@ -256,7 +257,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		inputBox.TextSize = 12
 		inputBox.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 		inputBox.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or Color3.fromRGB(255, 255, 255)
-		inputBox.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+		inputBox.FontFace = Constants.Font(Enum.FontWeight.Regular)
 		inputBox.AnchorPoint = Vector2.new(1, 0.5)
 		inputBox.ClearTextOnFocus = false
 		inputBox.ClipsDescendants = true
@@ -358,7 +359,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
-	confirmBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
@@ -383,7 +384,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
 	cancelBtn.BackgroundTransparency = 0.5
-	cancelBtn.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)

@@ -27,6 +27,7 @@ local Label = require("../Components/Label")
 local Paragraph = require("../Components/Paragraph")
 local ColorPicker = require("../Components/ColorPicker")
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
 
 local Section = {}
 Section.__index = Section
@@ -97,7 +98,7 @@ function Section.new(parent, Settings, theme)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.TextYAlignment = Enum.TextYAlignment.Center
 		title.TextSize = 12
-		title.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+		title.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		-- Match ScriptDescription exactly: TitleTextColor + 0.7 transparency.
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 		title.TextTransparency = 0.7
@@ -107,9 +108,17 @@ function Section.new(parent, Settings, theme)
 		title.Parent = frame
 		self.Title = title
 	end
-	-- Register with ThemeManager so the section's own background + stroke are
-	-- themed without name-matching. The frame lives under window.Base.
-	ThemeManager.Register(frame, self)
+	-- Declarative theming: every themed property is a BINDING. The bind applies
+	-- immediately (so the section is themed on the first frame) and crossfades
+	-- on every theme switch, honouring overrides automatically. This replaces
+	-- the old registry + Section:ApplyTheme path for the section's own chrome.
+	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionBackgroundColor")
+	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionBackgroundTransparency")
+	ThemeManager.BindColor(stroke, "Color", "SectionStrokeColor")
+	ThemeManager.BindTransparency(stroke, "Transparency", "SectionStrokeTransparency")
+	if self.Title then
+		ThemeManager.BindColor(self.Title, "TextColor3", "TitleTextColor")
+	end
 	return self
 end
 --[[
@@ -171,29 +180,7 @@ function Section:ColorPicker(Settings, ShowPopup)
 	return ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme)
 end
 
--- Component-owned theming. Called by ThemeManager via the component registry.
--- Restyles the section frame + stroke directly (no animation) so the
--- surrounding color crossfade still produces the old -> new fade.
-function Section:ApplyTheme(newTheme)
-	local theme = ThemeManager.GetTheme(newTheme)
-	self._theme = theme
-	self.Frame.BackgroundColor3 = theme.SectionBackgroundColor or self.Frame.BackgroundColor3
-	if theme.SectionBackgroundTransparency ~= nil then
-		self.Frame.BackgroundTransparency = theme.SectionBackgroundTransparency
-	end
-	local stroke = self.Frame:FindFirstChild("SectionUIStroke")
-	if stroke then
-		stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or stroke.Color
-		stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or stroke.Transparency
-	end
-	-- Re-stamp the section title. Previously ApplyTheme never touched it, so
-	-- the title kept its build-time colour across every theme switch.
-	local title = self.Title or self.Frame:FindFirstChild("SectionTitle")
-	if title then
-		title.TextColor3 = theme.TitleTextColor or title.TextColor3
-		title.TextTransparency = 0.7
-	end
-end
-
--- Add other components as needed
+-- Section chrome is themed declaratively via ThemeManager.Bind* in Section.new;
+-- there is no Section:ApplyTheme and the section is not registered with
+-- ThemeManager, so the registry walk no longer touches it.
 return Section

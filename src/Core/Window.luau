@@ -36,6 +36,7 @@ local SearchFilter = require("./SearchFilter")
 local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
+local Constants = require("../Constants")
 
 local Window = {}
 Window.__index = Window
@@ -70,6 +71,13 @@ function Window.new(Settings)
 	-- can reach the window object created near the end of this function.
 	local self
 
+	-- Per-window animation + drag style (were class-level Window.AnimationStyle
+	-- / Window.DragStyle -- shared across every window). Hoisted above the
+	-- closures that read them so the drag/resize/minimize/close handlers see
+	-- THIS window's values. Defaults match the old class values.
+	local animationStyle = Settings.AnimationStyle or "Smooth"
+	local dragStyle = Settings.DragStyle or "Instant"
+
 	-- Global UserInputService connections (drag + resize). These are NOT
 	-- children of the ScreenGui, so they are tracked here and explicitly
 	-- disconnected in _teardown when the UI is closed/destroyed.
@@ -83,10 +91,26 @@ function Window.new(Settings)
 	-- Root
 	----------------------------------------------------------------
 	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = "Aetheris"
+	ScreenGui.Name = Settings.ScreenGuiName or "Aetheris"
 	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	ScreenGui.ResetOnSpawn = false
-	ScreenGui.Parent = (player and player:WaitForChild("PlayerGui")) or game:GetService("CoreGui")
+	-- Host control (p2-5): DisplayOrder + inset are caller-settable; Parent may
+	-- be an explicit instance (an existing ScreenGui, PlayerGui, CoreGui, ...).
+	if Settings.DisplayOrder ~= nil then
+		ScreenGui.DisplayOrder = Settings.DisplayOrder
+	end
+	ScreenGui.IgnoreGuiInset = Settings.IgnoreGuiInset == true
+	if Settings.Parent ~= nil then
+		ScreenGui.Parent = Settings.Parent
+	else
+		-- Bounded wait: never hang a loadstring forever if LocalPlayer/PlayerGui
+		-- is unavailable (some exploit/early contexts). Fall back to CoreGui.
+		local playerGui = player and player:FindFirstChild("PlayerGui")
+		if not playerGui and player then
+			playerGui = player:WaitForChild("PlayerGui", 5)
+		end
+		ScreenGui.Parent = playerGui or game:GetService("CoreGui")
+	end
 
 	----------------------------------------------------------------
 	-- Window (main frame)
@@ -160,7 +184,7 @@ function Window.new(Settings)
 				local newPosition = startPosition + Vector2.new(delta.X, delta.Y)
 				local target = UDim2.new(0, newPosition.X, 0, newPosition.Y)
 
-				if Window.DragStyle == "Smooth" then
+				if dragStyle == "Smooth" then
 					Tween.Play(MainFrame, "Fast", { Position = target })
 				else
 					MainFrame.Position = target
@@ -304,7 +328,7 @@ function Window.new(Settings)
 	-- rendered Medium via <font weight="500"> rich-text spans (wrapping them in
 	-- <b> forced bold and ignored the FontFace); the page name itself stays
 	-- regular.
-	PageTitle.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+	PageTitle.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	PageTitle.TextColor3 = theme.TitleTextColor
 	PageTitle.RichText = true
 	PageTitle.AutomaticSize = Enum.AutomaticSize.X
@@ -513,7 +537,7 @@ function Window.new(Settings)
 	SearchBox.TextSize = 12
 	SearchBox.TextColor3 = theme.PrimaryTextColor
 	SearchBox.BackgroundTransparency = 1
-	SearchBox.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	SearchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	SearchBox.PlaceholderText = "Search..."
 	SearchBox.Size = UDim2.new(0.7921, 0, 1, 0)
 	SearchBox.Position = UDim2.new(0.17991, 0, 0, 0)
@@ -702,7 +726,7 @@ function Window.new(Settings)
 	Username.TextTransparency = 0.7 -- matches ScriptDescription (slightly more transparent than DisplayName)
 	Username.TextYAlignment = Enum.TextYAlignment.Top
 	Username.BackgroundTransparency = 1
-	Username.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	Username.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	Username.TextColor3 = theme.TitleTextColor
 	Username.Size = UDim2.new(1, 0, 0, 0)
 	Username.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -719,7 +743,7 @@ function Window.new(Settings)
 	DisplayName.TextSize = 13
 	DisplayName.TextColor3 = theme.TitleTextColor
 	DisplayName.BackgroundTransparency = 1
-	DisplayName.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	DisplayName.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	DisplayName.AutomaticSize = Enum.AutomaticSize.XY
 	DisplayName.Size = UDim2.new(1, 0, 0, 0)
 	DisplayName.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -745,7 +769,7 @@ function Window.new(Settings)
 	TimeLabel.TextTransparency = 0.3 -- matches ScriptName
 	TimeLabel.TextScaled = true
 	TimeLabel.BackgroundTransparency = 1
-	TimeLabel.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+	TimeLabel.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	TimeLabel.TextColor3 = theme.TitleTextColor
 	TimeLabel.RichText = true
 	TimeLabel.Size = UDim2.new(0.1, 0, 0.7, 0)
@@ -843,7 +867,7 @@ function Window.new(Settings)
 	ScriptName.TextTransparency = 0.3 -- [THEME] primary text transparency
 	ScriptName.TextYAlignment = Enum.TextYAlignment.Top
 	ScriptName.BackgroundTransparency = 1
-	ScriptName.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	ScriptName.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	ScriptName.TextColor3 = theme.TitleTextColor
 	ScriptName.Size = UDim2.new(1.36294, 0, 0.44828, 0)
 	ScriptName.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -862,7 +886,7 @@ function Window.new(Settings)
 	ScriptDescription.TextTransparency = 0.7 -- [THEME] secondary text transparency
 	ScriptDescription.TextYAlignment = Enum.TextYAlignment.Top
 	ScriptDescription.BackgroundTransparency = 1
-	ScriptDescription.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+	ScriptDescription.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	ScriptDescription.TextColor3 = theme.TitleTextColor
 	ScriptDescription.RichText = true
 	ScriptDescription.Size = UDim2.new(1.36294, 0, 0.41379, 0)
@@ -900,17 +924,15 @@ function Window.new(Settings)
 	if Settings.Description then
 		ScriptDescription.Text = Settings.Description
 	end
-	if Settings.AnimationStyle then
-		Window.AnimationStyle = Settings.AnimationStyle
-	end
-	if Settings.DragStyle then
-		Window.DragStyle = Settings.DragStyle
-	end
+	-- (AnimationStyle/DragStyle are applied to the local animationStyle/dragStyle
+	-- hoisted above; no class-level write.)
 
 	----------------------------------------------------------------
 	-- Object
 	----------------------------------------------------------------
 	self = setmetatable({}, Window)
+	self.AnimationStyle = animationStyle
+	self.DragStyle = dragStyle
 
 	-- Store the resolved theme BEFORE any settings pages/scripts build,
 	-- so components created there use the correct theme instead of Default.
@@ -1027,7 +1049,7 @@ function Window.new(Settings)
 	self.Tooltip = tooltip
 
 	local function minimizePreset()
-		return Window.AnimationStyle == "Snappy" and "MinimizeSnappy" or "Minimize"
+		return animationStyle == "Snappy" and "MinimizeSnappy" or "Minimize"
 	end
 
 	----------------------------------------------------------------
@@ -1884,6 +1906,43 @@ function Window.new(Settings)
 		SearchFilter.Apply(page, self.SearchBox.Text, self._theme)
 	end
 
+	-- Declarative theming for the WINDOW SHELL. Every state-independent themed
+	-- property is a BINDING here (was: stamped imperatively in ApplyTheme, AND
+	-- again by ThemeManager.ApplyTheme -> double stamp). SearchBar/SearchBoxStroke
+	-- transparencies are focus-driven and stay imperative in ApplyTheme.
+	ThemeManager.BindColor(MainFrame, "BackgroundColor3", "WindowColor")
+	ThemeManager.BindTransparency(MainFrame, "BackgroundTransparency", "WindowTransparency")
+	ThemeManager.BindColor(ContentBackground, "BackgroundColor3", "ContentBackgroundColor")
+	ThemeManager.BindTransparency(ContentBackground, "BackgroundTransparency", "ContentBackgroundTransparency")
+	ThemeManager.BindColor(Sidebar, "BackgroundColor3", "SidebarColor")
+	ThemeManager.BindTransparency(Sidebar, "BackgroundTransparency", "SidebarTransparency")
+	ThemeManager.BindColor(MainFrameShadow, "Color", "MainframeShadowColor")
+	for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
+		if ctrl then ThemeManager.BindColor(ctrl, "ImageColor3", "WindowControlColor") end
+	end
+	ThemeManager.BindColor(PageTitle, "TextColor3", "TitleTextColor")
+	ThemeManager.BindTransparency(PageTitle, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(PageTitleDivider, "BackgroundColor3", "TertiaryColor")
+	ThemeManager.BindTransparency(PageTitleDivider, "BackgroundTransparency", "SectionDividerTransparency")
+	ThemeManager.BindColor(SearchBar, "BackgroundColor3", "SearchBarBackgroundColor")
+	ThemeManager.BindColor(SearchBox, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(SearchBox, "TextTransparency", "PrimaryTextTransparency")
+	ThemeManager.BindColor(SearchBox, "PlaceholderColor3", "SecondaryTextColor")
+	ThemeManager.BindColor(SearchIcon, "ImageColor3", "SecondaryColor")
+	ThemeManager.BindColor(SearchBoxStroke, "Color", "StrokeColor")
+	ThemeManager.BindColor(SearchBarBottomDivider, "BackgroundColor3", "TertiaryColor")
+	ThemeManager.BindColor(SidebarDivider, "BackgroundColor3", "TertiaryColor")
+	ThemeManager.BindColor(SettingsButton, "ImageColor3", "AccentColor")
+	ThemeManager.BindColor(ScriptName, "TextColor3", "TitleTextColor")
+	ThemeManager.BindColor(ScriptDescription, "TextColor3", "TitleTextColor")
+	ThemeManager.BindColor(Username, "TextColor3", "TitleTextColor")
+	ThemeManager.BindColor(DisplayName, "TextColor3", "TitleTextColor")
+	ThemeManager.BindColor(TimeLabel, "TextColor3", "TitleTextColor")
+	ThemeManager.BindColor(TabList, "ScrollBarImageColor3", "TertiaryColor")
+	ThemeManager.BindColor(pill, "BackgroundColor3", "PopupBackgroundColor")
+	ThemeManager.BindColor(pillStroke, "Color", "StrokeColor")
+	ThemeManager.BindColor(pillShadow, "Color", "PopupShadowColor")
+
 	-- Component-owned theming for the WINDOW SHELL. The window is the ROOT of
 	-- the UI tree (self.Base = the ScreenGui), so it cannot self-register like
 	-- components do - the registry iterates Base's DESCENDANTS, which excludes
@@ -1893,37 +1952,13 @@ function Window.new(Settings)
 		local t = ThemeManager.GetTheme(newTheme)
 		self._theme = t
 
-		-- Shell
-		MainFrame.BackgroundColor3 = t.WindowColor or MainFrame.BackgroundColor3
-		if t.WindowTransparency ~= nil then
-			MainFrame.BackgroundTransparency = t.WindowTransparency
-		end
-		ContentBackground.BackgroundColor3 = t.ContentBackgroundColor or t.WindowColor or ContentBackground.BackgroundColor3
-		local ct = t.ContentBackgroundTransparency
-		if ct == nil then ct = t.WindowTransparency end
-		if ct ~= nil then
-			ContentBackground.BackgroundTransparency = ct
-		end
-		Sidebar.BackgroundColor3 = t.SidebarColor or Sidebar.BackgroundColor3
-		if t.SidebarTransparency ~= nil then
-			Sidebar.BackgroundTransparency = t.SidebarTransparency
-		end
+		-- Shell colors/transparencies are BINDINGS now (see the Bind* block
+		-- above); a theme switch re-resolves them automatically. Only the bits
+		-- that CANNOT be bindings stay here.
 
-		MainFrameShadow.Color = t.MainframeShadowColor or MainFrameShadow.Color
-
-		-- Window controls (close / maximize / minimize)
-		for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
-			if ctrl then
-				ctrl.ImageColor3 = t.WindowControlColor or ctrl.ImageColor3
-			end
-		end
-
-		-- Page title + its divider
-		PageTitle.TextColor3 = t.TitleTextColor or PageTitle.TextColor3
-		PageTitleDivider.BackgroundColor3 = t.TertiaryColor or PageTitleDivider.BackgroundColor3
-
-		-- Search bar (honour the focus state so an unfocused bar stays clean)
-		SearchBar.BackgroundColor3 = t.SearchBarBackgroundColor or SearchBar.BackgroundColor3
+		-- Search bar: the BACKGROUND TRANSPARENCIES are focus-driven (stateful),
+		-- not theme keys -- stamp them from the current focus state. The bar /
+		-- stroke colors are bound.
 		local searchFocused = SearchBar:GetAttribute("IsSearchFocused")
 		if searchFocused then
 			SearchBar.BackgroundTransparency = t.SearchBarBackgroundTransparency or 0
@@ -1932,40 +1967,9 @@ function Window.new(Settings)
 			SearchBar.BackgroundTransparency = 1
 			SearchBoxStroke.Transparency = 1
 		end
-		SearchBox.TextColor3 = t.PrimaryTextColor or SearchBox.TextColor3
-		SearchBox.TextTransparency = t.PrimaryTextTransparency or SearchBox.TextTransparency
-		SearchIcon.ImageColor3 = t.SecondaryColor or SearchIcon.ImageColor3
-		SearchBoxStroke.Color = t.StrokeColor or SearchBoxStroke.Color
-		SearchBarBottomDivider.BackgroundColor3 = t.TertiaryColor or SearchBarBottomDivider.BackgroundColor3
 
-		-- Sidebar divider + settings gear
-		SidebarDivider.BackgroundColor3 = t.TertiaryColor or SidebarDivider.BackgroundColor3
-		SettingsButton.ImageColor3 = t.AccentColor or SettingsButton.ImageColor3
-
-		-- Script info + user info text (colors AND the [THEME] transparencies; the
-		-- latter were only ever set at construction, so they went stale on a
-		-- theme switch).
-		ScriptName.TextColor3 = t.TitleTextColor or ScriptName.TextColor3
-		ScriptDescription.TextColor3 = t.TitleTextColor or ScriptDescription.TextColor3
-		Username.TextColor3 = t.TitleTextColor or Username.TextColor3
-		Username.TextTransparency = 0.7 -- matches ScriptDescription
-		DisplayName.TextColor3 = t.TitleTextColor or DisplayName.TextColor3
-		DisplayName.TextTransparency = 0.3 -- matches ScriptName
-		TimeLabel.TextColor3 = t.TitleTextColor or TimeLabel.TextColor3
-		TimeLabel.TextTransparency = 0.3 -- matches ScriptName
-
-		-- Page title + search placeholder (also construction-only before).
-		PageTitle.TextTransparency = t.PrimaryTextTransparency or PageTitle.TextTransparency
-		PageTitleDivider.BackgroundTransparency = t.SectionDividerTransparency or PageTitleDivider.BackgroundTransparency
-		SearchBox.PlaceholderColor3 = t.SecondaryTextColor or SearchBox.PlaceholderColor3
-
-		-- Sidebar scrollbar
-		TabList.ScrollBarImageColor3 = t.TertiaryColor or TabList.ScrollBarImageColor3
-
-		-- Minimize pill (container + its per-tab buttons)
-		pill.BackgroundColor3 = t.PopupBackgroundColor or pill.BackgroundColor3
-		pillStroke.Color = t.StrokeColor or pillStroke.Color
-		pillShadow.Color = t.PopupShadowColor or pillShadow.Color
+		-- Minimize pill colors are BINDINGS now (see the Bind* block above).
+		-- Only the per-tab pill buttons need a refresh (they are created lazily).
 		if self._refreshPill then self._refreshPill(t) end
 
 		-- Tooltip follows the theme too
@@ -2053,7 +2057,7 @@ function Window:Destroy()
 	-- second close must not double-play the sound or double-destroy the tree.
 	if self._destroyed then return end
 
-	local closePreset = Window.AnimationStyle == "Snappy" and "FadeOut" or "Smooth"
+	local closePreset = self.AnimationStyle == "Snappy" and "FadeOut" or "Smooth"
 
 	-- "WindowClose" was never in Sound.Assets (every play warned + played
 	-- nothing). UIClose is the real close sound.

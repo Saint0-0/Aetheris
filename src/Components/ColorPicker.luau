@@ -16,6 +16,8 @@
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
+local ComponentRow = require("./ComponentRow")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
 local function colorToHex(c)
@@ -30,34 +32,13 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
     local defaultColor = Settings.Default or Color3.fromRGB(255, 0, 0)
     local callback = Settings.Callback or function() end
     -- Main row (TextButton so the whole row is clickable)
-    local row = Instance.new("TextButton")
-    row.Name = name .. " [ColorPicker]"
-    row.BorderSizePixel = 0
-    row.BackgroundColor3 = Color3.fromRGB(31, 32, 34)
-    row.BackgroundTransparency = 1
-    row.Size = UDim2.new(1, 0, 0, 45)
-    row.AnchorPoint = Vector2.new(0.5, 0.5)
-    row.Position = UDim2.new(0.5, 0, 0.5, 0)
-    row.Text = ""
-    row.TextTransparency = 1
-    row.AutoButtonColor = false
-    row.Parent = parent
-    -- Label
-    local label = Instance.new("TextLabel")
-    label.Name = "ElementName"
-    label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-    label.Text = name
-    label.TextColor3 = (theme and theme.PrimaryTextColor)
-    label.TextSize = 14
-    label.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.45
-    label.TextTruncate = Enum.TextTruncate.AtEnd
-    label.TextWrapped = true
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.AnchorPoint = Vector2.new(0, 0.5)
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.new(0.486, 0, 0.714, 0)
-    label.Position = UDim2.new(0, 0, 0.5, 0)
-    label.Parent = row
+    local row, label = ComponentRow.new(parent, {
+        Name = name,
+        RowName = name .. " [ColorPicker]",
+        Theme = theme,
+        Clickable = true,
+        LabelWidth = 0.486,
+    })
     -- HeaderBar (transparent container for display and chevron)
     local headerBar = Instance.new("Frame")
     headerBar.Name = "HeaderBar"

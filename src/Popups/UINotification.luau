@@ -20,6 +20,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
+local Constants = require("../Constants")
 local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
 UINotification.__index = UINotification
@@ -105,11 +106,7 @@ function UINotification.new(parent, Settings)
 	header.TextTransparency = (theme and theme.PopupTextTransparency) or 0.4
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
-	header.FontFace = Font.new(
-		"rbxassetid://12187365364",
-		Enum.FontWeight.SemiBold,
-		Enum.FontStyle.Normal
-	)
+	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.RichText = true
 	header.AnchorPoint = Vector2.new(0.5, 0.5)
 	header.Size = UDim2.new(0.26291, 0, 0.03775, 0)
@@ -132,11 +129,7 @@ function UINotification.new(parent, Settings)
 	notifText.TextSize = 14
 	notifText.TextTransparency = (theme and theme.PopupTextTransparency) or 0.45
 	notifText.BackgroundTransparency = 1
-	notifText.FontFace = Font.new(
-		"rbxassetid://12187365364",
-		Enum.FontWeight.Medium,
-		Enum.FontStyle.Normal
-	)
+	notifText.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	notifText.TextColor3 = (theme and theme.PopupTextColor)
 	notifText.RichText = true
 	notifText.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -205,11 +198,7 @@ function UINotification.new(parent, Settings)
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
-	confirmBtn.FontFace = Font.new(
-		"rbxassetid://12187365364",
-		Enum.FontWeight.Bold,
-		Enum.FontStyle.Normal
-	)
+	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
@@ -237,11 +226,7 @@ function UINotification.new(parent, Settings)
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
 	cancelBtn.BackgroundTransparency = 0.5
-	cancelBtn.FontFace = Font.new(
-		"rbxassetid://12187365364",
-		Enum.FontWeight.Regular,
-		Enum.FontStyle.Normal
-	)
+	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)

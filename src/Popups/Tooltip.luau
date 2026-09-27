@@ -8,6 +8,7 @@
 
 local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
+local Constants = require("../Constants")
 
 local Tooltip = {}
 Tooltip.__index = Tooltip
@@ -62,7 +63,7 @@ function Tooltip.new(container, theme)
 	label.BackgroundTransparency = 1
 	label.AutomaticSize = Enum.AutomaticSize.XY
 	label.Size = UDim2.new(0, 0, 0, 0)
-	label.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+	label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	label.TextSize = 12
 	label.TextColor3 = theme.PopupTextColor or Color3.fromRGB(255, 255, 255)
 	label.TextTransparency = 1
