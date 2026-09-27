@@ -290,10 +290,10 @@ local function bind(instance, property, themeKey, kind, opts)
 
     -- Defensive: a caller passed a nil instance (typically an optional element
     -- that never got built). Binding into bindingIndex[nil] throws "table index
-    -- is nil"; instead warn and hand back a no-op handle so a missing optional
-    -- element can never take the whole window down.
+    -- is nil"; instead hand back a no-op handle so a missing optional element
+    -- can never take the whole window down. This is expected for optional
+    -- chrome, so it is intentionally silent.
     if instance == nil then
-        warn("[ThemeManager] Bind: nil instance for property '" .. tostring(property) .. "'")
         return {
             SetState = function() end,
             SetEnabled = function() end,
