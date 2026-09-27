@@ -128,10 +128,18 @@ function PageFade.FadeDecorations(group, hidden, instant)
 	for _, d in ipairs(getDecorations(group)) do
 		local base = d:GetAttribute("PageFadeBase")
 		if base == nil then
-			base = d.Transparency
-			d:SetAttribute("PageFadeBase", base)
+			-- Capture the resting transparency ONLY from a visible value. If the
+			-- decoration is currently at the hidden sentinel (1) -- e.g. this page
+			-- was hidden when a theme switch ran InvalidateDecorationBases and
+			-- nil'd the base -- capturing 1 here would pin the stroke to fully
+			-- invisible forever. Skip the capture; the next fade from a visible
+			-- state records the real resting value.
+			if d.Transparency < 1 then
+				base = d.Transparency
+				d:SetAttribute("PageFadeBase", base)
+			end
 		end
-		local target = hidden and 1 or base
+		local target = hidden and 1 or (base or 0)
 		if instant then
 			Tween.CancelAll(d)
 			d.Transparency = target
