@@ -817,6 +817,7 @@ function Window.new(Settings)
 	ScriptInfoGroup.Parent = ScriptInfo
 
 	local ScriptInfoGroupLayout = Instance.new("UIListLayout")
+	ScriptInfoGroupLayout.Padding = UDim.new(0, 8)
 	ScriptInfoGroupLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	ScriptInfoGroupLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	ScriptInfoGroupLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -846,15 +847,9 @@ function Window.new(Settings)
 	ScriptInfoContainer.LayoutOrder = 2
 	ScriptInfoContainer.Parent = ScriptInfoGroup
 
-	local ScriptInfoContainerPadding = Instance.new("UIPadding")
-	ScriptInfoContainerPadding.Name = "UserAndDisplayFrameUIPadding"
-	ScriptInfoContainerPadding.PaddingTop = UDim.new(0, 3)
-	ScriptInfoContainerPadding.PaddingLeft = UDim.new(0, 8)
-	ScriptInfoContainerPadding.Parent = ScriptInfoContainer
-
 	local ScriptInfoContainerLayout = Instance.new("UIListLayout")
 	ScriptInfoContainerLayout.Name = "UserAndDisplayFrameUIListLayout"
-	ScriptInfoContainerLayout.Padding = UDim.new(0, 7)
+	ScriptInfoContainerLayout.Padding = UDim.new(0, 4)
 	ScriptInfoContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	ScriptInfoContainerLayout.Parent = ScriptInfoContainer
 
@@ -887,7 +882,7 @@ function Window.new(Settings)
 	ScriptDescriptionBadge.BorderSizePixel = 0
 	ScriptDescriptionBadge.BackgroundColor3 = theme.TertiaryColor
 	ScriptDescriptionBadge.BackgroundTransparency = 0.5
-	ScriptDescriptionBadge.Size = UDim2.new(1, 0, 0, 18)
+	ScriptDescriptionBadge.Size = UDim2.new(1, 0, 0, 14)
 	ScriptDescriptionBadge.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptDescriptionBadge.LayoutOrder = 3
 	ScriptDescriptionBadge.Parent = ScriptInfoContainer

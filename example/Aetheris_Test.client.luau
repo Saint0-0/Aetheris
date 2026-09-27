@@ -51,7 +51,7 @@ local humanoid = character:WaitForChild("Humanoid")
 -- the library; the theme name below is the starting theme.
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
-	Description = '<font color="#777780">AETHERIS</font> <font color="#55555F">/</font> <font color="#6C8CFF">v0.2.0</font> <font color="#55555F">/</font> <font color="#777780">DEMO</font>',
+	Description = 'build 0.0.1',
 	Theme = "Default",           -- any name from ThemeDefinitions
 	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
 	DragStyle = "Smooth",        -- "Smooth" (glides) | "Instant" (snaps)
