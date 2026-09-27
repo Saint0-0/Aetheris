@@ -52,6 +52,14 @@ local humanoid = character:WaitForChild("Humanoid")
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
 	Description = 'build 0.0.1',
+	-- Up to 3 tag pills under the description. A plain string uses the theme's
+	-- colours; a table can pin any of BackgroundColor / TextColor / AccentColor
+	-- (a pinned colour is override-locked so theme switches leave it alone).
+	Tags = {
+		{ Name = "v0.2.0", AccentColor = Color3.fromRGB(108, 140, 255) },
+		"build",
+		{ Name = "DEMO", BackgroundColor = Color3.fromRGB(40, 40, 48) },
+	},
 	Theme = "Default",           -- any name from ThemeDefinitions
 	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
 	DragStyle = "Smooth",        -- "Smooth" (glides) | "Instant" (snaps)

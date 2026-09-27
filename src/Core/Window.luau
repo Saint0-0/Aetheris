@@ -872,11 +872,11 @@ function Window.new(Settings)
 	ScriptName.Position = UDim2.new(0, 0, 0, 0)
 	ScriptName.Parent = ScriptInfoContainer
 
-	-- ScriptDescription: a small "version tag" badge. The badge Frame wraps a
-	-- centred, end-truncated TextLabel. All colour comes from the theme system
-	-- (badge background + text colour are bindings) -- there is NO constructor
-	-- override. self.ScriptDescription stays the TextLabel, so :SetDescription
-	-- and the TextColor3 binding are unchanged.
+	-- ScriptDescription: a small "version tag" pill. The badge Frame wraps a
+	-- left-aligned, end-truncated TextLabel. All colour comes from the theme
+	-- system (badge background + text colour are bindings) -- there is NO
+	-- constructor override. self.ScriptDescription stays the TextLabel, so
+	-- :SetDescription and the TextColor3 binding are unchanged.
 	local ScriptDescriptionBadge = Instance.new("Frame")
 	ScriptDescriptionBadge.Name = "ScriptDescriptionBadge"
 	ScriptDescriptionBadge.BorderSizePixel = 0
@@ -894,18 +894,30 @@ function Window.new(Settings)
 
 	-- Accent glow at the TOP-RIGHT of the badge. Rotation 45 runs the gradient
 	-- bottom-left (offset 0) -> top-right (offset 1), so the AccentColor lands in
-	-- the top-right corner over the TertiaryColor base. Rebuilt from the theme on
-	-- every switch via restampBadgeGradient (called in ApplyTheme below).
+	-- the top-right corner over the TertiaryColor base.
 	local ScriptDescriptionBadgeGradient = Instance.new("UIGradient")
 	ScriptDescriptionBadgeGradient.Name = "ScriptDescriptionBadgeGradient"
 	ScriptDescriptionBadgeGradient.Rotation = 45
 	ScriptDescriptionBadgeGradient.Parent = ScriptDescriptionBadge
-	local function restampBadgeGradient(t)
+
+	-- Tag pills whose accent follows the theme (a custom-accent tag is excluded
+	-- so a theme switch never stomps a caller-pinned accent). Forward-declared
+	-- so restampThemeGradients can reach it before the tags are built.
+	local tagGradients = {}
+
+	-- Rebuild every theme-driven gradient (badge + theme-accent tag pills).
+	-- Called once at build and again on each theme switch from ApplyTheme.
+	local function restampThemeGradients(t)
 		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
 		ScriptDescriptionBadgeGradient.Color = ColorSequence.new(base, accent)
+		for _, g in ipairs(tagGradients) do
+			if g and g.Parent then
+				g.Color = ColorSequence.new(base, accent)
+			end
+		end
 	end
-	restampBadgeGradient(theme)
+	restampThemeGradients(theme)
 
 	local ScriptDescription = Instance.new("TextLabel")
 	ScriptDescription.Name = "ScriptDescription"
@@ -929,6 +941,115 @@ function Window.new(Settings)
 	ScriptDescriptionPadding.Name = "ScriptDescriptionPadding"
 	ScriptDescriptionPadding.PaddingLeft = UDim.new(0, 10)
 	ScriptDescriptionPadding.Parent = ScriptDescription
+
+	----------------------------------------------------------------
+	-- Tags  (Settings.Tags: up to 3 pills under the description)
+	----------------------------------------------------------------
+	-- Each entry is either a plain string (Name only) or a table
+	-- { Name=, BackgroundColor=, TextColor=, AccentColor= }. Any colour that is
+	-- omitted falls back to the theme (background -> TertiaryColor, text ->
+	-- TitleTextColor, accent -> AccentColor). A colour that IS supplied is pinned
+	-- with ThemeManager.SetColorOverride so a theme switch never stomps it; the
+	-- omitted ones stay as live theme bindings. Pills share the row width evenly
+	-- (1 tag = full width, 2 = halves, 3 = thirds).
+	local TagsContainer = Instance.new("Frame")
+	TagsContainer.Name = "ScriptTags"
+	TagsContainer.BorderSizePixel = 0
+	TagsContainer.BackgroundTransparency = 1
+	TagsContainer.Size = UDim2.new(1, 0, 0, 14)
+	TagsContainer.LayoutOrder = 4
+	TagsContainer.Parent = ScriptInfoContainer
+
+	local TagsLayout = Instance.new("UIListLayout")
+	TagsLayout.Name = "ScriptTagsLayout"
+	TagsLayout.FillDirection = Enum.FillDirection.Horizontal
+	TagsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	TagsLayout.Padding = UDim.new(0, 4)
+	TagsLayout.Parent = TagsContainer
+
+	local TAG_GAP = 4
+	local function buildTag(spec, index, total)
+		local name, bgColor, txtColor, accColor
+		if type(spec) == "table" then
+			name = spec.Name or spec.Text or ""
+			bgColor = spec.BackgroundColor
+			txtColor = spec.TextColor
+			accColor = spec.AccentColor
+		else
+			name = tostring(spec)
+		end
+
+		-- Even split: each pill gets 1/total of the row minus its share of the gaps.
+		local widthOffset = -(TAG_GAP * (total - 1)) / total
+
+		local pill = Instance.new("Frame")
+		pill.Name = "Tag" .. tostring(index)
+		pill.BorderSizePixel = 0
+		pill.BackgroundColor3 = bgColor or theme.TertiaryColor
+		pill.BackgroundTransparency = 0.5
+		pill.Size = UDim2.new(1 / total, widthOffset, 0, 14)
+		pill.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		pill.LayoutOrder = index
+		pill.Parent = TagsContainer
+
+		local pillCorner = Instance.new("UICorner")
+		pillCorner.CornerRadius = UDim.new(1, 0)
+		pillCorner.Parent = pill
+
+		local pillGradient = Instance.new("UIGradient")
+		pillGradient.Rotation = 45
+		pillGradient.Color = ColorSequence.new(
+			bgColor or theme.TertiaryColor,
+			accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
+		)
+		pillGradient.Parent = pill
+		if not accColor then
+			table.insert(tagGradients, pillGradient)
+		end
+
+		local label = Instance.new("TextLabel")
+		label.Name = "TagText"
+		label.BorderSizePixel = 0
+		label.BackgroundTransparency = 1
+		label.Text = name
+		label.TextSize = 9
+		label.TextTruncate = Enum.TextTruncate.AtEnd
+		label.TextXAlignment = Enum.TextXAlignment.Center
+		label.TextYAlignment = Enum.TextYAlignment.Center
+		label.TextTransparency = 0.1
+		label.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
+		label.TextColor3 = txtColor or theme.TitleTextColor
+		label.RichText = true
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.Parent = pill
+
+		-- Theme bindings only where the caller did NOT pin a colour; a pinned
+		-- colour goes through the override so theme switches leave it alone.
+		if bgColor then
+			ThemeManager.SetColorOverride(pill, "BackgroundColor3", bgColor)
+		else
+			ThemeManager.BindColor(pill, "BackgroundColor3", "TertiaryColor")
+		end
+		ThemeManager.BindTransparency(pill, "BackgroundTransparency", "ComponentBackgroundTransparency")
+		if txtColor then
+			ThemeManager.SetColorOverride(label, "TextColor3", txtColor)
+		else
+			ThemeManager.BindColor(label, "TextColor3", "TitleTextColor")
+		end
+	end
+
+	local function buildTags(list)
+		for _, c in ipairs(TagsContainer:GetChildren()) do
+			if c:IsA("Frame") then c:Destroy() end
+		end
+		for i = #tagGradients, 1, -1 do tagGradients[i] = nil end
+		if type(list) ~= "table" then return end
+		local total = math.min(#list, 3)
+		for i = 1, total do
+			buildTag(list[i], i, total)
+		end
+	end
+	buildTags(Settings.Tags)
 
 	----------------------------------------------------------------
 	-- Resize handle
@@ -1988,7 +2109,7 @@ function Window.new(Settings)
 	function self:ApplyTheme(newTheme)
 		local t = ThemeManager.GetTheme(newTheme)
 		self._theme = t
-		restampBadgeGradient(t)
+		restampThemeGradients(t)
 
 		-- Shell colors/transparencies are BINDINGS now (see the Bind* block
 		-- above); a theme switch re-resolves them automatically. Only the bits
