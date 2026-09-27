@@ -7,7 +7,7 @@
 
 	Public API:
 	  :Tab / :Divider              - sidebar tabs (delegated to TabGroup)
-	  :SetTitle / :SetDescription  - script info text
+	  :SetTitle                    - script info title (tags below via Settings.Tags)
 	  :SetTheme(name|table)        - live theme switch (crossfades)
 	  :UINotification / :Alert / :Error / :VariableNotification
 	  :DropdownPopUp / :ColorPickerPopUp / :HidePopups
@@ -723,7 +723,7 @@ function Window.new(Settings)
 	Username.BorderSizePixel = 0
 	Username.TextSize = 12
 	Username.TextXAlignment = Enum.TextXAlignment.Left
-	Username.TextTransparency = 0.7 -- matches ScriptDescription (slightly more transparent than DisplayName)
+	Username.TextTransparency = 0.7 -- secondary text (slightly more transparent than DisplayName)
 	Username.TextYAlignment = Enum.TextYAlignment.Top
 	Username.BackgroundTransparency = 1
 	Username.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
@@ -872,45 +872,16 @@ function Window.new(Settings)
 	ScriptName.Position = UDim2.new(0, 0, 0, 0)
 	ScriptName.Parent = ScriptInfoContainer
 
-	-- ScriptDescription: a small "version tag" pill. The badge Frame wraps a
-	-- left-aligned, end-truncated TextLabel. All colour comes from the theme
-	-- system (badge background + text colour are bindings) -- there is NO
-	-- constructor override. self.ScriptDescription stays the TextLabel, so
-	-- :SetDescription and the TextColor3 binding are unchanged.
-	local ScriptDescriptionBadge = Instance.new("Frame")
-	ScriptDescriptionBadge.Name = "ScriptDescriptionBadge"
-	ScriptDescriptionBadge.BorderSizePixel = 0
-	ScriptDescriptionBadge.BackgroundColor3 = theme.TertiaryColor
-	ScriptDescriptionBadge.BackgroundTransparency = 0.5
-	ScriptDescriptionBadge.Size = UDim2.new(1, 0, 0, 14)
-	ScriptDescriptionBadge.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	ScriptDescriptionBadge.LayoutOrder = 3
-	ScriptDescriptionBadge.Parent = ScriptInfoContainer
-
-	local ScriptDescriptionBadgeCorner = Instance.new("UICorner")
-	ScriptDescriptionBadgeCorner.Name = "ScriptDescriptionBadgeCorner"
-	ScriptDescriptionBadgeCorner.CornerRadius = UDim.new(1, 0)
-	ScriptDescriptionBadgeCorner.Parent = ScriptDescriptionBadge
-
-	-- Accent glow at the TOP-RIGHT of the badge. Rotation 45 runs the gradient
-	-- bottom-left (offset 0) -> top-right (offset 1), so the AccentColor lands in
-	-- the top-right corner over the TertiaryColor base.
-	local ScriptDescriptionBadgeGradient = Instance.new("UIGradient")
-	ScriptDescriptionBadgeGradient.Name = "ScriptDescriptionBadgeGradient"
-	ScriptDescriptionBadgeGradient.Rotation = 45
-	ScriptDescriptionBadgeGradient.Parent = ScriptDescriptionBadge
-
 	-- Tag pills whose accent follows the theme (a custom-accent tag is excluded
 	-- so a theme switch never stomps a caller-pinned accent). Forward-declared
 	-- so restampThemeGradients can reach it before the tags are built.
 	local tagGradients = {}
 
-	-- Rebuild every theme-driven gradient (badge + theme-accent tag pills).
-	-- Called once at build and again on each theme switch from ApplyTheme.
+	-- Rebuild every theme-driven tag gradient. Called once at build and again on
+	-- each theme switch from ApplyTheme.
 	local function restampThemeGradients(t)
 		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
-		ScriptDescriptionBadgeGradient.Color = ColorSequence.new(base, accent)
 		for _, g in ipairs(tagGradients) do
 			if g and g.Parent then
 				g.Color = ColorSequence.new(base, accent)
@@ -919,31 +890,8 @@ function Window.new(Settings)
 	end
 	restampThemeGradients(theme)
 
-	local ScriptDescription = Instance.new("TextLabel")
-	ScriptDescription.Name = "ScriptDescription"
-	ScriptDescription.TextTruncate = Enum.TextTruncate.AtEnd
-	ScriptDescription.BorderSizePixel = 0
-	ScriptDescription.TextSize = 9
-	ScriptDescription.TextXAlignment = Enum.TextXAlignment.Left
-	ScriptDescription.TextYAlignment = Enum.TextYAlignment.Center
-	ScriptDescription.TextTransparency = 0.1
-	ScriptDescription.BackgroundTransparency = 1
-	ScriptDescription.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-	ScriptDescription.TextColor3 = theme.TitleTextColor
-	ScriptDescription.RichText = true
-	ScriptDescription.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	ScriptDescription.Text = "build 0.0.1 ver 1.0"
-	ScriptDescription.Size = UDim2.new(1, 0, 1, 0)
-	ScriptDescription.Parent = ScriptDescriptionBadge
-
-	-- Left inset so the left-aligned text doesn't sit flush against the pill edge.
-	local ScriptDescriptionPadding = Instance.new("UIPadding")
-	ScriptDescriptionPadding.Name = "ScriptDescriptionPadding"
-	ScriptDescriptionPadding.PaddingLeft = UDim.new(0, 10)
-	ScriptDescriptionPadding.Parent = ScriptDescription
-
 	----------------------------------------------------------------
-	-- Tags  (Settings.Tags: up to 3 pills under the description)
+	-- Tags  (Settings.Tags: up to 3 pills under the title)
 	----------------------------------------------------------------
 	-- Each entry is either a plain string (Name only) or a table
 	-- { Name=, BackgroundColor=, TextColor=, AccentColor= }. Any colour that is
@@ -1075,9 +1023,6 @@ function Window.new(Settings)
 	if Settings.Title then
 		ScriptName.Text = Settings.Title
 	end
-	if Settings.Description then
-		ScriptDescription.Text = Settings.Description
-	end
 	-- (AnimationStyle/DragStyle are applied to the local animationStyle/dragStyle
 	-- hoisted above; no class-level write.)
 
@@ -1124,7 +1069,6 @@ function Window.new(Settings)
 	self.SearchBox = SearchBox
 	self.PageTitle = PageTitle
 	self.ScriptName = ScriptName
-	self.ScriptDescription = ScriptDescription
 	self.WindowControls = WindowControls
 
 
@@ -2090,9 +2034,6 @@ function Window.new(Settings)
 	ThemeManager.BindColor(SidebarDivider, "BackgroundColor3", "TertiaryColor")
 	ThemeManager.BindColor(SettingsButton, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(ScriptName, "TextColor3", "TitleTextColor")
-	ThemeManager.BindColor(ScriptDescription, "TextColor3", "TitleTextColor")
-	ThemeManager.BindColor(ScriptDescriptionBadge, "BackgroundColor3", "TertiaryColor")
-	ThemeManager.BindTransparency(ScriptDescriptionBadge, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(Username, "TextColor3", "TitleTextColor")
 	ThemeManager.BindColor(DisplayName, "TextColor3", "TitleTextColor")
 	ThemeManager.BindColor(TimeLabel, "TextColor3", "TitleTextColor")
@@ -2142,10 +2083,6 @@ end
 
 function Window:SetTitle(text)
 	self.ScriptName.Text = text
-end
-
-function Window:SetDescription(text)
-	self.ScriptDescription.Text = text
 end
 
 -- Apply a theme by name or table

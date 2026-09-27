@@ -99,7 +99,7 @@ function Section.new(parent, Settings, theme)
 		title.TextYAlignment = Enum.TextYAlignment.Center
 		title.TextSize = 12
 		title.FontFace = Constants.Font(Enum.FontWeight.Medium)
-		-- Match ScriptDescription exactly: TitleTextColor + 0.7 transparency.
+		-- Muted section label: TitleTextColor + 0.7 transparency.
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 		title.TextTransparency = 0.7
 		title.AutomaticSize = Enum.AutomaticSize.Y

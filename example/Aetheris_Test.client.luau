@@ -51,14 +51,25 @@ local humanoid = character:WaitForChild("Humanoid")
 -- the library; the theme name below is the starting theme.
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
-	Description = 'build 0.0.1',
 	-- Up to 3 tag pills under the description. A plain string uses the theme's
 	-- colours; a table can pin any of BackgroundColor / TextColor / AccentColor
 	-- (a pinned colour is override-locked so theme switches leave it alone).
 	Tags = {
-		{ Name = "v0.2.0", AccentColor = Color3.fromRGB(108, 140, 255) },
-		"build",
-		{ Name = "DEMO", BackgroundColor = Color3.fromRGB(40, 40, 48) },
+		-- orange bg, white text, lighter-orange accent gradient
+		{ Name = "v0.2.0",
+		  BackgroundColor = Color3.fromRGB(217, 119, 6),
+		  TextColor = Color3.fromRGB(255, 255, 255),
+		  AccentColor = Color3.fromRGB(251, 191, 36) },
+		-- blue, same pattern
+		{ Name = "build",
+		  BackgroundColor = Color3.fromRGB(37, 99, 235),
+		  TextColor = Color3.fromRGB(255, 255, 255),
+		  AccentColor = Color3.fromRGB(96, 165, 250) },
+		-- green, same pattern
+		{ Name = "DEMO",
+		  BackgroundColor = Color3.fromRGB(22, 163, 74),
+		  TextColor = Color3.fromRGB(255, 255, 255),
+		  AccentColor = Color3.fromRGB(74, 222, 128) },
 	},
 	Theme = "Default",           -- any name from ThemeDefinitions
 	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
