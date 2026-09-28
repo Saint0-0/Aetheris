@@ -956,19 +956,25 @@ function Window.new(Settings)
 		pillCorner.Parent = pill
 
 		local pillGradient = Instance.new("UIGradient")
-		pillGradient.Rotation = 45
+		pillGradient.Rotation = -55
 		if bgColor then
 			pillGradient:SetAttribute("TagBaseColor", bgColor)
 		end
 		if accColor then
 			pillGradient:SetAttribute("TagAccentColor", accColor)
 		end
-		pillGradient.Color = ColorSequence.new(
-			bgColor or theme.TertiaryColor,
-			accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
-		)
+		pillGradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.630, Color3.fromRGB(255, 212, 161)),
+			ColorSequenceKeypoint.new(0.751, Color3.fromRGB(255, 206, 149)),
+			ColorSequenceKeypoint.new(0.818, Color3.fromRGB(255, 200, 135)),
+			ColorSequenceKeypoint.new(0.870, Color3.fromRGB(255, 193, 122)),
+			ColorSequenceKeypoint.new(0.952, Color3.fromRGB(255, 174, 80)),
+			ColorSequenceKeypoint.new(0.998, Color3.fromRGB(255, 158, 45)),
+			ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 151, 30)),
+		}
 		pillGradient.Parent = pill
-		table.insert(tagGradients, pillGradient)
+		-- Fixed template gradient (not theme-restamped).
 
 		local label = Instance.new("TextLabel")
 		label.Name = "TagText"
@@ -1342,14 +1348,14 @@ function Window.new(Settings)
 					compactPad.Parent = TabList
 				end
 				compactPad.PaddingBottom = UDim.new(0, 4)
-				compactPad.PaddingLeft = UDim.new(0, 135)
+				compactPad.PaddingLeft = UDim.new(0, 7)
 				for _, child in ipairs(TabList:GetChildren()) do
 					if child:GetAttribute("IsDivider") then
 						child.Visible = false
 					end
 				end
 				TabListLayout.FillDirection = Enum.FillDirection.Horizontal
-				TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 				TabListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 				restyleTabButtons(true)
 				-- Search -> docked INTO the window-controls cluster, leftmost (order 0,
@@ -1855,18 +1861,23 @@ function Window.new(Settings)
 	local preMaxSize = MainFrame.Size
 	local preMaxPosition = MainFrame.Position
 	MaximizeButton.MouseButton1Click:Connect(function()
-		maximized = not maximized
-		if maximized then
-			preMaxSize = MainFrame.Size
-			preMaxPosition = MainFrame.Position
-			Tween.Play(MainFrame, minimizePreset(), {
-				Size = UDim2.fromScale(1, 1),
-				Position = UDim2.fromScale(0, 0),
-			})
-		else
+		-- Decide from the ACTUAL size, not a flag: a manual resize while
+		-- maximized used to leave `maximized` stale, so the next click took the
+		-- restore branch and shrank instead of re-maximizing.
+		local isFull = MainFrame.Size.X.Scale >= 0.999 and MainFrame.Size.Y.Scale >= 0.999
+		if isFull then
+			maximized = false
 			Tween.Play(MainFrame, minimizePreset(), {
 				Size = preMaxSize,
 				Position = preMaxPosition,
+			})
+		else
+			preMaxSize = MainFrame.Size
+			preMaxPosition = MainFrame.Position
+			maximized = true
+			Tween.Play(MainFrame, "Fast", {
+				Size = UDim2.fromScale(1, 1),
+				Position = UDim2.fromScale(0, 0),
 			})
 		end
 	end)
