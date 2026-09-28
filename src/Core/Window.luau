@@ -885,6 +885,18 @@ function Window.new(Settings)
 	-- theme-following side is re-resolved -- previously a pinned BackgroundColor
 	-- was overwritten by TertiaryColor here, which is why tag colours were lost
 	-- at startup and on every theme round-trip.
+	local CORNER_GRADIENT_KEYS = {
+		{0.000, 0.0}, {0.630, 0.4135}, {0.751, 0.4712}, {0.818, 0.5288},
+		{0.870, 0.5962}, {0.952, 0.7788}, {0.998, 0.9327}, {1.000, 1.0},
+	}
+	local function cornerGradient(col)
+		local white = Color3.fromRGB(255, 255, 255)
+		local kps = {}
+		for i, k in ipairs(CORNER_GRADIENT_KEYS) do
+			kps[i] = ColorSequenceKeypoint.new(k[1], white:Lerp(col, k[2]))
+		end
+		return ColorSequence.new(kps)
+	end
 	local function restampThemeGradients(t)
 		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
@@ -892,10 +904,7 @@ function Window.new(Settings)
 			if g and g.Parent then
 				local pinnedBase = g:GetAttribute("TagBaseColor")
 				local pinnedAccent = g:GetAttribute("TagAccentColor")
-				g.Color = ColorSequence.new(
-					(typeof(pinnedBase) == "Color3") and pinnedBase or base,
-					(typeof(pinnedAccent) == "Color3") and pinnedAccent or accent
-				)
+				g.Color = cornerGradient((typeof(pinnedAccent) == "Color3") and pinnedAccent or accent)
 			end
 		end
 	end
@@ -963,17 +972,9 @@ function Window.new(Settings)
 		if accColor then
 			pillGradient:SetAttribute("TagAccentColor", accColor)
 		end
-		pillGradient.Color = ColorSequence.new{
-			ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(0.630, Color3.fromRGB(255, 212, 161)),
-			ColorSequenceKeypoint.new(0.751, Color3.fromRGB(255, 206, 149)),
-			ColorSequenceKeypoint.new(0.818, Color3.fromRGB(255, 200, 135)),
-			ColorSequenceKeypoint.new(0.870, Color3.fromRGB(255, 193, 122)),
-			ColorSequenceKeypoint.new(0.952, Color3.fromRGB(255, 174, 80)),
-			ColorSequenceKeypoint.new(0.998, Color3.fromRGB(255, 158, 45)),
-			ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 151, 30)),
-		}
+		pillGradient.Color = cornerGradient(accColor or theme.AccentColor)
 		pillGradient.Parent = pill
+		table.insert(tagGradients, pillGradient)
 		-- Fixed template gradient (not theme-restamped).
 
 		local label = Instance.new("TextLabel")

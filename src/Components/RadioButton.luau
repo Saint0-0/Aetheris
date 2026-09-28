@@ -48,6 +48,9 @@ function RadioButton.new(parent, group, Settings, theme)
 	holderStroke.Thickness = 0.7
 	holderStroke.Color = theme.StrokeColor
 	holderStroke.Parent = holder
+	local bounceScale = Instance.new("UIScale")
+	bounceScale.Scale = 1
+	bounceScale.Parent = holder
 	-- RadioButtonElement
 	local button = Instance.new("TextButton")
 	button.Name = "RadioButtonElement"
@@ -186,6 +189,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	-- HOVER
 	----------------------------------------------------------------
 	button.MouseEnter:Connect(function()
+		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
 		if self.IsSelected then
 			Tween.Play(activatedImage, "HoverIn", {
 				Size = expandedSize,
@@ -201,6 +205,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		end
 	end)
 	button.MouseLeave:Connect(function()
+		Tween.Play(bounceScale, "HoverOut", { Scale = 1 })
 		local isOn = self.IsSelected
 		local targetColor = isOn and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
 		Tween.Play(activatedImage, "HoverOut", {
@@ -214,6 +219,13 @@ function RadioButton.new(parent, group, Settings, theme)
 	----------------------------------------------------------------
 	-- CLICK
 	----------------------------------------------------------------
+	button.MouseButton1Down:Connect(function()
+		Tween.Play(bounceScale, "Fast", { Scale = 0.97 })
+	end)
+	button.MouseButton1Up:Connect(function()
+		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
+	end)
+	
 	button.MouseButton1Click:Connect(function()
 		if self.Group then
 			self.Group:Select(self)

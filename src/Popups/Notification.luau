@@ -83,6 +83,18 @@ local function tweenAll(targets, value, duration)
 	end
 end
 
+local CORNER_GRADIENT_KEYS = {
+	{0.000, 0.0}, {0.630, 0.4135}, {0.751, 0.4712}, {0.818, 0.5288},
+	{0.870, 0.5962}, {0.952, 0.7788}, {0.998, 0.9327}, {1.000, 1.0},
+}
+local function cornerGradient(col)
+	local white = Color3.fromRGB(255, 255, 255)
+	local kps = {}
+	for i, k in ipairs(CORNER_GRADIENT_KEYS) do
+		kps[i] = ColorSequenceKeypoint.new(k[1], white:Lerp(col, k[2]))
+	end
+	return ColorSequence.new(kps)
+end
 local ACCENT_KEY = {
 	Alert = "NotificationAlertAccent",
 	Error = "NotificationErrorAccent",
@@ -142,25 +154,16 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = gradientColor,
 		BackgroundTransparency = 0.65,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.new(1, 0, 0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.25, 0),
+		Size = UDim2.new(1, 0, 1, 0),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
 		ZIndex = 0,
 		Parent = root,
 	})
 	new("UICorner", { Parent = grad, CornerRadius = UDim.new(0, 6) })
-	new("UIGradient", {
+	local gradGradient = new("UIGradient", {
 		Parent = grad,
 		Rotation = -55,
-		Color = ColorSequence.new{
-			ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(0.630, Color3.fromRGB(255, 212, 161)),
-			ColorSequenceKeypoint.new(0.751, Color3.fromRGB(255, 206, 149)),
-			ColorSequenceKeypoint.new(0.818, Color3.fromRGB(255, 200, 135)),
-			ColorSequenceKeypoint.new(0.870, Color3.fromRGB(255, 193, 122)),
-			ColorSequenceKeypoint.new(0.952, Color3.fromRGB(255, 174, 80)),
-			ColorSequenceKeypoint.new(0.998, Color3.fromRGB(255, 158, 45)),
-			ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 151, 30)),
-		},
+		Color = cornerGradient(gradientColor),
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0.000, 1),
 			NumberSequenceKeypoint.new(0.297, 1),
@@ -420,6 +423,7 @@ function Notification.new(container, Settings, theme)
 	self._gradientColor = gradientColor
 	self._iconColor = iconColor
 	self._grad = grad
+	self._gradGradient = gradGradient
 	self._header = header
 	self._icon = icon
 	self._desc = desc
@@ -446,6 +450,7 @@ function Notification:ApplyTheme(themeInput)
 
 	if self._grad then
 		self._grad.BackgroundColor3 = self._gradientColor or accent
+		if self._gradGradient then self._gradGradient.Color = cornerGradient(self._gradientColor or accent) end
 	end
 
 	if self._header then
