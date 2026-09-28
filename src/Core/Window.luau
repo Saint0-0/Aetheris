@@ -945,7 +945,7 @@ function Window.new(Settings)
 		pill.Name = "Tag" .. tostring(index)
 		pill.BorderSizePixel = 0
 		pill.BackgroundColor3 = bgColor or theme.TertiaryColor
-		pill.BackgroundTransparency = 0.5
+		pill.BackgroundTransparency = 0
 		pill.Size = UDim2.new(1 / total, widthOffset, 0, 14)
 		pill.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		pill.LayoutOrder = index
@@ -993,7 +993,7 @@ function Window.new(Settings)
 		else
 			ThemeManager.BindColor(pill, "BackgroundColor3", "TertiaryColor")
 		end
-		ThemeManager.BindTransparency(pill, "BackgroundTransparency", "ComponentBackgroundTransparency")
+		-- Tags are always fully opaque (no theme-transparency bind).
 		if txtColor then
 			ThemeManager.SetColorOverride(label, "TextColor3", txtColor)
 		else
@@ -1342,7 +1342,7 @@ function Window.new(Settings)
 					compactPad.Parent = TabList
 				end
 				compactPad.PaddingBottom = UDim.new(0, 4)
-				compactPad.PaddingLeft = UDim.new(0, 6)
+				compactPad.PaddingLeft = UDim.new(0, 135)
 				for _, child in ipairs(TabList:GetChildren()) do
 					if child:GetAttribute("IsDivider") then
 						child.Visible = false

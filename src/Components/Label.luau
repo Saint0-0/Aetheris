@@ -38,7 +38,7 @@ function Label.new(parent, Settings, theme)
 	self._theme = theme
 	local text = Settings.Text or Settings.Name or "Label"
 	local showContainer = (Settings.ShowContainer == nil) and true or Settings.ShowContainer
-	local showStroke = (Settings.ShowStroke == nil) and true or Settings.ShowStroke
+	local showStroke = ((Settings.ShowStroke == nil) and true or Settings.ShowStroke) and showContainer
 	local fontWeight = getFontWeight(Settings.FontWeight or "Regular")
 	local textSize = Settings.TextSize or 14
 	local customTextTransparency = Settings.TextTransparency
