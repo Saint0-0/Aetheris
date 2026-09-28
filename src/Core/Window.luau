@@ -2095,6 +2095,12 @@ function Window.new(Settings)
 		end
 	end
 
+	-- Run the shell's own theme pass once now that it is defined. The earlier
+	-- ThemeManager.ApplyTheme(self, theme) call skipped window:ApplyTheme
+	-- because this method did not exist yet, so the focus-driven search-stroke
+	-- transparency was only stamped on a LATER theme switch.
+	self:ApplyTheme(theme)
+
 	return self
 end
 
