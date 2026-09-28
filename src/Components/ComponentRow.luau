@@ -79,6 +79,10 @@ function ComponentRow.new(parent, Settings)
 		stroke.Color = (theme and theme.StrokeColor)
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = row
+		-- Bind the stroke so it re-themes on every switch (was stamped once
+		-- from construction-time theme and never updated).
+		ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+		ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	end
 
 	local label = Instance.new("TextLabel")
