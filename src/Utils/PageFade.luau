@@ -139,7 +139,10 @@ function PageFade.FadeDecorations(group, hidden, instant)
 				d:SetAttribute("PageFadeBase", base)
 			end
 		end
-		local target = hidden and 1 or (base or 0)
+		-- If no base was captured (the decoration rests at the hidden sentinel 1,
+		-- e.g. an unfocused search stroke), leave it at its CURRENT value on show
+		-- instead of forcing it to 0 (which would snap it fully opaque).
+		local target = hidden and 1 or (base or d.Transparency)
 		if instant then
 			Tween.CancelAll(d)
 			d.Transparency = target
