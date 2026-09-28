@@ -97,9 +97,15 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
     self.ShowPopup = ShowPopup
     self._popupId = name .. "ColorPicker"  -- unique ID for popup
     -- Helper: update display and shadow
+    -- Resting shadow transparency. Re-asserted here (not just at construction)
+    -- because PageFade walks every UIShadow on page fades and can otherwise
+    -- leave it stuck at 1 (fully invisible) after a hide/invalidate cycle.
+    local SHADOW_TRANSPARENCY = 0.5
+    displayShadow:SetAttribute("PageFadeBase", SHADOW_TRANSPARENCY)
     local function updateDisplay(color)
         display.BackgroundColor3 = color
         displayShadow.Color = color
+        displayShadow.Transparency = SHADOW_TRANSPARENCY
     end
     -- Set color (with optional no callback)
     function self:SetColor(newColor, noCallback)
