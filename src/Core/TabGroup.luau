@@ -30,7 +30,7 @@ function TabHandle:Section(Settings)
 	Settings = Settings or {}
 	local side = Settings.Side or "Left"
 	local column = side == "Left" and self.ColumnLeft or self.ColumnRight
-	return Section.new(column, Settings, self._theme)
+	return Section.new(column, Settings, self._theme, self.Window)
 end
 function TabGroup.new(window, theme)
 	theme = ThemeManager.GetTheme(theme)
@@ -283,6 +283,7 @@ function TabGroup:Tab(Settings)
 	-- Tab handle
 	----------------------------------------------------------------
 	local tab = setmetatable({
+		Window = self.Window,
 		Name = name,
 		Button = Button,
 		TabName = TabName,

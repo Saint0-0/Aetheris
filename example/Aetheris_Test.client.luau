@@ -59,17 +59,17 @@ local window = Aetheris:CreateWindow({
 		{ Name = "v0.2.0",
 		  BackgroundColor = Color3.fromRGB(217, 119, 6),
 		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(251, 191, 36) },
+		  AccentColor = Color3.fromRGB(255, 221, 109) },
 		-- blue, same pattern
 		{ Name = "build",
-		  BackgroundColor = Color3.fromRGB(37, 99, 235),
+		  BackgroundColor = Color3.fromRGB(9, 52, 145),
 		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(96, 165, 250) },
+		  AccentColor = Color3.fromRGB(167, 206, 255) },
 		-- green, same pattern
 		{ Name = "DEMO",
-		  BackgroundColor = Color3.fromRGB(22, 163, 74),
+		  BackgroundColor = Color3.fromRGB(6, 119, 47),
 		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(74, 222, 128) },
+		  AccentColor = Color3.fromRGB(149, 255, 188) },
 	},
 	Theme = "Default",           -- any name from ThemeDefinitions
 	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
@@ -124,9 +124,10 @@ local window = Aetheris:CreateWindow({
 
 -- Helpers handed to components that open popups, so the popups inherit the
 -- window's theme + positioning instead of building their own.
-local function notify(settings) return window:UINotification(settings) end
-local function openDropdown(id, settings) return window:DropdownPopUp(id, settings) end
-local function openColorPicker(id, settings) return window:ColorPickerPopUp(id, settings) end
+-- Popup engines are now built into the components (see Section): no helper
+-- arguments are required when building toggles/dropdowns/color pickers.
+
+
 
 -- == 2. CREATE THE TABS ====================================================
 -- window:Tab(name, icon) adds a page to the sidebar. window:Divider() inserts
@@ -177,6 +178,21 @@ actionSection:Button({
 	Callback = function() print("[Demo] Button clicked") end,
 })
 
+-- A button that fires the full UINotification modal (confirm/cancel dialog).
+actionSection:Button({
+	Name = "Open UINotification",
+	Callback = function()
+		window:UINotification({
+			Title = "Delete Save?",
+			Description = "This action cannot be undone.",
+			ConfirmText = "Delete",
+			CancelText = "Keep",
+			OnConfirm = function() print("[Demo] UINotification confirmed") end,
+			OnCancel = function() print("[Demo] UINotification cancelled") end,
+		})
+	end,
+})
+
 -- A button that fires a themed toast notification with clickable actions.
 actionSection:Button({
 	Name = "Send a toast",
@@ -206,7 +222,7 @@ switchSection:Toggle({
 })
 
 -- Toggle with a confirmation prompt. When Confirm.Enabled is true, flipping
--- the switch shows a modal; the 2nd arg (notify) is the notification engine.
+-- the switch shows a modal; the notification engine is now built into the component.
 switchSection:Toggle({
 	Name = "Dangerous Toggle",
 	Default = false,
@@ -219,7 +235,7 @@ switchSection:Toggle({
 		CancelText = "No, cancel",
 	},
 	Callback = function(state) print("[Demo] Dangerous toggle:", state) end,
-}, notify)
+})
 
 local valueSection = controlsTab:Section({ Name = "Values", Side = "Left" })
 
@@ -294,7 +310,7 @@ dropSection:Dropdown({
 	Callback = function(selected)
 		if selected[1] then print("[Demo] Dropdown (single):", selected[1].name) end
 	end,
-}, openDropdown)
+})
 
 -- Dropdown, multi-select capped at 2.
 dropSection:Dropdown({
@@ -308,7 +324,7 @@ dropSection:Dropdown({
 		for _, item in ipairs(selected) do table.insert(names, item.name) end
 		print("[Demo] Dropdown (multi):", table.concat(names, ", "))
 	end,
-}, openDropdown)
+})
 
 -- Dropdown, uncapped multi-select (omit MaxItemsChoosable).
 dropSection:Dropdown({
@@ -317,7 +333,7 @@ dropSection:Dropdown({
 	Default = {},
 	Placeholder = "Choose freely...",
 	Callback = function(selected) print("[Demo] Dropdown (uncapped):", #selected, "items") end,
-}, openDropdown)
+})
 
 local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
 
@@ -327,13 +343,13 @@ colorSection:ColorPicker({
 	Name = "Accent Colour",
 	Default = Color3.fromRGB(108, 140, 255),
 	Callback = function(color) print("[Demo] ColorPicker:", color) end,
-}, openColorPicker)
+})
 
 colorSection:ColorPicker({
 	Name = "Crosshair Colour",
 	Default = Color3.fromRGB(255, 80, 80),
 	Callback = function(color) print("[Demo] ColorPicker 2:", color) end,
-}, openColorPicker)
+})
 
 -- =========================================================================
 --  6. FEEDBACK TAB  -  Status, ProgressBar, Notifications, Video
@@ -465,7 +481,7 @@ themeSection:Dropdown({
 			print("[Demo] Theme ->", selected[1].value)
 		end
 	end,
-}, openDropdown)
+})
 
 -- =========================================================================
 --  9. STARTUP LOG

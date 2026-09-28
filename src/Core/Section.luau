@@ -31,7 +31,7 @@ local Constants = require("../Constants")
 
 local Section = {}
 Section.__index = Section
-function Section.new(parent, Settings, theme)
+function Section.new(parent, Settings, theme, window)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	-- Ensure we have a valid theme table
@@ -40,6 +40,14 @@ function Section.new(parent, Settings, theme)
 	end
 	local self = setmetatable({}, Section)
 	self._theme = theme
+	self._window = window
+	-- Built-in popup engines from the owning window, so components never need a
+	-- helper passed as a trailing argument. Nil when the section has no window.
+	if window then
+		self._notify = function(s) return window:UINotification(s) end
+		self._openDropdown = function(id, s) return window:DropdownPopUp(id, s) end
+		self._openColorPicker = function(id, s) return window:ColorPickerPopUp(id, s) end
+	end
 	-- Build the section frame
 	local frame = Instance.new("Frame")
 	frame.Name = Settings.Name or "Section"
@@ -135,6 +143,9 @@ end
 		:UpdateName(newName) - change the label text
 ]]
 function Section:Toggle(Settings, ShowNotification)
+	-- Notification engine is built in from the owning window; the 2nd arg is no
+	-- longer required (still honoured if a caller passes one).
+	ShowNotification = ShowNotification or self._notify
 	return Toggle.new(self.Frame, Settings, ShowNotification, self._theme)
 end
 function Section:Slider(Settings)
@@ -165,6 +176,7 @@ function Section:Status(Settings)
 	return Status.new(self.Frame, Settings, self._theme)
 end
 function Section:Dropdown(Settings, ShowPopup)
+	ShowPopup = ShowPopup or self._openDropdown
 	return Dropdown.new(self.Frame, Settings, ShowPopup, self._theme)
 end
 function Section:ProgressBar(Settings)
@@ -177,6 +189,7 @@ function Section:Paragraph(Settings)
 	return Paragraph.new(self.Frame, Settings, self._theme)
 end
 function Section:ColorPicker(Settings, ShowPopup)
+	ShowPopup = ShowPopup or self._openColorPicker
 	return ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme)
 end
 
