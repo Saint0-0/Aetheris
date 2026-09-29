@@ -126,7 +126,19 @@ end
 function PageFade.FadeDecorations(group, hidden, instant)
 	if not group then return end
 	for _, d in ipairs(getDecorations(group)) do
-		local base = d:GetAttribute("PageFadeBase")
+		-- Resting transparency. The theme system is the source of truth: every
+		-- colour/number binding publishes its RESOLVED value as ThemeLive_<prop>
+		-- (ThemeManager.applyEntry), so a theme-bound decoration's resting value
+		-- tracks every theme switch. Read that; only fall back to the one-time
+		-- PageFadeBase snapshot for a decoration the theme does NOT own (a fixed
+		-- shadow, a component-set stroke).
+		local themeRest = d:GetAttribute("ThemeLive_Transparency")
+		local base
+		if themeRest ~= nil then
+			base = themeRest
+		else
+			base = d:GetAttribute("PageFadeBase")
+		end
 		if base == nil then
 			-- Capture the resting transparency ONLY from a visible value. If the
 			-- decoration is currently at the hidden sentinel (1) -- e.g. this page
@@ -144,7 +156,9 @@ function PageFade.FadeDecorations(group, hidden, instant)
 		-- instead of forcing it to 0 (which would snap it fully opaque).
 		local target = hidden and 1 or (base or d.Transparency)
 		if instant then
-			Tween.CancelAll(d)
+			-- Cancel ONLY this instance's Transparency tween so an in-flight
+			-- theme Color crossfade on the same stroke/shadow is left running.
+			Tween.CancelProperty(d, "Transparency")
 			d.Transparency = target
 		else
 			Tween.Play(d, PageFade.PRESET, { Transparency = target })
@@ -262,10 +276,14 @@ end
 -- restore that stale value forever -- the "stroke stays invisible until hover"
 -- bug. Re-marking dirty also re-scans so newly-themed decorations are included.
 function PageFade.InvalidateDecorationBases()
+	-- Theme-bound decorations no longer keep a PageFadeBase (their resting value
+	-- comes from the theme's ThemeLive_Transparency). A decoration's own
+	-- PageFadeBase is only ever a NON-theme resting value, which does not change
+	-- with the theme -- so there is nothing to invalidate. Nil-ing the bases here
+	-- would destroy a base a component just re-stamped in its own ApplyTheme
+	-- (the radio-stroke bug). Just re-mark dirty so the next fade re-scans for
+	-- decorations added since the last pass.
 	for _, entry in pairs(decorationCache) do
-		for _, d in ipairs(entry.list) do
-			d:SetAttribute("PageFadeBase", nil)
-		end
 		entry.dirty = true
 	end
 end

@@ -191,6 +191,28 @@ function TweenUtil.CancelAll(instance)
 	activeTweens[instance] = nil
 end
 
+-- Cancel only the tween running on ONE property of an instance, leaving every
+-- other property tween (e.g. a theme Color crossfade) untouched. The registry
+-- keys a single-property tween by tostring(property), so this is a direct
+-- bucket lookup. PageFade uses this so its decoration fade owns ONLY
+-- Transparency and never aborts the theme's in-flight Color crossfade on the
+-- same stroke/shadow.
+function TweenUtil.CancelProperty(instance, propertyName)
+	local bucket = activeTweens[instance]
+	if not bucket then
+		return
+	end
+	local key = tostring(propertyName)
+	local handle = bucket[key]
+	if handle then
+		handle.Tween:Cancel()
+		bucket[key] = nil
+		if next(bucket) == nil then
+			activeTweens[instance] = nil
+		end
+	end
+end
+
 -- Cancel every tracked tween on `root` AND all of its descendants in one sweep.
 -- Iterates the SPARSE activeTweens registry (only instances that are actually
 -- animating) instead of walking the whole GUI tree, so this is O(active tweens)

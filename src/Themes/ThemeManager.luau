@@ -202,7 +202,13 @@ local function applyEntry(entry, theme, animate)
     if entry.opts.transform then
         value = entry.opts.transform(value)
     end
-    if entry.opts.live then
+    -- Publish the RESOLVED value as data. Consumers that fade this instance
+    -- (PageFade's decoration pass) read the theme's AUTHORITATIVE resting value
+    -- from here instead of guessing one from a mid-tween property -- so a page
+    -- fade DEPENDS on the theme system rather than snapshotting its own base.
+    -- colour/number are always published (they are the fadable kinds); `live`
+    -- additionally publishes other kinds.
+    if entry.opts.live or entry.kind == "color" or entry.kind == "number" then
         inst:SetAttribute("ThemeLive_" .. entry.property, value)
     end
     local current = inst[entry.property]
