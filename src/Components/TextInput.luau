@@ -1,16 +1,31 @@
 --[[
 	TextInput  ·  Aetheris UI Library
 
-	Single-line text field, ported from Rayfield gen2's Input onto Aetheris's
-	procedural (Instance.new + ThemeManager.Bind*) conventions.
+	The TextBox IS the field -- there is no wrapper Frame. Every visual
+	(background, stroke, corner, glow, padding) lives on the TextBox itself.
 
-	Look  : a right-anchored, fully-rounded pill that hugs its text. Muted text at
-	        rest, opaque while focused (Rayfield's focusInfo fade).
-	Behaviour: commits on FocusLost (enter or click away). When the committed
-	        value actually changes, the field flashes the theme ACCENT colour --
-	        the stroke and a soft glow bloom toward the accent, then settle back.
-	Options: Numeric (strips non-number chars, supports "5^3" and "9e9"),
-	        ClearOnFocus (blank the field on focus, restore if nothing typed).
+	Layout:
+		AnchorPoint    (1, 0.5)
+		Position       (1, 0, 0.5, 0)   -- flush to the row's right edge
+		Size           (0, w, 0, 29)    -- w is measured + tweened, see below
+		TextXAlignment Center
+
+	Width hug (kept from Rayfield): the pill is resized by MEASURING its
+	shown string (typed text, or the placeholder when empty) and TWEENING
+	Size.X with pillResizeInfo (0.4 Exponential Out). Width = measured text +
+	2*PAD_X, so the centred text keeps PAD_X (15px) clearance each side. No
+	UIPadding: on a centred TextBox it would consume the very slack the
+	+2*PAD_X provides and force an ellipsis.
+
+	Cap: the field's left edge must stay at least LABEL_GAP (20px) clear of
+	the auto-sized name label, so a long value can never run over it.
+	Overflow ellipsises (TextTruncate.AtEnd).
+
+	Animations: focus fade (0.15 Quint Out, text 0.6 -> 0) and the commit
+	accent flash (stroke + glow bloom, then settle).
+
+	Options : Numeric (strips non-number chars, supports "5^3" and "9e9"),
+	          ClearOnFocus (blank on focus, restore if nothing typed).
 
 	Usage:
 		local textInput = section:TextInput({
@@ -22,6 +37,8 @@
 		})
 ]]
 
+local TextService = game:GetService("TextService")
+
 local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
@@ -31,11 +48,24 @@ local ComponentRow = require("./ComponentRow")
 local TextInput = {}
 TextInput.__index = TextInput
 
--- text is muted at rest, opaque while typing (Rayfield's focusInfo)
-local REST_TRANSPARENCY = 0.6
+-- ---- constants --------------------------------------------------------------
+local FIELD_HEIGHT    = 29
+local FIELD_MIN_W     = 40     -- floor width; the default still hugs the placeholder
+local FIELD_MAX_W     = 220    -- absolute ceiling regardless of row width
+local TEXT_SIZE       = 15
+local PAD_X           = 15     -- clearance each side of the text (centred)
+local LABEL_GAP       = 20     -- px the field always keeps clear before the label
 
--- Parse a simple exponent expression like "5^3" -> 125. Falls back to tonumber for
--- plain numbers and scientific notation ("9e9" -> 9000000000).
+-- Rayfield's pillResizeInfo (the width-hug animation)
+local RESIZE_INFO = TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+local FOCUS_INFO  = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local SETTLE_INFO = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local REST_TEXT_TRANSPARENCY   = 0.6
+local REST_FIELD_TRANSPARENCY  = 0.9
+
+-- Parse a simple exponent expression like "5^3" -> 125. Falls back to tonumber
+-- for plain numbers and scientific notation ("9e9" -> 9000000000).
 local function parseExp(text)
 	local a, b = text:match("^([%d%.%-]+)%^([%d%.%-]+)$")
 	if a and b then
@@ -45,6 +75,34 @@ local function parseExp(text)
 		end
 	end
 	return tonumber(text)
+end
+
+-- Text width, cached per (family, size, string). Measures once via
+-- GetTextBoundsAsync, then serves from the cache -- mirrors Rayfield's
+-- textMetrics module so the pill hugs text without re-measuring every keystroke.
+local widthCache = {}
+local function measure(font, size, text)
+	text = tostring(text)
+	if text == "" then
+		return 0
+	end
+	local key = tostring(font.Family) .. "|" .. tostring(size) .. "|" .. text
+	local hit = widthCache[key]
+	if hit then
+		return hit
+	end
+	local params = Instance.new("GetTextBoundsParams")
+	params.Text = text
+	params.Font = font
+	params.Size = size
+	params.Width = math.huge
+	local ok, bounds = pcall(function()
+		return TextService:GetTextBoundsAsync(params)
+	end)
+	local w = (ok and bounds and bounds.X) or (#text * size * 0.55)
+	w = math.ceil(w)
+	widthCache[key] = w
+	return w
 end
 
 function TextInput.new(parent, Settings, theme)
@@ -59,146 +117,168 @@ function TextInput.new(parent, Settings, theme)
 	local numeric = Settings.Numeric == true
 	local clearOnFocus = Settings.ClearOnFocus == true
 
-	-- Shared row factory (row name + label width preserved for layout parity).
+	-- Row + label. LabelAutoSize gives the name a variable-width working space
+	-- (X size 0 + AutomaticSize.X), so the field's cap keys off its real width.
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "TextInput",
 		Theme = theme,
+		LabelAutoSize = true,
 		LabelWidth = 0.48591,
 	})
 
-	-- The field: a right-anchored, fully-rounded pill that hugs its text.
-	local inputBox = Instance.new("TextBox")
-	inputBox.Name = "InputBox"
-	inputBox.BorderSizePixel = 0
-	inputBox.TextWrapped = false
-	inputBox.TextSize = 15
-	inputBox.TextXAlignment = Enum.TextXAlignment.Center
-	inputBox.TextTruncate = Enum.TextTruncate.AtEnd
-	inputBox.TextColor3 = theme.SecondaryTextColor
-	inputBox.TextTransparency = REST_TRANSPARENCY
-	inputBox.PlaceholderColor3 = theme.SecondaryTextColor
-	inputBox.BackgroundColor3 = theme.InputBackgroundColor
-	inputBox.BackgroundTransparency = theme.InputBackgroundTransparency
-	inputBox:SetAttribute("IsInputBackground", true)
-	inputBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	inputBox.ClearTextOnFocus = false
-	inputBox.PlaceholderText = placeholder
-	inputBox.AnchorPoint = Vector2.new(1, 0.5)
-	inputBox.Position = UDim2.new(1, 0, 0.5, 0)
-	inputBox.Size = UDim2.fromOffset(90, 30)
-	inputBox.AutomaticSize = Enum.AutomaticSize.X
-	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	inputBox.Text = default
-	inputBox.Parent = row
+	local font = Constants.Font(Enum.FontWeight.Medium)
+
+	-- ---- the field (the TextBox itself) -------------------------------------
+	local field = Instance.new("TextBox")
+	field.Name = "Field"
+	field.AnchorPoint = Vector2.new(1, 0.5)
+	field.Position = UDim2.new(1, 0, 0.5, 0)
+	field.Size = UDim2.new(0, FIELD_MIN_W, 0, FIELD_HEIGHT) -- replaced by sizeBox below
+	field.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+	field.BackgroundTransparency = theme.InputBackgroundTransparency or REST_FIELD_TRANSPARENCY
+	field.BorderSizePixel = 0
+	field.TextSize = TEXT_SIZE
+	field.TextXAlignment = Enum.TextXAlignment.Center
+	field.TextYAlignment = Enum.TextYAlignment.Center
+	field.TextTruncate = Enum.TextTruncate.AtEnd
+	field.TextWrapped = false
+	field.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(240, 240, 240)
+	field.PlaceholderColor3 = theme.PrimaryTextColor or Color3.fromRGB(240, 240, 240)
+	field.PlaceholderText = placeholder
+	field.TextTransparency = REST_TEXT_TRANSPARENCY
+	field.ClearTextOnFocus = false
+	field.FontFace = font
+	field.Text = default
+	field:SetAttribute("IsInputBackground", true)
+	field.Parent = row
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0) -- full pill, like Rayfield's field
-	corner.Parent = inputBox
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = field
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Transparency = theme.StrokeTransparency or 0.85
+	stroke.Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80)
+	stroke.Transparency = restStrokeTransparency()
 	stroke.Thickness = 1
-	stroke.Color = theme.StrokeColor
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = inputBox
+	stroke.Parent = field
 
-	-- Soft bloom behind the field; invisible at rest, lit by the commit flash.
 	local glow = Instance.new("UIShadow")
+	glow.Name = "FieldGlow"
 	glow.Color = theme.AccentColor or Color3.fromRGB(108, 140, 255)
 	glow.Transparency = 1
-	glow.BlurRadius = UDim.new(0, 12)
+	glow.BlurRadius = UDim.new(0, 20)
 	glow.Spread = UDim2.fromOffset(1, 1)
-	glow.Parent = inputBox
+	glow.Parent = field
 
-	local padding = Instance.new("UIPadding")
-	padding.PaddingRight = UDim.new(0, 12)
-	padding.PaddingLeft = UDim.new(0, 12)
-	padding.Parent = inputBox
+	-- Cap: the field's left edge (rowW - width) must stay at least LABEL_GAP px
+	-- right of the auto-sized label.
+	local constraint = Instance.new("UISizeConstraint")
+	constraint.MinSize = Vector2.new(FIELD_MIN_W, FIELD_HEIGHT)
+	constraint.MaxSize = Vector2.new(FIELD_MAX_W, FIELD_HEIGHT)
+	constraint.Parent = field
 
-	local sizeConstraint = Instance.new("UISizeConstraint")
-	sizeConstraint.MinSize = Vector2.new(70, 30)
-	sizeConstraint.MaxSize = Vector2.new(200, 30)
-	sizeConstraint.Parent = inputBox
-
-	-- Resting stroke transparency, remembered so the flash can settle back to it.
-	local restStrokeTrans = theme.StrokeTransparency or 0.85
-
-	-- Hover/focus brighten -- same treatment as keybind. The PageFadeBase pin
-	-- keeps a page fade from restoring a transient brighten (the "stroke stays
-	-- bright/invisible until re-hover" bug).
-	local function setStrokeBright(bright)
-		local liveTheme = ActiveTheme.theme or theme
-		local liveRest = liveTheme and liveTheme.StrokeTransparency or 0.95
-		restStrokeTrans = liveRest
-		local targetTrans = bright and 0.3 or liveRest
-		local targetColor = liveTheme.StrokeColor
-		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
-		stroke:SetAttribute("PageFadeBase", liveRest)
+	-- ---- helpers ------------------------------------------------------------
+	local function activeTheme()
+		return ActiveTheme.theme or theme
 	end
 
-	-- Accent flash: the stroke and glow bloom toward the theme accent, then
-	-- settle back to rest. Cancel any in-flight flash first so rapid commits
-	-- don't stack.
+	local function restFieldTransparency()
+		local t = activeTheme()
+		return (t and t.InputBackgroundTransparency) or REST_FIELD_TRANSPARENCY
+	end
+
+	-- Same resting stroke transparency as RadioButton (theme.StrokeTransparency
+	-- or 0.4), so the two components read as one family.
+	local function restStrokeTransparency()
+		local t = activeTheme()
+		return (t and t.StrokeTransparency) or 0.4
+	end
+
+	local function maxWidth()
+		local rowW = row.AbsoluteSize.X
+		if rowW <= 0 then
+			return FIELD_MAX_W
+		end
+		local cap = rowW - label.AbsoluteSize.X - LABEL_GAP
+		return math.max(FIELD_MIN_W, math.min(FIELD_MAX_W, cap))
+	end
+
+	-- Hug: shown = typed text, or the placeholder when empty. The pill's width
+	-- is measured text + PAD_X*2, clamped to [min, cap], and tweened in.
+	local function sizeBox(animate)
+		local shown = (field.Text ~= "" and field.Text) or placeholder
+		local w = math.clamp(measure(font, TEXT_SIZE, shown) + PAD_X * 2, FIELD_MIN_W, maxWidth())
+		if animate then
+			Tween.Play(field, RESIZE_INFO, { Size = UDim2.new(0, w, 0, FIELD_HEIGHT) })
+		else
+			field.Size = UDim2.new(0, w, 0, FIELD_HEIGHT)
+		end
+	end
+	self._sizeBox = sizeBox
+
+	local function setFocused(lookFocused)
+		Tween.Play(field, FOCUS_INFO, {
+			TextTransparency = lookFocused and 0 or REST_TEXT_TRANSPARENCY,
+		})
+	end
+
 	local flashToken = 0
 	local function flash()
-		local liveTheme = ActiveTheme.theme or theme
-		local accent = liveTheme.AccentColor or Color3.fromRGB(108, 140, 255)
+		local t = activeTheme()
+		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
 		flashToken += 1
 		local token = flashToken
-		Tween.Play(stroke, "Fast", { Color = accent, Transparency = 0.15 })
-		Tween.Play(glow, "Fast", { Color = accent, Transparency = 0.35 })
-		task.delay(0.35, function()
+		Tween.Play(stroke, FOCUS_INFO, { Color = accent, Transparency = 0.1 })
+		Tween.Play(glow, FOCUS_INFO, { Color = accent, Transparency = 0.55 })
+		task.delay(0.28, function()
 			if token ~= flashToken then
-				return -- a newer flash superseded this one
+				return
 			end
-			if not inputBox.Parent then
-				return -- destroyed while flashing
+			if not field.Parent then
+				return
 			end
-			local settled = ActiveTheme.theme or theme
-			Tween.Play(stroke, "Release", {
-				Color = settled.StrokeColor,
-				Transparency = settled.StrokeTransparency or 0.85,
+			local settled = activeTheme()
+			Tween.Play(stroke, SETTLE_INFO, {
+				Color = settled.StrokeColor or Color3.fromRGB(80, 80, 80),
+				Transparency = restStrokeTransparency(),
 			})
-			Tween.Play(glow, "Release", { Transparency = 1 })
+			Tween.Play(glow, SETTLE_INFO, { Transparency = 1 })
 		end)
 	end
 	self._flash = flash
 
-	-- Hover / focus strokes
-	inputBox.MouseEnter:Connect(function()
-		setStrokeBright(true)
-	end)
-	inputBox.MouseLeave:Connect(function()
-		if not inputBox:IsFocused() then
-			setStrokeBright(false)
+	-- ---- interaction --------------------------------------------------------
+	field:GetPropertyChangedSignal("Text"):Connect(function()
+		if numeric then
+			local cleaned = (field.Text:gsub("[^%d%.%-eE%^]", ""))
+			if cleaned ~= field.Text then
+				field.Text = cleaned
+				return -- reassignment re-fires this; we resize on that pass
+			end
 		end
+		sizeBox(true)
 	end)
 
-	inputBox.Focused:Connect(function()
-		setStrokeBright(true)
-		Tween.Play(inputBox, "Fast", { TextTransparency = 0 })
+	field.Focused:Connect(function()
+		setFocused(true)
 	end)
 
-	-- Commit on FocusLost (enter or click away), Rayfield-style.
-	inputBox.FocusLost:Connect(function()
-		Tween.Play(inputBox, "Fast", { TextTransparency = REST_TRANSPARENCY })
-		setStrokeBright(false)
+	field.FocusLost:Connect(function()
+		setFocused(false)
 
-		-- clearOnFocus blanks the field on focus, so a click in and straight back
-		-- out would commit "" over a good value. Nothing typed = nothing to commit.
-		if clearOnFocus and inputBox.Text == "" and default ~= "" then
-			inputBox.Text = default
+		if clearOnFocus and field.Text == "" and default ~= "" then
+			field.Text = default
 			return
 		end
 
-		local text = inputBox.Text
+		local text = field.Text
 		if numeric then
 			local n = parseExp(text)
 			if not n or n ~= n or n == math.huge or n == -math.huge then
-				-- invalid or non-finite: revert to what we had
-				if inputBox.Text ~= default then
-					inputBox.Text = default
+				if field.Text ~= default then
+					field.Text = default
 				end
 				return
 			end
@@ -207,72 +287,85 @@ function TextInput.new(parent, Settings, theme)
 
 		local changed = text ~= default
 		default = text
-		if inputBox.Text ~= text then
-			inputBox.Text = text
+		if field.Text ~= text then
+			field.Text = text
 		end
 
 		if Settings.Callback then
 			Settings.Callback(text)
 		end
 		if changed then
-			flash() -- green/accent confirmation, only when the value actually moved
+			flash()
 		end
 	end)
 
-	-- Strip non-numeric characters as they're typed (Rayfield's numeric mode).
-	inputBox:GetPropertyChangedSignal("Text"):Connect(function()
-		if numeric then
-			local cleaned = (inputBox.Text:gsub("[^%d%.%-eE%^]", ""))
-			if cleaned ~= inputBox.Text then
-				inputBox.Text = cleaned
-			end
-		end
+	-- Recompute the cap (and re-hug) if the row or the auto-sized label resizes.
+	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		sizeBox(false)
+	end)
+	label:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		sizeBox(false)
 	end)
 
-	-- Public API
+	-- ---- public API ---------------------------------------------------------
 	self.GetText = function()
-		return inputBox.Text
+		return field.Text
 	end
 	self.SetText = function(newText, silent)
 		newText = tostring(newText or "")
 		default = newText
-		inputBox.Text = newText
+		field.Text = newText
 		if not silent then
 			flash()
 		end
 	end
 	self.UpdateName = function(newName)
 		label.Text = newName
+		sizeBox(false)
 	end
 	self.SetPlaceholder = function(newPlaceholder)
-		inputBox.PlaceholderText = newPlaceholder
+		placeholder = newPlaceholder
+		field.PlaceholderText = newPlaceholder
+		sizeBox(true)
 	end
 	self.Flash = flash
 
-	-- Declarative theming: every themed property is a BINDING.
+	-- ---- theme bindings -----------------------------------------------------
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
-	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindTransparency(inputBox, "TextTransparency", "SecondaryTextTransparency")
-	ThemeManager.BindColor(inputBox, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(field, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindTransparency(field, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(field, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindColor(field, "PlaceholderColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
-	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	ThemeManager.BindColor(glow, "Color", "AccentColor")
 
-	-- Re-stamp AFTER the bind: BindTransparency only writes on a theme CHANGE, so
-	-- without this the stroke keeps its default until the first switch.
-	stroke.Transparency = theme.StrokeTransparency or 0.85
+	field.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(240, 240, 240)
+	field.PlaceholderColor3 = theme.PrimaryTextColor or Color3.fromRGB(240, 240, 240)
+	field.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+	field.BackgroundTransparency = restFieldTransparency()
+	stroke.Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80)
+	stroke.Transparency = restStrokeTransparency()
+	glow.Color = theme.AccentColor or Color3.fromRGB(108, 140, 255)
+	glow.Transparency = 1
 
-	-- Uniform component API.
+	sizeBox(false) -- initial hug: placeholder width + 30, no animation
+	task.defer(function()
+		sizeBox(false) -- after the first layout pass, once AbsoluteSize is real
+	end)
+
+	-- ---- uniform component API ----------------------------------------------
 	function self:SetVisibility(visible)
 		row.Visible = visible
 	end
 	function self:Destroy()
+		Tween.CancelAll(field)
 		Tween.CancelAll(stroke)
 		Tween.CancelAll(glow)
 		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(inputBox)
+		ThemeManager.UnbindInstance(field)
 		ThemeManager.UnbindInstance(stroke)
+		ThemeManager.UnbindInstance(glow)
 		if row and row.Parent then
 			row:Destroy()
 		end

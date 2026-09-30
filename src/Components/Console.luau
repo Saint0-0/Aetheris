@@ -63,6 +63,9 @@ function Console.new(parent, Settings, theme)
 	self._nextOrder = 1
 	self._dirty = true
 	self._textTransparency = theme.PrimaryTextTransparency or 0.15
+	-- RichText is opt-in: when off, output is literal (a '<' in a log line is
+	-- text, not markup). Callers that want per-segment styling enable it.
+	self._richText = Settings.RichText == true
 
 	self:_build()
 	self:Set(Settings.Text or "")
@@ -84,7 +87,7 @@ function Console:_makeLabel()
 	label.TextYAlignment = Enum.TextYAlignment.Top
 	label.TextWrapped = true
 	label.LineHeight = lineHeight
-	label.RichText = false -- it's output; angle brackets are text, not markup
+	label.RichText = self._richText -- opt-in; when on, callers may embed <font> tags
 	label.TextColor3 = self._theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	label.TextTransparency = self._textTransparency
 	label.Parent = self._scroll

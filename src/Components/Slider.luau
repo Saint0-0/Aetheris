@@ -1,18 +1,38 @@
 --[[
 	Slider  ·  Aetheris UI Library
 
-	Draggable value slider with a spinning fill gradient, a numeric readout,
-	and a reset button. Clamps to Min/Max and rounds to Precision.
+	Draggable value slider. Mechanics are a 1:1 port of Rayfield gen2's
+	slider (src/components/slider.luau); the look, readout, reset button and
+	spinning fill gradient are ours and are preserved.
+
+	Rayfield mechanics copied verbatim:
+		· The pill is a CHILD of the fill and is carried by it -- it has no
+		  position of its own. Position = UDim2.new(1, 0, 0.5, 0), centred on
+		  the fill's leading edge, so half of it hangs past the track at each
+		  end of the range.
+		· Pointer travel is the WHOLE track (ratioFromPointer maps straight
+		  across it).
+		· snapTo() snaps onto an increment grid anchored at range[1], so both
+		  endpoints stay reachable.
+		· Press grows the pill (35x20 -> 41x22, 0.3 Exponential Out), ghosts
+		  it (BackgroundTransparency 0.7) and fades its stroke in (0.6).
+		· Drag is a RenderStepped follow that self-terminates, plus
+		  InputEnded AND WindowFocusReleased both ending the drag.
+		· The fill follows the value with a 0.3 Quint Out tween mid-drag.
+
+	Kept from ours: the spinning gradient (Tween.StartSpin), the percentage
+	/ value readout, the reset button and the theme bindings.
 
 	Usage:
 		local slider = section:Slider({
-			Name = "Smoothness",
-			Min = 0,
-			Max = 100,
-			Default = 50,
+			Name = "Smoothness", Min = 0, Max = 100, Default = 50,
 			Callback = function(value) end,
 		})
 ]]
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
@@ -23,19 +43,76 @@ local ComponentRow = require("./ComponentRow")
 
 local Slider = {}
 Slider.__index = Slider
--- Spins are gated per-instance (Settings.SpinningEnabled) plus the central
--- Tween.SpinsEnabled; there is no class-level toggle.
+
+-- ---- Rayfield mechanics constants (copied from slider.luau) ----------------
+local TWEEN_INFO  = TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+local HELD_INFO   = TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+local FOLLOW_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+-- The pill's two sizes: at rest, and while it's held.
+local HANDLE_REST = Vector2.new(35, 15)
+local HANDLE_HELD = Vector2.new(41, 17)
+
+-- Decimal places implied by an increment (0.1 -> 1, 0.25 -> 2, 1 -> 0). Checks
+-- against the nearest whole number at each scale so float error can't inflate
+-- the count (0.07 * 10 is 0.7000000000000001, still 2 decimals).
+local function decimalsOf(step)
+	local decimals = 0
+	while decimals < 6 do
+		local scaled = step * 10 ^ decimals
+		if math.abs(scaled - math.round(scaled)) < 1e-9 then
+			break
+		end
+		decimals += 1
+	end
+	return decimals
+end
+
+-- snap onto the increment grid anchored at range[1], so both endpoints stay
+-- reachable (a zero-anchored grid can't express range = {0.5, 2.5} with inc 1).
+local function snapTo(range, increment, value)
+	local snapped = range[1] + math.round((value - range[1]) / increment) * increment
+	return math.clamp(snapped, range[1], range[2])
+end
+
+-- The fill is a plain ratio of the track; the pill rides its leading edge.
+local function fillSize(ratio)
+	return UDim2.new(ratio, 0, 1, 0)
+end
+
+-- The pill sits centred on the fill's leading edge and lives inside the fill,
+-- so it tracks the value without a position of its own.
+local function handleOffset()
+	return UDim2.new(1, 0, 0.5, 0)
+end
+
+-- The pointer maps over the whole track, because the pill's centre does too.
+local function ratioFromPointer(x, left, travel)
+	return math.clamp((x - left) / travel, 0, 1)
+end
+
 function Slider.new(parent, Settings, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	local spinEnabled = (Settings.SpinningEnabled == nil) and true or Settings.SpinningEnabled
 	local self = setmetatable({}, Slider)
 	self._theme = theme
+
 	local name = Settings.Name or "Slider"
 	local min = Settings.Min or 0
 	local max = Settings.Max or 100
+	local increment = Settings.Increment or Settings.Step or 1
 	local default = Settings.Default or 50
-	local precision = Settings.Precision or 0 -- decimal places for display
+	local precision = Settings.Precision or decimalsOf(increment)
+
+	-- keep range ascending and increment positive so the clamp/snap math is sane
+	if min > max then
+		min, max = max, min
+	end
+	if increment <= 0 then
+		increment = 1
+	end
+
 	-- Main row frame (shared factory; height 52 preserved).
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
@@ -44,18 +121,19 @@ function Slider.new(parent, Settings, theme)
 		Height = 52,
 		LabelWidth = 0.59985,
 		LabelHeight = 0.31745,
-		LabelPosition = UDim2.new(0, 0, 0.121, 0),
+		LabelPosition = UDim2.new(0, 0, 0.05, 0),
+		LabelAnchorPoint = Vector2.new(0, 0),
 	})
-	-- (name label is created by ComponentRow above)
-	-- SliderHolder (track background)
+
+	-- ---- track (Rayfield's `track`) -----------------------------------------
 	local holder = Instance.new("Frame")
 	holder.Name = "SliderHolder"
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = theme.Undercolor
 	holder.BackgroundTransparency = 0
-	holder.AnchorPoint = Vector2.new(0, 0.5)
-	holder.Size = UDim2.new(1, 0, 0, 4)
-	holder.Position = UDim2.new(0, 0, 0.723, 5)
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.Size = UDim2.new(0.9, 0, 0, 4)
+	holder.Position = UDim2.new(0.5, 0, 0.62, 5)
 	holder.BorderColor3 = Color3.fromRGB(255, 255, 255)
 	holder.Parent = row
 	local holderCorner = Instance.new("UICorner")
@@ -63,18 +141,20 @@ function Slider.new(parent, Settings, theme)
 	holderCorner.Parent = holder
 	local holderShadow = Instance.new("UIShadow")
 	holderShadow.Parent = holder
-	-- SliderVisual (fill progress)
+
+	-- ---- fill (Rayfield's `progress`) ---------------------------------------
 	local visual = Instance.new("Frame")
 	visual.Name = "SliderVisual"
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = (theme and theme.PrimaryColor)
-	visual.Size = UDim2.new(0.201, 0, 1, 0) -- initial fill
+	visual.Size = UDim2.new(0, 0, 1, 0)
 	visual.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	visual.Parent = holder
 	local visualCorner = Instance.new("UICorner")
 	visualCorner.CornerRadius = UDim.new(0, 4)
 	visualCorner.Parent = visual
-	-- BackImage with spinning gradient
+
+	-- spinning sheen inside the fill (ours)
 	local backImage = Instance.new("ImageLabel")
 	backImage.Name = "BackImage"
 	backImage.BorderSizePixel = 0
@@ -88,63 +168,53 @@ function Slider.new(parent, Settings, theme)
 	backImage.BackgroundTransparency = 1
 	backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
 	backImage.Parent = visual
-	-- Set visibility based on theme's WallpaperEnabled
-	if theme and theme.WallpaperEnabled == false then
-		backImage.Visible = false
-	else
-		backImage.Visible = true
-	end
+	backImage.Visible = not (theme and theme.WallpaperEnabled == false)
 	local backCorner = Instance.new("UICorner")
 	backCorner.CornerRadius = UDim.new(0, 4)
 	backCorner.Parent = backImage
 	local gradient = Instance.new("UIGradient")
-	gradient.Transparency = NumberSequence.new{
+	gradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(0.324, 0.80625),
 		NumberSequenceKeypoint.new(0.600, 0.6875),
 		NumberSequenceKeypoint.new(0.726, 0.55),
 		NumberSequenceKeypoint.new(0.844, 0.36875),
-		NumberSequenceKeypoint.new(1.000, 0)
-	}
+		NumberSequenceKeypoint.new(1.000, 0),
+	})
 	gradient.Parent = backImage
-	-- SliderButton (thumb)
+
+	-- ---- the pill (Rayfield's `handle`) -- a child of the FILL, carried by it -
 	local thumb = Instance.new("ImageButton")
 	thumb.Name = "SliderButton"
 	thumb.BorderSizePixel = 0
 	thumb.AutoButtonColor = false
 	thumb.ImageTransparency = 1
 	thumb.BackgroundTransparency = 0
-	-- Thumb (the draggable handle) uses the theme's accent color so it reads
-	-- as an interactive control, matching the reset button / settings gear.
 	thumb.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(255, 255, 255)
-	-- Parented to the HOLDER (not the fill) so its position is an absolute
-	-- fraction of the track and can be clamped to the ends independently of
-	-- how full the fill is.
 	thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+	thumb.Position = handleOffset() -- centred on the fill's leading edge
 	thumb.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-	thumb.Size = UDim2.new(0, 35, 4, 0)
-	thumb.Position = UDim2.new(0, 0, 0.5, 0)
+	thumb.Size = UDim2.fromOffset(HANDLE_REST.X, HANDLE_REST.Y)
 	thumb.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	thumb.Parent = holder
+	thumb.Parent = visual -- <- carried by the fill, not positioned on the track
 	local thumbCorner = Instance.new("UICorner")
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = thumb
-	-- Frost stroke: invisible at rest, fades in while the thumb is held so the
-	-- handle reads as lifted under the cursor (Rayfield's press treatment).
 	local thumbStroke = Instance.new("UIStroke")
 	thumbStroke.Color = theme.AccentColor or Color3.fromRGB(255, 255, 255)
 	thumbStroke.Transparency = 1
 	thumbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	thumbStroke.Parent = thumb
 
+	-- ---- readout cluster (ours) ---------------------------------------------
 	local controlHolder = Instance.new("Frame")
 	controlHolder.Name = "ControlHolder"
 	controlHolder.AnchorPoint = Vector2.new(1, 0)
-	controlHolder.Position = UDim2.new(1, 0, 0.121, 0)
+	controlHolder.Position = UDim2.new(1, 0, 0.05, 0)
 	controlHolder.Size = UDim2.new(0, 50, 0, 10)
 	controlHolder.BackgroundTransparency = 1
 	controlHolder.Parent = row
-	
+
 	local controlLayout = Instance.new("UIListLayout")
 	controlLayout.FillDirection = Enum.FillDirection.Horizontal
 	controlLayout.Padding = UDim.new(0, 5)
@@ -152,45 +222,8 @@ function Slider.new(parent, Settings, theme)
 	controlLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 	controlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	controlLayout.Parent = controlHolder
-	
-	-- ResetButton
-	local resetBtn = Instance.new("ImageButton")
-	resetBtn.Name = "ResetButton"
-	resetBtn.LayoutOrder = 3
-	resetBtn.BorderSizePixel = 0
-	resetBtn.AutoButtonColor = false
-	resetBtn.BackgroundTransparency = 1
-	resetBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	resetBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-	resetBtn.Image = Icons["rotate-ccw"] or "rbxassetid://110116685948665"
-	resetBtn.ImageColor3 = theme.AccentColor
-	resetBtn.Size = UDim2.new(0, 13, 0, 13)
-	resetBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	resetBtn.AnchorPoint = Vector2.new(1, 0.5)
-	resetBtn.Parent = controlHolder
-	local resetAspect = Instance.new("UIAspectRatioConstraint")
-	resetAspect.Parent = resetBtn
-	-- PercentageStat (shows percentage)
-	local percentLabel = Instance.new("TextLabel")
-	percentLabel.Name = "PercentageStat"
-	percentLabel.LayoutOrder = 2
-	percentLabel.TextWrapped = true
-	percentLabel.TextTruncate = Enum.TextTruncate.AtEnd
-	percentLabel.BorderSizePixel = 0
-	percentLabel.TextSize = 11
-	percentLabel.TextTransparency = theme.SecondaryTextTransparency
-	percentLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	percentLabel.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	percentLabel.TextColor3 = theme.SecondaryTextColor
-	percentLabel.BackgroundTransparency = 1
-	-- Right-anchored with fixed offsets so it stays clustered with the input box
-	-- and reset button instead of drifting apart when the row is stretched.
-	percentLabel.AnchorPoint = Vector2.new(1, 0)
-	percentLabel.Size = UDim2.new(0, 35, 0, 14)
-	percentLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	percentLabel.Text = "0%"
-	percentLabel.Parent = controlHolder
-	-- SliderStat (TextBox for direct input)
+
+	-- value readout (Rayfield's odometer host; ours is a text box)
 	local statBox = Instance.new("TextBox")
 	statBox.Name = "SliderStat"
 	statBox.LayoutOrder = 1
@@ -221,159 +254,163 @@ function Slider.new(parent, Settings, theme)
 	local statConstraint = Instance.new("UISizeConstraint")
 	statConstraint.MaxSize = Vector2.new(56, 20)
 	statConstraint.Parent = statBox
-	-- State
-	local currentValue = default
-	local currentPercentage = (default - min) / (max - min)
+
+	-- percentage readout
+	local percentLabel = Instance.new("TextLabel")
+	percentLabel.Name = "PercentageStat"
+	percentLabel.LayoutOrder = 2
+	percentLabel.TextWrapped = true
+	percentLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	percentLabel.BorderSizePixel = 0
+	percentLabel.Size = UDim2.new(0, 0, 0, 16)
+	percentLabel.AutomaticSize = Enum.AutomaticSize.X
+	percentLabel.TextSize = 11
+	percentLabel.TextTransparency = theme.SecondaryTextTransparency
+	percentLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+	percentLabel.FontFace = Constants.Font(Enum.FontWeight.Bold)
+	percentLabel.TextColor3 = theme.SecondaryTextColor
+	percentLabel.BackgroundTransparency = 1
+	percentLabel.Parent = controlHolder
+
+	-- reset button
+	local resetBtn = Instance.new("ImageButton")
+	resetBtn.Name = "ResetButton"
+	resetBtn.LayoutOrder = 3
+	resetBtn.BorderSizePixel = 0
+	resetBtn.AutoButtonColor = false
+	resetBtn.BackgroundTransparency = 1
+	resetBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	resetBtn.Image = Icons["rotate-ccw"] or "rbxassetid://110116685948665"
+	resetBtn.ImageColor3 = theme.AccentColor
+	resetBtn.Size = UDim2.new(0, 13, 0, 13)
+	resetBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	resetBtn.AnchorPoint = Vector2.new(1, 0.5)
+	resetBtn.Parent = controlHolder
+	local resetAspect = Instance.new("UIAspectRatioConstraint")
+	resetAspect.Parent = resetBtn
+
+	-- ---- state --------------------------------------------------------------
+	local currentValue = snapTo({ min, max }, increment, default)
+	local currentPercentage = 0
 	local isDragging = false
 	local isHovered = false
-	local spinTween = nil
-	-- Helper to format numbers
+	local dragConnection = nil
+
 	local function formatValue(val)
 		return string.format("%." .. precision .. "f", val)
 	end
-	-- Place the thumb so value 0 puts its LEFT edge flush with the track's LEFT
-	-- edge, and value 1 puts its RIGHT edge flush with the track's RIGHT edge.
-	-- The thumb centre therefore travels over (trackWidth - thumbWidth), inset
-	-- by half a thumb at each end -- that inset is what keeps it in frame.
-	local function positionThumb(percentage, animate)
-		local trackWidth = holder.AbsoluteSize.X
-		local thumbWidth = thumb.AbsoluteSize.X
-		if trackWidth <= 0 then return end
-		local travel = math.max(trackWidth - thumbWidth, 0)
-		local x = percentage * travel + thumbWidth / 2
-		local targetPos = UDim2.new(0, x, 0.5, 0)
-		-- Animate the thumb in step with the fill on programmatic changes
-		-- (reset / text input / UpdateValue); snap during drag and on resize so
-		-- the thumb tracks the cursor and re-clamps instantly. Same "Smooth"
-		-- preset as the fill keeps the two in lockstep.
-		if animate then
-			Tween.Play(thumb, "Smooth", { Position = targetPos })
+
+	-- ---- rendering ----------------------------------------------------------
+	-- The fill carries the pill, so a single Size write moves both. `info`
+	-- chooses the tween (follow mid-drag, set on programmatic changes).
+	local function renderProgress(info)
+		local span = max - min
+		local ratio = (span ~= 0) and math.clamp((currentValue - min) / span, 0, 1) or 0
+		currentPercentage = ratio
+		local size = fillSize(ratio)
+		if info then
+			TweenService:Create(visual, info, { Size = size }):Play()
 		else
-			thumb.Position = targetPos
+			visual.Size = size
 		end
 	end
-	-- Update slider visuals and text
-	local function updateSlider(value, snapSmooth)
-		value = math.clamp(value, min, max)
-		currentValue = value
-		local percentage = (value - min) / (max - min)
-		local targetSize = UDim2.new(percentage, 0, 1, 0)
-		if snapSmooth then
-			Tween.Play(visual, "Smooth", { Size = targetSize })
-		else
-			visual.Size = targetSize
-		end
-		currentPercentage = percentage
-		positionThumb(percentage, snapSmooth)
-		-- Update labels
-		percentLabel.Text = math.round(percentage * 100) .. "%"
-		statBox.Text = formatValue(value)
-		statBox.PlaceholderText = formatValue(value)
-		if Settings.Callback then
-			Settings.Callback(value)
-		end
+
+	local function setHeld(held)
+		local target = held and HANDLE_HELD or HANDLE_REST
+		TweenService:Create(thumb, HELD_INFO, {
+			Size = UDim2.fromOffset(target.X, target.Y),
+			BackgroundTransparency = held and 0.7 or 0,
+		}):Play()
+		TweenService:Create(thumbStroke, HELD_INFO, { Transparency = held and 0.6 or 1 }):Play()
+		renderProgress(HELD_INFO)
 	end
-	-- Text box input handling
-	statBox.FocusLost:Connect(function()
-		local inputValue = tonumber(statBox.Text)
-		if inputValue then
-			updateSlider(inputValue, true)
-		else
-			statBox.Text = formatValue(currentValue)
-		end
-	end)
-	-- Update visibility of overlay elements (hover/drag)
+
 	local function updateVisibility()
 		local active = isHovered or isDragging
 		local target = active and 0 or 0.5
 		Tween.Play(percentLabel, "Fast", { TextTransparency = target })
 		Tween.Play(backImage, "Fast", { ImageTransparency = target })
-		-- Thumb grows on hover/drag and shrinks back on release. HoverIn uses
-		-- Back/Out easing, so it overshoots slightly -- that's the bounce.
-		-- Plain fast grow/shrink (no HoverIn/HoverOut bounce), and the thumb
-		-- stays fully opaque while dragging.
-		if active then
-			Tween.Play(thumb, "Fast", { Size = UDim2.new(0, 40, 5, 0) })
-		else
-			Tween.Play(thumb, "Fast", { Size = UDim2.new(0, 35, 4, 0) })
-		end
-		-- Frost: only while actually held (not merely hovered) the thumb ghosts
-		-- out and its stroke fades in, matching Rayfield's press feel.
-		Tween.Play(thumb, "Fast", { BackgroundTransparency = isDragging and 0.7 or 0 })
-		Tween.Play(thumbStroke, "Fast", { Transparency = isDragging and 0.6 or 1 })
 	end
-	-- Process mouse/touch input
-	local function processInput(input)
-		local trackLength = holder.AbsoluteSize.X
-		if trackLength <= 0 then return end
-		-- Map the cursor over the thumb's TRAVEL range (track minus the thumb's
-		-- own width), not the raw track, so the cursor at either extreme lines up
-		-- with the clamped thumb positions above.
-		local thumbWidth = thumb.AbsoluteSize.X
-		local travel = math.max(trackLength - thumbWidth, 1)
-		local relativeX = input.Position.X - holder.AbsolutePosition.X - thumbWidth / 2
-		local percentage = math.clamp(relativeX / travel, 0, 1)
-		local value = min + percentage * (max - min)
-		updateSlider(value, false)
-	end
-	-- Drag handling on-demand (only connected while active drag is in progress)
-	local UserInputService = game:GetService("UserInputService")
-	local dragChangedConnection = nil
-	local dragEndedConnection = nil
 
-	local function stopDragging()
-		if not isDragging then return end
+	-- pointer -> value, mapped over the WHOLE track (Rayfield's _updateFromMouse)
+	local function updateFromMouse()
+		local travel = math.max(holder.AbsoluteSize.X, 0)
+		if travel <= 0 then
+			return
+		end
+		local ratio = ratioFromPointer(UserInputService:GetMouseLocation().X, holder.AbsolutePosition.X, travel)
+		local value = snapTo({ min, max }, increment, min + ratio * (max - min))
+		if value ~= currentValue then
+			currentValue = value
+			renderProgress(FOLLOW_INFO)
+			statBox.Text = formatValue(value)
+			statBox.PlaceholderText = formatValue(value)
+			percentLabel.Text = math.round(ratio * 100) .. "%"
+			if Settings.Callback then
+				Settings.Callback(value)
+			end
+		end
+	end
+
+	-- ---- drag ---------------------------------------------------------------
+	local function endDrag()
+		if not isDragging then
+			return
+		end
 		isDragging = false
-		if dragChangedConnection then
-			dragChangedConnection:Disconnect()
-			dragChangedConnection = nil
-		end
-		if dragEndedConnection then
-			dragEndedConnection:Disconnect()
-			dragEndedConnection = nil
+		setHeld(false)
+		if dragConnection then
+			dragConnection:Disconnect()
+			dragConnection = nil
 		end
 		updateVisibility()
 	end
 
-	local function startDragging(input)
+	local function beginDrag(input)
 		isDragging = true
-		updateVisibility()
-		if not dragChangedConnection then
-			dragChangedConnection = UserInputService.InputChanged:Connect(function(changedInput)
-				if isDragging and (changedInput.UserInputType == Enum.UserInputType.MouseMovement or changedInput.UserInputType == Enum.UserInputType.Touch) then
-					processInput(changedInput)
-				end
-			end)
+		setHeld(true)
+		updateFromMouse()
+		if dragConnection then
+			dragConnection:Disconnect()
+			dragConnection = nil
 		end
-		if not dragEndedConnection then
-			dragEndedConnection = UserInputService.InputEnded:Connect(function(endedInput)
-				if endedInput.UserInputType == Enum.UserInputType.MouseButton1 or endedInput.UserInputType == Enum.UserInputType.Touch then
-					stopDragging()
+		-- per-frame follow while held; self-terminates when the drag ends
+		dragConnection = RunService.RenderStepped:Connect(function()
+			if not isDragging then
+				if dragConnection then
+					dragConnection:Disconnect()
+					dragConnection = nil
 				end
-			end)
-		end
+				return
+			end
+			updateFromMouse()
+		end)
 	end
 
 	thumb.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			startDragging(input)
+			beginDrag(input)
 		end
 	end)
 
-	local function disconnectAll()
-		stopDragging()
-		Tween.StopSpin(gradient)
-	end
-	row.Destroying:Connect(disconnectAll)
-
-	-- Click on track
 	holder.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			startDragging(input)
-			processInput(input)
+			beginDrag(input)
 		end
 	end)
-	-- Hover on thumb
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			endDrag()
+		end
+	end)
+
+	-- releasing the button outside the Roblox window never fires InputEnded, so
+	-- treat losing focus as letting go too - otherwise the slider sticks to the
+	-- cursor forever.
+	UserInputService.WindowFocusReleased:Connect(endDrag)
+
+	-- ---- hover --------------------------------------------------------------
 	thumb.MouseEnter:Connect(function()
 		isHovered = true
 		updateVisibility()
@@ -382,17 +419,54 @@ function Slider.new(parent, Settings, theme)
 		isHovered = false
 		updateVisibility()
 	end)
-	-- The thumb's hover size tween and any window/layout resize both change the
-	-- travel range, so re-clamp the thumb whenever either size changes.
-	thumb:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		positionThumb(currentPercentage)
+
+	-- ---- value setters ------------------------------------------------------
+	local function updateSlider(value, snapSmooth)
+		value = snapTo({ min, max }, increment, value)
+		currentValue = value
+		local span = max - min
+		local ratio = (span ~= 0) and math.clamp((value - min) / span, 0, 1) or 0
+		renderProgress(snapSmooth and TWEEN_INFO or nil)
+		percentLabel.Text = math.round(ratio * 100) .. "%"
+		statBox.Text = formatValue(value)
+		statBox.PlaceholderText = formatValue(value)
+		if Settings.Callback then
+			Settings.Callback(value)
+		end
+	end
+
+	statBox.FocusLost:Connect(function()
+		local inputValue = tonumber(statBox.Text)
+		if inputValue then
+			updateSlider(inputValue, true)
+		else
+			statBox.Text = formatValue(currentValue)
+		end
 	end)
-	holder:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		positionThumb(currentPercentage)
-	end)
-	-- Reset button
+
 	resetBtn.MouseButton1Click:Connect(function()
 		updateSlider(default, true)
+		-- one full turn on click, settling with a Back ease
+		TweenService:Create(
+			resetBtn,
+			TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Rotation = resetBtn.Rotation + 360 }
+		):Play()
+		-- a quick squash-and-pop so the click reads even if you miss the spin
+		TweenService:Create(
+			resetBtn,
+			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = UDim2.new(0, 10, 0, 10) }
+		):Play()
+		task.delay(0.12, function()
+			if resetBtn.Parent then
+				TweenService:Create(
+					resetBtn,
+					TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Size = UDim2.new(0, 13, 0, 13) }
+				):Play()
+			end
+		end)
 	end)
 	resetBtn.MouseEnter:Connect(function()
 		resetBtn.ImageColor3 = (ActiveTheme.theme or theme).AccentColor
@@ -402,12 +476,12 @@ function Slider.new(parent, Settings, theme)
 		resetBtn.ImageColor3 = (ActiveTheme.theme or theme).AccentColor
 		Tween.Play(resetBtn, "Fast", { ImageTransparency = 0 })
 	end)
-	-- Spinning gradient animation, routed through the shared Tween spin system.
-	-- StartSpin now gates the spin on visibility (Tween.GateSpinOnVisibility), so
-	-- an off-screen slider pauses automatically and resumes from its frozen angle
-	-- when its tab/page returns -- no per-component visibility plumbing needed.
+
+	-- ---- spin (ours, kept) --------------------------------------------------
 	local function startSpin()
-		if not spinEnabled then return end
+		if not spinEnabled then
+			return
+		end
 		gradient.Rotation = 0
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
 	end
@@ -415,10 +489,18 @@ function Slider.new(parent, Settings, theme)
 		Tween.StopSpin(gradient)
 	end
 	startSpin()
-	-- Initial value
-	updateSlider(default, false)
+
+	local function disconnectAll()
+		endDrag()
+		stopSpin()
+	end
+	row.Destroying:Connect(disconnectAll)
+
+	-- ---- init ---------------------------------------------------------------
+	updateSlider(currentValue, false)
 	updateVisibility()
-	-- Public API
+
+	-- ---- public API ---------------------------------------------------------
 	self.UpdateValue = function(newValue)
 		updateSlider(newValue, true)
 	end
@@ -454,8 +536,8 @@ function Slider.new(parent, Settings, theme)
 			row:Destroy()
 		end
 	end
-	-- Declarative theming: every colour / transparency property is a BINDING,
-	-- so a theme switch re-resolves them with no hand-written re-stamp.
+
+	-- ---- theme bindings -----------------------------------------------------
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(holder, "BackgroundColor3", "Undercolor")
@@ -472,21 +554,20 @@ function Slider.new(parent, Settings, theme)
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	ThemeManager.BindColor(thumb, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(thumbStroke, "Color", "AccentColor")
-	-- Wallpaper image + visibility, now bindings (snap-kind; Image is a string,
-	-- Visible a boolean). Transforms match the old fallback semantics.
 	ThemeManager.Bind(backImage, "Image", "Wallpaper", {
-		transform = function(v) return v or "rbxassetid://11094025229" end,
+		transform = function(v)
+			return v or "rbxassetid://11094025229"
+		end,
 	})
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled", {
-		transform = function(v) return v ~= false end,
+		transform = function(v)
+			return v ~= false
+		end,
 	})
-	-- What remains imperative: a defensive re-stamp of the
-	-- NATURAL transparencies, which are constants here. ApplyTheme stays,
-	-- slimmed to just that.
+
 	function self:ApplyTheme(newTheme)
 		theme = ThemeManager.GetTheme(newTheme)
 		self._theme = theme
-		-- Wallpaper Image + Visible are bindings now (see above).
 		holder.BackgroundTransparency = 0
 		visual.BackgroundTransparency = 0
 		resetBtn.ImageTransparency = 0
@@ -494,7 +575,9 @@ function Slider.new(parent, Settings, theme)
 		backImage.ImageTransparency = 0.5
 		updateVisibility()
 	end
+
 	ThemeManager.Register(row, self)
 	return self
 end
+
 return Slider

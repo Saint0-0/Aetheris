@@ -28,6 +28,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local ActiveTheme = require("../Themes/ActiveTheme")
 local Tween = require("../Utils/Tween")
 local Odometer = require("../Utils/Odometer")
 local Constants = require("../Constants")
@@ -44,15 +45,46 @@ local COMPACT_HEIGHT = 41
 local FULL_CORNER = 8
 local COMPACT_CORNER = 6
 
--- Rayfield statAccents. Each entry is a fill GRADIENT (bright -> dark) plus a
--- brighter stroke edge; LiveStat's surface is solid, so we use the lead
--- (bright) stop of the fill, and the lead of the stroke for the UIStroke.
-local ACCENT = {
-	positive = { fill = Color3.fromRGB(0, 170, 127), stroke = Color3.fromRGB(0, 213, 156) },
-	negative = { fill = Color3.fromRGB(172, 47, 47), stroke = Color3.fromRGB(255, 75, 75) },
-	-- Rayfield neutral == positive (RF2's default green stat exactly).
-	neutral = { fill = Color3.fromRGB(0, 170, 127), stroke = Color3.fromRGB(0, 213, 156) },
-}
+-- Accents are THEMED, not fixed green/red. Each entry is a fill + a brighter
+-- stroke edge. Rising uses the theme's own AccentColor (so the stat belongs to
+-- the palette); falling uses that same hue rotated to red at full saturation,
+-- which reads as "down" without clashing with the theme. Neutral == rising.
+local POS_FALLBACK = Color3.fromRGB(0, 170, 127)
+
+-- lighten toward white by `t` (stroke edges are just a brighter fill)
+local function lighten(c, t)
+	return Color3.new(
+		c.R + (1 - c.R) * t,
+		c.G + (1 - c.G) * t,
+		c.B + (1 - c.B) * t
+	)
+end
+
+-- rotate a colour's hue to `targetHue` (0..1), preserving S and V, so a blue
+-- accent yields a blue-toned "down" that still reads as red-ish when needed.
+local function withHue(c, targetHue)
+	local h, s, v = Color3.toHSV(c)
+	return Color3.fromHSV(targetHue, math.max(s, 0.55), v)
+end
+
+-- Memoized per distinct theme table. :_applyAccent runs on every value tick, so
+-- the HSV round-trip and table construction must not happen per tick -- only
+-- when the theme reference actually changes.
+local cachedTheme, cachedAccents
+local function accentsFor(theme)
+	if theme == cachedTheme and cachedAccents then
+		return cachedAccents
+	end
+	local base = (theme and theme.AccentColor) or POS_FALLBACK
+	local pos = { fill = base, stroke = lighten(base, 0.22) }
+	local negBase = withHue(base, 0.0) -- hue 0 == red
+	local neg = { fill = negBase, stroke = lighten(negBase, 0.22) }
+	cachedTheme, cachedAccents = theme, { positive = pos, negative = neg, neutral = pos }
+	return cachedAccents
+end
+
+-- Static default; the themed set replaces it on the first :_applyAccent call.
+local ACCENT = accentsFor(nil)
 
 -- Comma-grouped integer, e.g. 1234567 -> "1,234,567". Negatives keep the sign,
 -- and a negative that rounds to zero shows plain "0".
@@ -96,7 +128,6 @@ function LiveStat.new(parent, Settings, theme)
 	self._lastChange = 0
 
 	self._accent = ACCENT.neutral
-	self._accentColor = ACCENT.neutral.fill
 
 	if self._size == "Compact" then
 		self:_buildCompact()
@@ -105,6 +136,12 @@ function LiveStat.new(parent, Settings, theme)
 	end
 
 	self:_applyAccent(0)
+	-- Re-derive the accent from the incoming theme whenever one is applied, so
+	-- the card re-colours on a LIVE theme switch instead of waiting for its next
+	-- value change. Owner = main frame, so it auto-unregisters on destroy.
+	ThemeManager.OnThemeApplied(function()
+		self:_applyAccent(self._direction or 0)
+	end, self._main)
 	if self._spinningEnabled then
 		self:_startSpin()
 	end
@@ -387,16 +424,17 @@ function LiveStat:_format(value)
 end
 
 function LiveStat:_applyAccent(direction)
+	self._direction = direction -- remembered so a theme switch can re-apply it
+	local themed = accentsFor(ActiveTheme.theme or self._theme or theme)
 	local accent
 	if direction > 0 then
-		accent = ACCENT.positive
+		accent = themed.positive
 	elseif direction < 0 then
-		accent = ACCENT.negative
+		accent = themed.negative
 	else
-		accent = ACCENT.neutral
+		accent = themed.neutral
 	end
 	self._accent = accent
-	self._accentColor = accent.fill
 
 	-- SOLID card base (sits behind the overlay; keeps the edges matched).
 	if self._main then

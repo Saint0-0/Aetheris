@@ -537,6 +537,7 @@ local demoConsole = consoleSection:Console({
 	Follow = true, -- pin to the newest line on Append
 	MaxLines = 200, -- oldest lines roll off past this
 	Text = "[Aetheris] Console ready.\nWaiting for output...",
+	RichText = true, -- let the numbered lines dim the number, not the text
 })
 
 -- Buttons that exercise Set / Append / Clear so the scroll + ring buffer are
@@ -549,7 +550,7 @@ consoleControls:Button({
 	Name = "Append a line",
 	Callback = function()
 		consoleLine += 1
-		demoConsole:Append(string.format("[%02d] appended line", consoleLine))
+		demoConsole:Append(string.format('<font transparency="0.55">%3d</font>  appended line', consoleLine))
 	end,
 })
 
@@ -558,7 +559,7 @@ consoleControls:Button({
 	Callback = function()
 		for _ = 1, 25 do
 			consoleLine += 1
-			demoConsole:Append(string.format("[%02d] burst line", consoleLine))
+			demoConsole:Append(string.format('<font transparency="0.55">%3d</font>  burst line', consoleLine))
 		end
 	end,
 })
@@ -574,7 +575,7 @@ consoleControls:Button({
 	Name = "Clear",
 	Callback = function()
 		demoConsole:Clear()
-		consoleLine = 0 -- reset the demo [NN] counter so the next line is [01]
+		consoleLine = 0 -- reset the demo counter so the next line starts at 1.
 	end,
 })
 

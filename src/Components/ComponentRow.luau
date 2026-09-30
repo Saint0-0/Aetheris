@@ -94,9 +94,17 @@ function ComponentRow.new(parent, Settings)
 	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.AnchorPoint = Vector2.new(0, 0.5)
+	label.AnchorPoint = Settings.LabelAnchorPoint or Vector2.new(0, 0.5)
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.new(labelWidth, 0, labelHeight, 0)
+	if Settings.LabelAutoSize then
+		-- Hug the name text: X size 0 + AutomaticSize.X. Callers that need a
+		-- variable-width label (e.g. TextInput's field cap) opt in with this.
+		label.TextWrapped = false
+		label.AutomaticSize = Enum.AutomaticSize.X
+		label.Size = UDim2.new(0, 0, labelHeight, 0)
+	else
+		label.Size = UDim2.new(labelWidth, 0, labelHeight, 0)
+	end
 	label.Position = Settings.LabelPosition or UDim2.new(0, 0, 0.5, 0)
 	label.Parent = row
 
