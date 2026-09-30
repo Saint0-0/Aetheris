@@ -889,22 +889,29 @@ function Window.new(Settings)
 		{0.000, 0.0}, {0.630, 0.4135}, {0.751, 0.4712}, {0.818, 0.5288},
 		{0.870, 0.5962}, {0.952, 0.7788}, {0.998, 0.9327}, {1.000, 1.0},
 	}
-	local function cornerGradient(col)
-		local white = Color3.fromRGB(255, 255, 255)
+	-- Build the diagonal corner ramp from `fromCol` to `toCol`. A UIGradient
+	-- MULTIPLIES its Colour sequence against the parent's BackgroundColor3, so
+	-- the pill background must be WHITE for these true colours to show; the
+	-- sequence itself carries the real base -> accent colours.
+	local function cornerGradient(fromCol, toCol)
 		local kps = {}
 		for i, k in ipairs(CORNER_GRADIENT_KEYS) do
-			kps[i] = ColorSequenceKeypoint.new(k[1], white:Lerp(col, k[2]))
+			kps[i] = ColorSequenceKeypoint.new(k[1], fromCol:Lerp(toCol, k[2]))
 		end
 		return ColorSequence.new(kps)
 	end
 	local function restampThemeGradients(t)
-		local base = t.TertiaryColor or Color3.fromRGB(30, 30, 34)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
 		for _, g in ipairs(tagGradients) do
-			if g and g.Parent then
-				local pinnedBase = g:GetAttribute("TagBaseColor")
+			local pill = g and g.Parent
+			if pill then
 				local pinnedAccent = g:GetAttribute("TagAccentColor")
-				g.Color = cornerGradient((typeof(pinnedAccent) == "Color3") and pinnedAccent or accent)
+				local hue = (typeof(pinnedAccent) == "Color3") and pinnedAccent or accent
+				pill.BackgroundColor3 = hue
+				local glow = pill:FindFirstChildOfClass("UIShadow")
+				if glow then
+					glow.Color = hue
+				end
 			end
 		end
 	end
@@ -915,7 +922,7 @@ function Window.new(Settings)
 	----------------------------------------------------------------
 	-- Each entry is either a plain string (Name only) or a table
 	-- { Name=, BackgroundColor=, TextColor=, AccentColor= }. Any colour that is
-	-- omitted falls back to the theme (background -> TertiaryColor, text ->
+	-- omitted falls back to the theme (fill -> AccentColor, text ->
 	-- TitleTextColor, accent -> AccentColor). A colour that IS supplied is pinned
 	-- with ThemeManager.SetColorOverride so a theme switch never stomps it; the
 	-- omitted ones stay as live theme bindings. Pills share the row width evenly
@@ -953,7 +960,11 @@ function Window.new(Settings)
 		local pill = Instance.new("Frame")
 		pill.Name = "Tag" .. tostring(index)
 		pill.BorderSizePixel = 0
-		pill.BackgroundColor3 = bgColor or theme.TertiaryColor
+		-- LiveStat-style surface: the pill is a SOLID accent slab, and the
+		-- UIGradient below carries a fixed white -> grey brightness ramp
+		-- (multiplied against the slab). The hue lives on BackgroundColor3,
+		-- exactly like LiveStat's accent overlay.
+		pill.BackgroundColor3 = accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
 		pill.BackgroundTransparency = 0
 		pill.Size = UDim2.new(1 / total, widthOffset, 0, 14)
 		pill.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -966,16 +977,28 @@ function Window.new(Settings)
 
 		local pillGradient = Instance.new("UIGradient")
 		pillGradient.Rotation = -55
-		if bgColor then
-			pillGradient:SetAttribute("TagBaseColor", bgColor)
-		end
+		-- Record the pinned accent so a theme switch preserves it (restamp...).
 		if accColor then
 			pillGradient:SetAttribute("TagAccentColor", accColor)
 		end
-		pillGradient.Color = cornerGradient(accColor or theme.AccentColor)
+		-- LiveStat's fixed brightness ramp: white -> grey, near-opaque at the
+		-- bright end and slightly faded at the dark end. The hue comes from the
+		-- pill's BackgroundColor3, NOT from this ramp.
+		pillGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
+		pillGradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(1, 0.12),
+		})
 		pillGradient.Parent = pill
 		table.insert(tagGradients, pillGradient)
-		-- Fixed template gradient (not theme-restamped).
+
+		-- Matching bloom behind the pill (LiveStat's UIShadow glow).
+		local glow = Instance.new("UIShadow")
+		glow.Color = accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
+		glow.Transparency = 0.6
+		glow.BlurRadius = UDim.new(0, 8)
+		glow.Spread = UDim2.fromOffset(1, 1)
+		glow.Parent = pill
 
 		local label = Instance.new("TextLabel")
 		label.Name = "TagText"
@@ -993,13 +1016,9 @@ function Window.new(Settings)
 		label.Size = UDim2.new(1, 0, 1, 0)
 		label.Parent = pill
 
-		-- Theme bindings only where the caller did NOT pin a colour; a pinned
-		-- colour goes through the override so theme switches leave it alone.
-		if bgColor then
-			ThemeManager.SetColorOverride(pill, "BackgroundColor3", bgColor)
-		else
-			ThemeManager.BindColor(pill, "BackgroundColor3", "TertiaryColor")
-		end
+		-- The pill's SOLID BackgroundColor3 owns the fill; the gradient above is
+		-- only the white->grey sheen. A pinned accent survives theme switches via
+		-- the TagAccentColor attribute on the gradient (see restampThemeGradients).
 		-- Tags are always fully opaque (no theme-transparency bind).
 		if txtColor then
 			ThemeManager.SetColorOverride(label, "TextColor3", txtColor)

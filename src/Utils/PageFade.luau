@@ -269,12 +269,14 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 	if expected == 0 and onComplete then onComplete() end
 end
 
--- Called after a theme switch: drop every cached decoration fade-base so the
--- next fade re-captures it from the freshly-themed resting transparency.
--- Without this, a decoration whose base was captured before the switch (e.g. a
--- radio's selection-driven UIStroke captured while selected = hidden) would
--- restore that stale value forever -- the "stroke stays invisible until hover"
--- bug. Re-marking dirty also re-scans so newly-themed decorations are included.
+-- Called after a theme switch. Theme-bound decorations do NOT keep a base:
+-- their resting transparency is read from the theme system's
+-- ThemeLive_Transparency, which applyEntry republishes on every switch, so it
+-- can never go stale. A decoration's own PageFadeBase only ever holds a
+-- NON-theme resting value (a fixed shadow, a component-set stroke), which does
+-- not change with the theme -- so there is nothing to clear here. This just
+-- re-marks each layer dirty so the next fade re-scans for decorations added
+-- since the last pass.
 function PageFade.InvalidateDecorationBases()
 	-- Theme-bound decorations no longer keep a PageFadeBase (their resting value
 	-- comes from the theme's ThemeLive_Transparency). A decoration's own

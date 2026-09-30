@@ -32,6 +32,7 @@ TweenUtil.Presets = {
 	Smooth       = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
 	Burst        = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 	SpinIdle     = TweenInfo.new(8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
+	SpinStat     = TweenInfo.new(12, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
 	SpinBurst    = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
 	Click        = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	ClickQuint   = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In),

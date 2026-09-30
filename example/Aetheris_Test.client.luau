@@ -137,6 +137,7 @@ local controlsTab = window:Tab("Controls", ico("sliders-horizontal"))
 local inputsTab   = window:Tab("Inputs", ico("list"))
 local feedbackTab = window:Tab("Feedback", ico("bell"))
 local mediaTab    = window:Tab("Media", ico("play"))
+local statsTab    = window:Tab("Stats", ico("chart-line"))
 window:Divider()
 local settingsTab = window:Tab("Settings", ico("settings"))
 
@@ -210,8 +211,47 @@ actionSection:Button({
 })
 
 -- =========================================================================
+--  3b. STATS TAB  -  LiveStat readouts (left) + the buttons that drive them (right)
+-- =========================================================================
+-- LiveStat shows ONE number the consumer drives via :Set(number). Two shapes:
+-- Size = "Full" (90px card) or "Compact" (41px row). The accent gradient spins
+-- (one revolution per SPIN_PRESET) and auto-pauses off-screen, exactly like the
+-- slider/toggle/radio spins -- so it costs nothing on an inactive page.
+
+-- Left column: the stat readouts.
+local statSection = statsTab:Section({ Name = "Readouts", Side = "Left" })
+
+-- Full card: title, big value, spinning accent gradient behind it.
+local scoreStat = statSection:LiveStat({
+	Name = "Score",
+	Size = "Full",
+	Icon = ico("trophy"),
+	Value = 100,
+})
+
+-- Compact row: icon + title on the left, one readout on the right.
+local timeStat = statSection:LiveStat({
+	Name = "Time",
+	Size = "Compact",
+	Icon = ico("clock"),
+	Suffix = "s",
+	Value = 0,
+})
+
+-- Right column: the buttons that drive the readouts.
+local statControls = statsTab:Section({ Name = "Controls", Side = "Right" })
+
+-- Drive the stat to different numbers so the count-up roll + accent direction
+-- change (up = positive accent, down = negative accent) are visible.
+statControls:Button({ Name = "Set Score = 100",  Callback = function() scoreStat:Set(100) end })
+statControls:Button({ Name = "Set Score = 2500", Callback = function() scoreStat:Set(2500) end })
+statControls:Button({ Name = "Set Score = 40",   Callback = function() scoreStat:Set(40) end })
+statControls:Button({ Name = "Tick Time",        Callback = function() timeStat:Set(timeStat:Get() + 1) end })
+
+-- =========================================================================
 --  4. CONTROLS TAB  -  Toggle, Slider, Keybind, TextInput, Stepper, Radio
 -- =========================================================================
+
 local switchSection = controlsTab:Section({ Name = "Switches", Side = "Left" })
 
 -- Toggle: an on/off switch. `Default` sets the initial state.
@@ -480,6 +520,61 @@ themeSection:Dropdown({
 			window:SetTheme(selected[1].value)
 			print("[Demo] Theme ->", selected[1].value)
 		end
+	end,
+})
+
+-- =========================================================================
+--  8b. CONSOLE  -  monospaced, self-scrolling log block (ported from Rayfield)
+-- =========================================================================
+-- A Console holds the height it's given and scrolls inside itself, so a log
+-- that fills up never pushes the page down. One label per line, pooled and
+-- recycled in a ring, so Append stays O(1) however long it runs.
+local consoleSection = settingsTab:Section({ Name = "Console", Side = "Left" })
+
+local demoConsole = consoleSection:Console({
+	Name = "Output",
+	Height = 140,
+	Follow = true, -- pin to the newest line on Append
+	MaxLines = 200, -- oldest lines roll off past this
+	Text = "[Aetheris] Console ready.\nWaiting for output...",
+})
+
+-- Buttons that exercise Set / Append / Clear so the scroll + ring buffer are
+-- visible: Append keeps adding (and drops the oldest past MaxLines), Set
+-- replaces the whole body, Clear empties it.
+local consoleLine = 0
+local consoleControls = settingsTab:Section({ Name = "Console Controls", Side = "Right" })
+
+consoleControls:Button({
+	Name = "Append a line",
+	Callback = function()
+		consoleLine += 1
+		demoConsole:Append(string.format("[%02d] appended line", consoleLine))
+	end,
+})
+
+consoleControls:Button({
+	Name = "Append 25 lines",
+	Callback = function()
+		for _ = 1, 25 do
+			consoleLine += 1
+			demoConsole:Append(string.format("[%02d] burst line", consoleLine))
+		end
+	end,
+})
+
+consoleControls:Button({
+	Name = "Set body",
+	Callback = function()
+		demoConsole:Set("[Aetheris] Body replaced via Set().\nSecond line.\nThird line.")
+	end,
+})
+
+consoleControls:Button({
+	Name = "Clear",
+	Callback = function()
+		demoConsole:Clear()
+		consoleLine = 0 -- reset the demo [NN] counter so the next line is [01]
 	end,
 })
 

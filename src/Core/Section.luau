@@ -26,6 +26,8 @@ local Button = require("../Components/Button")
 local Label = require("../Components/Label")
 local Paragraph = require("../Components/Paragraph")
 local ColorPicker = require("../Components/ColorPicker")
+local LiveStat = require("../Components/LiveStat")
+local Console = require("../Components/Console")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 
@@ -181,6 +183,12 @@ function Section:Dropdown(Settings, ShowPopup)
 end
 function Section:ProgressBar(Settings)
 	return ProgressBar.new(self.Frame, Settings, self._theme)
+end
+function Section:LiveStat(Settings)
+	return LiveStat.new(self.Frame, Settings, self._theme)
+end
+function Section:Console(Settings)
+	return Console.new(self.Frame, Settings, self._theme)
 end
 function Section:Stepper(Settings)
 	return Stepper.new(self.Frame, Settings, self._theme)

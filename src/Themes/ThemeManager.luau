@@ -663,23 +663,17 @@ function ThemeManager.ApplyTheme(window, themeInput)
         end
     end
 
-    -- Invalidate the page-fade caches FIRST. They hold per-tab base
-    -- transparencies captured at build time, but component ApplyTheme above just
-    -- changed those bases (Section background, UIStroke, etc.). Clearing +
-    -- re-priming here captures the NEW bases from the freshly-themed content.
-    -- This MUST run BEFORE RestoreActiveTab below: otherwise the restore pulls
-    -- the OLD cached bases and stomps the new theme values, and the re-prime
-    -- then captures those stale values (the "section backgrounds / strokes don't
-    -- return" bug).
+    -- PageFade decorations DEPEND on the theme system now: a theme-bound
+    -- UIStroke/UIShadow reads its resting Transparency from ThemeLive_<prop>,
+    -- which the bindings pass above just republished for the new theme. So there
+    -- is no stale per-decoration base to fight -- PageFade simply follows the
+    -- theme. InvalidateDecorationBases only re-marks layers dirty (to pick up
+    -- decorations added since the last scan); it no longer nils bases, which
+    -- would have clobbered a component's own non-theme resting base (the
+    -- radio-stroke bug).
     -- The CancelAll pass also killed any in-flight page fade, which could leave
-    -- the active page stuck transparent. Restore both active pages to natural,
-    -- using the freshly-primed caches from just above.
-    --
-    -- Drop PageFade's per-decoration cached fade-bases BEFORE restoring. Each
-    -- decoration's resting transparency may have CHANGED with the theme (e.g. a
-    -- radio's selection-driven UIStroke), so a base captured before the switch
-    -- would restore a stale value forever -- the "stroke stays invisible until
-    -- hover" bug. The next fade re-captures from the freshly-themed values.
+    -- the active page stuck transparent. Restore both active pages to natural
+    -- after the theme (and its republished ThemeLive_ values) is settled.
     if PageFade.InvalidateDecorationBases then
         PageFade.InvalidateDecorationBases()
     end

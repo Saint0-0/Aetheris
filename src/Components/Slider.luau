@@ -129,6 +129,13 @@ function Slider.new(parent, Settings, theme)
 	local thumbCorner = Instance.new("UICorner")
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = thumb
+	-- Frost stroke: invisible at rest, fades in while the thumb is held so the
+	-- handle reads as lifted under the cursor (Rayfield's press treatment).
+	local thumbStroke = Instance.new("UIStroke")
+	thumbStroke.Color = theme.AccentColor or Color3.fromRGB(255, 255, 255)
+	thumbStroke.Transparency = 1
+	thumbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	thumbStroke.Parent = thumb
 
 	local controlHolder = Instance.new("Frame")
 	controlHolder.Name = "ControlHolder"
@@ -290,6 +297,10 @@ function Slider.new(parent, Settings, theme)
 		else
 			Tween.Play(thumb, "Fast", { Size = UDim2.new(0, 35, 4, 0) })
 		end
+		-- Frost: only while actually held (not merely hovered) the thumb ghosts
+		-- out and its stroke fades in, matching Rayfield's press feel.
+		Tween.Play(thumb, "Fast", { BackgroundTransparency = isDragging and 0.7 or 0 })
+		Tween.Play(thumbStroke, "Fast", { Transparency = isDragging and 0.6 or 1 })
 	end
 	-- Process mouse/touch input
 	local function processInput(input)
@@ -438,6 +449,7 @@ function Slider.new(parent, Settings, theme)
 		ThemeManager.UnbindInstance(statStroke)
 		ThemeManager.UnbindInstance(holderShadow)
 		ThemeManager.UnbindInstance(thumb)
+		ThemeManager.UnbindInstance(thumbStroke)
 		if row.Parent then
 			row:Destroy()
 		end
@@ -459,6 +471,7 @@ function Slider.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(statStroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	ThemeManager.BindColor(thumb, "BackgroundColor3", "AccentColor")
+	ThemeManager.BindColor(thumbStroke, "Color", "AccentColor")
 	-- Wallpaper image + visibility, now bindings (snap-kind; Image is a string,
 	-- Visible a boolean). Transforms match the old fallback semantics.
 	ThemeManager.Bind(backImage, "Image", "Wallpaper", {
