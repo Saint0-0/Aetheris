@@ -48,10 +48,7 @@ function UINotification.new(parent, Settings)
 	local theme = Settings.Theme
 	local title = Settings.Title or "Notification"
 	local description = Settings.Description or ""
-	local titleColor =
-		Settings.TitleColor
-		or (theme and theme.TitleTextColor)
-		or Color3.fromRGB(255, 255, 255)
+	local titleColor = Settings.TitleColor or (theme and theme.TitleTextColor) or Color3.fromRGB(255, 255, 255)
 	local confirmText = Settings.ConfirmText or "Confirm"
 	local cancelText = Settings.CancelText or "Cancel"
 	local onConfirm = Settings.OnConfirm or function() end
@@ -114,11 +111,7 @@ function UINotification.new(parent, Settings)
 	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.TextColor3 = (theme and theme.PopupTextColor)
 	header.Parent = popup
-	header.Text = string.format(
-		'<font color="%s">%s</font>',
-		colorToString(titleColor),
-		title
-	)
+	header.Text = string.format('<font color="%s">%s</font>', colorToString(titleColor), title)
 	----------------------------------------------------------------
 	-- DESCRIPTION
 	----------------------------------------------------------------
@@ -210,7 +203,7 @@ function UINotification.new(parent, Settings)
 	confirmCorner.CornerRadius = UDim.new(0, 4)
 	confirmCorner.Parent = confirmBtn
 	local confirmShadow = Instance.new("UIShadow")
-	confirmShadow.BlurRadius = UDim.new	(0, 20)
+	confirmShadow.BlurRadius = UDim.new(0, 20)
 	confirmShadow.Color = (theme and theme.PrimaryColor)
 	confirmShadow.Transparency = 1
 	confirmShadow.Parent = confirmBtn
@@ -238,7 +231,7 @@ function UINotification.new(parent, Settings)
 	cancelCorner.CornerRadius = UDim.new(0, 4)
 	cancelCorner.Parent = cancelBtn
 	local cancelShadow = Instance.new("UIShadow")
-	cancelShadow.BlurRadius = UDim.new	(0, 20)
+	cancelShadow.BlurRadius = UDim.new(0, 20)
 	cancelShadow.Color = (theme and theme.PopupNeutralColor)
 	cancelShadow.Transparency = 1
 	cancelShadow.Parent = cancelBtn
@@ -301,13 +294,13 @@ function UINotification.new(parent, Settings)
 	confirmBtn.MouseEnter:Connect(function()
 		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 50),
-			Transparency = 0
+			Transparency = 0,
 		})
 	end)
 	confirmBtn.MouseLeave:Connect(function()
 		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 20),
-			Transparency = 1
+			Transparency = 1,
 		})
 	end)
 	-- Cancel button text transparency on hover. The resting value MUST match
@@ -357,8 +350,7 @@ function UINotification:_connectOutsideClick()
 		-- frame's own rect; a pure rect test would misread those as "outside".
 		local pos = self.Popup.AbsolutePosition
 		local size = self.Popup.AbsoluteSize
-		local inside = p.X >= pos.X and p.X <= pos.X + size.X
-			and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
 		if not inside then
 			local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
 			if playerGui then
@@ -405,30 +397,30 @@ function UINotification:Open()
 	self:_connectOutsideClick()
 	-- Fade in popup background
 	Tween.Play(self.Popup, "Fast", {
-		BackgroundTransparency = 0.07
+		BackgroundTransparency = 0.07,
 	})
 	-- Fade in shadow
 	Tween.Play(self.Shadow, "Fast", {
-		Transparency = 0.5
+		Transparency = 0.5,
 	})
 	-- Fade in internal elements
 	Tween.Play(self.Header, "Fast", {
-		TextTransparency = 0.4
+		TextTransparency = 0.4,
 	})
 	Tween.Play(self.NotifText, "Fast", {
-		TextTransparency = 0.45
+		TextTransparency = 0.45,
 	})
 	Tween.Play(self.Divider, "Fast", {
-		BackgroundTransparency = 0.9
+		BackgroundTransparency = 0.9,
 	})
 	Tween.Play(self.Interactions, "Fast", {
-		BackgroundTransparency = 0.8
+		BackgroundTransparency = 0.8,
 	})
 	Tween.Play(self.ConfirmBtn, "Fast", {
-		TextTransparency = 0.2
+		TextTransparency = 0.2,
 	})
 	Tween.Play(self.CancelBtn, "Fast", {
-		TextTransparency = 0.5
+		TextTransparency = 0.5,
 	})
 end
 ----------------------------------------------------------------
@@ -441,45 +433,45 @@ function UINotification:Close()
 	self.IsOpen = false
 	-- Fade out internal elements
 	Tween.Play(self.Header, "Fast", {
-		TextTransparency = 1
+		TextTransparency = 1,
 	})
 	Tween.Play(self.NotifText, "Fast", {
-		TextTransparency = 1
+		TextTransparency = 1,
 	})
 	Tween.Play(self.Divider, "Fast", {
-		BackgroundTransparency = 1
+		BackgroundTransparency = 1,
 	})
 	Tween.Play(self.Interactions, "Fast", {
-		BackgroundTransparency = 1
+		BackgroundTransparency = 1,
 	})
 	Tween.Play(self.ConfirmBtn, "Fast", {
 		TextTransparency = 1,
-		BackgroundTransparency = 1
+		BackgroundTransparency = 1,
 	})
 	Tween.Play(self.CancelBtn, "Fast", {
 		TextTransparency = 1,
-		BackgroundTransparency = 1
+		BackgroundTransparency = 1,
 	})
 	-- Fade out popup shadow
 	Tween.Play(self.Shadow, "Fast", {
-		Transparency = 1
+		Transparency = 1,
 	})
-	
+
 	-- Reset confirm shadow to default (fade out)
 	Tween.Play(self.ConfirmShadow, "Fast", {
 		BlurRadius = UDim.new(0, 20),
-		Transparency = 1
+		Transparency = 1,
 	})
-	
+
 	-- Reset cancel shadow to default (fade out)
 	Tween.Play(self.CancelShadow, "Fast", {
-		Transparency = 1
+		Transparency = 1,
 	})
 	-- Disarm the click-outside listener immediately on close.
 	self:_disconnectOutsideClick()
 	-- Fade out popup background
 	Tween.Play(self.Popup, "Fast", {
-		BackgroundTransparency = 1
+		BackgroundTransparency = 1,
 	})
 	task.delay(0.35, function()
 		if not self.IsOpen then
@@ -524,11 +516,7 @@ function UINotification:SetTitle(title, color)
 		-- uncolored title still renders instead of producing an invalid tag.
 		colorStr = colorToString(Color3.fromRGB(255, 255, 255))
 	end
-	self.Header.Text = string.format(
-		'<font color="%s">%s</font>',
-		colorStr,
-		title
-	)
+	self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, title)
 end
 ----------------------------------------------------------------
 -- SET DESCRIPTION

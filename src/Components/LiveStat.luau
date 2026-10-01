@@ -53,11 +53,7 @@ local POS_FALLBACK = Color3.fromRGB(0, 170, 127)
 
 -- lighten toward white by `t` (stroke edges are just a brighter fill)
 local function lighten(c, t)
-	return Color3.new(
-		c.R + (1 - c.R) * t,
-		c.G + (1 - c.G) * t,
-		c.B + (1 - c.B) * t
-	)
+	return Color3.new(c.R + (1 - c.R) * t, c.G + (1 - c.G) * t, c.B + (1 - c.B) * t)
 end
 
 -- rotate a colour's hue to `targetHue` (0..1), preserving S and V, so a blue

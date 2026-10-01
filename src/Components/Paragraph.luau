@@ -56,10 +56,10 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.TextColor3 = (theme and theme.PrimaryTextColor)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)
-	titleLabel.AutomaticSize = Enum.AutomaticSize.Y  -- grow to fit larger/wrapped titles
+	titleLabel.AutomaticSize = Enum.AutomaticSize.Y -- grow to fit larger/wrapped titles
 	titleLabel.Text = title
 	titleLabel.AnchorPoint = Vector2.new(0, 0.5)
-titleLabel.Position = UDim2.fromOffset(11, 18)  -- x aligned with description, vertically centred
+	titleLabel.Position = UDim2.fromOffset(11, 18) -- x aligned with description, vertically centred
 	titleLabel.Parent = container
 	-- Description label (LabelDescription)
 	local descLabel = Instance.new("TextLabel")
@@ -76,7 +76,7 @@ titleLabel.Position = UDim2.fromOffset(11, 18)  -- x aligned with description, v
 	descLabel.Size = UDim2.fromScale(0.91, 0)
 	descLabel.AutomaticSize = Enum.AutomaticSize.Y
 	descLabel.Text = description
-	descLabel.Position = UDim2.fromOffset(11, 38)  -- left padding, below title
+	descLabel.Position = UDim2.fromOffset(11, 38) -- left padding, below title
 	descLabel.Parent = container
 	-- Padding inside description for bottom spacing
 	local descPadding = Instance.new("UIPadding")
@@ -109,7 +109,9 @@ titleLabel.Position = UDim2.fromOffset(11, 18)  -- x aligned with description, v
 		container.Visible = visible
 	end
 	self.Destroy = function(_self)
-		if container and container.Parent then container:Destroy() end
+		if container and container.Parent then
+			container:Destroy()
+		end
 	end
 	return self
 end

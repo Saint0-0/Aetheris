@@ -144,12 +144,16 @@ end
 -- global Tween.SetSpinsEnabled toggle controls them. Inactive page backdrops
 -- are PAUSED (angle preserved), not stopped.
 function SettingsTabGroup:_pauseSpin(gradient)
-	if not gradient then return end
+	if not gradient then
+		return
+	end
 	Tween.PauseSpin(gradient)
 end
 
 function SettingsTabGroup:_resumeSpin(gradient, _reset)
-	if not gradient then return end
+	if not gradient then
+		return
+	end
 	if not Tween.ResumeSpin(gradient) then
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
 	end
@@ -286,24 +290,42 @@ function SettingsTabGroup:Tab(Settings)
 	-- Same pattern as Core/TabGroup: each handle flips Active<->Inactive via
 	-- SetState, so both a theme switch and a page switch resolve through the
 	-- binding system. duration = 0.2 matches the old "Fast" preset.
-	tab._bgHandle = ThemeManager.BindColor(Button, "BackgroundColor3",
+	tab._bgHandle = ThemeManager.BindColor(
+		Button,
+		"BackgroundColor3",
 		{ Active = "ActiveTabButtonColor", Inactive = "InactiveTabButtonColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._bgTransHandle = ThemeManager.BindTransparency(Button, "BackgroundTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._bgTransHandle = ThemeManager.BindTransparency(
+		Button,
+		"BackgroundTransparency",
 		{ Active = "ActiveTabButtonTransparency", Inactive = "InactiveTabButtonTransparency" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._nameColorHandle = ThemeManager.BindColor(TabName, "TextColor3",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._nameColorHandle = ThemeManager.BindColor(
+		TabName,
+		"TextColor3",
 		{ Active = "ActiveTabTextColor", Inactive = "InactiveTabTextColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._nameTransHandle = ThemeManager.BindTransparency(TabName, "TextTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._nameTransHandle = ThemeManager.BindTransparency(
+		TabName,
+		"TextTransparency",
 		{ Active = "ActiveTabTextTransparency", Inactive = "InactiveTabTextTransparency" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._iconColorHandle = ThemeManager.BindColor(TabImage, "ImageColor3",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._iconColorHandle = ThemeManager.BindColor(
+		TabImage,
+		"ImageColor3",
 		{ Active = "ActiveTabIconColor", Inactive = "InactiveTabIconColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._iconTransHandle = ThemeManager.BindTransparency(TabImage, "ImageTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._iconTransHandle = ThemeManager.BindTransparency(
+		TabImage,
+		"ImageTransparency",
 		{ Active = "ActiveTabIconTransparency", Inactive = "InactiveTabIconTransparency" },
-		{ state = "Inactive", duration = 0.2 })
+		{ state = "Inactive", duration = 0.2 }
+	)
 	-- Static (state-independent) bind.
 	ThemeManager.BindColor(SelectionStatus, "BackgroundColor3", "SecondaryColor")
 
@@ -322,12 +344,24 @@ end
 
 function SettingsTabGroup:_applyActiveVisuals(t)
 	-- STATE-AWARE theme properties resolve through the bindings.
-	if t._bgHandle then t._bgHandle:SetState("Active") end
-	if t._bgTransHandle then t._bgTransHandle:SetState("Active") end
-	if t._nameColorHandle then t._nameColorHandle:SetState("Active") end
-	if t._nameTransHandle then t._nameTransHandle:SetState("Active") end
-	if t._iconColorHandle then t._iconColorHandle:SetState("Active") end
-	if t._iconTransHandle then t._iconTransHandle:SetState("Active") end
+	if t._bgHandle then
+		t._bgHandle:SetState("Active")
+	end
+	if t._bgTransHandle then
+		t._bgTransHandle:SetState("Active")
+	end
+	if t._nameColorHandle then
+		t._nameColorHandle:SetState("Active")
+	end
+	if t._nameTransHandle then
+		t._nameTransHandle:SetState("Active")
+	end
+	if t._iconColorHandle then
+		t._iconColorHandle:SetState("Active")
+	end
+	if t._iconTransHandle then
+		t._iconTransHandle:SetState("Active")
+	end
 	-- Non-theme / constant visuals stay imperative.
 	local theme = self._theme or {}
 	t.BackImage.Visible = theme.WallpaperEnabled ~= false
@@ -337,12 +371,24 @@ function SettingsTabGroup:_applyActiveVisuals(t)
 end
 
 function SettingsTabGroup:_applyInactiveVisuals(t)
-	if t._bgHandle then t._bgHandle:SetState("Inactive") end
-	if t._bgTransHandle then t._bgTransHandle:SetState("Inactive") end
-	if t._nameColorHandle then t._nameColorHandle:SetState("Inactive") end
-	if t._nameTransHandle then t._nameTransHandle:SetState("Inactive") end
-	if t._iconColorHandle then t._iconColorHandle:SetState("Inactive") end
-	if t._iconTransHandle then t._iconTransHandle:SetState("Inactive") end
+	if t._bgHandle then
+		t._bgHandle:SetState("Inactive")
+	end
+	if t._bgTransHandle then
+		t._bgTransHandle:SetState("Inactive")
+	end
+	if t._nameColorHandle then
+		t._nameColorHandle:SetState("Inactive")
+	end
+	if t._nameTransHandle then
+		t._nameTransHandle:SetState("Inactive")
+	end
+	if t._iconColorHandle then
+		t._iconColorHandle:SetState("Inactive")
+	end
+	if t._iconTransHandle then
+		t._iconTransHandle:SetState("Inactive")
+	end
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
 	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) })
 	self:_pauseSpin(t.BackImageGradient)
@@ -351,7 +397,9 @@ end
 -- Update Window.PageTitle to "Settings | <page>" for the active page.
 function SettingsTabGroup:RefreshTitle()
 	local w = self.Window
-	if not w or not w.PageTitle then return end
+	if not w or not w.PageTitle then
+		return
+	end
 	local name = self.ActiveTab and self.ActiveTab.Name or "Settings"
 	-- "Settings | " is Medium (weight 500); the page name stays Regular.
 	w.PageTitle.Text = '<font weight="500">Settings | </font>' .. name
@@ -389,7 +437,9 @@ function SettingsTabGroup:SetActiveTab(tab)
 	-- CanvasGroup per page, so nothing inside a page is transparency-faded.
 	tab.FadeLayer.Visible = true
 	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
-		if previous.FadeLayer then previous.FadeLayer.Visible = false end
+		if previous.FadeLayer then
+			previous.FadeLayer.Visible = false
+		end
 	end)
 end
 
@@ -398,7 +448,9 @@ end
 -- its natural state so nothing is left stuck transparent.
 function SettingsTabGroup:RestoreActivePage()
 	local tab = self.ActiveTab
-	if not tab then return end
+	if not tab then
+		return
+	end
 	for _, other in ipairs(self.Tabs) do
 		if other.FadeLayer then
 			other.FadeLayer.Visible = (other == tab)
@@ -431,12 +483,24 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 		-- Tab button / label / icon colors + transparencies are BINDINGS now;
 		-- re-apply SetState so the active page picks up the new theme's keys.
 		local state = (t == self.ActiveTab) and "Active" or "Inactive"
-		if t._bgHandle then t._bgHandle:SetState(state) end
-		if t._bgTransHandle then t._bgTransHandle:SetState(state) end
-		if t._nameColorHandle then t._nameColorHandle:SetState(state) end
-		if t._nameTransHandle then t._nameTransHandle:SetState(state) end
-		if t._iconColorHandle then t._iconColorHandle:SetState(state) end
-		if t._iconTransHandle then t._iconTransHandle:SetState(state) end
+		if t._bgHandle then
+			t._bgHandle:SetState(state)
+		end
+		if t._bgTransHandle then
+			t._bgTransHandle:SetState(state)
+		end
+		if t._nameColorHandle then
+			t._nameColorHandle:SetState(state)
+		end
+		if t._nameTransHandle then
+			t._nameTransHandle:SetState(state)
+		end
+		if t._iconColorHandle then
+			t._iconColorHandle:SetState(state)
+		end
+		if t._iconTransHandle then
+			t._iconTransHandle:SetState(state)
+		end
 		-- Wallpaper Image/Visible stay imperative (not Color3/number).
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false

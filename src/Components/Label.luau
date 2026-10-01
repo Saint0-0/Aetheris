@@ -20,7 +20,9 @@ local Label = {}
 Label.__index = Label
 -- Map string to Enum.FontWeight
 local function getFontWeight(weight)
-	if typeof(weight) == "EnumItem" then return weight end
+	if typeof(weight) == "EnumItem" then
+		return weight
+	end
 	local weightMap = {
 		Regular = Enum.FontWeight.Regular,
 		Medium = Enum.FontWeight.Medium,
@@ -48,7 +50,8 @@ function Label.new(parent, Settings, theme)
 	container.Name = text .. " [Label]"
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
-	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or (showContainer and 0.985 or 1)
+	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency)
+		or (showContainer and 0.985 or 1)
 	container.AutomaticSize = Enum.AutomaticSize.Y
 	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute("IsComponentContainer", true)
@@ -98,7 +101,7 @@ function Label.new(parent, Settings, theme)
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 0)  -- fill width, height auto
+	label.Size = UDim2.fromScale(1, 0) -- fill width, height auto
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.Parent = container
 	-- Store references
@@ -112,7 +115,8 @@ function Label.new(parent, Settings, theme)
 	self._fontWeight = fontWeight
 	self._hasCustomTextTransparency = (customTextTransparency ~= nil)
 	-- Declarative theming: every themed property is a BINDING. No ApplyTheme.
-	local bgTransBinding = ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	local bgTransBinding =
+		ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	-- Conditional properties: a binding drives the value only while its
@@ -170,7 +174,9 @@ function Label.new(parent, Settings, theme)
 		container.Visible = visible
 	end
 	self.Destroy = function(_self)
-		if container and container.Parent then container:Destroy() end
+		if container and container.Parent then
+			container:Destroy()
+		end
 	end
 	-- No ApplyTheme / Register: all themed properties are bindings above.
 	return self

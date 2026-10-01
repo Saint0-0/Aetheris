@@ -37,7 +37,9 @@ function UISettings.Build(window, tab)
 		Name = "Minimize UI",
 		Default = window._minimizeKey,
 		Callback = function()
-			if window.ToggleMinimize then window.ToggleMinimize() end
+			if window.ToggleMinimize then
+				window.ToggleMinimize()
+			end
 		end,
 		-- Persist a rebind: update the live window key AND save it so it survives
 		-- across sessions (Window reads SettingsStore 'MinimizeKey' on CreateWindow).
@@ -58,7 +60,9 @@ function UISettings.Build(window, tab)
 			Name = pos:sub(1, 1):upper() .. pos:sub(2),
 			Default = (pos == currentPill),
 			Callback = function()
-				if window.SetPillPosition then window:SetPillPosition(pos) end
+				if window.SetPillPosition then
+					window:SetPillPosition(pos)
+				end
 			end,
 		})
 	end
@@ -81,7 +85,9 @@ function UISettings.Build(window, tab)
 			Default = (opt.key == currentCompact),
 			Callback = function()
 				SettingsStore.Set("CompactMode", opt.key)
-				if window._ResolveCompact then window._ResolveCompact() end
+				if window._ResolveCompact then
+					window._ResolveCompact()
+				end
 			end,
 		})
 	end
@@ -115,7 +121,9 @@ function UISettings.Build(window, tab)
 		Callback = function(value)
 			local scale = value / 100
 			local us = window.MainFrame and window.MainFrame:FindFirstChild("WindowScale")
-			if us then us.Scale = scale end
+			if us then
+				us.Scale = scale
+			end
 			SettingsStore.Set("UIScale", scale)
 		end,
 	})
@@ -137,7 +145,9 @@ function UISettings.Build(window, tab)
 	actionsSection:Button({
 		Name = "Reset Layout",
 		Callback = function()
-			if window.ResetLayout then window.ResetLayout() end
+			if window.ResetLayout then
+				window.ResetLayout()
+			end
 		end,
 	})
 

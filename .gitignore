@@ -37,3 +37,12 @@ Thumbs.db
 assets/wallpapers/*.zip
 assets/wallpapers/_backup_pre_upscale/
 assets/wallpapers/_archive/
+
+# Lint / format scratch output (session artifacts, never track)
+/lint-*.txt
+/selene-quiet*.txt
+/selene-report*.txt
+/stylua-*.txt
+/git-status.txt
+/build-verify.txt
+/dist-list.txt

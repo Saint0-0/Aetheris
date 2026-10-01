@@ -107,7 +107,9 @@ function Video.new(parent, Settings, theme)
 		frame.Visible = visible
 	end
 	self.Destroy = function(_self)
-		if frame and frame.Parent then frame:Destroy() end
+		if frame and frame.Parent then
+			frame:Destroy()
+		end
 	end
 	return self
 end

@@ -31,14 +31,22 @@ local nextToken = 0
 local connection = nil
 
 local function ensureConnection()
-	if connection then return end
+	if connection then
+		return
+	end
 	connection = UserInputService.InputBegan:Connect(function(input, processed)
 		-- Respect game-processed input (chat / a focused TextBox), matching
 		-- the old per-row handler's behavior.
-		if processed then return end
-		if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+		if processed then
+			return
+		end
+		if input.UserInputType ~= Enum.UserInputType.Keyboard then
+			return
+		end
 		local bucket = byKey[input.KeyCode.Name]
-		if not bucket then return end
+		if not bucket then
+			return
+		end
 		-- Copy-free iteration is fine here: callbacks must not mutate the
 		-- bucket synchronously in a way that would break the loop. If one
 		-- does (unregisters itself), pairs() on a table with a single
@@ -67,9 +75,13 @@ function KeybindDispatcher.Register(keyName, callback)
 end
 
 function KeybindDispatcher.Unregister(token)
-	if not token then return end
+	if not token then
+		return
+	end
 	local keyName = tokenToKey[token]
-	if not keyName then return end
+	if not keyName then
+		return
+	end
 	tokenToKey[token] = nil
 	local bucket = byKey[keyName]
 	if bucket then

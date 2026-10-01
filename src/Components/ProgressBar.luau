@@ -91,14 +91,14 @@ function ProgressBar.new(parent, Settings, theme)
 	backCorner.CornerRadius = UDim.new(0, 6)
 	backCorner.Parent = backImage
 	local gradient = Instance.new("UIGradient")
-	gradient.Transparency = NumberSequence.new{
+	gradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(0.324, 0.80625),
 		NumberSequenceKeypoint.new(0.600, 0.6875),
 		NumberSequenceKeypoint.new(0.726, 0.55),
 		NumberSequenceKeypoint.new(0.844, 0.36875),
-		NumberSequenceKeypoint.new(1.000, 0)
-	}
+		NumberSequenceKeypoint.new(1.000, 0),
+	})
 	gradient.Parent = backImage
 	local stats = Instance.new("TextLabel")
 	stats.Name = "ProgressBarStats"

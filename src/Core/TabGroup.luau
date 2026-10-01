@@ -36,7 +36,7 @@ function TabGroup.new(window, theme)
 	theme = ThemeManager.GetTheme(theme)
 	local self = setmetatable({}, TabGroup)
 	self.Window = window
-	self._theme = theme or {}  -- store resolved theme
+	self._theme = theme or {} -- store resolved theme
 	self.Tabs = {} -- ordered list of tab handles
 	self.ActiveTab = nil
 	self._transitioning = false
@@ -71,13 +71,17 @@ end
 -- PAUSED (angle preserved) rather than stopped, so switching back resumes the
 -- sweep where it left off instead of snapping to 0.
 function TabGroup:_pauseSpin(gradient)
-	if not gradient then return end
+	if not gradient then
+		return
+	end
 	Tween.PauseSpin(gradient)
 end
 -- Resume from the paused angle; only start fresh if this gradient has never
 -- been registered (the first time a tab is shown).
 function TabGroup:_resumeSpin(gradient, _reset)
-	if not gradient then return end
+	if not gradient then
+		return
+	end
 	if not Tween.ResumeSpin(gradient) then
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
 	end
@@ -102,7 +106,6 @@ function TabGroup:Tab(Settings)
 	local theme = self._theme or {}
 	-- Fallback: if theme is empty, resolve it
 	if not next(theme) then
-		local ThemeManager = require("../Themes/ThemeManager")
 		theme = ThemeManager.GetTheme(nil)
 		self._theme = theme
 	end
@@ -305,24 +308,42 @@ function TabGroup:Tab(Settings)
 	-- the binding system -- no Tween.Play color stomps, no registry ApplyTheme
 	-- for these properties. duration = 0.2 matches the old "Fast" preset so the
 	-- tab-switch highlight animates at the same speed.
-	tab._bgHandle = ThemeManager.BindColor(Button, "BackgroundColor3",
+	tab._bgHandle = ThemeManager.BindColor(
+		Button,
+		"BackgroundColor3",
 		{ Active = "ActiveTabButtonColor", Inactive = "InactiveTabButtonColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._bgTransHandle = ThemeManager.BindTransparency(Button, "BackgroundTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._bgTransHandle = ThemeManager.BindTransparency(
+		Button,
+		"BackgroundTransparency",
 		{ Active = "ActiveTabButtonTransparency", Inactive = "InactiveTabButtonTransparency" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._nameColorHandle = ThemeManager.BindColor(TabName, "TextColor3",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._nameColorHandle = ThemeManager.BindColor(
+		TabName,
+		"TextColor3",
 		{ Active = "ActiveTabTextColor", Inactive = "InactiveTabTextColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._nameTransHandle = ThemeManager.BindTransparency(TabName, "TextTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._nameTransHandle = ThemeManager.BindTransparency(
+		TabName,
+		"TextTransparency",
 		{ Active = "ActiveTabTextTransparency", Inactive = "InactiveTabTextTransparency" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._iconColorHandle = ThemeManager.BindColor(TabImage, "ImageColor3",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._iconColorHandle = ThemeManager.BindColor(
+		TabImage,
+		"ImageColor3",
 		{ Active = "ActiveTabIconColor", Inactive = "InactiveTabIconColor" },
-		{ state = "Inactive", duration = 0.2 })
-	tab._iconTransHandle = ThemeManager.BindTransparency(TabImage, "ImageTransparency",
+		{ state = "Inactive", duration = 0.2 }
+	)
+	tab._iconTransHandle = ThemeManager.BindTransparency(
+		TabImage,
+		"ImageTransparency",
 		{ Active = "ActiveTabIconTransparency", Inactive = "InactiveTabIconTransparency" },
-		{ state = "Inactive", duration = 0.2 })
+		{ state = "Inactive", duration = 0.2 }
+	)
 	-- Static (state-independent) binds.
 	ThemeManager.BindColor(SelectionStatus, "BackgroundColor3", "SecondaryColor")
 	ThemeManager.BindColor(ContentScroller, "ScrollBarImageColor3", "TertiaryColor")
@@ -358,7 +379,9 @@ local EXPANDED_SCROLLER_PAD_RIGHT = UDim.new(0, 3)
 local COMPACT_SCROLLER_PAD_RIGHT = UDim.new(0, 10)
 function TabGroup:_applyTabCompact(tab, on)
 	local layout = tab and tab._layout
-	if not layout or not tab.ColumnLeft or not tab.ColumnRight then return end
+	if not layout or not tab.ColumnLeft or not tab.ColumnRight then
+		return
+	end
 	local padding = tab._scrollerPadding
 	if on then
 		layout.FillDirection = Enum.FillDirection.Vertical
@@ -366,17 +389,21 @@ function TabGroup:_applyTabCompact(tab, on)
 		tab.ColumnRight.Size = UDim2.fromScale(1, 0)
 		tab.ColumnLeft.Position = UDim2.fromScale(0, 0)
 		tab.ColumnRight.Position = UDim2.fromScale(0, 0)
-		if padding then padding.PaddingRight = COMPACT_SCROLLER_PAD_RIGHT end
+		if padding then
+			padding.PaddingRight = COMPACT_SCROLLER_PAD_RIGHT
+		end
 	else
 		layout.FillDirection = Enum.FillDirection.Horizontal
 		tab.ColumnLeft.Size = EXPANDED_COLUMN_SIZE
 		tab.ColumnRight.Size = EXPANDED_COLUMN_SIZE
 		tab.ColumnLeft.Position = UDim2.fromScale(0.512, 0)
 		tab.ColumnRight.Position = UDim2.fromScale(0.512, 0)
-		if padding then padding.PaddingRight = EXPANDED_SCROLLER_PAD_RIGHT end
+		if padding then
+			padding.PaddingRight = EXPANDED_SCROLLER_PAD_RIGHT
+		end
 	end
 end
--- Public: called by Window's compact mode. 
+-- Public: called by Window's compact mode.
 function TabGroup:SetCompact(on)
 	on = on and true or false
 	self._compact = on
@@ -408,7 +435,9 @@ end
 -- cancels in-flight page fades. Restores the active tab to its natural state.
 function TabGroup:RestoreActiveTab()
 	local tab = self.ActiveTab
-	if not tab then return end
+	if not tab then
+		return
+	end
 	-- Show only the active tab's fade layer; hide the rest.
 	for _, other in ipairs(self.Tabs) do
 		if other.FadeLayer then
@@ -428,12 +457,24 @@ function TabGroup:_applyTabVisuals(t, active)
 	-- STATE-AWARE theme properties resolve through the bindings (flip the key
 	-- Active<->Inactive; the binding crossfades at its own 0.2s duration).
 	local state = active and "Active" or "Inactive"
-	if t._bgHandle then t._bgHandle:SetState(state) end
-	if t._bgTransHandle then t._bgTransHandle:SetState(state) end
-	if t._nameColorHandle then t._nameColorHandle:SetState(state) end
-	if t._nameTransHandle then t._nameTransHandle:SetState(state) end
-	if t._iconColorHandle then t._iconColorHandle:SetState(state) end
-	if t._iconTransHandle then t._iconTransHandle:SetState(state) end
+	if t._bgHandle then
+		t._bgHandle:SetState(state)
+	end
+	if t._bgTransHandle then
+		t._bgTransHandle:SetState(state)
+	end
+	if t._nameColorHandle then
+		t._nameColorHandle:SetState(state)
+	end
+	if t._nameTransHandle then
+		t._nameTransHandle:SetState(state)
+	end
+	if t._iconColorHandle then
+		t._iconColorHandle:SetState(state)
+	end
+	if t._iconTransHandle then
+		t._iconTransHandle:SetState(state)
+	end
 	-- Literal-constant / non-theme visuals stay imperative (their values are
 	-- fixed constants, not theme keys): the backdrop reveal and the selection
 	-- indicator's size + spin state.
@@ -450,7 +491,9 @@ end
 
 function TabGroup:SetActiveTab(tab)
 	local previous = self.ActiveTab
-	if previous == tab then return end
+	if previous == tab then
+		return
+	end
 	self.ActiveTab = tab
 
 	-- A page switch dismisses any open popup (dropdown / color picker /
@@ -470,7 +513,9 @@ function TabGroup:SetActiveTab(tab)
 	end
 	local title = self.Window and self.Window.PageTitle
 
-	if previous then self:_applyTabVisuals(previous, false) end
+	if previous then
+		self:_applyTabVisuals(previous, false)
+	end
 	self:_applyTabVisuals(tab, true)
 
 	-- While the window is faded out, don't animate page content: the window
@@ -488,7 +533,9 @@ function TabGroup:SetActiveTab(tab)
 				PageFade.Snap(other.FadeLayer, isTarget and 0 or 1)
 			end
 		end
-		if title then title.Text = self:_titleText(tab) end
+		if title then
+			title.Text = self:_titleText(tab)
+		end
 		return
 	end
 
@@ -510,9 +557,13 @@ function TabGroup:SetActiveTab(tab)
 	-- Standardized overlapped crossfade: incoming fades in while outgoing
 	-- fades out, both at PageFade.TIME so every page transition matches.
 	tab.FadeLayer.Visible = true
-	if title then title.Text = self:_titleText(tab) end
+	if title then
+		title.Text = self:_titleText(tab)
+	end
 	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
-		if previous.FadeLayer then previous.FadeLayer.Visible = false end
+		if previous.FadeLayer then
+			previous.FadeLayer.Visible = false
+		end
 	end)
 end
 
@@ -536,12 +587,24 @@ function TabGroup:ApplyTheme(newTheme)
 		-- (see TabGroup:Tab). Their state-aware handles re-resolve on a theme
 		-- switch automatically; nothing to stamp here. SetState is re-applied so
 		-- the active tab picks up the new theme's key values at once.
-		if t._bgHandle then t._bgHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
-		if t._bgTransHandle then t._bgTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
-		if t._nameColorHandle then t._nameColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
-		if t._nameTransHandle then t._nameTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
-		if t._iconColorHandle then t._iconColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
-		if t._iconTransHandle then t._iconTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive") end
+		if t._bgHandle then
+			t._bgHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
+		if t._bgTransHandle then
+			t._bgTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
+		if t._nameColorHandle then
+			t._nameColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
+		if t._nameTransHandle then
+			t._nameTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
+		if t._iconColorHandle then
+			t._iconColorHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
+		if t._iconTransHandle then
+			t._iconTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
+		end
 		-- Wallpaper Image/Visible are NOT Color3/number and use nil-safe fallback
 		-- semantics, so they stay imperative here.
 		t.BackImage.Image = theme.Wallpaper or FallbackImage

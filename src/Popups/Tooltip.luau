@@ -75,25 +75,33 @@ function Tooltip.new(container, theme)
 
 	self._shown = false
 	self._theme = theme
-	self._surface = theme.PopupBackgroundTransparency ~= nil and math.max(theme.PopupBackgroundTransparency, 0.05) or 0.05
+	self._surface = theme.PopupBackgroundTransparency ~= nil and math.max(theme.PopupBackgroundTransparency, 0.05)
+		or 0.05
 	return self
 end
 
 function Tooltip:SetTheme(theme)
 	theme = ThemeManager.GetTheme(theme)
 	self._theme = theme
-	self._surface = theme.PopupBackgroundTransparency ~= nil and math.max(theme.PopupBackgroundTransparency, 0.05) or 0.05
+	self._surface = theme.PopupBackgroundTransparency ~= nil and math.max(theme.PopupBackgroundTransparency, 0.05)
+		or 0.05
 	self.Root.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
 	self.Label.TextColor3 = theme.PopupTextColor or Color3.fromRGB(255, 255, 255)
 	local stroke = self.Root:FindFirstChildOfClass("UIStroke")
-	if stroke then stroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255) end
+	if stroke then
+		stroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
+	end
 	local shadow = self.Root:FindFirstChildOfClass("UIShadow")
-	if shadow then shadow.Color = theme.PopupShadowColor or Color3.fromRGB(0, 0, 0) end
+	if shadow then
+		shadow.Color = theme.PopupShadowColor or Color3.fromRGB(0, 0, 0)
+	end
 end
 
 -- Place relative to an anchor instance. side = "Left"|"Right"|"Top"|"Bottom".
 function Tooltip:ShowAt(anchor, text, side, gap)
-	if not anchor or not anchor.Parent then return end
+	if not anchor or not anchor.Parent then
+		return
+	end
 	gap = gap or 8
 	side = side or "Left"
 	self.Label.Text = text or ""
@@ -126,18 +134,28 @@ function Tooltip:ShowAt(anchor, text, side, gap)
 	local info = TweenInfo.new(FADE)
 	Tween.Play(self.Root, info, { BackgroundTransparency = self._surface or 0.05 })
 	Tween.Play(self.Label, info, { TextTransparency = self._theme and (self._theme.PopupTextTransparency or 0) or 0 })
-	if self._stroke then Tween.Play(self._stroke, info, { Transparency = 0.85 }) end
-	if self._shadow then Tween.Play(self._shadow, info, { Transparency = 0.5 }) end
+	if self._stroke then
+		Tween.Play(self._stroke, info, { Transparency = 0.85 })
+	end
+	if self._shadow then
+		Tween.Play(self._shadow, info, { Transparency = 0.5 })
+	end
 end
 
 function Tooltip:Hide()
-	if not self._shown then return end
+	if not self._shown then
+		return
+	end
 	self._shown = false
 	local info = TweenInfo.new(FADE)
 	Tween.Play(self.Root, info, { BackgroundTransparency = 1 })
 	Tween.Play(self.Label, info, { TextTransparency = 1 })
-	if self._stroke then Tween.Play(self._stroke, info, { Transparency = 1 }) end
-	if self._shadow then Tween.Play(self._shadow, info, { Transparency = 1 }) end
+	if self._stroke then
+		Tween.Play(self._stroke, info, { Transparency = 1 })
+	end
+	if self._shadow then
+		Tween.Play(self._shadow, info, { Transparency = 1 })
+	end
 	task.delay(FADE, function()
 		if not self._shown and self.Root then
 			self.Root.Visible = false

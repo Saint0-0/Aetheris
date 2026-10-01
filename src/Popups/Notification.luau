@@ -46,7 +46,9 @@ local function captureFade(root)
 	local function scan(inst)
 		if inst:IsA("GuiObject") then
 			for _, p in ipairs({ "BackgroundTransparency", "TextTransparency", "ImageTransparency" }) do
-				local ok, v = pcall(function() return inst[p] end)
+				local ok, v = pcall(function()
+					return inst[p]
+				end)
 				if ok and type(v) == "number" then
 					table.insert(targets, { inst, p, v })
 				end
@@ -75,17 +77,19 @@ local function tweenAll(targets, value, duration)
 		if target == nil then
 			target = t[3]
 		end
-		Tween.Play(
-			t[1],
-			TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ [t[2]] = target }
-		)
+		Tween.Play(t[1], TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { [t[2]] = target })
 	end
 end
 
 local CORNER_GRADIENT_KEYS = {
-	{0.000, 0.0}, {0.630, 0.4135}, {0.751, 0.4712}, {0.818, 0.5288},
-	{0.870, 0.5962}, {0.952, 0.7788}, {0.998, 0.9327}, {1.000, 1.0},
+	{ 0.000, 0.0 },
+	{ 0.630, 0.4135 },
+	{ 0.751, 0.4712 },
+	{ 0.818, 0.5288 },
+	{ 0.870, 0.5962 },
+	{ 0.952, 0.7788 },
+	{ 0.998, 0.9327 },
+	{ 1.000, 1.0 },
 }
 local function cornerGradient(col)
 	local white = Color3.fromRGB(255, 255, 255)
@@ -329,11 +333,7 @@ function Notification.new(container, Settings, theme)
 			})
 
 			local function tween(prop, dur)
-				Tween.Play(
-					btn,
-					TweenInfo.new(dur or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-					prop
-				)
+				Tween.Play(btn, TweenInfo.new(dur or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), prop)
 			end
 			btn.MouseEnter:Connect(function()
 				tween({ BackgroundColor3 = hoverBg })
@@ -377,11 +377,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Hover brightens + scales the close icon; press shrinks it for feedback.
 	local function dismissTween(prop, dur)
-		Tween.Play(
-			dismiss,
-			TweenInfo.new(dur or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			prop
-		)
+		Tween.Play(dismiss, TweenInfo.new(dur or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), prop)
 	end
 	dismiss.MouseEnter:Connect(function()
 		dismissTween({ ImageTransparency = 0.1, Size = UDim2.fromOffset(18, 18) })
@@ -436,7 +432,9 @@ end
 -- destroyed and rebuilt (which is what Window:SetTheme does to popups that
 -- lack ApplyTheme).
 function Notification:ApplyTheme(themeInput)
-	if not self.Root then return end
+	if not self.Root then
+		return
+	end
 	local theme = ThemeManager.GetTheme(themeInput)
 	local accent = theme[ACCENT_KEY[self._type] or "NotificationAlertAccent"] or self._accent
 
@@ -450,16 +448,26 @@ function Notification:ApplyTheme(themeInput)
 
 	if self._grad then
 		self._grad.BackgroundColor3 = self._gradientColor or accent
-		if self._gradGradient then self._gradGradient.Color = cornerGradient(self._gradientColor or accent) end
+		if self._gradGradient then
+			self._gradGradient.Color = cornerGradient(self._gradientColor or accent)
+		end
 	end
 
 	if self._header then
-		if theme.NotificationHeaderColor then self._header.TextColor3 = theme.NotificationHeaderColor end
-		if theme.NotificationHeaderTransparency then self._header.TextTransparency = theme.NotificationHeaderTransparency end
+		if theme.NotificationHeaderColor then
+			self._header.TextColor3 = theme.NotificationHeaderColor
+		end
+		if theme.NotificationHeaderTransparency then
+			self._header.TextTransparency = theme.NotificationHeaderTransparency
+		end
 		local divider = self._header:FindFirstChild("Divider")
 		if divider then
-			if theme.NotificationDividerColor then divider.BackgroundColor3 = theme.NotificationDividerColor end
-			if theme.NotificationDividerTransparency then divider.BackgroundTransparency = theme.NotificationDividerTransparency end
+			if theme.NotificationDividerColor then
+				divider.BackgroundColor3 = theme.NotificationDividerColor
+			end
+			if theme.NotificationDividerTransparency then
+				divider.BackgroundTransparency = theme.NotificationDividerTransparency
+			end
 		end
 	end
 
@@ -468,8 +476,12 @@ function Notification:ApplyTheme(themeInput)
 	end
 
 	if self._desc then
-		if theme.NotificationTextColor then self._desc.TextColor3 = theme.NotificationTextColor end
-		if theme.NotificationTextTransparency then self._desc.TextTransparency = theme.NotificationTextTransparency end
+		if theme.NotificationTextColor then
+			self._desc.TextColor3 = theme.NotificationTextColor
+		end
+		if theme.NotificationTextTransparency then
+			self._desc.TextTransparency = theme.NotificationTextTransparency
+		end
 		local holder = self._desc:FindFirstChild("InterractionHolder")
 		if holder then
 			local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
@@ -493,7 +505,9 @@ function Notification:_startTimer()
 end
 
 function Notification:Show()
-	if self._shown then return self end
+	if self._shown then
+		return self
+	end
 	self._shown = true
 	Sound.Play("Notification")
 	setAll(self._fadeTargets, 1)
@@ -511,7 +525,9 @@ function Notification:Show()
 end
 
 function Notification:Close()
-	if self._closing then return end
+	if self._closing then
+		return
+	end
 	self._closing = true
 	if self._timerTween then
 		Tween.Cancel(self._timerTween)

@@ -36,13 +36,18 @@ local function colorToString(color)
 		local lower = string.lower(color)
 		if DEFAULT_COLORS[lower] then
 			local c = DEFAULT_COLORS[lower]
-			return string.format("#%02X%02X%02X", math.round(c.R*255), math.round(c.G*255), math.round(c.B*255))
+			return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
 		else
 			-- Assume it's already a valid color string like "#FF0000"
 			return color
 		end
 	elseif typeof(color) == "Color3" then
-		return string.format("#%02X%02X%02X", math.round(color.R*255), math.round(color.G*255), math.round(color.B*255))
+		return string.format(
+			"#%02X%02X%02X",
+			math.round(color.R * 255),
+			math.round(color.G * 255),
+			math.round(color.B * 255)
+		)
 	else
 		return "#FFFFFF" -- fallback white
 	end
@@ -153,7 +158,12 @@ function Status.new(parent, Settings, theme)
 		ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
 		-- Build rich text
 		local colorString = colorToString(color)
-		textLabel.Text = string.format('<font weight="SemiBold">%s: </font><font color="%s">%s</font>', title, colorString, description)
+		textLabel.Text = string.format(
+			'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
+			title,
+			colorString,
+			description
+		)
 		table.insert(statusLabels, textLabel)
 	end
 	self.Frame = frame
@@ -203,17 +213,26 @@ function Status.new(parent, Settings, theme)
 			ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
 			ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
 			local colorString = colorToString(color)
-			textLabel.Text = string.format('<font weight="SemiBold">%s: </font><font color="%s">%s</font>', title, colorString, description)
+			textLabel.Text = string.format(
+				'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
+				title,
+				colorString,
+				description
+			)
 			table.insert(statusLabels, textLabel)
 		end
 		self.StatusLabels = statusLabels
 	end
 	-- Uniform component API (p2-4).
 	self.SetVisibility = function(me, visible)
-		if me.Holder then me.Holder.Visible = visible end
+		if me.Holder then
+			me.Holder.Visible = visible
+		end
 	end
 	self.Destroy = function(me)
-		if me.Holder and me.Holder.Parent then me.Holder:Destroy() end
+		if me.Holder and me.Holder.Parent then
+			me.Holder:Destroy()
+		end
 	end
 	return self
 end

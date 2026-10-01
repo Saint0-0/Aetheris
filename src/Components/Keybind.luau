@@ -31,37 +31,92 @@ Keybind.__index = Keybind
 -- Short display labels for long Enum.KeyCode names (cosmetic only -- the stored
 -- value and callback still use the full KeyCode.Name).
 local KEY_DISPLAY = {
-	LeftControl = "LtCtrl", RightControl = "RtCtrl",
-	LeftShift = "LtShift", RightShift = "RtShift",
-	LeftAlt = "LtAlt", RightAlt = "RtAlt",
+	LeftControl = "LtCtrl",
+	RightControl = "RtCtrl",
+	LeftShift = "LtShift",
+	RightShift = "RtShift",
+	LeftAlt = "LtAlt",
+	RightAlt = "RtAlt",
 	-- digits show as the numeral
-	Zero = "0", One = "1", Two = "2", Three = "3", Four = "4",
-	Five = "5", Six = "6", Seven = "7", Eight = "8", Nine = "9",
+	Zero = "0",
+	One = "1",
+	Two = "2",
+	Three = "3",
+	Four = "4",
+	Five = "5",
+	Six = "6",
+	Seven = "7",
+	Eight = "8",
+	Nine = "9",
 	-- punctuation shows as the actual character
-	Backquote = "`", Equals = "=", Minus = "-",
-	LeftBracket = "[", RightBracket = "]", BackSlash = "\\",
-	Quote = "'", Comma = ",", Period = ".", Semicolon = ";",
+	Backquote = "`",
+	Equals = "=",
+	Minus = "-",
+	LeftBracket = "[",
+	RightBracket = "]",
+	BackSlash = "\\",
+	Quote = "'",
+	Comma = ",",
+	Period = ".",
+	Semicolon = ";",
 }
 
 -- Keys the user is allowed to bind: A-Z, 0-9, Control/Shift/Alt (both sides),
 -- and ` = - [ ] \ ' , . ;
 local ALLOWED = {}
 for _, kc in ipairs({
-	Enum.KeyCode.A, Enum.KeyCode.B, Enum.KeyCode.C, Enum.KeyCode.D, Enum.KeyCode.E,
-	Enum.KeyCode.F, Enum.KeyCode.G, Enum.KeyCode.H, Enum.KeyCode.I, Enum.KeyCode.J,
-	Enum.KeyCode.K, Enum.KeyCode.L, Enum.KeyCode.M, Enum.KeyCode.N, Enum.KeyCode.O,
-	Enum.KeyCode.P, Enum.KeyCode.Q, Enum.KeyCode.R, Enum.KeyCode.S, Enum.KeyCode.T,
-	Enum.KeyCode.U, Enum.KeyCode.V, Enum.KeyCode.W, Enum.KeyCode.X, Enum.KeyCode.Y,
+	Enum.KeyCode.A,
+	Enum.KeyCode.B,
+	Enum.KeyCode.C,
+	Enum.KeyCode.D,
+	Enum.KeyCode.E,
+	Enum.KeyCode.F,
+	Enum.KeyCode.G,
+	Enum.KeyCode.H,
+	Enum.KeyCode.I,
+	Enum.KeyCode.J,
+	Enum.KeyCode.K,
+	Enum.KeyCode.L,
+	Enum.KeyCode.M,
+	Enum.KeyCode.N,
+	Enum.KeyCode.O,
+	Enum.KeyCode.P,
+	Enum.KeyCode.Q,
+	Enum.KeyCode.R,
+	Enum.KeyCode.S,
+	Enum.KeyCode.T,
+	Enum.KeyCode.U,
+	Enum.KeyCode.V,
+	Enum.KeyCode.W,
+	Enum.KeyCode.X,
+	Enum.KeyCode.Y,
 	Enum.KeyCode.Z,
-	Enum.KeyCode.Zero, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three,
-	Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven,
-	Enum.KeyCode.Eight, Enum.KeyCode.Nine,
-	Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl,
-	Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift,
-	Enum.KeyCode.LeftAlt, Enum.KeyCode.RightAlt,
-	Enum.KeyCode.Backquote, Enum.KeyCode.Equals, Enum.KeyCode.Minus,
-	Enum.KeyCode.LeftBracket, Enum.KeyCode.RightBracket, Enum.KeyCode.BackSlash,
-	Enum.KeyCode.Quote, Enum.KeyCode.Comma, Enum.KeyCode.Period, Enum.KeyCode.Semicolon,
+	Enum.KeyCode.Zero,
+	Enum.KeyCode.One,
+	Enum.KeyCode.Two,
+	Enum.KeyCode.Three,
+	Enum.KeyCode.Four,
+	Enum.KeyCode.Five,
+	Enum.KeyCode.Six,
+	Enum.KeyCode.Seven,
+	Enum.KeyCode.Eight,
+	Enum.KeyCode.Nine,
+	Enum.KeyCode.LeftControl,
+	Enum.KeyCode.RightControl,
+	Enum.KeyCode.LeftShift,
+	Enum.KeyCode.RightShift,
+	Enum.KeyCode.LeftAlt,
+	Enum.KeyCode.RightAlt,
+	Enum.KeyCode.Backquote,
+	Enum.KeyCode.Equals,
+	Enum.KeyCode.Minus,
+	Enum.KeyCode.LeftBracket,
+	Enum.KeyCode.RightBracket,
+	Enum.KeyCode.BackSlash,
+	Enum.KeyCode.Quote,
+	Enum.KeyCode.Comma,
+	Enum.KeyCode.Period,
+	Enum.KeyCode.Semicolon,
 }) do
 	ALLOWED[kc] = true
 end
@@ -112,10 +167,10 @@ function Keybind.new(parent, Settings, theme)
 	stroke.Parent = inputBox
 	-- State
 	local currentKey = default or ""
-	local previousKey = currentKey  -- store the key before binding starts
+	local previousKey = currentKey -- store the key before binding starts
 	local isBinding = false
 	local connection = nil
-	local pressToken = nil  -- KeybindDispatcher registration token (gameplay press)
+	local pressToken = nil -- KeybindDispatcher registration token (gameplay press)
 	-- Forward declaration: setKey re-registers the dispatcher entry whenever
 	-- the bind changes, so setKey needs to call a function defined below.
 	local updatePressRegistration
@@ -152,7 +207,9 @@ function Keybind.new(parent, Settings, theme)
 		if currentKey and currentKey ~= "" then
 			pressToken = KeybindDispatcher.Register(currentKey, function()
 				-- Ignore while the box is capturing a new bind.
-				if isBinding then return end
+				if isBinding then
+					return
+				end
 				if Settings.Callback then
 					Settings.Callback(currentKey)
 				end
@@ -189,7 +246,7 @@ function Keybind.new(parent, Settings, theme)
 		previousKey = currentKey
 		setStrokeBright(true)
 		isBinding = true
-		inputBox.Text = ""  -- clear the box for new input
+		inputBox.Text = "" -- clear the box for new input
 		-- Listen for key presses
 		connection = UserInputService.InputBegan:Connect(function(input, _)
 			-- NOTE: deliberately NOT early-returning on the second arg (processed) here.
@@ -197,23 +254,29 @@ function Keybind.new(parent, Settings, theme)
 			-- consumed by the UI for text entry (processed == true). That's fine
 			-- and expected for a keybind capture box -- we still want to see the
 			-- key. setKey() below overwrites whatever the TextBox typed natively.
-			if not isBinding then return end
+			if not isBinding then
+				return
+			end
 			if input.UserInputType == Enum.UserInputType.Keyboard then
 				local keyCode = input.KeyCode
 				-- Only accept the allowed set (A-Z, 0-9, Ctrl/Shift/Alt, and the
 				-- listed punctuation). Backspace clears the bind; anything else is
 				-- ignored and we keep listening.
 				if keyCode == Enum.KeyCode.Backspace then
-					setKey("")  -- clear the key
+					setKey("") -- clear the key
 					isBinding = false
 					inputBox:ReleaseFocus()
-					if connection then connection:Disconnect() end
+					if connection then
+						connection:Disconnect()
+					end
 					setStrokeBright(false)
 				elseif ALLOWED[keyCode] then
 					setKey(keyCode.Name)
 					isBinding = false
 					inputBox:ReleaseFocus()
-					if connection then connection:Disconnect() end
+					if connection then
+						connection:Disconnect()
+					end
 					setStrokeBright(false)
 				end
 			end
@@ -224,7 +287,9 @@ function Keybind.new(parent, Settings, theme)
 		if isBinding then
 			-- Clean up binding state
 			isBinding = false
-			if connection then connection:Disconnect() end
+			if connection then
+				connection:Disconnect()
+			end
 			-- Restore previous key
 			currentKey = previousKey
 			if currentKey and currentKey ~= "" then
@@ -258,12 +323,16 @@ function Keybind.new(parent, Settings, theme)
 			KeybindDispatcher.Unregister(pressToken)
 			pressToken = nil
 		end
-		if connection then connection:Disconnect() end
+		if connection then
+			connection:Disconnect()
+		end
 	end
 	row.Destroying:Connect(disconnectAll)
 	self.Destroy = function()
 		disconnectAll()
-		if row.Parent then row:Destroy() end
+		if row.Parent then
+			row:Destroy()
+		end
 	end
 	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")

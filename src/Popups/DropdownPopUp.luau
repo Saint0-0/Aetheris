@@ -386,11 +386,11 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- rebuilding. Called by Window:SetTheme so a cached/open dropdown recolors
 	-- live instead of being destroyed and recreated.
 	-- ============================================================
-	self.ApplyTheme = function(me, theme)
+	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
 			return
 		end
-		local t = ThemeManager.GetTheme(theme)
+		local t = ThemeManager.GetTheme(newTheme)
 		me._theme = t
 		me.Popup.BackgroundColor3 = t.PopupBackgroundColor or me.Popup.BackgroundColor3
 		me.Shadow.Color = t.PopupShadowColor or me.Shadow.Color
@@ -693,7 +693,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local name = itemData.name or "Item"
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
 			local value = itemData.value or name
-			local theme = Settings.Theme
 			local button = Instance.new("TextButton")
 			button.Name = "DeselectedItem"
 			button.BorderSizePixel = 0
@@ -859,45 +858,45 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- ============================================================
 	-- Public API
 	-- ============================================================
-	self.SetContent = function(_self, Settings)
+	self.SetContent = function(_self, contentSettings)
 		if not self.Popup then
 			return
 		end
-		Settings = Settings or {}
-		local title = Settings.Title or "Select Items"
+		contentSettings = contentSettings or {}
+		local newTitle = contentSettings.Title or "Select Items"
 		-- Read the LIVE theme, not the construction-time `theme` upvalue: SetContent
 		-- runs on every reopen and would otherwise overwrite the header color with
 		-- a stale value after a theme switch.
-		local liveTheme = ThemeManager.GetTheme(Settings.Theme or self._theme)
-		local titleColor = Settings.TitleColor
+		local liveTheme = ThemeManager.GetTheme(contentSettings.Theme or self._theme)
+		local newTitleColor = contentSettings.TitleColor
 			or (liveTheme and liveTheme.PopupTextColor)
 			or Color3.fromRGB(255, 255, 255)
-		local items = Settings.Items or {}
-		local default = Settings.Default or {}
-		local maxItems = Settings.MaxItemsChoosable or math.huge
+		local newItems = contentSettings.Items or {}
+		local newDefault = contentSettings.Default or {}
+		local newMaxItems = contentSettings.MaxItemsChoosable or math.huge
 		local oldItems = self.Items or {}
-		self.MaxItems = maxItems
-		self.Items = items
-		self.OnConfirm = Settings.OnConfirm or function() end
-		self.OnCancel = Settings.OnCancel or function() end
-		self.Title = title
+		self.MaxItems = newMaxItems
+		self.Items = newItems
+		self.OnConfirm = contentSettings.OnConfirm or function() end
+		self.OnCancel = contentSettings.OnCancel or function() end
+		self.Title = newTitle
 		-- Update header (color via TextColor3, no RichText tag needed)
-		self.Header.Text = title
-		self.Header.TextColor3 = titleColor or Color3.fromRGB(255, 255, 255)
+		self.Header.Text = newTitle
+		self.Header.TextColor3 = newTitleColor or Color3.fromRGB(255, 255, 255)
 		-- Update popup name
-		self.Popup.Name = sanitizeName(title) .. "DropdownPopup"
+		self.Popup.Name = sanitizeName(newTitle) .. "DropdownPopup"
 		-- Only rebuild the rows when the item list actually changed. Rebuilding
 		-- destroys and recreates every row (~10 instances + 3 connections each)
 		-- and previously ran on EVERY open -- the main source of churn.
-		if not itemsEqual(oldItems, items) then
+		if not itemsEqual(oldItems, newItems) then
 			self:_buildItems()
 		end
-		self:SetSelection(default)
+		self:SetSelection(newDefault)
 		self:_updateSelectedText()
 		-- Reset resolved
 		self._resolved = false
 		-- SelectAll visibility
-		if maxItems ~= math.huge then
+		if newMaxItems ~= math.huge then
 			self.SelectAllBtn.Visible = false
 		else
 			self.SelectAllBtn.Visible = true
@@ -1225,8 +1224,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			-- frame's own rect; a pure rect test would misread those as "outside".
 			local pos = self.Popup.AbsolutePosition
 			local size = self.Popup.AbsoluteSize
-			local inside = p.X >= pos.X and p.X <= pos.X + size.X
-				and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
 			if not inside then
 				local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
 				if playerGui then

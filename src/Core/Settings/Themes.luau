@@ -183,7 +183,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	local gradient = Instance.new("UIGradient")
 	gradient.Rotation = 180
-	gradient.Transparency = NumberSequence.new{
+	gradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 0),
 		NumberSequenceKeypoint.new(0.044, 0.1625),
 		NumberSequenceKeypoint.new(0.087, 0.34375),
@@ -196,7 +196,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 		NumberSequenceKeypoint.new(0.533, 0.9625),
 		NumberSequenceKeypoint.new(0.681, 0.975),
 		NumberSequenceKeypoint.new(1.000, 1),
-	}
+	})
 	gradient.Parent = backImage
 
 	-- Theme title (active cards use lower transparency)
@@ -251,7 +251,7 @@ function Themes.Build(window, tab)
 	page.Size = UDim2.fromScale(1, 0.87857)
 	page.Position = UDim2.fromScale(0.5, 0.561)
 	page.AnchorPoint = Vector2.new(0.5, 0.5)
-	
+
 	--ui constraint for page
 	--local pageUIConstraint = Instance.new("UISizeConstraint")
 	--pageUIConstraint.MinSize = Vector2.new(535, 340)

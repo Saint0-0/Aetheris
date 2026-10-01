@@ -95,7 +95,7 @@ function Button.new(parent, Settings, theme)
 		isHovered = true
 		Tween.CancelAll(fingerprint)
 		Tween.Play(fingerprint, "Smooth", {
-			ImageTransparency = 0.2
+			ImageTransparency = 0.2,
 		})
 		Tween.Play(scale, "HoverIn", { Scale = 1.02 })
 	end)
@@ -103,7 +103,7 @@ function Button.new(parent, Settings, theme)
 		isHovered = false
 		Tween.CancelAll(fingerprint)
 		Tween.Play(fingerprint, "Smooth", {
-			ImageTransparency = FINGERPRINT_BASE
+			ImageTransparency = FINGERPRINT_BASE,
 		})
 		Tween.Play(scale, "HoverOut", { Scale = 1 })
 	end)
@@ -120,10 +120,10 @@ function Button.new(parent, Settings, theme)
 		Tween.CancelAll(fingerprint)
 		-- Flash in
 		Tween.Play(buttonColor, "Click", {
-			BackgroundTransparency = 0.15
+			BackgroundTransparency = 0.15,
 		})
 		Tween.Play(fingerprint, "Click", {
-			ImageTransparency = 0.1
+			ImageTransparency = 0.1,
 		})
 		-- Fade back out shortly after the flash.
 		-- Rapid clicks restart the animation instead of locking the button.
@@ -132,10 +132,10 @@ function Button.new(parent, Settings, theme)
 				return
 			end
 			Tween.Play(buttonColor, "Release", {
-				BackgroundTransparency = BUTTONCOLOR_BASE
+				BackgroundTransparency = BUTTONCOLOR_BASE,
 			})
 			Tween.Play(fingerprint, "Smooth", {
-				ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE
+				ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE,
 			})
 		end)
 		-- Fire callback immediately; animation never blocks button behavior.

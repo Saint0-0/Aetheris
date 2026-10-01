@@ -27,14 +27,14 @@ local FILE_NAME = "Aetheris_settings.json"
 
 -- Defaults. Anything missing from a loaded config falls back to these.
 SettingsStore.Defaults = {
-	Theme = nil,            -- nil = whatever CreateWindow was given
-	UIScale = 1,            -- window scale, 0.8 - 1.25
-	MinimizeKey = nil,      -- nil = whatever CreateWindow was given
+	Theme = nil, -- nil = whatever CreateWindow was given
+	UIScale = 1, -- window scale, 0.8 - 1.25
+	MinimizeKey = nil, -- nil = whatever CreateWindow was given
 	SpinsEnabled = true,
 	ConfirmClose = true,
 	Volume = 1,
 	PillPosition = "right", -- minimize pill: "right" | "left" | "top" | "bottom"
-	CompactMode = "auto",   -- "auto" (by width) | "always" | "never"
+	CompactMode = "auto", -- "auto" (by width) | "always" | "never"
 }
 
 SettingsStore.Data = {}
@@ -57,7 +57,9 @@ function SettingsStore.Load()
 	end)
 	if ok and content and content ~= "" then
 		local decoded
-		local ok2, result = pcall(function() return HttpService:JSONDecode(content) end)
+		local ok2, result = pcall(function()
+			return HttpService:JSONDecode(content)
+		end)
 		if ok2 and type(result) == "table" then
 			decoded = result
 		end
@@ -78,9 +80,13 @@ function SettingsStore.SaveNow()
 	if not hasFileAPI then
 		return
 	end
-	local ok, encoded = pcall(function() return HttpService:JSONEncode(SettingsStore.Data) end)
+	local ok, encoded = pcall(function()
+		return HttpService:JSONEncode(SettingsStore.Data)
+	end)
 	if ok and encoded then
-		pcall(function() writefile(FILE_NAME, encoded) end)
+		pcall(function()
+			writefile(FILE_NAME, encoded)
+		end)
 	end
 end
 

@@ -28,23 +28,23 @@ local TweenUtil = {}
 -- ColorPicker), the UIConstants value wins as canonical and the pieces that
 -- drifted should be migrated to use this module instead of their own locals.
 TweenUtil.Presets = {
-	Fast         = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	Smooth       = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-	Burst        = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-	SpinIdle     = TweenInfo.new(8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
-	SpinStat     = TweenInfo.new(12, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
-	SpinBurst    = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
-	Click        = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	ClickQuint   = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
-	Release      = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+	Fast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Smooth = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+	Burst = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+	SpinIdle = TweenInfo.new(8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
+	SpinStat = TweenInfo.new(12, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
+	SpinBurst = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0),
+	Click = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	ClickQuint = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+	Release = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 	ClickRelease = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	HoverIn      = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-	HoverOut     = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	Hover        = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	OnOff        = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-	PageSwap     = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-	FadeOut      = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-	Minimize     = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	HoverIn = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	HoverOut = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Hover = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	OnOff = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+	PageSwap = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+	FadeOut = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+	Minimize = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	MinimizeSnappy = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 }
 
@@ -304,7 +304,9 @@ local function launchSpinSegment(instance, data)
 	-- complete sweep from 0, whether it comes from StartSpin or a ResumeSpin
 	-- rebuild.
 	for prop in pairs(data.properties) do
-		pcall(function() instance[prop] = 0 end)
+		pcall(function()
+			instance[prop] = 0
+		end)
 	end
 	local handle = TweenUtil.Play(instance, data.preset or "SpinIdle", data.properties)
 	data.handle = handle
@@ -391,11 +393,7 @@ function TweenUtil.ResumeSpin(instance)
 	-- A handle can exist yet be dead (cancelled by a theme switch's blanket
 	-- CancelAll). Only Resume a tween that is still playable/paused; otherwise
 	-- build a fresh one, or the spin stays frozen forever.
-	if
-		data.handle
-		and data.handle.Tween
-		and data.handle.Tween.PlaybackState ~= Enum.PlaybackState.Cancelled
-	then
+	if data.handle and data.handle.Tween and data.handle.Tween.PlaybackState ~= Enum.PlaybackState.Cancelled then
 		TweenUtil.Resume(data.handle)
 	else
 		launchSpinSegment(instance, data)
@@ -458,15 +456,9 @@ function TweenUtil.GateSpinOnVisibility(instance)
 		local node = instance
 		while node and node ~= game do
 			if node:IsA("GuiObject") then
-				table.insert(
-					state.connections,
-					node:GetPropertyChangedSignal("Visible"):Connect(sync)
-				)
+				table.insert(state.connections, node:GetPropertyChangedSignal("Visible"):Connect(sync))
 			elseif node:IsA("LayerCollector") then
-				table.insert(
-					state.connections,
-					node:GetPropertyChangedSignal("Enabled"):Connect(sync)
-				)
+				table.insert(state.connections, node:GetPropertyChangedSignal("Enabled"):Connect(sync))
 				break
 			end
 			node = node.Parent
@@ -573,7 +565,9 @@ function TweenUtil.SetSpinsEnabled(enabled)
 		end
 		if instance and instance.Parent then
 			for prop in pairs(data.properties) do
-				pcall(function() instance[prop] = 0 end)
+				pcall(function()
+					instance[prop] = 0
+				end)
 			end
 		end
 	end

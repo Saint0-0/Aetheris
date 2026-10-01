@@ -97,10 +97,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	satCorner.CornerRadius = UDim.new(0, 4)
 	satCorner.Parent = satOverlay
 	local satGradient = Instance.new("UIGradient")
-	satGradient.Transparency = NumberSequence.new{
+	satGradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(1.000, 0),
-	}
+	})
 	satGradient.Parent = satOverlay
 	local valOverlay = Instance.new("Frame")
 	valOverlay.Name = "ValueOverlay"
@@ -113,10 +113,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valCorner.Parent = valOverlay
 	local valGradient = Instance.new("UIGradient")
 	valGradient.Rotation = 90
-	valGradient.Transparency = NumberSequence.new{
+	valGradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(1.000, 0),
-	}
+	})
 	valGradient.Parent = valOverlay
 	-- Target (visual indicator + drag surface)
 	local target = Instance.new("TextButton")
@@ -153,15 +153,15 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorValue.ClipsDescendants = false
 	colorValue.Parent = popup
 	local valueGradient = Instance.new("UIGradient")
-	valueGradient.Color = ColorSequence.new{
+	valueGradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 0, 0)),
 		ColorSequenceKeypoint.new(0.160, Color3.fromRGB(255, 255, 0)),
 		ColorSequenceKeypoint.new(0.330, Color3.fromRGB(0, 255, 0)),
 		ColorSequenceKeypoint.new(0.500, Color3.fromRGB(0, 255, 255)),
 		ColorSequenceKeypoint.new(0.660, Color3.fromRGB(0, 81, 255)),
 		ColorSequenceKeypoint.new(0.830, Color3.fromRGB(171, 0, 255)),
-		ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 0, 171))
-	}
+		ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 0, 171)),
+	})
 	valueGradient.Parent = colorValue
 	local valueCorner = Instance.new("UICorner")
 	valueCorner.CornerRadius = UDim.new(0, 6)
@@ -204,12 +204,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	inputsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	inputsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	inputsLayout.Parent = inputsFrame
-	
+
 	local inputsLayoutPadding = Instance.new("UIPadding")
 	inputsLayoutPadding.PaddingRight = UDim.new(0, 10)
 	inputsLayoutPadding.Parent = inputsFrame
-	
-	local function createInputRow(parent, labelText, defaultText, layoutOrder)
+
+	local function createInputRow(labelText, defaultText, layoutOrder)
 		local row = Instance.new("Frame")
 		row.Name = labelText
 		row.BorderSizePixel = 0
@@ -281,10 +281,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		inputPadding.Parent = inputBox
 		return row, inputBox, inputStroke
 	end
-	local redRow, redInput, redStroke = createInputRow(inputsFrame, "Red", "255", 1)
-	local greenRow, greenInput, greenStroke = createInputRow(inputsFrame, "Green", "255", 2)
-	local blueRow, blueInput, blueStroke = createInputRow(inputsFrame, "Blue", "255", 3)
-	local hexRow, hexInput, hexStroke = createInputRow(inputsFrame, "Hex", "#FFFFFF", 4)
+	local redRow, redInput, redStroke = createInputRow("Red", "255", 1)
+	local greenRow, greenInput, greenStroke = createInputRow("Green", "255", 2)
+	local blueRow, blueInput, blueStroke = createInputRow("Blue", "255", 3)
+	local hexRow, hexInput, hexStroke = createInputRow("Hex", "#FFFFFF", 4)
 	-- ColorWells
 	local colorWells = Instance.new("Frame")
 	colorWells.Name = "ColorWells"
@@ -303,7 +303,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	wellsLayout.Parent = colorWells
 	-- Plain colour frames (only a UICorner child): the old one shows the colour
 	-- the picker opened on, the new one shows the colour being picked.
-	local function createColorWell(parent, name, layoutOrder)
+	local function createColorWell(wellParent, name, layoutOrder)
 		local well = Instance.new("Frame")
 		well.Name = name
 		well.BorderSizePixel = 0
@@ -311,7 +311,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.BackgroundTransparency = 0
 		well.Size = UDim2.fromOffset(100, 100)
 		well.LayoutOrder = layoutOrder
-		well.Parent = parent
+		well.Parent = wellParent
 		local wellCorner = Instance.new("UICorner")
 		wellCorner.CornerRadius = UDim.new(0, 6)
 		wellCorner.Parent = well
@@ -476,11 +476,11 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		refreshVisuals()
 		refreshInputsFromState()
 	end
-	self.SetContent = function(_self, Settings)
-		local title = Settings.Title or "Color Picker"
-		local currentColor = Settings.CurrentColor
-		self.OnConfirm = Settings.OnConfirm or function() end
-		self.OnCancel = Settings.OnCancel or function() end
+	self.SetContent = function(_self, contentSettings)
+		local title = contentSettings.Title or "Color Picker"
+		local currentColor = contentSettings.CurrentColor
+		self.OnConfirm = contentSettings.OnConfirm or function() end
+		self.OnCancel = contentSettings.OnCancel or function() end
 		self.Header.Text = title
 		self._oldColor = currentColor
 		self._currentColor = currentColor
@@ -491,38 +491,56 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- Re-apply every theme-driven color to a new theme WITHOUT rebuilding.
 	-- Called by Window:SetTheme so an open (or cached) picker recolors live
 	-- instead of being destroyed and recreated.
-	self.ApplyTheme = function(me, theme)
-		if not me.Popup then return end
-		theme = ThemeManager.GetTheme(theme)
-		me._theme = theme
-		me.Popup.BackgroundColor3 = theme.PopupBackgroundColor or me.Popup.BackgroundColor3
-		if me.Shadow then me.Shadow.Color = theme.PopupShadowColor or me.Shadow.Color end
-		me.Header.TextColor3 = theme.PopupTextColor or me.Header.TextColor3
-		for _, info in pairs(me.Inputs) do
-			info.Input.TextColor3 = theme.PopupTextColor or info.Input.TextColor3
-			info.Input.BackgroundColor3 = theme.PopupBackgroundColor or info.Input.BackgroundColor3
-			info.Stroke.Color = theme.StrokeColor or info.Stroke.Color
-			local label = info.Row:FindFirstChild("InputName")
-			if label then label.TextColor3 = theme.PopupTextColor or label.TextColor3 end
+	self.ApplyTheme = function(me, newTheme)
+		if not me.Popup then
+			return
 		end
-		local squareShadow = me.ColorSquare:FindFirstChildOfClass("UIShadow")
-		if squareShadow then squareShadow.Color = theme.PopupShadowColor or squareShadow.Color end
-		local valueShadow = me.ColorValue:FindFirstChildOfClass("UIShadow")
-		if valueShadow then valueShadow.Color = theme.PopupShadowColor or valueShadow.Color end
+		newTheme = ThemeManager.GetTheme(newTheme)
+		me._theme = newTheme
+		me.Popup.BackgroundColor3 = newTheme.PopupBackgroundColor or me.Popup.BackgroundColor3
+		if me.Shadow then
+			me.Shadow.Color = newTheme.PopupShadowColor or me.Shadow.Color
+		end
+		me.Header.TextColor3 = newTheme.PopupTextColor or me.Header.TextColor3
+		for _, info in pairs(me.Inputs) do
+			info.Input.TextColor3 = newTheme.PopupTextColor or info.Input.TextColor3
+			info.Input.BackgroundColor3 = newTheme.PopupBackgroundColor or info.Input.BackgroundColor3
+			info.Stroke.Color = newTheme.StrokeColor or info.Stroke.Color
+			local label = info.Row:FindFirstChild("InputName")
+			if label then
+				label.TextColor3 = newTheme.PopupTextColor or label.TextColor3
+			end
+		end
+		local sqShadow = me.ColorSquare:FindFirstChildOfClass("UIShadow")
+		if sqShadow then
+			sqShadow.Color = newTheme.PopupShadowColor or sqShadow.Color
+		end
+		local valShadow = me.ColorValue:FindFirstChildOfClass("UIShadow")
+		if valShadow then
+			valShadow.Color = newTheme.PopupShadowColor or valShadow.Color
+		end
 		-- Target/Slide handle strokes stay opaque white; not theme-driven.
-		local targetStroke = me.Target:FindFirstChildOfClass("UIStroke")
-		if targetStroke then targetStroke.Color = Color3.fromRGB(255, 255, 255); targetStroke.Transparency = 0 end
-		local slideStroke = me.Slide:FindFirstChildOfClass("UIStroke")
-		if slideStroke then slideStroke.Color = Color3.fromRGB(255, 255, 255); slideStroke.Transparency = 0 end
-		me.ConfirmBtn.TextColor3 = theme.PopupTextColor or me.ConfirmBtn.TextColor3
-		me.ConfirmBtn.BackgroundColor3 = theme.PrimaryColor or me.ConfirmBtn.BackgroundColor3
-		me.ConfirmShadow.Color = theme.PrimaryColor or me.ConfirmShadow.Color
-		me.CancelBtn.TextColor3 = theme.PopupTextColor or me.CancelBtn.TextColor3
-		me.CancelBtn.BackgroundColor3 = theme.PopupNeutralColor or me.CancelBtn.BackgroundColor3
-		me.CancelShadow.Color = theme.PopupNeutralColor or me.CancelShadow.Color
+		local applyTargetStroke = me.Target:FindFirstChildOfClass("UIStroke")
+		if applyTargetStroke then
+			applyTargetStroke.Color = Color3.fromRGB(255, 255, 255)
+			applyTargetStroke.Transparency = 0
+		end
+		local applySlideStroke = me.Slide:FindFirstChildOfClass("UIStroke")
+		if applySlideStroke then
+			applySlideStroke.Color = Color3.fromRGB(255, 255, 255)
+			applySlideStroke.Transparency = 0
+		end
+		me.ConfirmBtn.TextColor3 = newTheme.PopupTextColor or me.ConfirmBtn.TextColor3
+		me.ConfirmBtn.BackgroundColor3 = newTheme.PrimaryColor or me.ConfirmBtn.BackgroundColor3
+		me.ConfirmShadow.Color = newTheme.PrimaryColor or me.ConfirmShadow.Color
+		me.CancelBtn.TextColor3 = newTheme.PopupTextColor or me.CancelBtn.TextColor3
+		me.CancelBtn.BackgroundColor3 = newTheme.PopupNeutralColor or me.CancelBtn.BackgroundColor3
+		me.CancelShadow.Color = newTheme.PopupNeutralColor or me.CancelShadow.Color
 	end
 	self.Open = function(_self)
-		if not self.Popup then return end
+		if not self.Popup then
+			return
+		end
 		if self._hideTimer then
 			task.cancel(self._hideTimer)
 			self._hideTimer = nil
@@ -566,10 +584,16 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.OldWell.BackgroundTransparency = 0
 		self.NewWell.BackgroundTransparency = 0
 		-- Target/Slide handles always use an opaque white stroke (not theme-driven).
-		local targetStroke = self.Target:FindFirstChildOfClass("UIStroke")
-		if targetStroke then targetStroke.Color = Color3.fromRGB(255, 255, 255); targetStroke.Transparency = 0 end
-		local slideStroke = self.Slide:FindFirstChildOfClass("UIStroke")
-		if slideStroke then slideStroke.Color = Color3.fromRGB(255, 255, 255); slideStroke.Transparency = 0 end
+		local openTargetStroke = self.Target:FindFirstChildOfClass("UIStroke")
+		if openTargetStroke then
+			openTargetStroke.Color = Color3.fromRGB(255, 255, 255)
+			openTargetStroke.Transparency = 0
+		end
+		local openSlideStroke = self.Slide:FindFirstChildOfClass("UIStroke")
+		if openSlideStroke then
+			openSlideStroke.Color = Color3.fromRGB(255, 255, 255)
+			openSlideStroke.Transparency = 0
+		end
 		-- Input strokes initialised inconsistently; set them ALL to one uniform
 		-- base (read from the live theme) on every open.
 		local liveStroke = ThemeManager.GetTheme(self._theme)
@@ -587,7 +611,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		for _, info in pairs(self.Inputs) do
 			Tween.Play(info.Input, "Fast", { TextTransparency = 0.5 })
 			local label = info.Row:FindFirstChild("InputName")
-			if label then Tween.Play(label, "Fast", { TextTransparency = 0.5 }) end
+			if label then
+				Tween.Play(label, "Fast", { TextTransparency = 0.5 })
+			end
 		end
 		Tween.Play(self.ConfirmBtn, "Fast", { TextTransparency = 0.2, BackgroundTransparency = 0 })
 		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5, BackgroundTransparency = 0.5 })
@@ -623,8 +649,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			-- frame's own rect; a pure rect test would misread those as "outside".
 			local pos = self.Popup.AbsolutePosition
 			local size = self.Popup.AbsoluteSize
-			local inside = p.X >= pos.X and p.X <= pos.X + size.X
-				and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
 			if not inside then
 				local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
 				if playerGui then
@@ -648,7 +673,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end
 	self.Close = function(_self)
-		if not self.Popup or not self.IsOpen then return end
+		if not self.Popup or not self.IsOpen then
+			return
+		end
 		self.IsOpen = false
 		self._isOpen = false
 		-- Disarm the click-outside listener immediately on close.
@@ -700,13 +727,17 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end)
 	end
 	self._Confirm = function(me)
-		if me._resolved then return end
+		if me._resolved then
+			return
+		end
 		me._resolved = true
 		me:Close()
 		me.OnConfirm(me._currentColor)
 	end
 	self._Cancel = function(me)
-		if me._resolved then return end
+		if me._resolved then
+			return
+		end
 		me._resolved = true
 		me:Close()
 		me.OnCancel()
@@ -739,8 +770,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end
 	-- Event connections
-	self.ConfirmBtn.MouseButton1Click:Connect(function() self:_Confirm() end)
-	self.CancelBtn.MouseButton1Click:Connect(function() self:_Cancel() end)
+	self.ConfirmBtn.MouseButton1Click:Connect(function()
+		self:_Confirm()
+	end)
+	self.CancelBtn.MouseButton1Click:Connect(function()
+		self:_Cancel()
+	end)
 	self.ConfirmBtn.MouseEnter:Connect(function()
 		Tween.Play(self.ConfirmShadow, "Fast", { BlurRadius = UDim.new(0, 50), Transparency = 0 })
 	end)
@@ -756,7 +791,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- Drag functions
 	local function setFromSquarePosition(screenPosition)
 		local size = self.ColorSquare.AbsoluteSize
-		if size.X <= 0 or size.Y <= 0 then return end
+		if size.X <= 0 or size.Y <= 0 then
+			return
+		end
 		local squarePos = self.ColorSquare.AbsolutePosition
 		local x = clamp((screenPosition.X - squarePos.X) / size.X, 0, 1)
 		local y = clamp((screenPosition.Y - squarePos.Y) / size.Y, 0, 1)
@@ -766,7 +803,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	end
 	local function setFromHuePosition(screenPosition)
 		local size = self.ColorValue.AbsoluteSize
-		if size.X <= 0 then return end
+		if size.X <= 0 then
+			return
+		end
 		local barPos = self.ColorValue.AbsolutePosition
 		local h = clamp((screenPosition.X - barPos.X) / size.X, 0, 1)
 		self:_setHSVAndUpdate(h, self._sat, self._val)
@@ -778,13 +817,19 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local squareDragging = false
 	local barDragging = false
 	colorSquare.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
 			squareDragging = true
 			setFromSquarePosition(input.Position)
 		end
 	end)
 	colorValue.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
 			barDragging = true
 			setFromHuePosition(input.Position)
 		end
@@ -793,7 +838,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- square/bar. These live on UserInputService, so they are disconnected in
 	-- Destroy() (otherwise each picker leaks two global connections).
 	self._dragChangedConnection = UserInputService.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if
+			input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
 			if squareDragging then
 				setFromSquarePosition(input.Position)
 			elseif barDragging then
@@ -802,7 +850,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end)
 	self._dragEndedConnection = UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
 			squareDragging = false
 			barDragging = false
 		end
@@ -815,9 +866,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				-- Handle hex first so values like "123456" aren't parsed as numbers
 				local hex = text:gsub("#", "")
 				if #hex == 6 then
-					local r = tonumber(hex:sub(1,2), 16)
-					local g = tonumber(hex:sub(3,4), 16)
-					local b = tonumber(hex:sub(5,6), 16)
+					local r = tonumber(hex:sub(1, 2), 16)
+					local g = tonumber(hex:sub(3, 4), 16)
+					local b = tonumber(hex:sub(5, 6), 16)
 					if r and g and b then
 						self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
 					end
@@ -859,12 +910,20 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			local targetColor = bright and (liveTheme.PrimaryColor or baseColor) or baseColor
 			Tween.Play(info.Stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
 		end
-		info.Input.MouseEnter:Connect(function() setStrokeBright(true) end)
-		info.Input.MouseLeave:Connect(function()
-			if not info.Input:IsFocused() then setStrokeBright(false) end
+		info.Input.MouseEnter:Connect(function()
+			setStrokeBright(true)
 		end)
-		info.Input.Focused:Connect(function() setStrokeBright(true) end)
-		info.Input.FocusLost:Connect(function() setStrokeBright(false) end)
+		info.Input.MouseLeave:Connect(function()
+			if not info.Input:IsFocused() then
+				setStrokeBright(false)
+			end
+		end)
+		info.Input.Focused:Connect(function()
+			setStrokeBright(true)
+		end)
+		info.Input.FocusLost:Connect(function()
+			setStrokeBright(false)
+		end)
 	end
 	return self
 end

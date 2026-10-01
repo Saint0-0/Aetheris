@@ -153,7 +153,9 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	self.Destroy = function()
 		-- Close any open popup first to avoid it dangling.
 		if popupInstance and popupInstance.IsOpen then
-			pcall(function() popupInstance:Close() end)
+			pcall(function()
+				popupInstance:Close()
+			end)
 			popupInstance = nil
 		end
 		-- Drop all ThemeManager bindings. (The row's stroke binds die with the

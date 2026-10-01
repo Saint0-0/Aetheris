@@ -50,11 +50,17 @@ end
 -- in an accent-colored <font> span. Exposed so the dropdown popup reuses the
 -- exact same highlight logic. Returns nil when there is no match.
 function SearchFilter.Highlight(base, query, color)
-	if not base or base == "" then return nil end
+	if not base or base == "" then
+		return nil
+	end
 	local lq = string.lower(query or "")
-	if lq == "" then return nil end
+	if lq == "" then
+		return nil
+	end
 	local lower = string.lower(base)
-	if not string.find(lower, lq, 1, true) then return nil end
+	if not string.find(lower, lq, 1, true) then
+		return nil
+	end
 	local hex = colorToHex(color or Color3.fromRGB(96, 165, 250))
 	return buildHighlight(base, lower, lq, hex)
 end
@@ -115,7 +121,9 @@ local function getIndex(page)
 end
 
 function SearchFilter.Apply(page, query, theme)
-	if not page then return end
+	if not page then
+		return
+	end
 	query = string.lower(query or "")
 	if query == "" then
 		SearchFilter.Clear(page)
@@ -164,7 +172,9 @@ function SearchFilter.Apply(page, query, theme)
 end
 
 function SearchFilter.Clear(page)
-	if not page then return end
+	if not page then
+		return
+	end
 	-- Reuse the cached index (rebuilding first only if the tree changed).
 	local idx = getIndex(page)
 	for sec in pairs(idx.sections) do
@@ -176,7 +186,9 @@ function SearchFilter.Clear(page)
 		if base ~= nil then
 			d.Text = base
 			local br = d:GetAttribute("SearchBaseRich")
-			if br ~= nil then d.RichText = br end
+			if br ~= nil then
+				d.RichText = br
+			end
 			d:SetAttribute("SearchBaseText", nil)
 			d:SetAttribute("SearchBaseRich", nil)
 		end

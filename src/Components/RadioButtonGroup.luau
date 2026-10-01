@@ -37,7 +37,9 @@ function RadioButtonGroup:RadioButton(Settings)
 	return button
 end
 function RadioButtonGroup:Select(button)
-	if self.Selected == button then return end
+	if self.Selected == button then
+		return
+	end
 	-- Deselect previous
 	if self.Selected then
 		self.Selected.SetSelected(self.Selected, false)

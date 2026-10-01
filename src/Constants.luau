@@ -17,11 +17,7 @@ Constants.FallbackImage = "rbxassetid://11094025229"
 Constants.FontAsset = "rbxassetid://12187365364"
 
 function Constants.Font(weight, style)
-	return Font.new(
-		Constants.FontAsset,
-		weight or Enum.FontWeight.Regular,
-		style or Enum.FontStyle.Normal
-	)
+	return Font.new(Constants.FontAsset, weight or Enum.FontWeight.Regular, style or Enum.FontStyle.Normal)
 end
 
 return Constants

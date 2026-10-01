@@ -60,7 +60,8 @@ function Divider.new(parent, Settings, theme)
 	-- Declarative theming: colour + transparency are BINDINGS. A theme switch
 	-- re-resolves them automatically -- no ApplyTheme body to forget.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionDividerColor")
-	local transparencyBinding = ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionDividerTransparency")
+	local transparencyBinding =
+		ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionDividerTransparency")
 	-- A caller-supplied Color is a theme override: it always wins over the
 	-- binding (applyEntry skips overridden props), so it survives theme passes.
 	if hasCustomColor then
@@ -90,7 +91,9 @@ function Divider.new(parent, Settings, theme)
 		holder.Visible = visible
 	end
 	self.Destroy = function(_self)
-		if holder and holder.Parent then holder:Destroy() end
+		if holder and holder.Parent then
+			holder:Destroy()
+		end
 	end
 	return self
 end

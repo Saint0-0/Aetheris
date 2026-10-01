@@ -18,11 +18,11 @@ local SoundUtil = {}
 -- you add sounds -- Preload() walks this table, so adding a new sound here
 -- is the only step needed to have it preloaded automatically.
 SoundUtil.Assets = {
-	UIStart      = "rbxassetid://82845990304289",
+	UIStart = "rbxassetid://82845990304289",
 	Notification = "rbxassetid://17208361335",
-	UIOpen       = "rbxassetid://103088360945885",
-	UIClose      = "rbxassetid://110295449838315",
-	UIShutdown   = "rbxassetid://110807507368078",
+	UIOpen = "rbxassetid://103088360945885",
+	UIClose = "rbxassetid://110295449838315",
+	UIShutdown = "rbxassetid://110807507368078",
 }
 
 -- Reusable Sound instances, one per named asset, built once so repeated

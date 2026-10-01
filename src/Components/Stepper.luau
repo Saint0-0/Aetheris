@@ -189,14 +189,16 @@ function Stepper.new(parent, Settings, theme)
 	end)
 	-- Input box stroke brightening on hover/focus (like Keybind/TextInput)
 	local function setStrokeBright(bright)
-		if not self.InputStroke then return end
+		if not self.InputStroke then
+			return
+		end
 		local liveTheme = ActiveTheme.theme or theme
 		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
 		local targetTrans = bright and 0.3 or restTrans
 		local targetColor = liveTheme.StrokeColor
 		Tween.Play(self.InputStroke, "Fast", {
 			Transparency = targetTrans,
-			Color = targetColor
+			Color = targetColor,
 		})
 		-- Keep PageFade's cached base at the RESTING transparency so a page fade
 		-- never restores a transient hover/focus brighten.
@@ -221,10 +223,18 @@ function Stepper.new(parent, Settings, theme)
 		local targetTrans = bright and 0.3 or 0.6
 		Tween.Play(button, "Fast", { ImageTransparency = targetTrans })
 	end
-	stepUp.MouseEnter:Connect(function() onButtonHover(stepUp, true) end)
-	stepUp.MouseLeave:Connect(function() onButtonHover(stepUp, false) end)
-	stepDown.MouseEnter:Connect(function() onButtonHover(stepDown, true) end)
-	stepDown.MouseLeave:Connect(function() onButtonHover(stepDown, false) end)
+	stepUp.MouseEnter:Connect(function()
+		onButtonHover(stepUp, true)
+	end)
+	stepUp.MouseLeave:Connect(function()
+		onButtonHover(stepUp, false)
+	end)
+	stepDown.MouseEnter:Connect(function()
+		onButtonHover(stepDown, true)
+	end)
+	stepDown.MouseLeave:Connect(function()
+		onButtonHover(stepDown, false)
+	end)
 	-- Initial display
 	updateDisplay(self._currentValue)
 	-- Public API

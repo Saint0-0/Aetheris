@@ -45,9 +45,15 @@ function Section.new(parent, Settings, theme, window)
 	-- Built-in popup engines from the owning window, so components never need a
 	-- helper passed as a trailing argument. Nil when the section has no window.
 	if window then
-		self._notify = function(s) return window:UINotification(s) end
-		self._openDropdown = function(id, s) return window:DropdownPopUp(id, s) end
-		self._openColorPicker = function(id, s) return window:ColorPickerPopUp(id, s) end
+		self._notify = function(s)
+			return window:UINotification(s)
+		end
+		self._openDropdown = function(id, s)
+			return window:DropdownPopUp(id, s)
+		end
+		self._openColorPicker = function(id, s)
+			return window:ColorPickerPopUp(id, s)
+		end
 	end
 	-- Build the section frame
 	local frame = Instance.new("Frame")

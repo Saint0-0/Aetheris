@@ -49,20 +49,20 @@ local TextInput = {}
 TextInput.__index = TextInput
 
 -- ---- constants --------------------------------------------------------------
-local FIELD_HEIGHT    = 29
-local FIELD_MIN_W     = 40     -- floor width; the default still hugs the placeholder
-local FIELD_MAX_W     = 220    -- absolute ceiling regardless of row width
-local TEXT_SIZE       = 15
-local PAD_X           = 15     -- clearance each side of the text (centred)
-local LABEL_GAP       = 20     -- px the field always keeps clear before the label
+local FIELD_HEIGHT = 29
+local FIELD_MIN_W = 40 -- floor width; the default still hugs the placeholder
+local FIELD_MAX_W = 220 -- absolute ceiling regardless of row width
+local TEXT_SIZE = 15
+local PAD_X = 15 -- clearance each side of the text (centred)
+local LABEL_GAP = 20 -- px the field always keeps clear before the label
 
 -- Rayfield's pillResizeInfo (the width-hug animation)
 local RESIZE_INFO = TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
-local FOCUS_INFO  = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local FOCUS_INFO = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local SETTLE_INFO = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-local REST_TEXT_TRANSPARENCY   = 0.6
-local REST_FIELD_TRANSPARENCY  = 0.9
+local REST_TEXT_TRANSPARENCY = 0.6
+local REST_FIELD_TRANSPARENCY = 0.9
 
 -- Parse a simple exponent expression like "5^3" -> 125. Falls back to tonumber
 -- for plain numbers and scientific notation ("9e9" -> 9000000000).

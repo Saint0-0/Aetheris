@@ -38,14 +38,18 @@ end
 -- fades in lockstep with everything else ("Smooth" = Quad InOut, "Fast" =
 -- Quad Out). A raw linear lerp makes the video linger visibly at the start.
 local EASING = {
-	Out = function(t) return 1 - (1 - t) * (1 - t) end,
+	Out = function(t)
+		return 1 - (1 - t) * (1 - t)
+	end,
 	InOut = function(t)
 		if t < 0.5 then
 			return 2 * t * t
 		end
 		return 1 - ((-2 * t + 2) ^ 2) / 2
 	end,
-	Linear = function(t) return t end,
+	Linear = function(t)
+		return t
+	end,
 }
 
 -- Animate a video fade gradient's uniform transparency to `target` over

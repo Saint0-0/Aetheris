@@ -87,14 +87,14 @@ function RadioButton.new(parent, group, Settings, theme)
 	backCorner.CornerRadius = UDim.new(0, 6)
 	backCorner.Parent = backImage
 	local gradient = Instance.new("UIGradient")
-	gradient.Transparency = NumberSequence.new{
+	gradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(0.324, 0.80625),
 		NumberSequenceKeypoint.new(0.600, 0.6875),
 		NumberSequenceKeypoint.new(0.726, 0.55),
 		NumberSequenceKeypoint.new(0.844, 0.36875),
-		NumberSequenceKeypoint.new(1.000, 0)
-	}
+		NumberSequenceKeypoint.new(1.000, 0),
+	})
 	gradient.Parent = backImage
 	-- ActivatedImage
 	local activatedImage = Instance.new("ImageLabel")
@@ -124,12 +124,8 @@ function RadioButton.new(parent, group, Settings, theme)
 	self.IsSelected = false
 	-- Tween definitions
 	local baseSize = activatedImage.Size
-	local expandedSize = UDim2.new(
-		baseSize.X.Scale * 1.20,
-		baseSize.X.Offset,
-		baseSize.Y.Scale * 1.20,
-		baseSize.Y.Offset
-	)
+	local expandedSize =
+		UDim2.new(baseSize.X.Scale * 1.20, baseSize.X.Offset, baseSize.Y.Scale * 1.20, baseSize.Y.Offset)
 	----------------------------------------------------------------
 	-- SELECTED
 	----------------------------------------------------------------
@@ -138,21 +134,21 @@ function RadioButton.new(parent, group, Settings, theme)
 		-- Do NOT instantly set transparency here.
 		-- The current values become the starting point of the tween.
 		Tween.Play(label, "OnOff", {
-			TextTransparency = theme.PrimaryTextTransparency
+			TextTransparency = theme.PrimaryTextTransparency,
 		})
 		Tween.Play(button, "OnOff", {
-			BackgroundTransparency = 0
+			BackgroundTransparency = 0,
 		})
 		Tween.Play(activatedImage, "OnOff", {
 			ImageTransparency = 0,
 			Size = baseSize,
-			ImageColor3 = Color3.fromRGB(255, 255, 255)
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
 		})
 		Tween.Play(backImage, "OnOff", {
-			ImageTransparency = 0
+			ImageTransparency = 0,
 		})
 		Tween.Play(holderStroke, "OnOff", {
-			Transparency = 1
+			Transparency = 1,
 		})
 		-- Sync PageFade's cached fade-base: selection changes the stroke OUTSIDE
 		-- ApplyTheme, so a stale base would leave the stroke hidden after a page
@@ -166,21 +162,21 @@ function RadioButton.new(parent, group, Settings, theme)
 		-- Again, don't instantly set the transparency.
 		-- Tween from the current visual state to the hidden state.
 		Tween.Play(label, "OnOff", {
-			TextTransparency = theme.PrimaryTextTransparency
+			TextTransparency = theme.PrimaryTextTransparency,
 		})
 		Tween.Play(button, "OnOff", {
-			BackgroundTransparency = 1
+			BackgroundTransparency = 1,
 		})
 		Tween.Play(activatedImage, "OnOff", {
 			ImageTransparency = 1,
 			Size = baseSize,
-			ImageColor3 = Color3.fromRGB(180, 180, 180)
+			ImageColor3 = Color3.fromRGB(180, 180, 180),
 		})
 		Tween.Play(backImage, "OnOff", {
-			ImageTransparency = 1
+			ImageTransparency = 1,
 		})
 		Tween.Play(holderStroke, "OnOff", {
-			Transparency = theme.StrokeTransparency or 0.4
+			Transparency = theme.StrokeTransparency or 0.4,
 		})
 		-- Keep the cached fade-base in sync (see playOn).
 		holderStroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
@@ -193,14 +189,14 @@ function RadioButton.new(parent, group, Settings, theme)
 		if self.IsSelected then
 			Tween.Play(activatedImage, "HoverIn", {
 				Size = expandedSize,
-				ImageColor3 = Color3.fromRGB(255, 255, 255)
+				ImageColor3 = Color3.fromRGB(255, 255, 255),
 			})
 			Tween.Play(holderStroke, "HoverIn", {
-				Transparency = 1
+				Transparency = 1,
 			})
 		else
 			Tween.Play(holderStroke, "HoverIn", {
-				Transparency = (theme.StrokeTransparency or 0.4) * 0.5
+				Transparency = (theme.StrokeTransparency or 0.4) * 0.5,
 			})
 		end
 	end)
@@ -210,10 +206,10 @@ function RadioButton.new(parent, group, Settings, theme)
 		local targetColor = isOn and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
 		Tween.Play(activatedImage, "HoverOut", {
 			Size = baseSize,
-			ImageColor3 = targetColor
+			ImageColor3 = targetColor,
 		})
 		Tween.Play(holderStroke, "HoverOut", {
-			Transparency = isOn and 1 or (theme.StrokeTransparency or 0.4)
+			Transparency = isOn and 1 or (theme.StrokeTransparency or 0.4),
 		})
 	end)
 	----------------------------------------------------------------
@@ -225,7 +221,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	button.MouseButton1Up:Connect(function()
 		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
 	end)
-	
+
 	button.MouseButton1Click:Connect(function()
 		if self.Group then
 			self.Group:Select(self)
@@ -290,9 +286,12 @@ function RadioButton.new(parent, group, Settings, theme)
 	ThemeManager.BindColor(holderStroke, "Color", "StrokeColor")
 	-- SELECTION-driven stroke transparency, now a STATE binding: Selected is a
 	-- LITERAL 1 (stroke hidden), Unselected reads the theme's StrokeTransparency.
-	self._strokeHandle = ThemeManager.BindTransparency(holderStroke, "Transparency",
+	self._strokeHandle = ThemeManager.BindTransparency(
+		holderStroke,
+		"Transparency",
 		{ Selected = { value = 1 }, Unselected = "StrokeTransparency" },
-		{ state = "Unselected" })
+		{ state = "Unselected" }
+	)
 	-- What remains imperative: the wallpaper (Image/Visible are not Color3 or
 	-- number, so they can't be bindings) and the SELECTION-driven stroke
 	-- transparency (selected hides the stroke). ApplyTheme therefore stays,

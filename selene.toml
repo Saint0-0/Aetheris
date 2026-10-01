@@ -1,2 +1,2 @@
 std = "roblox"
-exclude = ["dist", "dist/**"]
+exclude = ["dist", "dist/**", "example", "example/**"]

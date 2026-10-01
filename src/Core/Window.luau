@@ -55,8 +55,12 @@ function Window.new(Settings)
 	SettingsStore.Load()
 	local savedTheme = SettingsStore.Get("Theme")
 	local savedKey = SettingsStore.Get("MinimizeKey")
-	if savedTheme ~= nil then Settings.Theme = savedTheme end
-	if savedKey ~= nil then Settings.MinimizeKey = savedKey end
+	if savedTheme ~= nil then
+		Settings.Theme = savedTheme
+	end
+	if savedKey ~= nil then
+		Settings.MinimizeKey = savedKey
+	end
 	Sound.SetVolume(SettingsStore.Get("Volume"))
 	Tween.SpinsEnabled = SettingsStore.Get("SpinsEnabled")
 
@@ -123,7 +127,7 @@ function Window.new(Settings)
 	-- tweening every descendant's own transparency. That old approach stomped
 	-- any component state encoded as transparency (radio selection, slider fill)
 	-- and forced the old RefreshVisuals/RestoreActiveTab repair calls (RefreshVisuals
--- has since been deleted outright). See Utils/PageFade.
+	-- has since been deleted outright). See Utils/PageFade.
 	local MainFrame = Instance.new("CanvasGroup")
 	MainFrame.Name = "Window"
 	MainFrame.GroupTransparency = 0
@@ -137,7 +141,7 @@ function Window.new(Settings)
 	-- sync with the theme's stroke colour rather than a stray literal.
 	MainFrame.BorderColor3 = theme.StrokeColor or Color3.fromRGB(41, 41, 41)
 	MainFrame.Parent = ScreenGui
-	
+
 	local DragFrame = Instance.new("Frame")
 	DragFrame.AnchorPoint = Vector2.new(0.5, 0)
 	DragFrame.Name = "DragFrame"
@@ -155,8 +159,10 @@ function Window.new(Settings)
 		local startPosition
 
 		DragFrame.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.UserInputType == Enum.UserInputType.Touch then
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
 				dragging = true
 				dragStart = input.Position
 				startPosition = MainFrame.AbsolutePosition
@@ -165,8 +171,10 @@ function Window.new(Settings)
 					inputEndedConnection:Disconnect()
 				end
 				inputEndedConnection = UserInputService.InputEnded:Connect(function(endInput)
-					if endInput.UserInputType == Enum.UserInputType.MouseButton1
-					or endInput.UserInputType == Enum.UserInputType.Touch then
+					if
+						endInput.UserInputType == Enum.UserInputType.MouseButton1
+						or endInput.UserInputType == Enum.UserInputType.Touch
+					then
 						dragging = false
 						if inputEndedConnection then
 							inputEndedConnection:Disconnect()
@@ -178,8 +186,13 @@ function Window.new(Settings)
 		end)
 
 		dragInputConnection = UserInputService.InputChanged:Connect(function(input)
-			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-				or input.UserInputType == Enum.UserInputType.Touch) then
+			if
+				dragging
+				and (
+					input.UserInputType == Enum.UserInputType.MouseMovement
+					or input.UserInputType == Enum.UserInputType.Touch
+				)
+			then
 				local delta = input.Position - dragStart
 				local newPosition = startPosition + Vector2.new(delta.X, delta.Y)
 				local target = UDim2.fromOffset(newPosition.X, newPosition.Y)
@@ -208,7 +221,7 @@ function Window.new(Settings)
 	local MainFrameShadow = Instance.new("UIShadow")
 	MainFrameShadow.Color = theme.MainframeShadowColor or MainFrameShadow.Color
 	MainFrameShadow.Transparency = 0.5
-	MainFrameShadow.BlurRadius = UDim.new(0,20)
+	MainFrameShadow.BlurRadius = UDim.new(0, 20)
 	MainFrameShadow.Parent = MainFrame
 
 	local MainFrameSizeConstraint = Instance.new("UISizeConstraint")
@@ -305,9 +318,12 @@ function Window.new(Settings)
 		return btn
 	end
 
-	local MinimizeButton = makeControlButton("MinimizeButton", Icons["minimize"] or "rbxassetid://121304296213645", 1, WindowControls)
-	local MaximizeButton = makeControlButton("MaximizeButton", Icons["maximize"] or "rbxassetid://76045941763188", 2, WindowControls)
-	local CloseButton = makeControlButton("CloseButton", Icons["x"] or "rbxassetid://110786993356448", 3, WindowControls)
+	local MinimizeButton =
+		makeControlButton("MinimizeButton", Icons["minimize"] or "rbxassetid://121304296213645", 1, WindowControls)
+	local MaximizeButton =
+		makeControlButton("MaximizeButton", Icons["maximize"] or "rbxassetid://76045941763188", 2, WindowControls)
+	local CloseButton =
+		makeControlButton("CloseButton", Icons["x"] or "rbxassetid://110786993356448", 3, WindowControls)
 	-- Settings gear moved into the window-controls cluster (LayoutOrder 0 ->
 	-- leftmost of the cluster, before Minimize). Its click handler is wired
 	-- further down once TabContent/SettingsPages exist.
@@ -778,7 +794,7 @@ function Window.new(Settings)
 	TimeLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	local function clockText()
 		local t = os.date("*t")
-		return "<b>"..string.format("%02d", t.hour).."</b><br /><br />"..string.format("%02d", t.min)
+		return "<b>" .. string.format("%02d", t.hour) .. "</b><br /><br />" .. string.format("%02d", t.min)
 	end
 	TimeLabel.Text = clockText()
 	TimeLabel.LayoutOrder = 3
@@ -834,7 +850,7 @@ function Window.new(Settings)
 	ScriptLogo.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptLogo.LayoutOrder = 1
 	ScriptLogo.Parent = ScriptInfoGroup
-	
+
 	local ScriptLogoUICorner = Instance.new("UICorner")
 	ScriptLogoUICorner.CornerRadius = UDim.new(0, 6)
 	ScriptLogoUICorner.Parent = ScriptLogo
@@ -1013,10 +1029,16 @@ function Window.new(Settings)
 
 	local function buildTags(list)
 		for _, c in ipairs(TagsContainer:GetChildren()) do
-			if c:IsA("Frame") then c:Destroy() end
+			if c:IsA("Frame") then
+				c:Destroy()
+			end
 		end
-		for i = #tagGradients, 1, -1 do tagGradients[i] = nil end
-		if type(list) ~= "table" then return end
+		for i = #tagGradients, 1, -1 do
+			tagGradients[i] = nil
+		end
+		if type(list) ~= "table" then
+			return
+		end
 		local total = math.min(#list, 3)
 		for i = 1, total do
 			buildTag(list[i], i, total)
@@ -1096,10 +1118,6 @@ function Window.new(Settings)
 	self.ScriptName = ScriptName
 	self.WindowControls = WindowControls
 
-
-
-
-
 	----------------------------------------------------------------
 	-- Resize (drag from ResizeButton, clamped to MainFrame's UISizeConstraint)
 	----------------------------------------------------------------
@@ -1129,8 +1147,10 @@ function Window.new(Settings)
 		end)
 
 		ResizeButton.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.UserInputType == Enum.UserInputType.Touch then
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
 				resizing = true
 				updateResizeVisual()
 				resizeStart = input.Position
@@ -1140,8 +1160,10 @@ function Window.new(Settings)
 					inputEndedConnection:Disconnect()
 				end
 				inputEndedConnection = UserInputService.InputEnded:Connect(function(endInput)
-					if endInput.UserInputType == Enum.UserInputType.MouseButton1
-					or endInput.UserInputType == Enum.UserInputType.Touch then
+					if
+						endInput.UserInputType == Enum.UserInputType.MouseButton1
+						or endInput.UserInputType == Enum.UserInputType.Touch
+					then
 						resizing = false
 						updateResizeVisual()
 						if inputEndedConnection then
@@ -1154,8 +1176,13 @@ function Window.new(Settings)
 		end)
 
 		resizeInputConnection = UserInputService.InputChanged:Connect(function(input)
-			if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement
-				or input.UserInputType == Enum.UserInputType.Touch) then
+			if
+				resizing
+				and (
+					input.UserInputType == Enum.UserInputType.MouseMovement
+					or input.UserInputType == Enum.UserInputType.Touch
+				)
+			then
 				local delta = input.Position - resizeStart
 				local minSize = MainFrameSizeConstraint.MinSize
 				local newWidth = math.max(minSize.X, startSize.X + delta.X)
@@ -1192,10 +1219,10 @@ function Window.new(Settings)
 	-- ("right" | "left" | "top" | "bottom"). The tooltip opens AWAY from the
 	-- nearest screen edge so it never clips off-screen.
 	local PILL_SIDES = {
-		right  = { anchor = Vector2.new(1, 0.5), position = UDim2.new(1, -12, 0.5, 0),  tip = "Left" },
-		left   = { anchor = Vector2.new(0, 0.5), position = UDim2.new(0, 12, 0.5, 0),   tip = "Right" },
-		top    = { anchor = Vector2.new(0.5, 0), position = UDim2.new(0.5, 0, 0, 12),   tip = "Bottom" },
-		bottom = { anchor = Vector2.new(0.5, 1), position = UDim2.new(0.5, 0, 1, -12),  tip = "Top" },
+		right = { anchor = Vector2.new(1, 0.5), position = UDim2.new(1, -12, 0.5, 0), tip = "Left" },
+		left = { anchor = Vector2.new(0, 0.5), position = UDim2.new(0, 12, 0.5, 0), tip = "Right" },
+		top = { anchor = Vector2.new(0.5, 0), position = UDim2.new(0.5, 0, 0, 12), tip = "Bottom" },
+		bottom = { anchor = Vector2.new(0.5, 1), position = UDim2.new(0.5, 0, 1, -12), tip = "Top" },
 	}
 	local function currentPillSide()
 		local s = SettingsStore.Get("PillPosition")
@@ -1232,11 +1259,11 @@ function Window.new(Settings)
 	-- SettingsStore.CompactMode is "always"/"never".
 	----------------------------------------------------------------
 	do
-		local COMPACT_ENTER = 672  -- below this width -> compact (auto); 672 is the last expanded width
-		local COMPACT_EXIT = 712   -- above this width -> expanded (hysteresis)
+		local COMPACT_ENTER = 672 -- below this width -> compact (auto); 672 is the last expanded width
+		local COMPACT_EXIT = 712 -- above this width -> expanded (hysteresis)
 		local compact = false
-		local saved = nil          -- captured expanded values for restore
-		local initialized = false  -- set true after the first deferred resolve; gates AUTO mode
+		local saved = nil -- captured expanded values for restore
+		local initialized = false -- set true after the first deferred resolve; gates AUTO mode
 
 		local function captureExpanded()
 			return {
@@ -1254,7 +1281,7 @@ function Window.new(Settings)
 				searchBarParent = SearchBar.Parent,
 				searchBarAnchor = SearchBar.AnchorPoint,
 				searchBarLayoutOrder = SearchBar.LayoutOrder,
-			searchBarDividerPos = SearchBarBottomDivider.Position,
+				searchBarDividerPos = SearchBarBottomDivider.Position,
 				contentSize = Content.Size,
 				contentPos = Content.Position,
 				contentBgSize = ContentBackground.Size,
@@ -1279,14 +1306,20 @@ function Window.new(Settings)
 		-- off a short/wide button, so the tabs look invisible. This fixes both the
 		-- button AND its children.
 		local function styleTabButton(btn, horizontal)
-			if not btn or not btn:IsA("TextButton") then return end
+			if not btn or not btn:IsA("TextButton") then
+				return
+			end
 			-- Raise the pill + its children above everything else in the window so
 			-- they can't be hidden behind Content/ContentBackground/SettingsPages.
 			btn.ZIndex = 60
 			local tabName = btn:FindFirstChild("TabName")
 			local tabImage = btn:FindFirstChild("TabImage")
-			if tabName then tabName.ZIndex = 61 end
-			if tabImage then tabImage.ZIndex = 61 end
+			if tabName then
+				tabName.ZIndex = 61
+			end
+			if tabImage then
+				tabImage.ZIndex = 61
+			end
 			if horizontal then
 				btn.Size = UDim2.fromOffset(100, 30)
 				if tabImage then
@@ -1319,7 +1352,9 @@ function Window.new(Settings)
 		end
 
 		local function applyCompact(on)
-			if not saved then saved = captureExpanded() end
+			if not saved then
+				saved = captureExpanded()
+			end
 			if on then
 				-- Reparent the tab row OUT of the sidebar FIRST, then hide the sidebar.
 				-- Hiding the sidebar while the row is still its child trips the spin
@@ -1412,7 +1447,9 @@ function Window.new(Settings)
 				TabList.Position = saved.tabListPos
 				TabList.AnchorPoint = saved.tabListAnchor
 				local compactPad = TabList:FindFirstChild("CompactPad")
-				if compactPad then compactPad:Destroy() end
+				if compactPad then
+					compactPad:Destroy()
+				end
 				for _, child in ipairs(TabList:GetChildren()) do
 					if child:GetAttribute("IsDivider") then
 						child.Visible = true
@@ -1467,19 +1504,29 @@ function Window.new(Settings)
 		local function resolveAndApply()
 			local mode = SettingsStore.Get("CompactMode") or "auto"
 			if mode == "always" then
-				if not compact then compact = true; applyCompact(true) end
+				if not compact then
+					compact = true
+					applyCompact(true)
+				end
 			elseif mode == "never" then
-				if compact then compact = false; applyCompact(false) end
+				if compact then
+					compact = false
+					applyCompact(false)
+				end
 			else
 				-- Auto mode only reacts to REAL resizes, never the initial build
 				-- frame (the default window can legitimately start narrow in
 				-- small viewports; compacting there would hide the sidebar).
-				if not initialized then return end
+				if not initialized then
+					return
+				end
 				local w = MainFrame.AbsoluteSize.X
 				if not compact and w < COMPACT_ENTER then
-					compact = true; applyCompact(true)
+					compact = true
+					applyCompact(true)
 				elseif compact and w > COMPACT_EXIT then
-					compact = false; applyCompact(false)
+					compact = false
+					applyCompact(false)
 				end
 			end
 		end
@@ -1488,7 +1535,9 @@ function Window.new(Settings)
 		-- Tabs can be created AFTER we entered compact (e.g. a new group). Style
 		-- any tab button added while compact so it isn't left in sidebar sizing.
 		TabList.ChildAdded:Connect(function(child)
-			if not compact then return end
+			if not compact then
+				return
+			end
 			if child:GetAttribute("IsDivider") then
 				child.Visible = false
 			else
@@ -1608,8 +1657,10 @@ function Window.new(Settings)
 		local icon = btn:FindFirstChild("PillIcon")
 		if icon then
 			icon.Image = (tab.TabImage and tab.TabImage.Image) or "rbxassetid://8445470392"
-			icon.ImageColor3 = isActive and (t.ActiveTabIconColor or Color3.fromRGB(255, 255, 255)) or (t.InactiveTabIconColor or Color3.fromRGB(200, 200, 200))
-			icon.ImageTransparency = isActive and (t.ActiveTabIconTransparency or 0.2) or (t.InactiveTabIconTransparency or 0.6)
+			icon.ImageColor3 = isActive and (t.ActiveTabIconColor or Color3.fromRGB(255, 255, 255))
+				or (t.InactiveTabIconColor or Color3.fromRGB(200, 200, 200))
+			icon.ImageTransparency = isActive and (t.ActiveTabIconTransparency or 0.2)
+				or (t.InactiveTabIconTransparency or 0.6)
 		end
 	end
 
@@ -1617,90 +1668,96 @@ function Window.new(Settings)
 	local function createPillButton(tab, i, t)
 		local isActive = (tab == (self.TabGroup and self.TabGroup.ActiveTab))
 		local btn = Instance.new("TextButton")
-			btn.Name = tab.Name .. "PillButton"
-			btn.Size = UDim2.fromOffset(40, 40)
-			-- Only the ACTIVE tab shows its filled background; the rest are plain.
-			btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)
-			btn.BackgroundTransparency = isActive and 0.1 or 1
-			btn.AutoButtonColor = false
-			btn.Text = ""
-			btn.LayoutOrder = i
-			btn.ZIndex = 1501
-			btn.Parent = pill
-			local c = Instance.new("UICorner")
-			c.CornerRadius = UDim.new(1, 0)
-			c.Parent = btn
-			-- UIScale grows from the center -> bouncy hover feel.
-			local btnScale = Instance.new("UIScale")
-			btnScale.Scale = 1
-			btnScale.Parent = btn
-			-- Spinning-gradient backdrop, same look as the sidebar tab buttons.
-			local back = Instance.new("ImageLabel")
-			back.Name = "BackImage"
-			back.BorderSizePixel = 0
-			back.BackgroundTransparency = 1
-			back.Image = (tab.BackImage and tab.BackImage.Image) or "rbxassetid://11094025229"
-			-- Backdrop + spin ONLY on the active tab.
-			back.ImageTransparency = isActive and 0 or 1
-			back.Size = UDim2.fromScale(1, 1)
-			back.ZIndex = 1501
-			back.Parent = btn
-			local bc = Instance.new("UICorner")
-			bc.CornerRadius = UDim.new(1, 0)
-			bc.Parent = back
-			local grad = Instance.new("UIGradient")
-			grad.Rotation = 0
-			grad.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0.000, 0),
-				NumberSequenceKeypoint.new(0.134, 0.3),
-				NumberSequenceKeypoint.new(0.242, 0.53125),
-				NumberSequenceKeypoint.new(0.371, 0.69375),
-				NumberSequenceKeypoint.new(0.484, 0.80625),
-				NumberSequenceKeypoint.new(0.590, 0.91875),
-				NumberSequenceKeypoint.new(0.681, 0.975),
-				NumberSequenceKeypoint.new(1.000, 1),
-			})
-			grad.Parent = back
-			local icon = Instance.new("ImageLabel")
-			icon.Name = "PillIcon"
-			icon.BorderSizePixel = 0
-			icon.BackgroundTransparency = 1
-			icon.Image = (tab.TabImage and tab.TabImage.Image) or "rbxassetid://8445470392"
-			icon.ImageColor3 = isActive and (t.ActiveTabIconColor or Color3.fromRGB(255, 255, 255)) or (t.InactiveTabIconColor or Color3.fromRGB(200, 200, 200))
-			icon.ImageTransparency = isActive and (t.ActiveTabIconTransparency or 0.2) or (t.InactiveTabIconTransparency or 0.6)
-			icon.AnchorPoint = Vector2.new(0.5, 0.5)
-			icon.Position = UDim2.fromScale(0.5, 0.5)
-			icon.Size = UDim2.fromOffset(18, 18)
-			icon.ZIndex = 1502
-			icon.Parent = btn
-			btn.MouseEnter:Connect(function()
-				Tween.Play(btnScale, "HoverIn", { Scale = 1.18 })
-				tooltip:ShowAt(btn, tab.Name, pillTooltipSide(), 11)
-			end)
-			btn.MouseLeave:Connect(function()
-				Tween.Play(btnScale, "HoverOut", { Scale = 1 })
-				tooltip:Hide()
-			end)
-			btn.MouseButton1Click:Connect(function()
-				-- Mirror the sidebar tab click: leave the settings pages and show
-				-- the normal tab content for the selected tab.
-				if self.SettingsPages then self.SettingsPages.Visible = false end
-				if self.TabContent then self.TabContent.Visible = true end
-				if self.TabGroup then
-					self.TabGroup:SetActiveTab(tab)
-				end
-				-- SetActiveTab early-returns when the clicked tab is ALREADY active,
-				-- so it never re-snaps that page's FadeLayer. If the Settings page had
-				-- hidden it, the page would restore blank. An explicit pill click is
-				-- always an intent to SHOW this tab, so force its layer visible here.
-				if tab and tab.FadeLayer then
-					tab.FadeLayer.Visible = true
-					PageFade.Snap(tab.FadeLayer, 0)
-				end
-				restoreWindow()
-			end)
-			pillButtonByTab[tab] = btn
-			stylePillButton(btn, tab, t, isActive)
+		btn.Name = tab.Name .. "PillButton"
+		btn.Size = UDim2.fromOffset(40, 40)
+		-- Only the ACTIVE tab shows its filled background; the rest are plain.
+		btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)
+		btn.BackgroundTransparency = isActive and 0.1 or 1
+		btn.AutoButtonColor = false
+		btn.Text = ""
+		btn.LayoutOrder = i
+		btn.ZIndex = 1501
+		btn.Parent = pill
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(1, 0)
+		c.Parent = btn
+		-- UIScale grows from the center -> bouncy hover feel.
+		local btnScale = Instance.new("UIScale")
+		btnScale.Scale = 1
+		btnScale.Parent = btn
+		-- Spinning-gradient backdrop, same look as the sidebar tab buttons.
+		local back = Instance.new("ImageLabel")
+		back.Name = "BackImage"
+		back.BorderSizePixel = 0
+		back.BackgroundTransparency = 1
+		back.Image = (tab.BackImage and tab.BackImage.Image) or "rbxassetid://11094025229"
+		-- Backdrop + spin ONLY on the active tab.
+		back.ImageTransparency = isActive and 0 or 1
+		back.Size = UDim2.fromScale(1, 1)
+		back.ZIndex = 1501
+		back.Parent = btn
+		local bc = Instance.new("UICorner")
+		bc.CornerRadius = UDim.new(1, 0)
+		bc.Parent = back
+		local grad = Instance.new("UIGradient")
+		grad.Rotation = 0
+		grad.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0.000, 0),
+			NumberSequenceKeypoint.new(0.134, 0.3),
+			NumberSequenceKeypoint.new(0.242, 0.53125),
+			NumberSequenceKeypoint.new(0.371, 0.69375),
+			NumberSequenceKeypoint.new(0.484, 0.80625),
+			NumberSequenceKeypoint.new(0.590, 0.91875),
+			NumberSequenceKeypoint.new(0.681, 0.975),
+			NumberSequenceKeypoint.new(1.000, 1),
+		})
+		grad.Parent = back
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "PillIcon"
+		icon.BorderSizePixel = 0
+		icon.BackgroundTransparency = 1
+		icon.Image = (tab.TabImage and tab.TabImage.Image) or "rbxassetid://8445470392"
+		icon.ImageColor3 = isActive and (t.ActiveTabIconColor or Color3.fromRGB(255, 255, 255))
+			or (t.InactiveTabIconColor or Color3.fromRGB(200, 200, 200))
+		icon.ImageTransparency = isActive and (t.ActiveTabIconTransparency or 0.2)
+			or (t.InactiveTabIconTransparency or 0.6)
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.fromScale(0.5, 0.5)
+		icon.Size = UDim2.fromOffset(18, 18)
+		icon.ZIndex = 1502
+		icon.Parent = btn
+		btn.MouseEnter:Connect(function()
+			Tween.Play(btnScale, "HoverIn", { Scale = 1.18 })
+			tooltip:ShowAt(btn, tab.Name, pillTooltipSide(), 11)
+		end)
+		btn.MouseLeave:Connect(function()
+			Tween.Play(btnScale, "HoverOut", { Scale = 1 })
+			tooltip:Hide()
+		end)
+		btn.MouseButton1Click:Connect(function()
+			-- Mirror the sidebar tab click: leave the settings pages and show
+			-- the normal tab content for the selected tab.
+			if self.SettingsPages then
+				self.SettingsPages.Visible = false
+			end
+			if self.TabContent then
+				self.TabContent.Visible = true
+			end
+			if self.TabGroup then
+				self.TabGroup:SetActiveTab(tab)
+			end
+			-- SetActiveTab early-returns when the clicked tab is ALREADY active,
+			-- so it never re-snaps that page's FadeLayer. If the Settings page had
+			-- hidden it, the page would restore blank. An explicit pill click is
+			-- always an intent to SHOW this tab, so force its layer visible here.
+			if tab and tab.FadeLayer then
+				tab.FadeLayer.Visible = true
+				PageFade.Snap(tab.FadeLayer, 0)
+			end
+			restoreWindow()
+		end)
+		pillButtonByTab[tab] = btn
+		stylePillButton(btn, tab, t, isActive)
 	end
 
 	-- Ensure every tab has a reusable pill button, then restyle all to the live
@@ -1710,10 +1767,14 @@ function Window.new(Settings)
 		local t = themeOverride or self._theme or theme
 		tooltip:SetTheme(t)
 		stylePillContainer(t)
-		if not self.TabGroup then return end
+		if not self.TabGroup then
+			return
+		end
 		-- Drop buttons whose tab no longer exists.
 		local live = {}
-		for _, tab in ipairs(self.TabGroup.Tabs) do live[tab] = true end
+		for _, tab in ipairs(self.TabGroup.Tabs) do
+			live[tab] = true
+		end
 		for tab, btn in pairs(pillButtonByTab) do
 			if not live[tab] then
 				btn:Destroy()
@@ -1743,7 +1804,9 @@ function Window.new(Settings)
 	local minimizeState = "shown"
 
 	minimizeWindow = function()
-		if minimizeState ~= "shown" then return end
+		if minimizeState ~= "shown" then
+			return
+		end
 		minimizeState = "minimizing"
 		Sound.Play("UIClose")
 		self._windowFaded = true
@@ -1766,7 +1829,9 @@ function Window.new(Settings)
 			if ctrl then
 				ctrl.ImageTransparency = 0.5
 				local s = ctrl:FindFirstChildOfClass("UIScale")
-				if s then s.Scale = 1 end
+				if s then
+					s.Scale = 1
+				end
 			end
 		end
 		-- Hide + reveal the pill only AFTER the fade completes (event-driven, no
@@ -1792,7 +1857,9 @@ function Window.new(Settings)
 	end
 
 	restoreWindow = function()
-		if minimizeState ~= "hidden" then return end
+		if minimizeState ~= "hidden" then
+			return
+		end
 		minimizeState = "restoring"
 		Sound.Play("UIOpen")
 		tooltip:Hide()
@@ -1803,7 +1870,7 @@ function Window.new(Settings)
 		-- ONE GroupTransparency reveals the window. Because the fade never touches
 		-- child transparencies, there is nothing to repair afterwards -- no
 		-- RefreshVisuals / RestoreActiveTab / cache re-stamp needed. RefreshVisuals is
--- gone; RestoreActiveTab remains only until ThemeManager's repair block is removed.
+		-- gone; RestoreActiveTab remains only until ThemeManager's repair block is removed.
 		PageFade.Show(MainFrame, false, function()
 			self._windowFaded = false
 			minimizeState = "shown"
@@ -1827,7 +1894,9 @@ function Window.new(Settings)
 	-- was showing (the active tab / settings page), since minimize never
 	-- changes tabs.
 	self.ToggleMinimize = function()
-		if self._destroyed then return end
+		if self._destroyed then
+			return
+		end
 		if minimizeState == "shown" then
 			minimizeWindow()
 		elseif minimizeState == "hidden" then
@@ -1843,8 +1912,12 @@ function Window.new(Settings)
 	-- anywhere in-game. Ignored while a TextBox has focus (processed == true) so
 	-- typing the letter into an input never minimizes the window.
 	minimizeKeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then return end
-		if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+		if processed then
+			return
+		end
+		if input.UserInputType ~= Enum.UserInputType.Keyboard then
+			return
+		end
 		if input.KeyCode.Name == self._minimizeKey and self.ToggleMinimize then
 			self.ToggleMinimize()
 		end
@@ -1890,7 +1963,9 @@ function Window.new(Settings)
 	-- (Disconnects global UserInputService listeners, unbinds the minimize
 	-- keybind, cancels pending tasks + all tweens, destroys cached popups.)
 	self._teardown = function()
-		if self._destroyed then return end
+		if self._destroyed then
+			return
+		end
 		self._destroyed = true
 
 		if dragInputConnection then
@@ -1928,11 +2003,15 @@ function Window.new(Settings)
 			self._notification = nil
 		end
 		if self._dropdownPopups then
-			for _, popup in pairs(self._dropdownPopups) do popup:Destroy() end
+			for _, popup in pairs(self._dropdownPopups) do
+				popup:Destroy()
+			end
 			self._dropdownPopups = nil
 		end
 		if self._colorPickerPopups then
-			for _, popup in pairs(self._colorPickerPopups) do popup:Destroy() end
+			for _, popup in pairs(self._colorPickerPopups) do
+				popup:Destroy()
+			end
 			self._colorPickerPopups = nil
 		end
 		self._toasts = nil
@@ -1954,7 +2033,7 @@ function Window.new(Settings)
 		end
 		self:UINotification({
 			Title = "Close Aetheris?",
-			Description = "Are you sure you want to <font color=\"#FF0000\">close</font> the UI?",
+			Description = 'Are you sure you want to <font color="#FF0000">close</font> the UI?',
 			TitleColor = Color3.fromRGB(255, 0, 0),
 			ConfirmText = "Yes, close it",
 			CancelText = "No, keep it open",
@@ -2030,7 +2109,9 @@ function Window.new(Settings)
 	-- keystroke and whenever the active page changes.
 	self.ApplySearch = function(me)
 		local page = me:GetActivePage()
-		if not page then return end
+		if not page then
+			return
+		end
 		SearchFilter.Apply(page, me.SearchBox.Text, me._theme)
 	end
 
@@ -2047,7 +2128,9 @@ function Window.new(Settings)
 	ThemeManager.BindColor(MainFrameShadow, "Color", "MainframeShadowColor")
 	ThemeManager.BindColor(ResizeButton, "ImageColor3", "TitleTextColor")
 	for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
-		if ctrl then ThemeManager.BindColor(ctrl, "ImageColor3", "WindowControlColor") end
+		if ctrl then
+			ThemeManager.BindColor(ctrl, "ImageColor3", "WindowControlColor")
+		end
 	end
 	ThemeManager.BindColor(PageTitle, "TextColor3", "TitleTextColor")
 	ThemeManager.BindTransparency(PageTitle, "TextTransparency", "PrimaryTextTransparency")
@@ -2099,7 +2182,9 @@ function Window.new(Settings)
 
 		-- Minimize pill colors are BINDINGS now (see the Bind* block above).
 		-- Only the per-tab pill buttons need a refresh (they are created lazily).
-		if me._refreshPill then me._refreshPill(t) end
+		if me._refreshPill then
+			me._refreshPill(t)
+		end
 
 		-- Tooltip follows the theme too
 		if tooltip and tooltip.SetTheme then
@@ -2122,7 +2207,6 @@ end
 
 -- Apply a theme by name or table
 function Window:SetTheme(themeInput)
-	local ThemeManager = require("../Themes/ThemeManager")
 	if type(themeInput) == "string" then
 		self._themeName = themeInput
 		-- Persist the choice so the theme survives across sessions. Only named
@@ -2138,7 +2222,9 @@ function Window:SetTheme(themeInput)
 	-- open popup updates instantly. Any popup without ApplyTheme is dropped so
 	-- its create-on-open path rebuilds it with the new theme instead.
 	local function refreshPopups(popups)
-		if not popups then return end
+		if not popups then
+			return
+		end
 		for id, popup in pairs(popups) do
 			if popup.ApplyTheme then
 				popup:ApplyTheme(self._theme)
@@ -2186,7 +2272,9 @@ end
 function Window:Destroy()
 	-- Re-entrancy guard: doClose funnels here now, and a confirm dialog or a
 	-- second close must not double-play the sound or double-destroy the tree.
-	if self._destroyed then return end
+	if self._destroyed then
+		return
+	end
 
 	local closePreset = self.AnimationStyle == "Snappy" and "FadeOut" or "Smooth"
 
@@ -2194,7 +2282,9 @@ function Window:Destroy()
 	-- nothing). UIClose is the real close sound.
 	Sound.Play("UIClose")
 
-	if self._teardown then self._teardown() end
+	if self._teardown then
+		self._teardown()
+	end
 
 	-- Fade the WHOLE window out. MainFrame is a CanvasGroup, so a single
 	-- GroupTransparency tween fades every child; tweening BackgroundTransparency
@@ -2214,7 +2304,9 @@ end
 -- Tab management methods (delegated to TabGroup)
 function Window:Tab(name, icon)
 	local tab = self.TabGroup:Tab({ Name = name, Icon = icon })
-	if self._refreshPill then self._refreshPill() end
+	if self._refreshPill then
+		self._refreshPill()
+	end
 	return tab
 end
 

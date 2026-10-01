@@ -74,7 +74,9 @@ end
 
 -- Set the layer's fade instantly. 0 = visible, 1 = hidden.
 function PageFade.Snap(layer, transparency)
-	if not layer then return end
+	if not layer then
+		return
+	end
 	Tween.CancelAll(layer)
 	layer.GroupTransparency = transparency or 0
 	PageFade.FadeDecorations(layer, (transparency or 0) >= 0.5, true)
@@ -124,7 +126,9 @@ local function getDecorations(group)
 end
 
 function PageFade.FadeDecorations(group, hidden, instant)
-	if not group then return end
+	if not group then
+		return
+	end
 	for _, d in ipairs(getDecorations(group)) do
 		-- Resting transparency. The theme system is the source of truth: every
 		-- colour/number binding publishes its RESOLVED value as ThemeLive_<prop>
@@ -173,19 +177,25 @@ end
 -- completion for a fade that was superseded.
 function PageFade.Show(layer, instant, onComplete)
 	if not layer then
-		if onComplete then onComplete() end
+		if onComplete then
+			onComplete()
+		end
 		return
 	end
 	PageFade.FadeDecorations(layer, false, instant)
 	if instant then
 		Tween.CancelAll(layer)
 		layer.GroupTransparency = 0
-		if onComplete then onComplete() end
+		if onComplete then
+			onComplete()
+		end
 	else
 		local h = Tween.Play(layer, PageFade.PRESET, { GroupTransparency = 0 })
 		if h and h.Tween and onComplete then
 			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then onComplete() end
+				if state == Enum.PlaybackState.Completed then
+					onComplete()
+				end
 			end)
 		elseif onComplete then
 			onComplete()
@@ -197,19 +207,25 @@ end
 -- `onComplete` fires only on a normal finish (see Show).
 function PageFade.Hide(layer, instant, onComplete)
 	if not layer then
-		if onComplete then onComplete() end
+		if onComplete then
+			onComplete()
+		end
 		return
 	end
 	PageFade.FadeDecorations(layer, true, instant)
 	if instant then
 		Tween.CancelAll(layer)
 		layer.GroupTransparency = 1
-		if onComplete then onComplete() end
+		if onComplete then
+			onComplete()
+		end
 	else
 		local h = Tween.Play(layer, PageFade.PRESET, { GroupTransparency = 1 })
 		if h and h.Tween and onComplete then
 			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then onComplete() end
+				if state == Enum.PlaybackState.Completed then
+					onComplete()
+				end
 			end)
 		elseif onComplete then
 			onComplete()
@@ -228,7 +244,9 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 		completed = completed + 1
 		if completed >= expected and not fired then
 			fired = true
-			if onComplete then onComplete() end
+			if onComplete then
+				onComplete()
+			end
 		end
 	end
 
@@ -242,7 +260,9 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 			-- fade; the old code fired `done` on Cancelled too and could hide
 			-- the outgoing page while a newer fade was still running.
 			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then done() end
+				if state == Enum.PlaybackState.Completed then
+					done()
+				end
 			end)
 		else
 			done()
@@ -259,14 +279,18 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 			-- fade; the old code fired `done` on Cancelled too and could hide
 			-- the outgoing page while a newer fade was still running.
 			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then done() end
+				if state == Enum.PlaybackState.Completed then
+					done()
+				end
 			end)
 		else
 			done()
 		end
 	end
 
-	if expected == 0 and onComplete then onComplete() end
+	if expected == 0 and onComplete then
+		onComplete()
+	end
 end
 
 -- Called after a theme switch. Theme-bound decorations do NOT keep a base:

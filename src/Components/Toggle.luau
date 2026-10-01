@@ -40,15 +40,15 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		Clickable = true,
 		LabelWidth = 0.486,
 	})
-	
+
 	local toggleInterractionHolder = Instance.new("Frame")
-	toggleInterractionHolder.Name = "InterractionHolder"	
+	toggleInterractionHolder.Name = "InterractionHolder"
 	toggleInterractionHolder.BackgroundTransparency = 1
 	toggleInterractionHolder.AnchorPoint = Vector2.new(1, 0.5)
 	toggleInterractionHolder.Size = UDim2.new(0, 65, 1, 0)
 	toggleInterractionHolder.Position = UDim2.fromScale(1, 0.5)
 	toggleInterractionHolder.Parent = row
-	
+
 	----------------------------------------------------------------
 	-- TRACK
 	----------------------------------------------------------------
@@ -119,14 +119,14 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	sheenCorner.CornerRadius = UDim.new(1, 0)
 	sheenCorner.Parent = sheen
 	local sheenGradient = Instance.new("UIGradient")
-	sheenGradient.Transparency = NumberSequence.new{
+	sheenGradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
 		NumberSequenceKeypoint.new(0.324, 0.80625),
 		NumberSequenceKeypoint.new(0.600, 0.6875),
 		NumberSequenceKeypoint.new(0.726, 0.55),
 		NumberSequenceKeypoint.new(0.844, 0.36875),
 		NumberSequenceKeypoint.new(1.000, 0),
-	}
+	})
 	sheenGradient.Parent = sheen
 	-- Perpetual spin, like the original ToggleMechanics; visibility is driven
 	-- by ImageTransparency in applyState.
@@ -150,12 +150,12 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- current state automatically. duration keeps the swap as snappy as before.
 	local FAST = { duration = 0.2 }
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
-	local thumbColorBinding = ThemeManager.BindColor(thumb, "BackgroundColor3",
-		state and "PrimaryColor" or "SecondaryColor", FAST)
-	local trackColorBinding = ThemeManager.BindColor(track, "BackgroundColor3",
-		state and "PrimaryColor" or "SecondaryColor", FAST)
-	local strokeColorBinding = ThemeManager.BindColor(stroke, "Color",
-		state and "PrimaryColor" or "SecondaryColor", FAST)
+	local thumbColorBinding =
+		ThemeManager.BindColor(thumb, "BackgroundColor3", state and "PrimaryColor" or "SecondaryColor", FAST)
+	local trackColorBinding =
+		ThemeManager.BindColor(track, "BackgroundColor3", state and "PrimaryColor" or "SecondaryColor", FAST)
+	local strokeColorBinding =
+		ThemeManager.BindColor(stroke, "Color", state and "PrimaryColor" or "SecondaryColor", FAST)
 	----------------------------------------------------------------
 	-- APPLY STATE
 	----------------------------------------------------------------
@@ -172,14 +172,10 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		trackColorBinding:SetKey(onKey)
 		strokeColorBinding:SetKey(onKey)
 		local targetPos = state and onPos or offPos
-		local targetBgTransparency =
-			state and 0 or 1
-		local targetStrokeTransparency =
-			state and 0 or 0.7
-		local targetTrackTransparency =
-			state and 0 or 0.9
-		local targetLabelTransparency =
-			state and 0.1 or 0.45
+		local targetBgTransparency = state and 0 or 1
+		local targetStrokeTransparency = state and 0 or 0.7
+		local targetTrackTransparency = state and 0 or 0.9
+		local targetLabelTransparency = state and 0.1 or 0.45
 		-- Keep PageFade's cached fade-base in sync with the CURRENT resting
 		-- stroke transparency. applyState changes the stroke OUTSIDE ApplyTheme,
 		-- so without this a page fade would restore a stale base (the
@@ -188,19 +184,19 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		if animate then
 			Tween.Play(thumb, "Fast", {
 				Position = targetPos,
-				BackgroundTransparency = targetBgTransparency
+				BackgroundTransparency = targetBgTransparency,
 			})
 			Tween.Play(stroke, "Fast", {
-				Transparency = targetStrokeTransparency
+				Transparency = targetStrokeTransparency,
 			})
 			Tween.Play(label, "Fast", {
-				TextTransparency = targetLabelTransparency
+				TextTransparency = targetLabelTransparency,
 			})
 			Tween.Play(track, "Fast", {
-				BackgroundTransparency = targetTrackTransparency
+				BackgroundTransparency = targetTrackTransparency,
 			})
 			Tween.Play(sheen, "Fast", {
-				ImageTransparency = state and 0 or 1
+				ImageTransparency = state and 0 or 1,
 			})
 		else
 			thumb:SetAttribute("IsOn", state)
@@ -235,20 +231,11 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		if confirmEnabled and ShowNotification and intendedState then
 			confirmationPending = true
 			ShowNotification({
-				Title =
-					confirm.Title
-					or "Confirm Action",
-				Description =
-					confirm.Description
-					or "Are you sure you want to change this setting?",
-				TitleColor =
-					confirm.TitleColor,
-				ConfirmText =
-					confirm.ConfirmText
-					or "Yes",
-				CancelText =
-					confirm.CancelText
-					or "No",
+				Title = confirm.Title or "Confirm Action",
+				Description = confirm.Description or "Are you sure you want to change this setting?",
+				TitleColor = confirm.TitleColor,
+				ConfirmText = confirm.ConfirmText or "Yes",
+				CancelText = confirm.CancelText or "No",
 				----------------------------------------------------
 				-- CONFIRMED
 				----------------------------------------------------
@@ -256,11 +243,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 					confirmationPending = false
 					-- Apply the state requested when the
 					-- notification was originally opened.
-					applyState(
-						intendedState,
-						true,
-						true
-					)
+					applyState(intendedState, true, true)
 				end,
 				----------------------------------------------------
 				-- CANCELLED
@@ -277,11 +260,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			-- NORMAL MODE (turning OFF, or no confirmation)
 			------------------------------------------------------------
 		else
-			applyState(
-				intendedState,
-				true,
-				true
-			)
+			applyState(intendedState, true, true)
 		end
 	end
 	----------------------------------------------------------------
@@ -298,30 +277,19 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	----------------------------------------------------------------
 	-- Apply the visual default state.
 	-- Do NOT fire the user's callback during construction.
-	applyState(
-		default,
-		false,
-		false
-	)
+	applyState(default, false, false)
 	----------------------------------------------------------------
 	-- PUBLIC API
 	----------------------------------------------------------------
 	self.UpdateState = function(_self, newState)
 		if typeof(newState) ~= "boolean" then
-			warn(
-				"[Toggle] UpdateState expected a boolean, got:",
-				typeof(newState)
-			)
+			warn("[Toggle] UpdateState expected a boolean, got:", typeof(newState))
 			return
 		end
 		-- Programmatic state changes bypass confirmation.
 		-- Confirmation is only for user clicks.
 		if newState ~= state then
-			applyState(
-				newState,
-				true,
-				true
-			)
+			applyState(newState, true, true)
 		end
 	end
 	self.GetState = function(_self)
