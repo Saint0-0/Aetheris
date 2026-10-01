@@ -162,6 +162,9 @@ function TextInput.new(parent, Settings, theme)
 	stroke.Transparency = theme.StrokeTransparency or 0.4
 	stroke.Thickness = 1
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	-- Snapshot the resting transparency so PageFade restores to the theme value
+	-- instead of capturing a mid-fade one. Mirrors RadioButton's holderStroke.
+	stroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
 	stroke.Parent = field
 
 	local glow = Instance.new("UIShadow")
@@ -299,6 +302,15 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
+	-- Hover: brighten the stroke on mouse-over, restore on leave -- same feel as
+	-- RadioButton (hover = resting transparency * 0.5).
+	field.MouseEnter:Connect(function()
+		Tween.Play(stroke, "HoverIn", { Transparency = restStrokeTransparency() * 0.5 })
+	end)
+	field.MouseLeave:Connect(function()
+		Tween.Play(stroke, "HoverOut", { Transparency = restStrokeTransparency() })
+	end)
+
 	-- Recompute the cap (and re-hug) if the row or the auto-sized label resizes.
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		sizeBox(false)
@@ -338,6 +350,10 @@ function TextInput.new(parent, Settings, theme)
 	ThemeManager.BindColor(field, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(field, "PlaceholderColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
+	-- Theme-bound stroke transparency: matches RadioButton, publishes
+	-- ThemeLive_Transparency so PageFade reads the correct resting value and a
+	-- theme switch re-resolves it (previously set once, never re-themed).
+	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(glow, "Color", "AccentColor")
 
 	field.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(240, 240, 240)
