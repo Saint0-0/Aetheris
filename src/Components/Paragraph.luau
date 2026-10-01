@@ -30,7 +30,7 @@ function Paragraph.new(parent, Settings, theme)
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
 	container.AutomaticSize = Enum.AutomaticSize.Y
-	container.Size = UDim2.new(1, 0, 0, 0)
+	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute("IsComponentContainer", true)
 	container.Parent = parent
 	-- Corner
@@ -59,7 +59,7 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.AutomaticSize = Enum.AutomaticSize.Y  -- grow to fit larger/wrapped titles
 	titleLabel.Text = title
 	titleLabel.AnchorPoint = Vector2.new(0, 0.5)
-titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, vertically centred
+titleLabel.Position = UDim2.fromOffset(11, 18)  -- x aligned with description, vertically centred
 	titleLabel.Parent = container
 	-- Description label (LabelDescription)
 	local descLabel = Instance.new("TextLabel")
@@ -73,10 +73,10 @@ titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, ve
 	descLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	descLabel.TextColor3 = (theme and theme.SecondaryTextColor)
 	descLabel.BackgroundTransparency = 1
-	descLabel.Size = UDim2.new(0.91, 0, 0, 0)
+	descLabel.Size = UDim2.fromScale(0.91, 0)
 	descLabel.AutomaticSize = Enum.AutomaticSize.Y
 	descLabel.Text = description
-	descLabel.Position = UDim2.new(0, 11, 0, 38)  -- left padding, below title
+	descLabel.Position = UDim2.fromOffset(11, 38)  -- left padding, below title
 	descLabel.Parent = container
 	-- Padding inside description for bottom spacing
 	local descPadding = Instance.new("UIPadding")
@@ -105,10 +105,10 @@ titleLabel.Position = UDim2.new(0, 11, 0, 18)  -- x aligned with description, ve
 	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
 	-- Uniform component API (p2-4): visibility toggle + teardown.
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		container.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if container and container.Parent then container:Destroy() end
 	end
 	return self

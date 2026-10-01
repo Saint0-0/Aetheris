@@ -54,12 +54,12 @@ function Divider.new(parent, Settings, theme)
 	frame.BackgroundTransparency = transparency
 	frame.Size = UDim2.new(0.90447, 0, 0, thickness)
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	frame.Parent = holder
 	-- Declarative theming: colour + transparency are BINDINGS. A theme switch
 	-- re-resolves them automatically -- no ApplyTheme body to forget.
-	local colorBinding = ThemeManager.BindColor(frame, "BackgroundColor3", "SectionDividerColor")
+	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionDividerColor")
 	local transparencyBinding = ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionDividerTransparency")
 	-- A caller-supplied Color is a theme override: it always wins over the
 	-- binding (applyEntry skips overridden props), so it survives theme passes.
@@ -76,20 +76,20 @@ function Divider.new(parent, Settings, theme)
 	self.Holder = holder
 	self.Frame = frame
 	-- Public API
-	function self:SetColor(newColor)
+	self.SetColor = function(_self, newColor)
 		hasCustomColor = true
 		ThemeManager.SetColorOverride(frame, "BackgroundColor3", newColor)
 	end
-	function self:SetTransparency(newTransparency)
+	self.SetTransparency = function(_self, newTransparency)
 		hasCustomTransparency = true
 		transparencyBinding:SetEnabled(false)
 		frame.BackgroundTransparency = newTransparency
 	end
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		holder.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if holder and holder.Parent then holder:Destroy() end
 	end
 	return self

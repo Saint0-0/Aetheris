@@ -11,20 +11,18 @@
 local Tween = require("../../Utils/Tween")
 local Sound = require("../../Utils/Sound")
 local SettingsStore = require("./SettingsStore")
-local ThemeManager = require("../../Themes/ThemeManager")
 
 local UISettings = {}
 
 function UISettings.Build(window, tab)
-	local theme = window._theme or {}
 	local page = tab.Page
 
 	page.Name = "UISettings"
 	page.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	page.BackgroundTransparency = 1
 	page.AnchorPoint = Vector2.new(0, 0)
-	page.Size = UDim2.new(1, 0, 1, 0)
-	page.Position = UDim2.new(0, 0, 0, 0)
+	page.Size = UDim2.fromScale(1, 1)
+	page.Position = UDim2.fromScale(0, 0)
 	page.LayoutOrder = 1
 
 	-- No page heading: the settings tab bar already names the page. The

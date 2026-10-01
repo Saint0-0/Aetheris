@@ -76,7 +76,7 @@ function TabGroup:_pauseSpin(gradient)
 end
 -- Resume from the paused angle; only start fresh if this gradient has never
 -- been registered (the first time a tab is shown).
-function TabGroup:_resumeSpin(gradient, reset)
+function TabGroup:_resumeSpin(gradient, _reset)
 	if not gradient then return end
 	if not Tween.ResumeSpin(gradient) then
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
@@ -132,10 +132,10 @@ function TabGroup:Tab(Settings)
 	TabName.TextColor3 = theme.InactiveTabTextColor
 	TabName.BackgroundTransparency = 1
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
-	TabName.Size = UDim2.new(0.636, 0, 0.714, 0)
+	TabName.Size = UDim2.fromScale(0.636, 0.714)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabName.Text = name
-	TabName.Position = UDim2.new(0.647, 0, 0.5, 0)
+	TabName.Position = UDim2.fromScale(0.647, 0.5)
 	TabName.Parent = Button
 	local BackImage = Instance.new("ImageLabel")
 	BackImage.Name = "BackImage"
@@ -146,10 +146,10 @@ function TabGroup:Tab(Settings)
 	-- Use theme's Wallpaper or fallback
 	local imageId = theme.Wallpaper or FallbackImage
 	BackImage.Image = imageId
-	BackImage.Size = UDim2.new(1, 0, 1, 0)
+	BackImage.Size = UDim2.fromScale(1, 1)
 	BackImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	BackImage.BackgroundTransparency = 1
-	BackImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	BackImage.Position = UDim2.fromScale(0.5, 0.5)
 	BackImage.Parent = Button
 	-- Mark as a true backdrop so ThemeManager updates its image/visibility
 	-- without touching the component sheens (which also use the brand asset).
@@ -183,7 +183,7 @@ function TabGroup:Tab(Settings)
 	TabImage.AnchorPoint = Vector2.new(0, 0.5)
 	TabImage.Image = Settings.Icon or "rbxassetid://8445470392"
 	TabImage.ImageColor3 = theme.InactiveTabIconColor
-	TabImage.Size = UDim2.new(0, 15, 0, 15)
+	TabImage.Size = UDim2.fromOffset(15, 15)
 	TabImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabImage.BackgroundTransparency = 1
 	TabImage.Position = UDim2.new(0, 15, 0.5, 0)
@@ -197,7 +197,7 @@ function TabGroup:Tab(Settings)
 	SelectionStatus.BackgroundColor3 = theme.SecondaryColor
 	SelectionStatus.BackgroundTransparency = 1 -- hidden until active
 	SelectionStatus.AnchorPoint = Vector2.new(0.5, 0.5)
-	SelectionStatus.Size = UDim2.new(0, 2, 0, 0) -- start collapsed
+	SelectionStatus.Size = UDim2.fromOffset(2, 0) -- start collapsed
 	SelectionStatus.Position = UDim2.new(0, -5, 0.5, 0)
 	SelectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SelectionStatus.Parent = Button
@@ -208,14 +208,14 @@ function TabGroup:Tab(Settings)
 	local ContentScroller = Instance.new("ScrollingFrame")
 	ContentScroller.Name = name .. "Scroller"
 	ContentScroller.BorderSizePixel = 0
-	ContentScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
+	ContentScroller.CanvasSize = UDim2.fromScale(0, 0)
 	ContentScroller.TopImage = ""
 	ContentScroller.BottomImage = ""
 	ContentScroller.ScrollBarImageTransparency = 1 -- hidden until scrolling
 	ContentScroller.BackgroundTransparency = 1
 	ContentScroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	ContentScroller.ClipsDescendants = false
-	ContentScroller.Size = UDim2.new(1, 0, 1, 0)
+	ContentScroller.Size = UDim2.fromScale(1, 1)
 	ContentScroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ContentScroller.ScrollBarThickness = 1
 	ContentScroller.ScrollBarImageColor3 = theme.TertiaryColor
@@ -258,7 +258,7 @@ function TabGroup:Tab(Settings)
 	ColumnLeft.BackgroundTransparency = 1
 	ColumnLeft.AutomaticSize = Enum.AutomaticSize.Y
 	ColumnLeft.Size = UDim2.new(0.5, -10, 0, 0)
-	ColumnLeft.Position = UDim2.new(0.512, 0, 0, 0)
+	ColumnLeft.Position = UDim2.fromScale(0.512, 0)
 	ColumnLeft.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ColumnLeft.Parent = ContentScroller
 	local ColumnLeftLayout = Instance.new("UIListLayout")
@@ -271,7 +271,7 @@ function TabGroup:Tab(Settings)
 	ColumnRight.BackgroundTransparency = 1
 	ColumnRight.AutomaticSize = Enum.AutomaticSize.Y
 	ColumnRight.Size = UDim2.new(0.5, -10, 0, 0)
-	ColumnRight.Position = UDim2.new(0.512, 0, 0, 0)
+	ColumnRight.Position = UDim2.fromScale(0.512, 0)
 	ColumnRight.LayoutOrder = 1
 	ColumnRight.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ColumnRight.Parent = ContentScroller
@@ -362,17 +362,17 @@ function TabGroup:_applyTabCompact(tab, on)
 	local padding = tab._scrollerPadding
 	if on then
 		layout.FillDirection = Enum.FillDirection.Vertical
-		tab.ColumnLeft.Size = UDim2.new(1, 0, 0, 0)
-		tab.ColumnRight.Size = UDim2.new(1, 0, 0, 0)
-		tab.ColumnLeft.Position = UDim2.new(0, 0, 0, 0)
-		tab.ColumnRight.Position = UDim2.new(0, 0, 0, 0)
+		tab.ColumnLeft.Size = UDim2.fromScale(1, 0)
+		tab.ColumnRight.Size = UDim2.fromScale(1, 0)
+		tab.ColumnLeft.Position = UDim2.fromScale(0, 0)
+		tab.ColumnRight.Position = UDim2.fromScale(0, 0)
 		if padding then padding.PaddingRight = COMPACT_SCROLLER_PAD_RIGHT end
 	else
 		layout.FillDirection = Enum.FillDirection.Horizontal
 		tab.ColumnLeft.Size = EXPANDED_COLUMN_SIZE
 		tab.ColumnRight.Size = EXPANDED_COLUMN_SIZE
-		tab.ColumnLeft.Position = UDim2.new(0.512, 0, 0, 0)
-		tab.ColumnRight.Position = UDim2.new(0.512, 0, 0, 0)
+		tab.ColumnLeft.Position = UDim2.fromScale(0.512, 0)
+		tab.ColumnRight.Position = UDim2.fromScale(0.512, 0)
 		if padding then padding.PaddingRight = EXPANDED_SCROLLER_PAD_RIGHT end
 	end
 end
@@ -443,7 +443,7 @@ function TabGroup:_applyTabVisuals(t, active)
 		self:_resumeSpin(t.BackImageGradient, true)
 	else
 		Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-		Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) })
+		Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) })
 		self:_pauseSpin(t.BackImageGradient)
 	end
 end

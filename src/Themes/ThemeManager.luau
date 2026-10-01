@@ -663,7 +663,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
                 tab.BackImage.ImageTransparency = 0
             else
                 tab.SelectionStatus.BackgroundTransparency = 1
-                tab.SelectionStatus.Size = UDim2.new(0, 2, 0, 0)
+                tab.SelectionStatus.Size = UDim2.fromOffset(2, 0)
                 tab.BackImage.ImageTransparency = 1
             end
         end

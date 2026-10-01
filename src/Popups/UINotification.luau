@@ -68,8 +68,8 @@ function UINotification.new(parent, Settings)
 	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
 	popup.AutomaticSize = Enum.AutomaticSize.Y
-	popup.Size = UDim2.new(0.611, 0, 0, 0)
-	popup.Position = UDim2.new(0.5, 0, 0.5, 0)
+	popup.Size = UDim2.fromScale(0.611, 0)
+	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.ZIndex = 11
@@ -109,7 +109,7 @@ function UINotification.new(parent, Settings)
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.RichText = true
 	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.new(0.26291, 0, 0.03775, 0)
+	header.Size = UDim2.fromScale(0.26291, 0.03775)
 	header.AutomaticSize = Enum.AutomaticSize.X
 	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.TextColor3 = (theme and theme.PopupTextColor)
@@ -133,9 +133,9 @@ function UINotification.new(parent, Settings)
 	notifText.TextColor3 = (theme and theme.PopupTextColor)
 	notifText.RichText = true
 	notifText.AnchorPoint = Vector2.new(0.5, 0.5)
-	notifText.Size = UDim2.new(0.91, 0, 0.1358, 0)
+	notifText.Size = UDim2.fromScale(0.91, 0.1358)
 	notifText.AutomaticSize = Enum.AutomaticSize.Y
-	notifText.Position = UDim2.new(0.5, 0, 0.4, 0)
+	notifText.Position = UDim2.fromScale(0.5, 0.4)
 	notifText.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	notifText.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	notifText.Text = description
@@ -154,7 +154,7 @@ function UINotification.new(parent, Settings)
 	divider.BackgroundTransparency = 0.9
 	divider.AnchorPoint = Vector2.new(0.5, 0.5)
 	divider.Size = UDim2.new(0.8, 0, 0, 1)
-	divider.Position = UDim2.new(0.5, 0, 1.7, 0)
+	divider.Position = UDim2.fromScale(0.5, 1.7)
 	divider.ZIndex = 12
 	divider.Parent = notifText
 	----------------------------------------------------------------
@@ -167,7 +167,7 @@ function UINotification.new(parent, Settings)
 	interactions.BackgroundTransparency = 0.8
 	interactions.AnchorPoint = Vector2.new(0.5, 1)
 	interactions.Size = UDim2.new(1, 0, 0, 55)
-	interactions.Position = UDim2.new(0.5, 0, 1, 0)
+	interactions.Position = UDim2.fromScale(0.5, 1)
 	interactions.ZIndex = 12
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
@@ -201,9 +201,9 @@ function UINotification.new(parent, Settings)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
-	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
 	confirmBtn.Text = confirmText
-	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
+	confirmBtn.Position = UDim2.fromScale(0, 0)
 	confirmBtn.ZIndex = 13
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
@@ -229,9 +229,9 @@ function UINotification.new(parent, Settings)
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
-	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
+	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
 	cancelBtn.Text = cancelText
-	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
+	cancelBtn.Position = UDim2.fromScale(0.515, 0)
 	cancelBtn.ZIndex = 13
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
@@ -265,7 +265,7 @@ function UINotification.new(parent, Settings)
 	----------------------------------------------------------------
 	-- INTERNAL RESOLVE FUNCTIONS
 	----------------------------------------------------------------
-	function self:_Confirm()
+	self._Confirm = function(_self)
 		if self._resolved then
 			return
 		end
@@ -275,7 +275,7 @@ function UINotification.new(parent, Settings)
 			self.OnConfirm()
 		end)
 	end
-	function self:_Cancel()
+	self._Cancel = function(_self)
 		if self._resolved then
 			return
 		end

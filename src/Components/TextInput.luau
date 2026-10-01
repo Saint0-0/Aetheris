@@ -133,8 +133,8 @@ function TextInput.new(parent, Settings, theme)
 	local field = Instance.new("TextBox")
 	field.Name = "Field"
 	field.AnchorPoint = Vector2.new(1, 0.5)
-	field.Position = UDim2.new(1, 0, 0.5, 0)
-	field.Size = UDim2.new(0, FIELD_MIN_W, 0, FIELD_HEIGHT) -- replaced by sizeBox below
+	field.Position = UDim2.fromScale(1, 0.5)
+	field.Size = UDim2.fromOffset(FIELD_MIN_W, FIELD_HEIGHT) -- replaced by sizeBox below
 	field.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
 	field.BackgroundTransparency = theme.InputBackgroundTransparency or REST_FIELD_TRANSPARENCY
 	field.BorderSizePixel = 0
@@ -214,9 +214,9 @@ function TextInput.new(parent, Settings, theme)
 		local shown = (field.Text ~= "" and field.Text) or placeholder
 		local w = math.clamp(measure(font, TEXT_SIZE, shown) + PAD_X * 2, FIELD_MIN_W, maxWidth())
 		if animate then
-			Tween.Play(field, RESIZE_INFO, { Size = UDim2.new(0, w, 0, FIELD_HEIGHT) })
+			Tween.Play(field, RESIZE_INFO, { Size = UDim2.fromOffset(w, FIELD_HEIGHT) })
 		else
-			field.Size = UDim2.new(0, w, 0, FIELD_HEIGHT)
+			field.Size = UDim2.fromOffset(w, FIELD_HEIGHT)
 		end
 	end
 	self._sizeBox = sizeBox
@@ -371,10 +371,10 @@ function TextInput.new(parent, Settings, theme)
 	end)
 
 	-- ---- uniform component API ----------------------------------------------
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		Tween.CancelAll(field)
 		Tween.CancelAll(stroke)
 		Tween.CancelAll(glow)

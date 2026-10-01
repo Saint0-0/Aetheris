@@ -13,6 +13,12 @@
 	Public API: Load, Get, Set, Save (debounced), SaveNow, Flush, Defaults.
 ]]
 
+--# selene: allow(undefined_variable)
+-- The executor file API (writefile/readfile/isfile) is injected by the host
+-- executor at runtime, not defined in source. It is probed defensively with
+-- type(x) == "function", so referencing it is intentional. Scoped to THIS
+-- file only, so a genuine undefined-variable typo elsewhere is still caught.
+
 local HttpService = game:GetService("HttpService")
 
 local SettingsStore = {}

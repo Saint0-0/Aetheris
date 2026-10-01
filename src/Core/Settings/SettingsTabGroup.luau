@@ -44,9 +44,9 @@ function SettingsTabHandle:Scroller()
 	scroller.BackgroundTransparency = 1
 	scroller.AnchorPoint = Vector2.new(0.5, 0.5)
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	scroller.CanvasSize = UDim2.new(0, 0, 0, 0)
-	scroller.Size = UDim2.new(1, 0, 0.879, 0)
-	scroller.Position = UDim2.new(0.5, 0, 0.561, 0)
+	scroller.CanvasSize = UDim2.fromScale(0, 0)
+	scroller.Size = UDim2.fromScale(1, 0.879)
+	scroller.Position = UDim2.fromScale(0.5, 0.561)
 	scroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	scroller.ScrollBarThickness = 1
 	scroller.ScrollBarImageColor3 = theme.TertiaryColor or Color3.fromRGB(160, 160, 160)
@@ -97,8 +97,8 @@ function SettingsTabGroup.new(window, theme)
 	self.Bar.Name = "SettingsTabBar"
 	self.Bar.BorderSizePixel = 0
 	self.Bar.BackgroundTransparency = 1
-	self.Bar.Size = UDim2.new(1, 0, 0.07969, 0)
-	self.Bar.Position = UDim2.new(0, 0, 0, 6)
+	self.Bar.Size = UDim2.fromScale(1, 0.07969)
+	self.Bar.Position = UDim2.fromOffset(0, 6)
 	self.Bar.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	self.Bar.Parent = window.SettingsPages
 
@@ -119,8 +119,8 @@ function SettingsTabGroup.new(window, theme)
 	self.Content.BorderSizePixel = 0
 	self.Content.BackgroundTransparency = 1
 	self.Content.AnchorPoint = Vector2.new(0.5, 0.5)
-	self.Content.Position = UDim2.new(0.5, 0, 0.5, 0)
-	self.Content.Size = UDim2.new(0.983, 0, 1, 0)
+	self.Content.Position = UDim2.fromScale(0.5, 0.5)
+	self.Content.Size = UDim2.fromScale(0.983, 1)
 	self.Content.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	self.Content.Parent = window.SettingsPages
 
@@ -148,7 +148,7 @@ function SettingsTabGroup:_pauseSpin(gradient)
 	Tween.PauseSpin(gradient)
 end
 
-function SettingsTabGroup:_resumeSpin(gradient, reset)
+function SettingsTabGroup:_resumeSpin(gradient, _reset)
 	if not gradient then return end
 	if not Tween.ResumeSpin(gradient) then
 		Tween.StartSpin(gradient, { Rotation = 360 }, "SpinIdle")
@@ -168,7 +168,7 @@ function SettingsTabGroup:Tab(Settings)
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
 	Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
-	Button.Size = UDim2.new(0.169, 0, 0.83, 0)
+	Button.Size = UDim2.fromScale(0.169, 0.83)
 	Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Button.Text = ""
 	Button.LayoutOrder = #self.Tabs + 1
@@ -188,10 +188,10 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.TextColor3 = theme.InactiveTabTextColor
 	TabName.BackgroundTransparency = 1
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
-	TabName.Size = UDim2.new(0.73078, 0, 0.71359, 0)
+	TabName.Size = UDim2.fromScale(0.73078, 0.71359)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabName.Text = name
-	TabName.Position = UDim2.new(0.647, 0, 0.5, 0)
+	TabName.Position = UDim2.fromScale(0.647, 0.5)
 	TabName.Parent = Button
 
 	local BackImage = Instance.new("ImageLabel")
@@ -201,10 +201,10 @@ function SettingsTabGroup:Tab(Settings)
 	BackImage.ImageTransparency = 1
 	BackImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	BackImage.Image = theme.Wallpaper or FallbackImage
-	BackImage.Size = UDim2.new(1, 0, 1, 0)
+	BackImage.Size = UDim2.fromScale(1, 1)
 	BackImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	BackImage.BackgroundTransparency = 1
-	BackImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	BackImage.Position = UDim2.fromScale(0.5, 0.5)
 	BackImage.Parent = Button
 	BackImage:SetAttribute("IsTabBackdrop", true)
 	-- Match SettingsTabGroup:ApplyTheme's `~= false` form so construction and a
@@ -237,7 +237,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabImage.AnchorPoint = Vector2.new(0, 0.5)
 	TabImage.Image = Settings.Icon or "rbxassetid://8445470392"
 	TabImage.ImageColor3 = theme.InactiveTabIconColor
-	TabImage.Size = UDim2.new(0, 12, 0, 12)
+	TabImage.Size = UDim2.fromOffset(12, 12)
 	TabImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabImage.BackgroundTransparency = 1
 	TabImage.Position = UDim2.new(0, 6, 0.5, 0)
@@ -249,7 +249,7 @@ function SettingsTabGroup:Tab(Settings)
 	SelectionStatus.BackgroundColor3 = theme.SecondaryColor
 	SelectionStatus.BackgroundTransparency = 1
 	SelectionStatus.AnchorPoint = Vector2.new(0.5, 0.5)
-	SelectionStatus.Size = UDim2.new(0, 2, 0, 0)
+	SelectionStatus.Size = UDim2.fromOffset(2, 0)
 	SelectionStatus.Position = UDim2.new(0, -5, 0.5, 0)
 	SelectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SelectionStatus.Parent = Button
@@ -259,7 +259,7 @@ function SettingsTabGroup:Tab(Settings)
 	Page.Name = name
 	Page.BorderSizePixel = 0
 	Page.BackgroundTransparency = 1
-	Page.Size = UDim2.new(1, 0, 1, 0)
+	Page.Size = UDim2.fromScale(1, 1)
 	Page.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Page.Visible = true
 	-- Page transition layer: ONE CanvasGroup per settings page owns the fade
@@ -344,7 +344,7 @@ function SettingsTabGroup:_applyInactiveVisuals(t)
 	if t._iconColorHandle then t._iconColorHandle:SetState("Inactive") end
 	if t._iconTransHandle then t._iconTransHandle:SetState("Inactive") end
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) })
+	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) })
 	self:_pauseSpin(t.BackImageGradient)
 end
 

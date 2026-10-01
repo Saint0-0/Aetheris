@@ -2516,6 +2516,15 @@ local WALLPAPERS = {
     Rosa       = "rbxassetid://107522899082679",
 }
 
+-- Wire each wallpaper id onto its theme so the render path (theme.Wallpaper)
+-- picks it up. Mirrors the WINDOW_CONTROLS pattern below; theme.Wallpaper was
+-- previously never assigned, so every consumer fell back to FallbackImage.
+for name, assetId in pairs(WALLPAPERS) do
+    if ThemeDefinitions[name] then
+        ThemeDefinitions[name].Wallpaper = assetId
+    end
+end
+
 -- Window control icon colors (close/maximize/minimize). Dark themes get light
 -- icons, light themes get dark ones, so they stay visible on the window chrome.
 local WINDOW_CONTROLS = {
@@ -2624,7 +2633,7 @@ end
 
 -- Notifications derive their surface colors from the theme's popup/text colors
 -- so every theme stays coherent without hand-authoring 15 keys x 19 themes.
-for name, t in pairs(ThemeDefinitions) do
+for _, t in pairs(ThemeDefinitions) do
     if t.NotificationBackgroundColor == nil then
         t.NotificationBackgroundColor = t.PopupBackgroundColor or t.WindowColor
         t.NotificationBackgroundTransparency = math.clamp((t.PopupBackgroundTransparency or 0) + 0.1, 0, 1)

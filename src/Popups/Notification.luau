@@ -137,7 +137,7 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = theme.NotificationBackgroundColor or Color3.fromRGB(16, 16, 17),
 		BackgroundTransparency = theme.NotificationBackgroundTransparency or 0.1,
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Size = UDim2.new(0, 233, 0, ntype == "Variable" and 118 or 92),
+		Size = UDim2.fromOffset(233, ntype == "Variable" and 118 or 92),
 		BorderColor3 = Color3.fromRGB(41, 41, 41),
 		LayoutOrder = 2,
 		Parent = container,
@@ -154,8 +154,8 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = gradientColor,
 		BackgroundTransparency = 0.65,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.new(1, 0, 1, 0),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0.5, 0.5),
 		ZIndex = 0,
 		Parent = root,
 	})
@@ -190,8 +190,8 @@ function Notification.new(container, Settings, theme)
 			Image = Settings.BackgroundImage or theme.Wallpaper or FallbackImage,
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.new(1, 0, 1, 0),
-			Position = UDim2.new(0.5, 0, 0.5, 0),
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromScale(0.5, 0.5),
 			ZIndex = 0,
 			Parent = root,
 		})
@@ -224,8 +224,8 @@ function Notification.new(container, Settings, theme)
 		TextColor3 = theme.NotificationHeaderColor or Color3.fromRGB(255, 255, 255),
 		AutomaticSize = Enum.AutomaticSize.X,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
-		Size = UDim2.new(0, 0, 0, 14),
-		Position = UDim2.new(0, 42, 0, 11),
+		Size = UDim2.fromOffset(0, 14),
+		Position = UDim2.fromOffset(42, 11),
 		ZIndex = 2,
 		Text = title,
 		Parent = root,
@@ -236,7 +236,7 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = theme.NotificationDividerColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.NotificationDividerTransparency or 0.7,
 		Size = UDim2.new(0.7, 0, 0, 1),
-		Position = UDim2.new(0, 0, 0, 22),
+		Position = UDim2.fromOffset(0, 22),
 		ZIndex = 3,
 		Parent = header,
 	})
@@ -249,8 +249,8 @@ function Notification.new(container, Settings, theme)
 		ImageColor3 = iconColor,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Image = Settings.Icon or DEFAULT_ICON[ntype] or DEFAULT_ICON.Alert,
-		Size = UDim2.new(0, 22, 0, 22),
-		Position = UDim2.new(0, 21, 0, 24),
+		Size = UDim2.fromOffset(22, 22),
+		Position = UDim2.fromOffset(21, 24),
 		ZIndex = 2,
 		Parent = root,
 	})
@@ -268,9 +268,9 @@ function Notification.new(container, Settings, theme)
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
 		TextColor3 = theme.NotificationTextColor or Color3.fromRGB(255, 255, 255),
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
-		Size = UDim2.new(0.68, 0, 0, 0),
+		Size = UDim2.fromScale(0.68, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.new(0, 42, 0, 40),
+		Position = UDim2.fromOffset(42, 40),
 		ZIndex = 2,
 		Text = description,
 		Parent = root,
@@ -289,7 +289,7 @@ function Notification.new(container, Settings, theme)
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 30),
-			Position = UDim2.new(0, 0, 1.25, 0),
+			Position = UDim2.fromScale(0, 1.25),
 			ZIndex = 3,
 			Parent = desc,
 		})
@@ -312,7 +312,7 @@ function Notification.new(container, Settings, theme)
 				TextColor3 = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255),
 				BackgroundColor3 = baseBg,
 				FontFace = Constants.Font(Enum.FontWeight.Medium),
-				Size = UDim2.new(0, 60, 0, 20),
+				Size = UDim2.fromOffset(60, 20),
 				Text = action.Text or "Click",
 				LayoutOrder = i,
 				ZIndex = 4,
@@ -328,7 +328,7 @@ function Notification.new(container, Settings, theme)
 				Parent = btn,
 			})
 
-			local function tween(prop, target, dur)
+			local function tween(prop, dur)
 				Tween.Play(
 					btn,
 					TweenInfo.new(dur or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -368,8 +368,8 @@ function Notification.new(container, Settings, theme)
 		ImageTransparency = 0.5,
 		Image = CLOSE_ICON,
 		ImageColor3 = theme.NotificationDismissColor or Color3.fromRGB(255, 255, 255),
-		Size = UDim2.new(0, 16, 0, 16),
-		Position = UDim2.new(0.888, 0, 0.13, 0),
+		Size = UDim2.fromOffset(16, 16),
+		Position = UDim2.fromScale(0.888, 0.13),
 		ZIndex = 3,
 		Parent = root,
 	})
@@ -384,16 +384,16 @@ function Notification.new(container, Settings, theme)
 		)
 	end
 	dismiss.MouseEnter:Connect(function()
-		dismissTween({ ImageTransparency = 0.1, Size = UDim2.new(0, 18, 0, 18) })
+		dismissTween({ ImageTransparency = 0.1, Size = UDim2.fromOffset(18, 18) })
 	end)
 	dismiss.MouseLeave:Connect(function()
-		dismissTween({ ImageTransparency = 0.5, Size = UDim2.new(0, 16, 0, 16) })
+		dismissTween({ ImageTransparency = 0.5, Size = UDim2.fromOffset(16, 16) })
 	end)
 	dismiss.MouseButton1Down:Connect(function()
-		dismissTween({ Size = UDim2.new(0, 14, 0, 14) }, 0.08)
+		dismissTween({ Size = UDim2.fromOffset(14, 14) }, 0.08)
 	end)
 	dismiss.MouseButton1Up:Connect(function()
-		dismissTween({ Size = UDim2.new(0, 18, 0, 18) }, 0.08)
+		dismissTween({ Size = UDim2.fromOffset(18, 18) }, 0.08)
 	end)
 	dismiss.MouseButton1Click:Connect(function()
 		self:Close()
@@ -406,7 +406,7 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = accent,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Size = UDim2.new(0.7, 0, 0, 2),
-		Position = UDim2.new(0.5, 0, 0.97, 0),
+		Position = UDim2.fromScale(0.5, 0.97),
 		ZIndex = 3,
 		Parent = root,
 	})
@@ -488,7 +488,7 @@ function Notification:_startTimer()
 	self._timerTween = Tween.Play(
 		self.TimerFrame,
 		TweenInfo.new(self.Duration, Enum.EasingStyle.Linear),
-		{ Size = UDim2.new(0, 0, 0, 2) }
+		{ Size = UDim2.fromOffset(0, 2) }
 	)
 end
 

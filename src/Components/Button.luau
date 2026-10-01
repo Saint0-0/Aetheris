@@ -14,7 +14,6 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
-local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local Button = {}
 Button.__index = Button
@@ -47,8 +46,8 @@ function Button.new(parent, Settings, theme)
 	buttonColor.BackgroundColor3 = (theme and theme.PrimaryColor)
 	buttonColor.BackgroundTransparency = 1
 	buttonColor.AnchorPoint = Vector2.new(0.5, 0.5)
-	buttonColor.Size = UDim2.new(1, 0, 1, 0)
-	buttonColor.Position = UDim2.new(0.5, 0, 0.5, 0)
+	buttonColor.Size = UDim2.fromScale(1, 1)
+	buttonColor.Position = UDim2.fromScale(0.5, 0.5)
 	buttonColor.Parent = row
 	local colorCorner = Instance.new("UICorner")
 	colorCorner.CornerRadius = UDim.new(0, 6)
@@ -62,7 +61,7 @@ function Button.new(parent, Settings, theme)
 	fingerprint.AnchorPoint = Vector2.new(0.5, 0.5)
 	fingerprint.Image = FINGERPRINT_IMAGE
 	fingerprint.ImageColor3 = (theme and theme.AccentColor)
-	fingerprint.Size = UDim2.new(0, 24, 0, 24)
+	fingerprint.Size = UDim2.fromOffset(24, 24)
 	fingerprint.Position = UDim2.new(1, -30, 0.5, 0)
 	fingerprint.Parent = row
 	local fpAspect = Instance.new("UIAspectRatioConstraint")
@@ -163,13 +162,17 @@ function Button.new(parent, Settings, theme)
 	-- base on each theme switch: a switch cancels in-flight hover/click tweens
 	-- and the page-fade cache re-primes right after, so without this it would
 	-- capture a mid-tween value and the fingerprint would never restore.
+	local function restampInteractionBases()
+		fingerprint.ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE
+		buttonColor.BackgroundTransparency = BUTTONCOLOR_BASE
+	end
 	local unregisterTheme = ThemeManager.OnThemeApplied(restampInteractionBases, row)
 
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if unregisterTheme then
 			unregisterTheme()
 			unregisterTheme = nil

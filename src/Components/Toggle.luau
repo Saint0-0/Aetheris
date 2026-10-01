@@ -16,9 +16,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
-local ActiveTheme = require("../Themes/ActiveTheme")
 local Tween = require("../Utils/Tween")
-local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local Toggle = {}
 Toggle.__index = Toggle
@@ -48,7 +46,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	toggleInterractionHolder.BackgroundTransparency = 1
 	toggleInterractionHolder.AnchorPoint = Vector2.new(1, 0.5)
 	toggleInterractionHolder.Size = UDim2.new(0, 65, 1, 0)
-	toggleInterractionHolder.Position = UDim2.new(1, 0, 0.5, 0)
+	toggleInterractionHolder.Position = UDim2.fromScale(1, 0.5)
 	toggleInterractionHolder.Parent = row
 	
 	----------------------------------------------------------------
@@ -60,8 +58,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	track.BackgroundColor3 = theme.SecondaryColor
 	track.BackgroundTransparency = 0.9
 	track.AnchorPoint = Vector2.new(0.5, 0.5)
-	track.Size = UDim2.new(0, 34, 0, 2)
-	track.Position = UDim2.new(0.5, 0, 0.5, 0)
+	track.Size = UDim2.fromOffset(34, 2)
+	track.Position = UDim2.fromScale(0.5, 0.5)
 	track.Parent = toggleInterractionHolder
 	self.track = track
 	----------------------------------------------------------------
@@ -73,7 +71,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	thumb.BackgroundColor3 = (theme and theme.PrimaryColor)
 	thumb.BackgroundTransparency = 1
 	thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-	thumb.Size = UDim2.new(0, 14, 0, 14)
+	thumb.Size = UDim2.fromOffset(14, 14)
 	thumb.Position = UDim2.new(0, -6, 0.5, 0)
 	thumb.Text = ""
 	thumb.TextTransparency = 1
@@ -114,8 +112,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	sheen:SetAttribute("IsThemeSheen", true)
 	sheen.ImageTransparency = 1
 	sheen.AnchorPoint = Vector2.new(0.5, 0.5)
-	sheen.Position = UDim2.new(0.5, 0, 0.5, 0)
-	sheen.Size = UDim2.new(1, 0, 1, 0)
+	sheen.Position = UDim2.fromScale(0.5, 0.5)
+	sheen.Size = UDim2.fromScale(1, 1)
 	sheen.Parent = thumb
 	local sheenCorner = Instance.new("UICorner")
 	sheenCorner.CornerRadius = UDim.new(1, 0)
@@ -151,7 +149,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- handle:SetKey -- the theme pass then resolves the right colour for the
 	-- current state automatically. duration keeps the swap as snappy as before.
 	local FAST = { duration = 0.2 }
-	local labelColorBinding = ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local thumbColorBinding = ThemeManager.BindColor(thumb, "BackgroundColor3",
 		state and "PrimaryColor" or "SecondaryColor", FAST)
 	local trackColorBinding = ThemeManager.BindColor(track, "BackgroundColor3",
@@ -308,7 +306,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	----------------------------------------------------------------
 	-- PUBLIC API
 	----------------------------------------------------------------
-	function self:UpdateState(newState)
+	self.UpdateState = function(_self, newState)
 		if typeof(newState) ~= "boolean" then
 			warn(
 				"[Toggle] UpdateState expected a boolean, got:",
@@ -326,13 +324,13 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			)
 		end
 	end
-	function self:GetState()
+	self.GetState = function(_self)
 		return state
 	end
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:UpdateName(newName)
+	self.UpdateName = function(_self, newName)
 		label.Text = newName
 	end
 	-- The label COLOUR and the state-driven thumb/track/stroke COLOURS are
@@ -349,7 +347,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		applyState(state, false, false)
 	end, row)
 
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if unregisterTheme then
 			unregisterTheme()
 			unregisterTheme = nil

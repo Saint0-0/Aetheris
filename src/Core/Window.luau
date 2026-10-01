@@ -131,8 +131,8 @@ function Window.new(Settings)
 	MainFrame.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 15)
 	MainFrame.BackgroundTransparency = theme.WindowTransparency or 0.1
 	MainFrame.AnchorPoint = Vector2.new(0, 0)
-	MainFrame.Size = UDim2.new(0.72026, 0, 0.96995, 0)
-	MainFrame.Position = UDim2.new(0.013, 0, 0.015, 0)
+	MainFrame.Size = UDim2.fromScale(0.72026, 0.96995)
+	MainFrame.Position = UDim2.fromScale(0.013, 0.015)
 	-- BorderSizePixel is 0 above, so BorderColor3 is cosmetic-only; keep it in
 	-- sync with the theme's stroke colour rather than a stray literal.
 	MainFrame.BorderColor3 = theme.StrokeColor or Color3.fromRGB(41, 41, 41)
@@ -141,7 +141,7 @@ function Window.new(Settings)
 	local DragFrame = Instance.new("Frame")
 	DragFrame.AnchorPoint = Vector2.new(0.5, 0)
 	DragFrame.Name = "DragFrame"
-	DragFrame.Position = UDim2.new(0.5, 0, 0, 0)
+	DragFrame.Position = UDim2.fromScale(0.5, 0)
 	DragFrame.Size = UDim2.new(1, 0, 0, 60)
 	DragFrame.BackgroundTransparency = 1
 	DragFrame.Parent = MainFrame
@@ -182,7 +182,7 @@ function Window.new(Settings)
 				or input.UserInputType == Enum.UserInputType.Touch) then
 				local delta = input.Position - dragStart
 				local newPosition = startPosition + Vector2.new(delta.X, delta.Y)
-				local target = UDim2.new(0, newPosition.X, 0, newPosition.Y)
+				local target = UDim2.fromOffset(newPosition.X, newPosition.Y)
 
 				if dragStyle == "Smooth" then
 					Tween.Play(MainFrame, "Fast", { Position = target })
@@ -236,7 +236,7 @@ function Window.new(Settings)
 	-- edge. AnchorPoint (1, 0.5) keeps the right edge pinned as the window
 	-- resizes; the left edge stays glued to the sidebar.
 	ContentBackground.AnchorPoint = Vector2.new(1, 0.5)
-	ContentBackground.Position = UDim2.new(1, 0, 0.5, 0)
+	ContentBackground.Position = UDim2.fromScale(1, 0.5)
 	ContentBackground.Size = UDim2.new(1, -186, 1, 0)
 	ContentBackground.ZIndex = 0
 	ContentBackground.Parent = MainFrame
@@ -257,7 +257,7 @@ function Window.new(Settings)
 	WindowControls.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	WindowControls.BackgroundTransparency = 1
 	WindowControls.AnchorPoint = Vector2.new(1, 0)
-	WindowControls.Size = UDim2.new(0.10926, 0, 0.04715, 0)
+	WindowControls.Size = UDim2.fromScale(0.10926, 0.04715)
 	WindowControls.Position = UDim2.new(0.99, 0, 0, 12)
 	WindowControls.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	WindowControls.Parent = MainFrame
@@ -279,7 +279,7 @@ function Window.new(Settings)
 		btn.ImageTransparency = 0.5 -- idle transparency (dims toward 0 on hover)
 		btn.ImageColor3 = theme.WindowControlColor or Color3.fromRGB(203, 213, 225)
 		btn.Image = icon
-		btn.Size = UDim2.new(0, 15, 0, 15)
+		btn.Size = UDim2.fromOffset(15, 15)
 		btn.LayoutOrder = layoutOrder
 		btn.Parent = parent
 		local aspect = Instance.new("UIAspectRatioConstraint")
@@ -332,7 +332,7 @@ function Window.new(Settings)
 	PageTitle.TextColor3 = theme.TitleTextColor
 	PageTitle.RichText = true
 	PageTitle.AutomaticSize = Enum.AutomaticSize.X
-	PageTitle.Size = UDim2.new(0, 0, 0.06849, 0)
+	PageTitle.Size = UDim2.fromScale(0, 0.06849)
 	-- Offset-based X (not scale) so the title stays put as the window resizes;
 	-- the sidebar is a fixed 186px, plus a 14px gap.
 	PageTitle.Position = UDim2.new(0, 200, 0.045, 0)
@@ -346,7 +346,7 @@ function Window.new(Settings)
 	PageTitleDivider.BackgroundColor3 = theme.TertiaryColor -- [THEME] divider color
 	PageTitleDivider.BackgroundTransparency = theme.SectionDividerTransparency or 0.9 -- [THEME] divider transparency
 	PageTitleDivider.Size = UDim2.new(0.8, 0, 0, 1)
-	PageTitleDivider.Position = UDim2.new(0, 0, 1.2, 0)
+	PageTitleDivider.Position = UDim2.fromScale(0, 1.2)
 	PageTitleDivider.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	PageTitleDivider.Parent = PageTitle
 
@@ -377,7 +377,7 @@ function Window.new(Settings)
 	Notifications.BackgroundTransparency = 1
 	Notifications.AnchorPoint = Vector2.new(1, 1)
 	Notifications.Size = UDim2.new(0, 260, 1, 0)
-	Notifications.Position = UDim2.new(1, 0, 1, 0)
+	Notifications.Position = UDim2.fromScale(1, 1)
 	Notifications.ZIndex = 999
 	Notifications.Parent = ScreenGui
 
@@ -402,8 +402,8 @@ function Window.new(Settings)
 	SettingsPages.BackgroundTransparency = 1
 	SettingsPages.AnchorPoint = Vector2.new(0.5, 0.5)
 	SettingsPages.ClipsDescendants = true
-	SettingsPages.Size = UDim2.new(0.983, 0, 1, 0)
-	SettingsPages.Position = UDim2.new(0.5, 0, 0.5, 0)
+	SettingsPages.Size = UDim2.fromScale(0.983, 1)
+	SettingsPages.Position = UDim2.fromScale(0.5, 0.5)
 	SettingsPages.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SettingsPages.Parent = Content
 
@@ -413,8 +413,8 @@ function Window.new(Settings)
 	TabContent.BackgroundTransparency = 1
 	TabContent.AnchorPoint = Vector2.new(0.5, 0.5)
 	TabContent.ClipsDescendants = true
-	TabContent.Size = UDim2.new(1, 0, 1, 0)
-	TabContent.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TabContent.Size = UDim2.fromScale(1, 1)
+	TabContent.Position = UDim2.fromScale(0.5, 0.5)
 	TabContent.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabContent.Parent = Content
 
@@ -434,8 +434,8 @@ function Window.new(Settings)
 	Sidebar.BackgroundColor3 = Color3.fromRGB(21, 21, 21) -- [THEME] sidebar background
 	Sidebar.BackgroundTransparency = 1
 	Sidebar.AnchorPoint = Vector2.new(0, 0)
-	Sidebar.Size = UDim2.new(0.41348, 0, 1, 0)
-	Sidebar.Position = UDim2.new(0, 0, 0, 0)
+	Sidebar.Size = UDim2.fromScale(0.41348, 1)
+	Sidebar.Position = UDim2.fromScale(0, 0)
 	Sidebar.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Sidebar.Parent = MainFrame
 
@@ -474,7 +474,7 @@ function Window.new(Settings)
 	-- Top-pinned offset + fill height (bottom offset leaves room for the divider
 	-- and user info), so it stays put vertically instead of drifting on resize.
 	TabList.Size = UDim2.new(1, 0, 1, -145)
-	TabList.Position = UDim2.new(0, 0, 0, 94)
+	TabList.Position = UDim2.fromOffset(0, 94)
 	TabList.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabList.ScrollBarThickness = 1
 	TabList.ScrollBarImageColor3 = theme.TertiaryColor
@@ -513,7 +513,7 @@ function Window.new(Settings)
 	SearchBar:SetAttribute("IsSearchFocused", false)
 	-- Fixed offset from the top (below the script info) so it never drifts.
 	SearchBar.Size = UDim2.new(1, 0, 0, 26)
-	SearchBar.Position = UDim2.new(0, 0, 0, 48)
+	SearchBar.Position = UDim2.fromOffset(0, 48)
 	SearchBar.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SearchBar.Parent = Sidebar
 
@@ -539,8 +539,8 @@ function Window.new(Settings)
 	SearchBox.BackgroundTransparency = 1
 	SearchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	SearchBox.PlaceholderText = "Search..."
-	SearchBox.Size = UDim2.new(0.7921, 0, 1, 0)
-	SearchBox.Position = UDim2.new(0.17991, 0, 0, 0)
+	SearchBox.Size = UDim2.fromScale(0.7921, 1)
+	SearchBox.Position = UDim2.fromScale(0.17991, 0)
 	SearchBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SearchBox.Text = ""
 	SearchBox.Parent = SearchBar
@@ -553,9 +553,9 @@ function Window.new(Settings)
 	SearchIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	SearchIcon.Image = Icons.search
 	SearchIcon.ImageColor3 = theme.SecondaryColor
-	SearchIcon.Size = UDim2.new(0, 12, 0, 12)
+	SearchIcon.Size = UDim2.fromOffset(12, 12)
 	SearchIcon.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	SearchIcon.Position = UDim2.new(0.09543, 0, 0.5, 0)
+	SearchIcon.Position = UDim2.fromScale(0.09543, 0.5)
 	SearchIcon.Parent = SearchBar
 
 	local SearchBarBottomDivider = Instance.new("Frame")
@@ -648,7 +648,7 @@ function Window.new(Settings)
 	UserInfoGroup.Name = "InformationGroup"
 	UserInfoGroup.BorderSizePixel = 0
 	UserInfoGroup.BackgroundTransparency = 1
-	UserInfoGroup.Size = UDim2.new(1, 0, 0.85, 0)
+	UserInfoGroup.Size = UDim2.fromScale(1, 0.85)
 	UserInfoGroup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	UserInfoGroup.Parent = UserInfo
 
@@ -663,7 +663,7 @@ function Window.new(Settings)
 	PlayerHeadshot.BorderSizePixel = 0
 	PlayerHeadshot.BackgroundTransparency = 1
 	PlayerHeadshot.Image = "rbxthumb://type=AvatarBust&id=" .. (player and player.UserId or 1) .. "&w=48&h=48"
-	PlayerHeadshot.Size = UDim2.new(0, 32, 0, 32)
+	PlayerHeadshot.Size = UDim2.fromOffset(32, 32)
 	PlayerHeadshot.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	PlayerHeadshot.LayoutOrder = 1
 	PlayerHeadshot.Parent = UserInfoGroup
@@ -702,7 +702,7 @@ function Window.new(Settings)
 	NameContainer.BorderSizePixel = 0
 	NameContainer.BackgroundTransparency = 1
 	NameContainer.Size = UDim2.new(0.95823, -42, 0, 32)
-	NameContainer.Position = UDim2.new(0.22278, 0, 0.19619, 0)
+	NameContainer.Position = UDim2.fromScale(0.22278, 0.19619)
 	NameContainer.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	NameContainer.LayoutOrder = 2
 	NameContainer.Parent = UserInfoGroup
@@ -730,7 +730,7 @@ function Window.new(Settings)
 	Username.BackgroundTransparency = 1
 	Username.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	Username.TextColor3 = theme.TitleTextColor
-	Username.Size = UDim2.new(1, 0, 0, 0)
+	Username.Size = UDim2.fromScale(1, 0)
 	Username.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Username.Text = "@" .. (player and player.Name or "Guest")
 	Username.LayoutOrder = 1
@@ -747,7 +747,7 @@ function Window.new(Settings)
 	DisplayName.BackgroundTransparency = 1
 	DisplayName.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	DisplayName.AutomaticSize = Enum.AutomaticSize.XY
-	DisplayName.Size = UDim2.new(1, 0, 0, 0)
+	DisplayName.Size = UDim2.fromScale(1, 0)
 	DisplayName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
@@ -774,7 +774,7 @@ function Window.new(Settings)
 	TimeLabel.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	TimeLabel.TextColor3 = theme.TitleTextColor
 	TimeLabel.RichText = true
-	TimeLabel.Size = UDim2.new(0.1, 0, 0.7, 0)
+	TimeLabel.Size = UDim2.fromScale(0.1, 0.7)
 	TimeLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	local function clockText()
 		local t = os.date("*t")
@@ -783,7 +783,7 @@ function Window.new(Settings)
 	TimeLabel.Text = clockText()
 	TimeLabel.LayoutOrder = 3
 	TimeLabel.AutomaticSize = Enum.AutomaticSize.XY
-	TimeLabel.Position = UDim2.new(0.83, 0, 0.89262, 0)
+	TimeLabel.Position = UDim2.fromScale(0.83, 0.89262)
 	TimeLabel.Parent = UserInfoGroup
 
 	-- Refresh the clock once a second so it doesn't freeze at whatever time the
@@ -814,7 +814,7 @@ function Window.new(Settings)
 	ScriptInfoGroup.Name = "InformationGroup"
 	ScriptInfoGroup.BorderSizePixel = 0
 	ScriptInfoGroup.BackgroundTransparency = 1
-	ScriptInfoGroup.Size = UDim2.new(1, 0, 1, 0)
+	ScriptInfoGroup.Size = UDim2.fromScale(1, 1)
 	ScriptInfoGroup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptInfoGroup.Parent = ScriptInfo
 
@@ -830,7 +830,7 @@ function Window.new(Settings)
 	ScriptLogo.BorderSizePixel = 0
 	ScriptLogo.BackgroundTransparency = 1
 	ScriptLogo.Image = "rbxassetid://92458734285074"
-	ScriptLogo.Size = UDim2.new(0, 40, 0, 32)
+	ScriptLogo.Size = UDim2.fromOffset(40, 32)
 	ScriptLogo.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptLogo.LayoutOrder = 1
 	ScriptLogo.Parent = ScriptInfoGroup
@@ -844,7 +844,7 @@ function Window.new(Settings)
 	ScriptInfoContainer.BorderSizePixel = 0
 	ScriptInfoContainer.BackgroundTransparency = 1
 	ScriptInfoContainer.Size = UDim2.new(0.95823, -42, 0, 32)
-	ScriptInfoContainer.Position = UDim2.new(0.22278, 0, 0.19619, 0)
+	ScriptInfoContainer.Position = UDim2.fromScale(0.22278, 0.19619)
 	ScriptInfoContainer.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptInfoContainer.LayoutOrder = 2
 	ScriptInfoContainer.Parent = ScriptInfoGroup
@@ -866,12 +866,12 @@ function Window.new(Settings)
 	ScriptName.BackgroundTransparency = 1
 	ScriptName.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	ScriptName.TextColor3 = theme.TitleTextColor
-	ScriptName.Size = UDim2.new(1.36294, 0, 0.44828, 0)
+	ScriptName.Size = UDim2.fromScale(1.36294, 0.44828)
 	ScriptName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptName.Text = "Aetheris | Jailbreak"
 	ScriptName.LayoutOrder = 1
 	ScriptName.AutomaticSize = Enum.AutomaticSize.XY
-	ScriptName.Position = UDim2.new(0, 0, 0, 0)
+	ScriptName.Position = UDim2.fromScale(0, 0)
 	ScriptName.Parent = ScriptInfoContainer
 
 	-- Tag gradient base/accent tracking. Each gradient records any caller-pinned
@@ -885,21 +885,6 @@ function Window.new(Settings)
 	-- theme-following side is re-resolved -- previously a pinned BackgroundColor
 	-- was overwritten by TertiaryColor here, which is why tag colours were lost
 	-- at startup and on every theme round-trip.
-	local CORNER_GRADIENT_KEYS = {
-		{0.000, 0.0}, {0.630, 0.4135}, {0.751, 0.4712}, {0.818, 0.5288},
-		{0.870, 0.5962}, {0.952, 0.7788}, {0.998, 0.9327}, {1.000, 1.0},
-	}
-	-- Build the diagonal corner ramp from `fromCol` to `toCol`. A UIGradient
-	-- MULTIPLIES its Colour sequence against the parent's BackgroundColor3, so
-	-- the pill background must be WHITE for these true colours to show; the
-	-- sequence itself carries the real base -> accent colours.
-	local function cornerGradient(fromCol, toCol)
-		local kps = {}
-		for i, k in ipairs(CORNER_GRADIENT_KEYS) do
-			kps[i] = ColorSequenceKeypoint.new(k[1], fromCol:Lerp(toCol, k[2]))
-		end
-		return ColorSequence.new(kps)
-	end
 	local function restampThemeGradients(t)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
 		for _, g in ipairs(tagGradients) do
@@ -944,10 +929,9 @@ function Window.new(Settings)
 
 	local TAG_GAP = 4
 	local function buildTag(spec, index, total)
-		local name, bgColor, txtColor, accColor
+		local name, txtColor, accColor
 		if type(spec) == "table" then
 			name = spec.Name or spec.Text or ""
-			bgColor = spec.BackgroundColor
 			txtColor = spec.TextColor
 			accColor = spec.AccentColor
 		else
@@ -1013,7 +997,7 @@ function Window.new(Settings)
 		label.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 		label.TextColor3 = txtColor or theme.TitleTextColor
 		label.RichText = true
-		label.Size = UDim2.new(1, 0, 1, 0)
+		label.Size = UDim2.fromScale(1, 1)
 		label.Parent = pill
 
 		-- The pill's SOLID BackgroundColor3 owns the fill; the gradient above is
@@ -1053,9 +1037,9 @@ function Window.new(Settings)
 	ResizeButton.Image = "rbxassetid://8445471173"
 	ResizeButton.ImageRectSize = Vector2.new(96, 96)
 	ResizeButton.ImageRectOffset = Vector2.new(704, 804)
-	ResizeButton.Size = UDim2.new(0, 28, 0, 28)
+	ResizeButton.Size = UDim2.fromOffset(28, 28)
 	ResizeButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	ResizeButton.Position = UDim2.new(0.99, 0, 0.99, 0)
+	ResizeButton.Position = UDim2.fromScale(0.99, 0.99)
 	ResizeButton.Parent = MainFrame
 
 	----------------------------------------------------------------
@@ -1176,7 +1160,7 @@ function Window.new(Settings)
 				local minSize = MainFrameSizeConstraint.MinSize
 				local newWidth = math.max(minSize.X, startSize.X + delta.X)
 				local newHeight = math.max(minSize.Y, startSize.Y + delta.Y)
-				MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+				MainFrame.Size = UDim2.fromOffset(newWidth, newHeight)
 			end
 		end)
 	end
@@ -1200,7 +1184,7 @@ function Window.new(Settings)
 	local pill = Instance.new("CanvasGroup")
 	pill.Name = "MinimizePill"
 	pill.AutomaticSize = Enum.AutomaticSize.Y
-	pill.Size = UDim2.new(0, 56, 0, 0)
+	pill.Size = UDim2.fromOffset(56, 0)
 
 	local pillLayout -- forward decl: the UIListLayout is created further down
 
@@ -1229,12 +1213,12 @@ function Window.new(Settings)
 			pillLayout.FillDirection = horizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical
 		end
 		pill.AutomaticSize = horizontal and Enum.AutomaticSize.X or Enum.AutomaticSize.Y
-		pill.Size = horizontal and UDim2.new(0, 0, 0, 56) or UDim2.new(0, 56, 0, 0)
+		pill.Size = horizontal and UDim2.fromOffset(0, 56) or UDim2.fromOffset(56, 0)
 	end
 	local function pillTooltipSide()
 		return PILL_SIDES[currentPillSide()].tip
 	end
-	function self:SetPillPosition(side)
+	self.SetPillPosition = function(_self, side)
 		SettingsStore.Set("PillPosition", side)
 		applyPillPosition()
 	end
@@ -1304,7 +1288,7 @@ function Window.new(Settings)
 			if tabName then tabName.ZIndex = 61 end
 			if tabImage then tabImage.ZIndex = 61 end
 			if horizontal then
-				btn.Size = UDim2.new(0, 100, 0, 30)
+				btn.Size = UDim2.fromOffset(100, 30)
 				if tabImage then
 					tabImage.AnchorPoint = Vector2.new(0, 0.5)
 					tabImage.Position = UDim2.new(0, 12, 0.5, 0)
@@ -1322,8 +1306,8 @@ function Window.new(Settings)
 				end
 				if tabName then
 					tabName.AnchorPoint = Vector2.new(0.5, 0.5)
-					tabName.Position = UDim2.new(0.647, 0, 0.5, 0)
-					tabName.Size = UDim2.new(0.636, 0, 0.714, 0)
+					tabName.Position = UDim2.fromScale(0.647, 0.5)
+					tabName.Size = UDim2.fromScale(0.636, 0.714)
 				end
 			end
 		end
@@ -1354,7 +1338,7 @@ function Window.new(Settings)
 				-- Pin the canvas HEIGHT to the row height. Otherwise the canvas keeps a
 				-- large Y (leftover), and the layout's VerticalAlignment.Center centers
 				-- the pills inside that huge canvas -> they render at the bottom.
-				TabList.CanvasSize = UDim2.new(0, 0, 1, 0)
+				TabList.CanvasSize = UDim2.fromScale(0, 1)
 				TabList.CanvasPosition = Vector2.new(0, 0)
 				TabList.AnchorPoint = Vector2.new(0.5, 0)
 				TabList.Position = UDim2.new(0.5, 0, 0, 65)
@@ -1383,17 +1367,17 @@ function Window.new(Settings)
 				SearchBar.Parent = WindowControls
 				SearchBar.AnchorPoint = Vector2.new(0, 0)
 				SearchBar.LayoutOrder = -1 -- before the settings button (which is order 0)
-				SearchBar.Size = UDim2.new(0, 120, 0, 20)
-				SearchBar.Position = UDim2.new(0, 0, 0, 0)
+				SearchBar.Size = UDim2.fromOffset(120, 20)
+				SearchBar.Position = UDim2.fromScale(0, 0)
 				SearchBarBottomDivider.Position = UDim2.new(0.5, 0, 0, 30)
 				SearchBarBottomDivider.Visible = false -- hidden while docked in the controls
 				-- Content full width, below the tab row.
 				Content.Size = UDim2.new(1, -16, 1, -124)
-				Content.Position = UDim2.new(0, 8, 0, 90)
-				Tween.Play(Content, "Smooth", { Position = UDim2.new(0, 8, 0, 100) })
+				Content.Position = UDim2.fromOffset(8, 90)
+				Tween.Play(Content, "Smooth", { Position = UDim2.fromOffset(8, 100) })
 				ContentBackground.AnchorPoint = Vector2.new(0, 0)
-				ContentBackground.Size = UDim2.new(1, 0, 1, 0)
-				ContentBackground.Position = UDim2.new(0, 0, 0, 0)
+				ContentBackground.Size = UDim2.fromScale(1, 1)
+				ContentBackground.Position = UDim2.fromScale(0, 0)
 				-- Compact: square up every corner (full-bleed content background).
 				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 6)
 				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 6)
@@ -1405,11 +1389,11 @@ function Window.new(Settings)
 				-- Push the settings pages down so they clear the compact title bar /
 				-- docked search bar at the top.
 				SettingsPages.Position = UDim2.new(0.5, 0, 0.5, 12)
-				TabContent.Position = UDim2.new(0.5, 0, 0.55, 0)
+				TabContent.Position = UDim2.fromScale(0.5, 0.55)
 				TabContentPadding.PaddingTop = UDim.new(0, 0)
 				ScriptInfo.Parent = MainFrame
-				ScriptInfo.Size = UDim2.new(0, 200, 0, 40)
-				ScriptInfo.Position = UDim2.new(0, 5, 0, 5)
+				ScriptInfo.Size = UDim2.fromOffset(200, 40)
+				ScriptInfo.Position = UDim2.fromOffset(5, 5)
 				-- Content goes 2-column -> 1-column: each tab's Left/Right column
 				-- stack vertically instead of sitting side by side.
 				if self.TabGroup and self.TabGroup.SetCompact then
@@ -1475,7 +1459,7 @@ function Window.new(Settings)
 			end
 		end
 
-		function self:SetCompact(on)
+		self.SetCompact = function(_self, on)
 			compact = on and true or false
 			applyCompact(compact)
 		end
@@ -1634,7 +1618,7 @@ function Window.new(Settings)
 		local isActive = (tab == (self.TabGroup and self.TabGroup.ActiveTab))
 		local btn = Instance.new("TextButton")
 			btn.Name = tab.Name .. "PillButton"
-			btn.Size = UDim2.new(0, 40, 0, 40)
+			btn.Size = UDim2.fromOffset(40, 40)
 			-- Only the ACTIVE tab shows its filled background; the rest are plain.
 			btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)
 			btn.BackgroundTransparency = isActive and 0.1 or 1
@@ -1869,15 +1853,14 @@ function Window.new(Settings)
 	-- Restore the window to its default position + size (used by UI Settings).
 	self.ResetLayout = function()
 		Tween.Play(MainFrame, minimizePreset(), {
-			Size = UDim2.new(0.72026, 0, 0.96995, 0),
-			Position = UDim2.new(0.013, 0, 0.015, 0),
+			Size = UDim2.fromScale(0.72026, 0.96995),
+			Position = UDim2.fromScale(0.013, 0.015),
 		})
 	end
 
 	----------------------------------------------------------------
 	-- Maximize (full-screen toggle)
 	----------------------------------------------------------------
-	local maximized = false
 	local preMaxSize = MainFrame.Size
 	local preMaxPosition = MainFrame.Position
 	MaximizeButton.MouseButton1Click:Connect(function()
@@ -1886,7 +1869,6 @@ function Window.new(Settings)
 		-- restore branch and shrank instead of re-maximizing.
 		local isFull = MainFrame.Size.X.Scale >= 0.999 and MainFrame.Size.Y.Scale >= 0.999
 		if isFull then
-			maximized = false
 			Tween.Play(MainFrame, minimizePreset(), {
 				Size = preMaxSize,
 				Position = preMaxPosition,
@@ -1894,7 +1876,6 @@ function Window.new(Settings)
 		else
 			preMaxSize = MainFrame.Size
 			preMaxPosition = MainFrame.Position
-			maximized = true
 			Tween.Play(MainFrame, "Fast", {
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0, 0),
@@ -2036,21 +2017,21 @@ function Window.new(Settings)
 
 	-- Resolve the page the sidebar search should filter: the active settings
 	-- page while settings are shown, otherwise the active tab's content.
-	function self:GetActivePage()
-		if self.SettingsPages and self.SettingsPages.Visible then
-			local stab = self.SettingsTabGroup and self.SettingsTabGroup.ActiveTab
+	self.GetActivePage = function(me)
+		if me.SettingsPages and me.SettingsPages.Visible then
+			local stab = me.SettingsTabGroup and me.SettingsTabGroup.ActiveTab
 			return stab and stab.Page or nil
 		end
-		local tab = self.TabGroup and self.TabGroup.ActiveTab
+		local tab = me.TabGroup and me.TabGroup.ActiveTab
 		return tab and tab.ContentScroller or nil
 	end
 
 	-- Apply the current search text to the active page. Called on every
 	-- keystroke and whenever the active page changes.
-	function self:ApplySearch()
-		local page = self:GetActivePage()
+	self.ApplySearch = function(me)
+		local page = me:GetActivePage()
 		if not page then return end
-		SearchFilter.Apply(page, self.SearchBox.Text, self._theme)
+		SearchFilter.Apply(page, me.SearchBox.Text, me._theme)
 	end
 
 	-- Declarative theming for the WINDOW SHELL. Every state-independent themed
@@ -2095,9 +2076,9 @@ function Window.new(Settings)
 	-- components do - the registry iterates Base's DESCENDANTS, which excludes
 	-- Base itself. ThemeManager therefore calls this explicitly for the root.
 	-- Everything under Base still themes through the component registry.
-	function self:ApplyTheme(newTheme)
+	self.ApplyTheme = function(me, newTheme)
 		local t = ThemeManager.GetTheme(newTheme)
-		self._theme = t
+		me._theme = t
 		restampThemeGradients(t)
 
 		-- Shell colors/transparencies are BINDINGS now (see the Bind* block
@@ -2118,7 +2099,7 @@ function Window.new(Settings)
 
 		-- Minimize pill colors are BINDINGS now (see the Bind* block above).
 		-- Only the per-tab pill buttons need a refresh (they are created lazily).
-		if self._refreshPill then self._refreshPill(t) end
+		if me._refreshPill then me._refreshPill(t) end
 
 		-- Tooltip follows the theme too
 		if tooltip and tooltip.SetTheme then

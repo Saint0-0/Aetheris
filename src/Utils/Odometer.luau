@@ -128,7 +128,7 @@ function Odometer:_reel(index)
 	local strip = Instance.new("Frame")
 	strip.Size = UDim2.fromOffset(self.maxWidth, self.height)
 	strip.AnchorPoint = Vector2.new(0.5, 0) -- centred horizontally in the cell
-	strip.Position = UDim2.new(0.5, 0, 0, 0)
+	strip.Position = UDim2.fromScale(0.5, 0)
 	strip.BackgroundTransparency = 1
 	strip.BorderSizePixel = 0
 	strip.ZIndex = zIndex

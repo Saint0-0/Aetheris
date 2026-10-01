@@ -31,9 +31,7 @@ function RadioButtonGroup:RadioButton(Settings)
 	table.insert(self.Buttons, button)
 	-- Selection logic: if this button is marked default, select it.
 	-- Otherwise, if no button has been selected yet and this is the first button, select it.
-	if Settings.Default then
-		self:Select(button)
-	elseif not self._hasSelection and #self.Buttons == 1 then
+	if Settings.Default or (not self._hasSelection and #self.Buttons == 1) then
 		self:Select(button)
 	end
 	return button

@@ -63,7 +63,7 @@ end
 -- rotate a colour's hue to `targetHue` (0..1), preserving S and V, so a blue
 -- accent yields a blue-toned "down" that still reads as red-ish when needed.
 local function withHue(c, targetHue)
-	local h, s, v = Color3.toHSV(c)
+	local _, s, v = Color3.toHSV(c)
 	return Color3.fromHSV(targetHue, math.max(s, 0.55), v)
 end
 
@@ -425,7 +425,7 @@ end
 
 function LiveStat:_applyAccent(direction)
 	self._direction = direction -- remembered so a theme switch can re-apply it
-	local themed = accentsFor(ActiveTheme.theme or self._theme or theme)
+	local themed = accentsFor(ActiveTheme.theme or self._theme)
 	local accent
 	if direction > 0 then
 		accent = themed.positive

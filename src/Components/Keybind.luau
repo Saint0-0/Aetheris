@@ -96,8 +96,8 @@ function Keybind.new(parent, Settings, theme)
 	inputBox.AnchorPoint = Vector2.new(1, 0.5)
 	inputBox.ClearTextOnFocus = true
 	inputBox.PlaceholderText = "[...]"
-	inputBox.Size = UDim2.new(0, 45, 0, 29)
-	inputBox.Position = UDim2.new(1, 0, 0.5, 0)
+	inputBox.Size = UDim2.fromOffset(45, 29)
+	inputBox.Position = UDim2.fromScale(1, 0.5)
 	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	inputBox.Text = ""
 	inputBox.Parent = row
@@ -191,8 +191,8 @@ function Keybind.new(parent, Settings, theme)
 		isBinding = true
 		inputBox.Text = ""  -- clear the box for new input
 		-- Listen for key presses
-		connection = UserInputService.InputBegan:Connect(function(input, processed)
-			-- NOTE: deliberately NOT early-returning on `processed` here.
+		connection = UserInputService.InputBegan:Connect(function(input, _)
+			-- NOTE: deliberately NOT early-returning on the second arg (processed) here.
 			-- Since this TextBox is focused and editable, normal keystrokes are
 			-- consumed by the UI for text entry (processed == true). That's fine
 			-- and expected for a keybind capture box -- we still want to see the

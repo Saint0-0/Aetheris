@@ -36,8 +36,8 @@ function RadioButton.new(parent, group, Settings, theme)
 	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 0.5)
-	holder.Size = UDim2.new(0, 45, 0, 29)
-	holder.Position = UDim2.new(1, 0, 0.5, 0)
+	holder.Size = UDim2.fromOffset(45, 29)
+	holder.Position = UDim2.fromScale(1, 0.5)
 	holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	holder.Parent = row
 	local holderCorner = Instance.new("UICorner")
@@ -59,7 +59,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	button.AutoButtonColor = false
 	button.BackgroundColor3 = (theme and theme.PrimaryColor)
 	button.BackgroundTransparency = 1
-	button.Size = UDim2.new(1, 0, 1, 0)
+	button.Size = UDim2.fromScale(1, 1)
 	button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	button.Text = ""
 	button.Parent = holder
@@ -76,10 +76,10 @@ function RadioButton.new(parent, group, Settings, theme)
 	local imageId = (theme and theme.Wallpaper) or FallbackImage
 	backImage.Image = imageId
 	backImage:SetAttribute("IsThemeSheen", true)
-	backImage.Size = UDim2.new(1, 0, 1, 0)
+	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1
-	backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	backImage.Position = UDim2.fromScale(0.5, 0.5)
 	backImage.Parent = button
 	-- Set visibility based on theme's WallpaperEnabled
 	backImage.Visible = not (theme and theme.WallpaperEnabled == false)
@@ -104,9 +104,9 @@ function RadioButton.new(parent, group, Settings, theme)
 	activatedImage.Image = "rbxassetid://8445470984"
 	activatedImage.ImageRectSize = Vector2.new(96, 96)
 	activatedImage.ImageRectOffset = Vector2.new(804, 904)
-	activatedImage.Size = UDim2.new(0, 17, 0, 17)
+	activatedImage.Size = UDim2.fromOffset(17, 17)
 	activatedImage.BackgroundTransparency = 1
-	activatedImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	activatedImage.Position = UDim2.fromScale(0.5, 0.5)
 	activatedImage.Parent = button
 	local aspect = Instance.new("UIAspectRatioConstraint")
 	aspect.DominantAxis = Enum.DominantAxis.Height
@@ -245,31 +245,31 @@ function RadioButton.new(parent, group, Settings, theme)
 	----------------------------------------------------------------
 	-- PUBLIC API
 	----------------------------------------------------------------
-	function self:SetSelected(selected)
-		self.IsSelected = selected
-		self.Button:SetAttribute("IsSelected", selected)
-		if self._strokeHandle then
-			self._strokeHandle:SetState(selected and "Selected" or "Unselected")
+	self.SetSelected = function(me, selected)
+		me.IsSelected = selected
+		me.Button:SetAttribute("IsSelected", selected)
+		if me._strokeHandle then
+			me._strokeHandle:SetState(selected and "Selected" or "Unselected")
 		end
 		if selected then
 			playOn()
 			if callback then
-				callback(self)
+				callback(me)
 			end
 		else
 			playOff()
 		end
 	end
-	function self:GetSelected()
-		return self.IsSelected
+	self.GetSelected = function(me)
+		return me.IsSelected
 	end
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:UpdateName(newName)
+	self.UpdateName = function(_self, newName)
 		label.Text = newName
 	end
-	function self:EnableSpinning(enabled)
+	self.EnableSpinning = function(_self, enabled)
 		if enabled then
 			startSpin()
 		else
@@ -297,13 +297,13 @@ function RadioButton.new(parent, group, Settings, theme)
 	-- number, so they can't be bindings) and the SELECTION-driven stroke
 	-- transparency (selected hides the stroke). ApplyTheme therefore stays,
 	-- slimmed to just those two concerns.
-	function self:ApplyTheme(newTheme)
+	self.ApplyTheme = function(me, newTheme)
 		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
+		me._theme = theme
 		-- Stroke transparency is a STATE binding now; re-point it so the
 		-- literal-selected / theme-unselected values re-resolve on switch.
-		if self._strokeHandle then
-			self._strokeHandle:SetState(self.IsSelected and "Selected" or "Unselected")
+		if me._strokeHandle then
+			me._strokeHandle:SetState(me.IsSelected and "Selected" or "Unselected")
 		end
 		holderStroke:SetAttribute("PageFadeBase", holderStroke.Transparency)
 		backImage.Image = theme.Wallpaper or FallbackImage
@@ -312,7 +312,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		-- in-flight tweens first, which could otherwise leave a just-selected
 		-- button (e.g. the default "Auto") looking unselected after the
 		-- startup theme pass.
-		if self.IsSelected then
+		if me.IsSelected then
 			button.BackgroundTransparency = 0
 			activatedImage.ImageTransparency = 0
 			activatedImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
@@ -324,7 +324,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		end
 	end
 	ThemeManager.Register(row, self)
-	function self:Destroy()
+	self.Destroy = function(_self)
 		-- Stop the gradient spin.
 		stopSpin()
 		-- Cancel any in-flight tweens.

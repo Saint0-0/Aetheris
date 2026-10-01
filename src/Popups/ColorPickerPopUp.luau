@@ -8,13 +8,9 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
-local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
 local ColorPickerPopUp = {}
 ColorPickerPopUp.__index = ColorPickerPopUp
-local function sanitizeName(str)
-	return str:gsub("[^%w_]", "_")
-end
 local function clamp(v, min, max)
 	return math.max(min, math.min(max, v))
 end
@@ -34,8 +30,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
 	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	popup.Size = UDim2.new(0.694, 0, 1.02153, 0)
-	popup.Position = UDim2.new(0.5, 0, 0.5, 0)
+	popup.Size = UDim2.fromScale(0.694, 1.02153)
+	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.Active = true
@@ -65,7 +61,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.BackgroundTransparency = 1
 	header.RichText = true
 	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.new(0.21429, 0, 0.03775, 0)
+	header.Size = UDim2.fromScale(0.21429, 0.03775)
 	header.AutomaticSize = Enum.AutomaticSize.X
 	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.Parent = popup
@@ -77,9 +73,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorSquare.BackgroundTransparency = 0
 	colorSquare.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorSquare.Text = ""
-	colorSquare.Size = UDim2.new(0.44792, 0, 0.43228, 0)
+	colorSquare.Size = UDim2.fromScale(0.44792, 0.43228)
 	colorSquare.ClipsDescendants = false
-	colorSquare.Position = UDim2.new(0.0506, 0, 0.16117, 0)
+	colorSquare.Position = UDim2.fromScale(0.0506, 0.16117)
 	colorSquare.Parent = popup
 	local squareCorner = Instance.new("UICorner")
 	squareCorner.CornerRadius = UDim.new(0, 4)
@@ -95,7 +91,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	satOverlay.Name = "SaturationOverlay"
 	satOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	satOverlay.BorderSizePixel = 0
-	satOverlay.Size = UDim2.new(1, 0, 1, 0)
+	satOverlay.Size = UDim2.fromScale(1, 1)
 	satOverlay.Parent = colorSquare
 	local satCorner = Instance.new("UICorner")
 	satCorner.CornerRadius = UDim.new(0, 4)
@@ -110,7 +106,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valOverlay.Name = "ValueOverlay"
 	valOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	valOverlay.BorderSizePixel = 0
-	valOverlay.Size = UDim2.new(1, 0, 1, 0)
+	valOverlay.Size = UDim2.fromScale(1, 1)
 	valOverlay.Parent = colorSquare
 	local valCorner = Instance.new("UICorner")
 	valCorner.CornerRadius = UDim.new(0, 4)
@@ -128,8 +124,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	target.BorderSizePixel = 0
 	target.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	target.AnchorPoint = Vector2.new(0.5, 0.5)
-	target.Size = UDim2.new(0, 15, 0, 15)
-	target.Position = UDim2.new(0.5, 0, 0.5, 0)
+	target.Size = UDim2.fromOffset(15, 15)
+	target.Position = UDim2.fromScale(0.5, 0.5)
 	target.Active = true
 	target.AutoButtonColor = false
 	target.Parent = colorSquare
@@ -148,10 +144,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorValue.BorderSizePixel = 0
 	colorValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorValue.AnchorPoint = Vector2.new(0.5, 0.5)
-	colorValue.Size = UDim2.new(0.938, 0, 0.04291, 0)
+	colorValue.Size = UDim2.fromScale(0.938, 0.04291)
 	colorValue.LayoutOrder = 1
 	colorValue.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	colorValue.Position = UDim2.new(0.5, 0, 0.66864, 0)
+	colorValue.Position = UDim2.fromScale(0.5, 0.66864)
 	colorValue.Text = ""
 	colorValue.AutoButtonColor = false
 	colorValue.ClipsDescendants = false
@@ -180,7 +176,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	slide.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	slide.AnchorPoint = Vector2.new(0.5, 0.5)
 	slide.Size = UDim2.new(0, 15, 1, 0)
-	slide.Position = UDim2.new(0, 0, 0.5, 0)
+	slide.Position = UDim2.fromScale(0, 0.5)
 	slide.Active = true
 	slide.AutoButtonColor = false
 	slide.Parent = colorValue
@@ -199,8 +195,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	inputsFrame.BorderSizePixel = 0
 	inputsFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	inputsFrame.AnchorPoint = Vector2.new(1, 0.5)
-	inputsFrame.Size = UDim2.new(0.39286, 0, 0.37207, 0)
-	inputsFrame.Position = UDim2.new(1, 0, 0.35319, 0)
+	inputsFrame.Size = UDim2.fromScale(0.39286, 0.37207)
+	inputsFrame.Position = UDim2.fromScale(1, 0.35319)
 	inputsFrame.BackgroundTransparency = 1
 	inputsFrame.Parent = popup
 	local inputsLayout = Instance.new("UIListLayout")
@@ -246,8 +242,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Text = labelText
 		label.LayoutOrder = 1
 		label.AutomaticSize = Enum.AutomaticSize.Y
-		label.Size = UDim2.new(0, 40, 0, 0)
-		label.Position = UDim2.new(0, 0, 0.5, 0)
+		label.Size = UDim2.fromOffset(40, 0)
+		label.Position = UDim2.fromScale(0, 0.5)
 		label.Parent = row
 		local inputBox = Instance.new("TextBox")
 		inputBox.Name = "InputBox"
@@ -261,8 +257,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		inputBox.AnchorPoint = Vector2.new(1, 0.5)
 		inputBox.ClearTextOnFocus = false
 		inputBox.ClipsDescendants = true
-		inputBox.Size = UDim2.new(0, 75, 0, 25)
-		inputBox.Position = UDim2.new(1, 0, 0.5, 0)
+		inputBox.Size = UDim2.fromOffset(75, 25)
+		inputBox.Position = UDim2.fromScale(1, 0.5)
 		inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		inputBox.Text = defaultText
 		inputBox.LayoutOrder = 2
@@ -296,14 +292,14 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorWells.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorWells.AnchorPoint = Vector2.new(0.5, 0.5)
 	colorWells.AutomaticSize = Enum.AutomaticSize.Y
-	colorWells.Size = UDim2.new(0.9375, 0, 0.08267, 0)
-	colorWells.Position = UDim2.new(0.5, 0, 0.76301, 0)
+	colorWells.Size = UDim2.fromScale(0.9375, 0.08267)
+	colorWells.Position = UDim2.fromScale(0.5, 0.76301)
 	colorWells.BackgroundTransparency = 1
 	colorWells.Parent = popup
 	local wellsLayout = Instance.new("UIGridLayout")
 	wellsLayout.CellSize = UDim2.new(0.5, -5, 0, 30)
 	wellsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	wellsLayout.CellPadding = UDim2.new(0, 10, 0, 0)
+	wellsLayout.CellPadding = UDim2.fromOffset(10, 0)
 	wellsLayout.Parent = colorWells
 	-- Plain colour frames (only a UICorner child): the old one shows the colour
 	-- the picker opened on, the new one shows the colour being picked.
@@ -313,7 +309,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.BorderSizePixel = 0
 		well.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		well.BackgroundTransparency = 0
-		well.Size = UDim2.new(0, 100, 0, 100)
+		well.Size = UDim2.fromOffset(100, 100)
 		well.LayoutOrder = layoutOrder
 		well.Parent = parent
 		local wellCorner = Instance.new("UICorner")
@@ -331,7 +327,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	interactions.BackgroundTransparency = 0.8
 	interactions.AnchorPoint = Vector2.new(0.5, 1)
 	interactions.Size = UDim2.new(1, 0, 0, 55)
-	interactions.Position = UDim2.new(0.5, 0, 1, 0)
+	interactions.Position = UDim2.fromScale(0.5, 1)
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
 	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
@@ -362,8 +358,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
-	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
-	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
+	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
+	confirmBtn.Position = UDim2.fromScale(0, 0)
 	confirmBtn.Text = "Confirm"
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
@@ -387,8 +383,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
-	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
-	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
+	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
+	cancelBtn.Position = UDim2.fromScale(0.515, 0)
 	cancelBtn.Text = "Cancel"
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
@@ -447,8 +443,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.SatOverlay.BackgroundColor3 = hueColor
 		self.Slide.BackgroundColor3 = hueColor
 		self.Target.BackgroundColor3 = Color3.fromHSV(h, s, v)
-		self.Target.Position = UDim2.new(s, 0, 1 - v, 0)
-		self.Slide.Position = UDim2.new(h, 0, 0.5, 0)
+		self.Target.Position = UDim2.fromScale(s, 1 - v)
+		self.Slide.Position = UDim2.fromScale(h, 0.5)
 		self.NewWell.BackgroundColor3 = Color3.fromHSV(h, s, v)
 		self.OldWell.BackgroundColor3 = self._oldColor
 	end
@@ -463,24 +459,24 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.Inputs.Blue.Input.Text = tostring(b)
 		self.Inputs.Hex.Input.Text = string.format("#%02X%02X%02X", r, g, b)
 	end
-	function self:_setColorAndUpdate(color)
-		self._currentColor = color
-		self._hue, self._sat, self._val = color:ToHSV()
+	self._setColorAndUpdate = function(me, color)
+		me._currentColor = color
+		me._hue, me._sat, me._val = color:ToHSV()
 		refreshVisuals()
 		refreshInputsFromState()
 	end
 	-- Drag path: keep the picked HSV verbatim (NOT ToHSV of the rebuilt colour),
 	-- so dragging to s=0 / v=0 / h=1 boundaries never loses the handle's position
 	-- or makes it snap.
-	function self:_setHSVAndUpdate(h, s, v)
-		self._hue = math.clamp(h, 0, 1)
-		self._sat = math.clamp(s, 0, 1)
-		self._val = math.clamp(v, 0, 1)
-		self._currentColor = Color3.fromHSV(self._hue, self._sat, self._val)
+	self._setHSVAndUpdate = function(me, h, s, v)
+		me._hue = math.clamp(h, 0, 1)
+		me._sat = math.clamp(s, 0, 1)
+		me._val = math.clamp(v, 0, 1)
+		me._currentColor = Color3.fromHSV(me._hue, me._sat, me._val)
 		refreshVisuals()
 		refreshInputsFromState()
 	end
-	function self:SetContent(Settings)
+	self.SetContent = function(_self, Settings)
 		local title = Settings.Title or "Color Picker"
 		local currentColor = Settings.CurrentColor
 		self.OnConfirm = Settings.OnConfirm or function() end
@@ -495,37 +491,37 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- Re-apply every theme-driven color to a new theme WITHOUT rebuilding.
 	-- Called by Window:SetTheme so an open (or cached) picker recolors live
 	-- instead of being destroyed and recreated.
-	function self:ApplyTheme(theme)
-		if not self.Popup then return end
+	self.ApplyTheme = function(me, theme)
+		if not me.Popup then return end
 		theme = ThemeManager.GetTheme(theme)
-		self._theme = theme
-		self.Popup.BackgroundColor3 = theme.PopupBackgroundColor or self.Popup.BackgroundColor3
-		if self.Shadow then self.Shadow.Color = theme.PopupShadowColor or self.Shadow.Color end
-		self.Header.TextColor3 = theme.PopupTextColor or self.Header.TextColor3
-		for _, info in pairs(self.Inputs) do
+		me._theme = theme
+		me.Popup.BackgroundColor3 = theme.PopupBackgroundColor or me.Popup.BackgroundColor3
+		if me.Shadow then me.Shadow.Color = theme.PopupShadowColor or me.Shadow.Color end
+		me.Header.TextColor3 = theme.PopupTextColor or me.Header.TextColor3
+		for _, info in pairs(me.Inputs) do
 			info.Input.TextColor3 = theme.PopupTextColor or info.Input.TextColor3
 			info.Input.BackgroundColor3 = theme.PopupBackgroundColor or info.Input.BackgroundColor3
 			info.Stroke.Color = theme.StrokeColor or info.Stroke.Color
 			local label = info.Row:FindFirstChild("InputName")
 			if label then label.TextColor3 = theme.PopupTextColor or label.TextColor3 end
 		end
-		local squareShadow = self.ColorSquare:FindFirstChildOfClass("UIShadow")
+		local squareShadow = me.ColorSquare:FindFirstChildOfClass("UIShadow")
 		if squareShadow then squareShadow.Color = theme.PopupShadowColor or squareShadow.Color end
-		local valueShadow = self.ColorValue:FindFirstChildOfClass("UIShadow")
+		local valueShadow = me.ColorValue:FindFirstChildOfClass("UIShadow")
 		if valueShadow then valueShadow.Color = theme.PopupShadowColor or valueShadow.Color end
 		-- Target/Slide handle strokes stay opaque white; not theme-driven.
-		local targetStroke = self.Target:FindFirstChildOfClass("UIStroke")
+		local targetStroke = me.Target:FindFirstChildOfClass("UIStroke")
 		if targetStroke then targetStroke.Color = Color3.fromRGB(255, 255, 255); targetStroke.Transparency = 0 end
-		local slideStroke = self.Slide:FindFirstChildOfClass("UIStroke")
+		local slideStroke = me.Slide:FindFirstChildOfClass("UIStroke")
 		if slideStroke then slideStroke.Color = Color3.fromRGB(255, 255, 255); slideStroke.Transparency = 0 end
-		self.ConfirmBtn.TextColor3 = theme.PopupTextColor or self.ConfirmBtn.TextColor3
-		self.ConfirmBtn.BackgroundColor3 = theme.PrimaryColor or self.ConfirmBtn.BackgroundColor3
-		self.ConfirmShadow.Color = theme.PrimaryColor or self.ConfirmShadow.Color
-		self.CancelBtn.TextColor3 = theme.PopupTextColor or self.CancelBtn.TextColor3
-		self.CancelBtn.BackgroundColor3 = theme.PopupNeutralColor or self.CancelBtn.BackgroundColor3
-		self.CancelShadow.Color = theme.PopupNeutralColor or self.CancelShadow.Color
+		me.ConfirmBtn.TextColor3 = theme.PopupTextColor or me.ConfirmBtn.TextColor3
+		me.ConfirmBtn.BackgroundColor3 = theme.PrimaryColor or me.ConfirmBtn.BackgroundColor3
+		me.ConfirmShadow.Color = theme.PrimaryColor or me.ConfirmShadow.Color
+		me.CancelBtn.TextColor3 = theme.PopupTextColor or me.CancelBtn.TextColor3
+		me.CancelBtn.BackgroundColor3 = theme.PopupNeutralColor or me.CancelBtn.BackgroundColor3
+		me.CancelShadow.Color = theme.PopupNeutralColor or me.CancelShadow.Color
 	end
-	function self:Open()
+	self.Open = function(_self)
 		if not self.Popup then return end
 		if self._hideTimer then
 			task.cancel(self._hideTimer)
@@ -604,7 +600,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- Click-outside detection via UserInputService. The connection exists only
 	-- while the popup is open: created in Open(), disconnected in
 	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
-	function self:_connectOutsideClick()
+	self._connectOutsideClick = function(_self)
 		if self._outsideConn then
 			return
 		end
@@ -645,13 +641,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			end
 		end)
 	end
-	function self:_disconnectOutsideClick()
-		if self._outsideConn then
-			self._outsideConn:Disconnect()
-			self._outsideConn = nil
+	self._disconnectOutsideClick = function(me)
+		if me._outsideConn then
+			me._outsideConn:Disconnect()
+			me._outsideConn = nil
 		end
 	end
-	function self:Close()
+	self.Close = function(_self)
 		if not self.Popup or not self.IsOpen then return end
 		self.IsOpen = false
 		self._isOpen = false
@@ -703,43 +699,43 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			self._hideTimer = nil
 		end)
 	end
-	function self:_Confirm()
-		if self._resolved then return end
-		self._resolved = true
-		self:Close()
-		self.OnConfirm(self._currentColor)
+	self._Confirm = function(me)
+		if me._resolved then return end
+		me._resolved = true
+		me:Close()
+		me.OnConfirm(me._currentColor)
 	end
-	function self:_Cancel()
-		if self._resolved then return end
-		self._resolved = true
-		self:Close()
-		self.OnCancel()
+	self._Cancel = function(me)
+		if me._resolved then return end
+		me._resolved = true
+		me:Close()
+		me.OnCancel()
 	end
 	-- Hide without firing callbacks (used by Window when another popup opens)
-	function self:Hide()
-		self:Close()
+	self.Hide = function(me)
+		me:Close()
 	end
-	function self:Destroy()
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-			self._inputConnection = nil
+	self.Destroy = function(me)
+		if me._inputConnection then
+			me._inputConnection:Disconnect()
+			me._inputConnection = nil
 		end
-		if self._dragChangedConnection then
-			self._dragChangedConnection:Disconnect()
-			self._dragChangedConnection = nil
+		if me._dragChangedConnection then
+			me._dragChangedConnection:Disconnect()
+			me._dragChangedConnection = nil
 		end
-		if self._dragEndedConnection then
-			self._dragEndedConnection:Disconnect()
-			self._dragEndedConnection = nil
+		if me._dragEndedConnection then
+			me._dragEndedConnection:Disconnect()
+			me._dragEndedConnection = nil
 		end
-		self:_disconnectOutsideClick()
-		if self.Popup then
-			self.Popup:Destroy()
-			self.Popup = nil
+		me:_disconnectOutsideClick()
+		if me.Popup then
+			me.Popup:Destroy()
+			me.Popup = nil
 		end
-		if self._cleanupCallback then
-			self._cleanupCallback()
-			self._cleanupCallback = nil
+		if me._cleanupCallback then
+			me._cleanupCallback()
+			me._cleanupCallback = nil
 		end
 	end
 	-- Event connections

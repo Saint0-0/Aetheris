@@ -32,7 +32,7 @@ function Video.new(parent, Settings, theme)
 	frame.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	frame.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
 	frame.Size = UDim2.new(1, 0, 0, height)
-	frame.Position = UDim2.new(0, 0, 0.8891, 0) -- This position is from export; we'll keep anchor at top
+	frame.Position = UDim2.fromScale(0, 0.8891) -- This position is from export; we'll keep anchor at top
 	frame.AnchorPoint = Vector2.new(0, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	frame:SetAttribute("IsComponentContainer", true)
@@ -54,8 +54,8 @@ function Video.new(parent, Settings, theme)
 	videoFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	videoFrame.BackgroundTransparency = 1
 	videoFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	videoFrame.Size = UDim2.new(1, 0, 1, 0)
-	videoFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	videoFrame.Size = UDim2.fromScale(1, 1)
+	videoFrame.Position = UDim2.fromScale(0.5, 0.5)
 	videoFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	videoFrame.Parent = frame
 	local videoCorner = Instance.new("UICorner")
@@ -103,10 +103,10 @@ function Video.new(parent, Settings, theme)
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	-- Uniform component API (p2-4): visibility toggle + teardown.
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		frame.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if frame and frame.Parent then frame:Destroy() end
 	end
 	return self

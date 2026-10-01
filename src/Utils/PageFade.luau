@@ -65,8 +65,8 @@ function PageFade.Layer(parent, name)
 	cg.BackgroundTransparency = 1
 	cg.BorderSizePixel = 0
 	cg.AnchorPoint = Vector2.new(0, 0)
-	cg.Position = UDim2.new(0, 0, 0, 0)
-	cg.Size = UDim2.new(1, 0, 1, 0)
+	cg.Position = UDim2.fromScale(0, 0)
+	cg.Size = UDim2.fromScale(1, 1)
 	cg.GroupTransparency = 0
 	cg.Parent = parent
 	return cg

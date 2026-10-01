@@ -10,7 +10,6 @@ theme switches drop the cache so the next open rebuilds with current colors.
 ]]
 
 local Tween = require("../Utils/Tween")
-local Sound = require("../Utils/Sound")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("../Core/SearchFilter")
@@ -58,8 +57,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
 	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	popup.Size = UDim2.new(0.694, 0, 1.02153, 0)
-	popup.Position = UDim2.new(0.5, 0, 0.5, 0)
+	popup.Size = UDim2.fromScale(0.694, 1.02153)
+	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.ZIndex = 11
@@ -87,7 +86,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	header.TextColor3 = titleColor or (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
 	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.new(0.26291, 0, 0.03775, 0)
+	header.Size = UDim2.fromScale(0.26291, 0.03775)
 	header.AutomaticSize = Enum.AutomaticSize.X
 	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.Parent = popup
@@ -101,7 +100,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- (center Y = 1 - height/2).
 	interactions.AnchorPoint = Vector2.new(0.5, 1)
 	interactions.Size = UDim2.new(1, 0, 0, 55)
-	interactions.Position = UDim2.new(0.5, 0, 1, 0)
+	interactions.Position = UDim2.fromScale(0.5, 1)
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
 	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
@@ -133,8 +132,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
-	confirmBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
-	confirmBtn.Position = UDim2.new(0, 0, 0, 0)
+	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
+	confirmBtn.Position = UDim2.fromScale(0, 0)
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
 	confirmCorner.CornerRadius = UDim.new(0, 4)
@@ -158,8 +157,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
-	cancelBtn.Size = UDim2.new(0.47, 0, 0.6, 0)
-	cancelBtn.Position = UDim2.new(0.515, 0, 0, 0)
+	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
+	cancelBtn.Position = UDim2.fromScale(0.515, 0)
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
 	cancelCorner.CornerRadius = UDim.new(0, 4)
@@ -178,8 +177,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	list.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left
 	list.AnchorPoint = Vector2.new(0.5, 0.5)
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	list.Size = UDim2.new(0.938, 0, 0.43668, 0)
-	list.Position = UDim2.new(0.5, 0, 0.48976, 0)
+	list.Size = UDim2.fromScale(0.938, 0.43668)
+	list.Position = UDim2.fromScale(0.5, 0.48976)
 	list.ScrollBarThickness = 1
 	list.ScrollBarImageColor3 = (theme and theme.TertiaryColor)
 	list.Parent = popup
@@ -205,7 +204,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedText.RichText = true
 	selectedText.AnchorPoint = Vector2.new(0.5, 0.5)
 	selectedText.Size = UDim2.new(0.91, 0, 0, 26)
-	selectedText.Position = UDim2.new(0.5, 0, 0.79, 0)
+	selectedText.Position = UDim2.fromScale(0.5, 0.79)
 	selectedText.Parent = popup
 	selectedText.Text = "None selected"
 	local selectedPadding = Instance.new("UIPadding")
@@ -227,8 +226,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchArea.BorderSizePixel = 0
 	searchArea.BackgroundTransparency = 1
 	searchArea.AnchorPoint = Vector2.new(0.5, 0.5)
-	searchArea.Size = UDim2.new(0.91879, 0, 0.0779, 0)
-	searchArea.Position = UDim2.new(0.5, 0, 0.1868, 0)
+	searchArea.Size = UDim2.fromScale(0.91879, 0.0779)
+	searchArea.Position = UDim2.fromScale(0.5, 0.1868)
 	searchArea.Parent = popup
 	local searchBox = Instance.new("TextBox")
 	searchBox.Name = "SearchBox"
@@ -243,8 +242,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	searchBox.AnchorPoint = Vector2.new(0.5, 0.5)
 	searchBox.PlaceholderText = "Search..."
-	searchBox.Size = UDim2.new(0.38996, 0, 1, 0)
-	searchBox.Position = UDim2.new(0.26484, 0, 0.5, 0)
+	searchBox.Size = UDim2.fromScale(0.38996, 1)
+	searchBox.Position = UDim2.fromScale(0.26484, 0.5)
 	searchBox.Parent = searchArea
 	-- Mirrors the sidebar search bar's BottomDivider: an inset 80%-wide line
 	-- centered under the whole search area (NOT the box, which is narrower).
@@ -265,8 +264,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	searchIcon.Image = Icons.search
 	searchIcon.ImageColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(200, 200, 200)
-	searchIcon.Size = UDim2.new(0, 17, 0, 15)
-	searchIcon.Position = UDim2.new(0.01759, 0, 0.5, 0)
+	searchIcon.Size = UDim2.fromOffset(17, 15)
+	searchIcon.Position = UDim2.fromScale(0.01759, 0.5)
 	searchIcon.Parent = searchArea
 	local clearBtn = Instance.new("TextButton")
 	clearBtn.Name = "ClearSelection"
@@ -275,8 +274,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearBtn.AutoButtonColor = false
 	clearBtn.BackgroundColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(100, 116, 139)
 	clearBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-	clearBtn.Size = UDim2.new(0.09462, 0, 1, 0)
-	clearBtn.Position = UDim2.new(0.96018, 0, 0.5, 0)
+	clearBtn.Size = UDim2.fromScale(0.09462, 1)
+	clearBtn.Position = UDim2.fromScale(0.96018, 0.5)
 	clearBtn.Parent = searchArea
 	local clearCorner = Instance.new("UICorner")
 	clearCorner.CornerRadius = UDim.new(0, 6)
@@ -285,10 +284,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearIcon.Name = "ButtonImage"
 	clearIcon.ImageTransparency = 0.2
 	clearIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	clearIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+	clearIcon.Position = UDim2.fromScale(0.5, 0.5)
 	clearIcon.Image = Icons["eraser"]
 	clearIcon.ImageColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-	clearIcon.Size = UDim2.new(0, 17, 0, 17)
+	clearIcon.Size = UDim2.fromOffset(17, 17)
 	clearIcon.BackgroundTransparency = 1
 	clearIcon.Parent = clearBtn
 	local clearAspect = Instance.new("UIAspectRatioConstraint")
@@ -306,8 +305,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllBtn.AutoButtonColor = false
 	selectAllBtn.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 	selectAllBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-	selectAllBtn.Size = UDim2.new(0.09462, 0, 1, 0)
-	selectAllBtn.Position = UDim2.new(0.83689, 0, 0.5, 0)
+	selectAllBtn.Size = UDim2.fromScale(0.09462, 1)
+	selectAllBtn.Position = UDim2.fromScale(0.83689, 0.5)
 	selectAllBtn.Parent = searchArea
 	local selectAllCorner = Instance.new("UICorner")
 	selectAllCorner.CornerRadius = UDim.new(0, 6)
@@ -316,10 +315,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllIcon.Name = "ButtonImage"
 	selectAllIcon.ImageTransparency = 0.2
 	selectAllIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	selectAllIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+	selectAllIcon.Position = UDim2.fromScale(0.5, 0.5)
 	selectAllIcon.Image = Icons["list-check"]
 	selectAllIcon.ImageColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-	selectAllIcon.Size = UDim2.new(0, 17, 0, 17)
+	selectAllIcon.Size = UDim2.fromOffset(17, 17)
 	selectAllIcon.BackgroundTransparency = 1
 	selectAllIcon.Parent = selectAllBtn
 	local selectAllAspect = Instance.new("UIAspectRatioConstraint")
@@ -387,35 +386,35 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- rebuilding. Called by Window:SetTheme so a cached/open dropdown recolors
 	-- live instead of being destroyed and recreated.
 	-- ============================================================
-	function self:ApplyTheme(theme)
-		if not self.Popup then
+	self.ApplyTheme = function(me, theme)
+		if not me.Popup then
 			return
 		end
 		local t = ThemeManager.GetTheme(theme)
-		self._theme = t
-		self.Popup.BackgroundColor3 = t.PopupBackgroundColor or self.Popup.BackgroundColor3
-		self.Shadow.Color = t.PopupShadowColor or self.Shadow.Color
-		self.Header.TextColor3 = t.PopupTextColor or self.Header.TextColor3
-		self.ConfirmBtn.TextColor3 = t.PopupTextColor or self.ConfirmBtn.TextColor3
-		self.ConfirmBtn.BackgroundColor3 = t.PrimaryColor or self.ConfirmBtn.BackgroundColor3
-		self.ConfirmShadow.Color = t.PrimaryColor or self.ConfirmShadow.Color
-		self.CancelBtn.TextColor3 = t.PopupTextColor or self.CancelBtn.TextColor3
-		self.CancelBtn.BackgroundColor3 = t.PopupNeutralColor or self.CancelBtn.BackgroundColor3
-		self.CancelShadow.Color = t.PopupNeutralColor or self.CancelShadow.Color
-		self.SelectedText.TextColor3 = t.PopupTextColor or self.SelectedText.TextColor3
-		self.Divider.BackgroundColor3 = t.AccentColor or self.Divider.BackgroundColor3
-		self.SearchBox.TextColor3 = t.PopupTextColor or self.SearchBox.TextColor3
-		self.SearchDivider.BackgroundColor3 = t.TertiaryColor or self.SearchDivider.BackgroundColor3
-		self.SearchIcon.ImageColor3 = t.SecondaryColor or self.SearchIcon.ImageColor3
-		self.ClearBtn.BackgroundColor3 = t.TertiaryColor or self.ClearBtn.BackgroundColor3
-		self.ClearShadow.Color = t.TertiaryColor or self.ClearShadow.Color
-		self.ClearBtnIcon.ImageColor3 = t.PopupTextColor or self.ClearBtnIcon.ImageColor3
-		self.SelectAllBtn.BackgroundColor3 = t.AccentColor or self.SelectAllBtn.BackgroundColor3
-		self.SelectAllShadow.Color = t.AccentColor or self.SelectAllShadow.Color
-		self.SelectAllIcon.ImageColor3 = t.PopupTextColor or self.SelectAllIcon.ImageColor3
-		self.List.ScrollBarImageColor3 = t.TertiaryColor or self.List.ScrollBarImageColor3
+		me._theme = t
+		me.Popup.BackgroundColor3 = t.PopupBackgroundColor or me.Popup.BackgroundColor3
+		me.Shadow.Color = t.PopupShadowColor or me.Shadow.Color
+		me.Header.TextColor3 = t.PopupTextColor or me.Header.TextColor3
+		me.ConfirmBtn.TextColor3 = t.PopupTextColor or me.ConfirmBtn.TextColor3
+		me.ConfirmBtn.BackgroundColor3 = t.PrimaryColor or me.ConfirmBtn.BackgroundColor3
+		me.ConfirmShadow.Color = t.PrimaryColor or me.ConfirmShadow.Color
+		me.CancelBtn.TextColor3 = t.PopupTextColor or me.CancelBtn.TextColor3
+		me.CancelBtn.BackgroundColor3 = t.PopupNeutralColor or me.CancelBtn.BackgroundColor3
+		me.CancelShadow.Color = t.PopupNeutralColor or me.CancelShadow.Color
+		me.SelectedText.TextColor3 = t.PopupTextColor or me.SelectedText.TextColor3
+		me.Divider.BackgroundColor3 = t.AccentColor or me.Divider.BackgroundColor3
+		me.SearchBox.TextColor3 = t.PopupTextColor or me.SearchBox.TextColor3
+		me.SearchDivider.BackgroundColor3 = t.TertiaryColor or me.SearchDivider.BackgroundColor3
+		me.SearchIcon.ImageColor3 = t.SecondaryColor or me.SearchIcon.ImageColor3
+		me.ClearBtn.BackgroundColor3 = t.TertiaryColor or me.ClearBtn.BackgroundColor3
+		me.ClearShadow.Color = t.TertiaryColor or me.ClearShadow.Color
+		me.ClearBtnIcon.ImageColor3 = t.PopupTextColor or me.ClearBtnIcon.ImageColor3
+		me.SelectAllBtn.BackgroundColor3 = t.AccentColor or me.SelectAllBtn.BackgroundColor3
+		me.SelectAllShadow.Color = t.AccentColor or me.SelectAllShadow.Color
+		me.SelectAllIcon.ImageColor3 = t.PopupTextColor or me.SelectAllIcon.ImageColor3
+		me.List.ScrollBarImageColor3 = t.TertiaryColor or me.List.ScrollBarImageColor3
 		-- Re-tint every item row (bg accent, name + icon follow selection state).
-		for _, obj in ipairs(self._itemObjects) do
+		for _, obj in ipairs(me._itemObjects) do
 			if obj.button then
 				obj.button.BackgroundColor3 = t.AccentColor or obj.button.BackgroundColor3
 			end
@@ -444,7 +443,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- ============================================================
 	-- Internal methods
 	-- ============================================================
-	function self:_flashDivider()
+	self._flashDivider = function(_self)
 		local divider = self.Divider
 		if not divider then
 			return
@@ -474,50 +473,50 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end)
 	end
 
-	function self:_toggleItem(itemObj)
+	self._toggleItem = function(me, itemObj)
 		local isSelected = itemObj.selected
-		if self.MaxItems == 1 then
+		if me.MaxItems == 1 then
 			if not isSelected then
-				for _, obj in ipairs(self._itemObjects) do
+				for _, obj in ipairs(me._itemObjects) do
 					if obj.selected then
-						self:_setItemSelected(obj, false)
+						me:_setItemSelected(obj, false)
 					end
 				end
-				self._selectedValues = {}
-				self:_setItemSelected(itemObj, true)
-				table.insert(self._selectedValues, itemObj.value)
+				me._selectedValues = {}
+				me:_setItemSelected(itemObj, true)
+				table.insert(me._selectedValues, itemObj.value)
 			else
-				self:_setItemSelected(itemObj, false)
-				for i, v in ipairs(self._selectedValues) do
+				me:_setItemSelected(itemObj, false)
+				for i, v in ipairs(me._selectedValues) do
 					if v == itemObj.value then
-						table.remove(self._selectedValues, i)
+						table.remove(me._selectedValues, i)
 						break
 					end
 				end
 			end
 		else
 			if not isSelected then
-				if #self._selectedValues >= self.MaxItems then
+				if #me._selectedValues >= me.MaxItems then
 					return
 				end
-				self:_setItemSelected(itemObj, true)
-				table.insert(self._selectedValues, itemObj.value)
+				me:_setItemSelected(itemObj, true)
+				table.insert(me._selectedValues, itemObj.value)
 			else
-				self:_setItemSelected(itemObj, false)
-				for i, v in ipairs(self._selectedValues) do
+				me:_setItemSelected(itemObj, false)
+				for i, v in ipairs(me._selectedValues) do
 					if v == itemObj.value then
-						table.remove(self._selectedValues, i)
+						table.remove(me._selectedValues, i)
 						break
 					end
 				end
 			end
 		end
-		self:_updateSelectedText()
+		me:_updateSelectedText()
 	end
-	function self:_setItemSelected(itemObj, selected)
+	self._setItemSelected = function(me, itemObj, selected)
 		itemObj.selected = selected
 		if selected then
-			self:_flashDivider()
+			me:_flashDivider()
 			itemObj.button.Name = "SelectedItem"
 			if itemObj.button then
 				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 0.5 })
@@ -566,70 +565,70 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				Tween.Play(
 					itemObj.selectionStatus,
 					"Fast",
-					{ BackgroundTransparency = 1, Size = UDim2.new(0, 2, 0, 0) }
+					{ BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) }
 				)
 			end
 		end
 	end
-	function self:SetSelection(values)
-		for _, obj in ipairs(self._itemObjects) do
+	self.SetSelection = function(me, values)
+		for _, obj in ipairs(me._itemObjects) do
 			if obj.selected then
-				self:_setItemSelected(obj, false)
+				me:_setItemSelected(obj, false)
 			end
 		end
-		self._selectedValues = {}
+		me._selectedValues = {}
 		for _, value in ipairs(values) do
-			for _, obj in ipairs(self._itemObjects) do
+			for _, obj in ipairs(me._itemObjects) do
 				if obj.value == value then
-					self:_setItemSelected(obj, true)
-					table.insert(self._selectedValues, value)
+					me:_setItemSelected(obj, true)
+					table.insert(me._selectedValues, value)
 					break
 				end
 			end
 		end
-		self:_updateSelectedText()
+		me:_updateSelectedText()
 	end
-	function self:ClearSelection()
-		for _, obj in ipairs(self._itemObjects) do
+	self.ClearSelection = function(me)
+		for _, obj in ipairs(me._itemObjects) do
 			if obj.selected then
-				self:_setItemSelected(obj, false)
+				me:_setItemSelected(obj, false)
 			end
 		end
-		self._selectedValues = {}
-		self:_updateSelectedText()
+		me._selectedValues = {}
+		me:_updateSelectedText()
 	end
-	function self:SelectAll()
-		if self.MaxItems ~= math.huge then
-			local limit = self.MaxItems
-			local current = #self._selectedValues
+	self.SelectAll = function(me)
+		if me.MaxItems ~= math.huge then
+			local limit = me.MaxItems
+			local current = #me._selectedValues
 			local remaining = limit - current
 			if remaining <= 0 then
 				return
 			end
 			local count = 0
-			for _, obj in ipairs(self._itemObjects) do
+			for _, obj in ipairs(me._itemObjects) do
 				if not obj.selected and count < remaining then
-					self:_setItemSelected(obj, true)
-					table.insert(self._selectedValues, obj.value)
+					me:_setItemSelected(obj, true)
+					table.insert(me._selectedValues, obj.value)
 					count = count + 1
 				end
 			end
 		else
-			for _, obj in ipairs(self._itemObjects) do
+			for _, obj in ipairs(me._itemObjects) do
 				if not obj.selected then
-					self:_setItemSelected(obj, true)
-					table.insert(self._selectedValues, obj.value)
+					me:_setItemSelected(obj, true)
+					table.insert(me._selectedValues, obj.value)
 				end
 			end
 		end
-		self:_updateSelectedText()
+		me:_updateSelectedText()
 	end
-	function self:_filterItems(query)
+	self._filterItems = function(me, query)
 		local lower = string.lower(query or "")
-		local accent = (self._theme and self._theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+		local accent = (me._theme and me._theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 		-- Plain-text search (find with plain=true) so query text is never treated
 		-- as a Lua pattern, and so it matches faster than a pattern search.
-		for _, obj in ipairs(self._itemObjects) do
+		for _, obj in ipairs(me._itemObjects) do
 			local matched = (lower == "") or (string.find(string.lower(obj.name), lower, 1, true) ~= nil)
 			obj.button.Visible = matched
 			-- Highlight the matched substring in the row label with the accent
@@ -645,45 +644,45 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			end
 		end
 	end
-	function self:_updateSelectedText()
+	self._updateSelectedText = function(me)
 		local names = {}
-		for _, obj in ipairs(self._itemObjects) do
+		for _, obj in ipairs(me._itemObjects) do
 			if obj.selected then
 				table.insert(names, obj.name)
 			end
 		end
 		if #names > 0 then
-			self.SelectedText.Text = string.format("{ %s }", table.concat(names, ", "))
+			me.SelectedText.Text = string.format("{ %s }", table.concat(names, ", "))
 		else
-			self.SelectedText.Text = "None selected"
+			me.SelectedText.Text = "None selected"
 		end
 	end
-	function self:_Confirm()
-		if self._resolved then
+	self._Confirm = function(me)
+		if me._resolved then
 			return
 		end
-		self._resolved = true
+		me._resolved = true
 		local selected = {}
-		for _, obj in ipairs(self._itemObjects) do
+		for _, obj in ipairs(me._itemObjects) do
 			if obj.selected then
 				table.insert(selected, { name = obj.name, value = obj.value })
 			end
 		end
-		self:Close()
-		self.OnConfirm(selected)
+		me:Close()
+		me.OnConfirm(selected)
 	end
-	function self:_Cancel()
-		if self._resolved then
+	self._Cancel = function(me)
+		if me._resolved then
 			return
 		end
-		self._resolved = true
-		self:Close()
-		self.OnCancel()
+		me._resolved = true
+		me:Close()
+		me.OnCancel()
 	end
 	-- ============================================================
 	-- Build items from current Items table
 	-- ============================================================
-	function self:_buildItems()
+	self._buildItems = function(_self)
 		-- Clear old
 		for _, obj in ipairs(self._itemObjects) do
 			obj.button:Destroy()
@@ -720,7 +719,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			selectionStatus.BackgroundColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
 			selectionStatus.BackgroundTransparency = 1 -- hidden until selected
 			selectionStatus.AnchorPoint = Vector2.new(0, 0.5)
-			selectionStatus.Size = UDim2.new(0, 2, 0, 0) -- start collapsed
+			selectionStatus.Size = UDim2.fromOffset(2, 0) -- start collapsed
 			selectionStatus.Position = UDim2.new(0, -8, 0.5, 0)
 			selectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			selectionStatus.Parent = button
@@ -732,7 +731,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			-- Item icons use the same theme keys as sidebar tab icons (selected ->
 			-- ActiveTabIconColor, deselected -> InactiveTabIconColor).
 			itemImage.ImageColor3 = (theme and theme.InactiveTabIconColor) or Color3.fromRGB(255, 255, 255)
-			itemImage.Size = UDim2.new(0, 18, 0, 18)
+			itemImage.Size = UDim2.fromOffset(18, 18)
 			itemImage.BackgroundTransparency = 1
 			itemImage.Position = UDim2.new(0, 20, 0.5, 0)
 			itemImage.Parent = button
@@ -751,7 +750,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemName.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 			itemName.BackgroundTransparency = 1
 			itemName.AnchorPoint = Vector2.new(0, 0.5)
-			itemName.Size = UDim2.new(0.48591, 0, 0.71359, 0)
+			itemName.Size = UDim2.fromScale(0.48591, 0.71359)
 			itemName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			itemName.Text = name
 			itemName.Position = UDim2.new(0, 40, 0.5, 0)
@@ -860,7 +859,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- ============================================================
 	-- Public API
 	-- ============================================================
-	function self:SetContent(Settings)
+	self.SetContent = function(_self, Settings)
 		if not self.Popup then
 			return
 		end
@@ -904,7 +903,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			self.SelectAllBtn.Visible = true
 		end
 	end
-	function self:Open()
+	self.Open = function(_self)
 		if not self.Popup then
 			return
 		end
@@ -968,7 +967,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				end
 				if obj.selectionStatus then
 					obj.selectionStatus.BackgroundTransparency = 1
-					obj.selectionStatus.Size = UDim2.new(0, 2, 0, 0)
+					obj.selectionStatus.Size = UDim2.fromOffset(2, 0)
 				end
 			end
 		end
@@ -1080,7 +1079,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		-- Click-outside is handled by _connectOutsideClick() (called below on
 		-- open) and torn down again on close, so there is nothing to do here.
 	end
-	function self:Close()
+	self.Close = function(_self)
 		if not self.Popup then
 			return
 		end
@@ -1204,7 +1203,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- Click-outside detection via UserInputService. The connection exists only
 	-- while the popup is open: created in Open(), disconnected in
 	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
-	function self:_connectOutsideClick()
+	self._connectOutsideClick = function(_self)
 		if self._outsideConn then
 			return
 		end
@@ -1244,56 +1243,56 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			end
 		end)
 	end
-	function self:_disconnectOutsideClick()
-		if self._outsideConn then
-			self._outsideConn:Disconnect()
-			self._outsideConn = nil
+	self._disconnectOutsideClick = function(me)
+		if me._outsideConn then
+			me._outsideConn:Disconnect()
+			me._outsideConn = nil
 		end
 	end
-	function self:Hide()
-		if not self.Popup then
+	self.Hide = function(me)
+		if not me.Popup then
 			return
 		end
-		self.Popup.Visible = false
-		self.IsOpen = false
-		self:_disconnectOutsideClick()
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-			self._inputConnection = nil
+		me.Popup.Visible = false
+		me.IsOpen = false
+		me:_disconnectOutsideClick()
+		if me._inputConnection then
+			me._inputConnection:Disconnect()
+			me._inputConnection = nil
 		end
 		-- Cancel any pending hide timer
-		if self._hideTimer then
-			task.cancel(self._hideTimer)
-			self._hideTimer = nil
+		if me._hideTimer then
+			task.cancel(me._hideTimer)
+			me._hideTimer = nil
 		end
 		-- Cancel any pending scrollbar timer
-		if self._scrollbarTimer then
-			task.cancel(self._scrollbarTimer)
-			self._scrollbarTimer = nil
+		if me._scrollbarTimer then
+			task.cancel(me._scrollbarTimer)
+			me._scrollbarTimer = nil
 		end
 	end
-	function self:Destroy()
+	self.Destroy = function(me)
 		-- Only call this when you truly want to remove the popup from memory
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-			self._inputConnection = nil
+		if me._inputConnection then
+			me._inputConnection:Disconnect()
+			me._inputConnection = nil
 		end
-		if self._scrollConnection then
-			self._scrollConnection:Disconnect()
-			self._scrollConnection = nil
+		if me._scrollConnection then
+			me._scrollConnection:Disconnect()
+			me._scrollConnection = nil
 		end
-		self:_disconnectOutsideClick()
-		if self.Popup then
-			self.Popup = nil
+		me:_disconnectOutsideClick()
+		if me.Popup then
+			me.Popup = nil
 		end
 		-- Call cleanup callback to notify Window that this popup is gone
-		if self._cleanupCallback then
-			self._cleanupCallback()
-			self._cleanupCallback = nil
+		if me._cleanupCallback then
+			me._cleanupCallback()
+			me._cleanupCallback = nil
 		end
 	end
 	-- Scrollbar visibility: show on scroll, auto-hide after 1.5s
-	function self:_showScrollbar()
+	self._showScrollbar = function(_self)
 		if self.List then
 			Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 0.5 })
 			-- Cancel any pending hide timer

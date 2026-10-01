@@ -84,9 +84,9 @@ function Stepper.new(parent, Settings, theme)
 	stepUp.AnchorPoint = Vector2.new(1, 0.5)
 	stepUp.Image = Icons["chevron-up"]
 	stepUp.ImageColor3 = (theme and theme.AccentColor)
-	stepUp.Size = UDim2.new(0, 15, 0, 15)
+	stepUp.Size = UDim2.fromOffset(15, 15)
 	stepUp.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	stepUp.Position = UDim2.new(1, 0, 0.28, 0)
+	stepUp.Position = UDim2.fromScale(1, 0.28)
 	stepUp.Parent = row
 	local upAspect = Instance.new("UIAspectRatioConstraint")
 	upAspect.Parent = stepUp
@@ -108,9 +108,9 @@ function Stepper.new(parent, Settings, theme)
 	stepDown.AnchorPoint = Vector2.new(1, 0.5)
 	stepDown.Image = Icons["chevron-down"]
 	stepDown.ImageColor3 = (theme and theme.AccentColor)
-	stepDown.Size = UDim2.new(0, 15, 0, 15)
+	stepDown.Size = UDim2.fromOffset(15, 15)
 	stepDown.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	stepDown.Position = UDim2.new(1, 0, 0.7, 0)
+	stepDown.Position = UDim2.fromScale(1, 0.7)
 	stepDown.Parent = row
 	local downAspect = Instance.new("UIAspectRatioConstraint")
 	downAspect.Parent = stepDown
@@ -142,19 +142,19 @@ function Stepper.new(parent, Settings, theme)
 		inputBox.PlaceholderText = tostring(displayValue)
 	end
 	-- Set value (with optional no callback)
-	function self:SetValue(value, noCallback)
-		local oldValue = self._currentValue
-		local clamped = math.clamp(value, self.Min, self.Max)
-		if self.IsInteger then
+	self.SetValue = function(me, value, noCallback)
+		local oldValue = me._currentValue
+		local clamped = math.clamp(value, me.Min, me.Max)
+		if me.IsInteger then
 			clamped = math.round(clamped)
 		end
 		if clamped == oldValue then
 			return
 		end
-		self._currentValue = clamped
+		me._currentValue = clamped
 		updateDisplay(clamped)
 		if not noCallback then
-			self.Callback(clamped)
+			me.Callback(clamped)
 		end
 	end
 	-- Increment / decrement
@@ -261,10 +261,10 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindColor(upStroke, "Color", "StrokeColor")
 	ThemeManager.BindColor(downStroke, "Color", "StrokeColor")
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		-- Cancel any in-flight tweens on the buttons and stroke.
 		Tween.CancelAll(stepUp)
 		Tween.CancelAll(stepDown)

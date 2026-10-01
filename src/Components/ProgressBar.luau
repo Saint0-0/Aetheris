@@ -45,15 +45,15 @@ function ProgressBar.new(parent, Settings, theme)
 		Theme = theme,
 		LabelWidth = 0.59985,
 		LabelHeight = 0.31745,
-		LabelPosition = UDim2.new(0, 0, 0.12063, 0),
+		LabelPosition = UDim2.fromScale(0, 0.12063),
 	})
 	local holder = Instance.new("Frame")
 	holder.Name = "ProgressBarHolder"
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = theme.Undercolor
 	holder.AnchorPoint = Vector2.new(0.5, 0.5)
-	holder.Size = UDim2.new(1, 0, 0.07, 0)
-	holder.Position = UDim2.new(0.5003, 0, 0.72338, 0)
+	holder.Size = UDim2.fromScale(1, 0.07)
+	holder.Position = UDim2.fromScale(0.5003, 0.72338)
 	holder.BorderColor3 = Color3.fromRGB(255, 255, 255)
 	holder.Parent = row
 	local holderCorner = Instance.new("UICorner")
@@ -65,7 +65,7 @@ function ProgressBar.new(parent, Settings, theme)
 	visual.Name = "Visual"
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = color or (theme and theme.PrimaryColor)
-	visual.Size = UDim2.new(0, 0, 1, 0) -- start empty
+	visual.Size = UDim2.fromScale(0, 1) -- start empty
 	visual.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	visual.Parent = holder
 	local visualCorner = Instance.new("UICorner")
@@ -80,10 +80,10 @@ function ProgressBar.new(parent, Settings, theme)
 	local imageId = (theme and theme.Wallpaper) or FallbackImage
 	backImage.Image = imageId
 	backImage:SetAttribute("IsThemeSheen", true)
-	backImage.Size = UDim2.new(1, 0, 1, 0)
+	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1
-	backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	backImage.Position = UDim2.fromScale(0.5, 0.5)
 	backImage.Parent = visual
 	-- Set visibility based on theme's WallpaperEnabled
 	backImage.Visible = not (theme and theme.WallpaperEnabled == false)
@@ -116,7 +116,7 @@ function ProgressBar.new(parent, Settings, theme)
 	stats.Size = UDim2.new(0.43, 0, 0, 14)
 	stats.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	stats.Text = ""
-	stats.Position = UDim2.new(1, 0, 0.12063, 0)
+	stats.Position = UDim2.fromScale(1, 0.12063)
 	stats.Parent = row
 	-- Store references
 	self.Row = row
@@ -152,16 +152,16 @@ function ProgressBar.new(parent, Settings, theme)
 		end
 	end
 	-- Set progress value
-	function self:SetValue(value, noAnimate)
-		value = math.clamp(value, self.MinValue, self.MaxValue)
-		self._currentValue = value
-		local percentage = (value - self.MinValue) / (self.MaxValue - self.MinValue)
-		local targetSize = UDim2.new(percentage, 0, 1, 0)
-		local animateProgress = (noAnimate == nil) and self.Animate or not noAnimate
+	self.SetValue = function(me, value, noAnimate)
+		value = math.clamp(value, me.MinValue, me.MaxValue)
+		me._currentValue = value
+		local percentage = (value - me.MinValue) / (me.MaxValue - me.MinValue)
+		local targetSize = UDim2.fromScale(percentage, 1)
+		local animateProgress = (noAnimate == nil) and me.Animate or not noAnimate
 		if animateProgress then
-			Tween.Play(self.Visual, "Smooth", { Size = targetSize })
+			Tween.Play(me.Visual, "Smooth", { Size = targetSize })
 		else
-			self.Visual.Size = targetSize
+			me.Visual.Size = targetSize
 		end
 		updateStats(value)
 		if Settings.Callback then
@@ -219,14 +219,14 @@ function ProgressBar.new(parent, Settings, theme)
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(me)
 		-- Stop the gradient spin.
 		stopSpin()
 		-- Cancel any in-flight tweens on the fill bar.
-		Tween.CancelAll(self.Visual)
+		Tween.CancelAll(me.Visual)
 		-- Drop all ThemeManager bindings.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(stats)

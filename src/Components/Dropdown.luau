@@ -21,7 +21,6 @@
 
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
-local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local Dropdown = {}
 Dropdown.__index = Dropdown
@@ -38,7 +37,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	local items = Settings.Items or {}
 	local default = Settings.Default or {}
 	local maxItems = Settings.MaxItemsChoosable or math.huge
-	local placeholder = Settings.Placeholder or "Select..."
 	local callback = Settings.Callback or function() end
 	-- Build the dropdown button UI from the export (shared row factory).
 	local row, label = ComponentRow.new(parent, {
@@ -63,7 +61,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	interact.TextColor3 = Color3.fromRGB(0, 0, 0)
 	interact.BackgroundTransparency = 1
 	interact.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
-	interact.Size = UDim2.new(1, 0, 1, 0)
+	interact.Size = UDim2.fromScale(1, 1)
 	interact.Text = ""
 	interact.Parent = row
 	-- Dropdown chevron image
@@ -75,7 +73,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.AnchorPoint = Vector2.new(1, 0.5)
 	dropdownImage.Image = Icons["chevron-down"] or "rbxassetid://134243273101015"
 	dropdownImage.ImageColor3 = (theme and theme.AccentColor)
-	dropdownImage.Size = UDim2.new(0, 14, 0, 14)
+	dropdownImage.Size = UDim2.fromOffset(14, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
 	dropdownImage.Parent = row
 	-- State
@@ -143,24 +141,24 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
-	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
-	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	-- The row's UIStroke is created AND bound by ComponentRow (Stroke = true),
+	-- so it needs no binding here.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function()
 		-- Close any open popup first to avoid it dangling.
 		if popupInstance and popupInstance.IsOpen then
 			pcall(function() popupInstance:Close() end)
 			popupInstance = nil
 		end
-		-- Drop all ThemeManager bindings.
+		-- Drop all ThemeManager bindings. (The row's stroke binds die with the
+		-- row's own Destroying signal, so it needs no unbind here.)
 		ThemeManager.UnbindInstance(row)
-		ThemeManager.UnbindInstance(stroke)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(dropdownImage)
 		-- Destroy the root instance.

@@ -10,7 +10,6 @@
 		local toggle = section:Toggle({ Name = "Enable", Default = true, Callback = function(state) end })
 ]]
 
-local Tween = require("../Utils/Tween")
 local Toggle = require("../Components/Toggle")
 local Slider = require("../Components/Slider")
 local Keybind = require("../Components/Keybind")
@@ -58,7 +57,7 @@ function Section.new(parent, Settings, theme, window)
 	frame.BackgroundTransparency = theme.SectionBackgroundTransparency
 	frame.ClipsDescendants = true
 	frame.AutomaticSize = Enum.AutomaticSize.Y
-	frame.Size = UDim2.new(1, 0, 0, 0)
+	frame.Size = UDim2.fromScale(1, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	frame:SetAttribute("IsSection", true)
 	frame.Parent = parent
@@ -113,7 +112,7 @@ function Section.new(parent, Settings, theme, window)
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 		title.TextTransparency = 0.7
 		title.AutomaticSize = Enum.AutomaticSize.Y
-		title.Size = UDim2.new(1, 0, 0, 0)
+		title.Size = UDim2.fromScale(1, 0)
 		title.LayoutOrder = -1
 		title.Parent = frame
 		self.Title = title

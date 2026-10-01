@@ -25,7 +25,7 @@ function Tooltip.new(container, theme)
 	root.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
 	root.BackgroundTransparency = 1
 	root.AutomaticSize = Enum.AutomaticSize.XY
-	root.Size = UDim2.new(0, 0, 0, 0)
+	root.Size = UDim2.fromScale(0, 0)
 	root.ZIndex = 2000
 	root.Visible = false
 	root.Parent = container
@@ -62,7 +62,7 @@ function Tooltip.new(container, theme)
 	label.BorderSizePixel = 0
 	label.BackgroundTransparency = 1
 	label.AutomaticSize = Enum.AutomaticSize.XY
-	label.Size = UDim2.new(0, 0, 0, 0)
+	label.Size = UDim2.fromScale(0, 0)
 	label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	label.TextSize = 12
 	label.TextColor3 = theme.PopupTextColor or Color3.fromRGB(255, 255, 255)
@@ -103,19 +103,19 @@ function Tooltip:ShowAt(anchor, text, side, gap)
 	local cx = ap.X + asz.X / 2
 	local cy = ap.Y + asz.Y / 2
 
-	local pos = UDim2.new(0, cx, 0, cy)
+	local pos = UDim2.fromOffset(cx, cy)
 	local anchorPt = Vector2.new(0.5, 0.5)
 	if side == "Left" then
-		pos = UDim2.new(0, ap.X - gap, 0, cy)
+		pos = UDim2.fromOffset(ap.X - gap, cy)
 		anchorPt = Vector2.new(1, 0.5)
 	elseif side == "Right" then
-		pos = UDim2.new(0, ap.X + asz.X + gap, 0, cy)
+		pos = UDim2.fromOffset(ap.X + asz.X + gap, cy)
 		anchorPt = Vector2.new(0, 0.5)
 	elseif side == "Top" then
-		pos = UDim2.new(0, cx, 0, ap.Y - gap)
+		pos = UDim2.fromOffset(cx, ap.Y - gap)
 		anchorPt = Vector2.new(0.5, 1)
 	elseif side == "Bottom" then
-		pos = UDim2.new(0, cx, 0, ap.Y + asz.Y + gap)
+		pos = UDim2.fromOffset(cx, ap.Y + asz.Y + gap)
 		anchorPt = Vector2.new(0.5, 0)
 	end
 

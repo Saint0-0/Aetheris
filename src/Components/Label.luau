@@ -50,7 +50,7 @@ function Label.new(parent, Settings, theme)
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or (showContainer and 0.985 or 1)
 	container.AutomaticSize = Enum.AutomaticSize.Y
-	container.Size = UDim2.new(1, 0, 0, 0)
+	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute("IsComponentContainer", true)
 	container.Parent = parent
 	-- Corner
@@ -92,13 +92,13 @@ function Label.new(parent, Settings, theme)
 	label.TextColor3 = (theme and theme.PrimaryTextColor)
 	label.TextSize = textSize
 	label.AnchorPoint = Vector2.new(0, 0.5)
-	label.Position = UDim2.new(0, 0, 0.5, 0)
+	label.Position = UDim2.fromScale(0, 0.5)
 	label.TextTransparency = customTextTransparency or ((theme and theme.PrimaryTextTransparency) or 0.45)
 	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.new(1, 0, 0, 0)  -- fill width, height auto
+	label.Size = UDim2.fromScale(1, 0)  -- fill width, height auto
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.Parent = container
 	-- Store references
@@ -112,11 +112,8 @@ function Label.new(parent, Settings, theme)
 	self._fontWeight = fontWeight
 	self._hasCustomTextTransparency = (customTextTransparency ~= nil)
 	-- Declarative theming: every themed property is a BINDING. No ApplyTheme.
-	local bgColorBinding = ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
 	local bgTransBinding = ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
-	local textColorBinding = ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
-	local strokeColorBinding = ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	-- Conditional properties: a binding drives the value only while its
 	-- condition holds; otherwise it is disabled and the value set directly.
@@ -169,10 +166,10 @@ function Label.new(parent, Settings, theme)
 		end
 	end
 	-- Uniform component API (p2-4): visibility toggle + teardown.
-	function self:SetVisibility(visible)
+	self.SetVisibility = function(_self, visible)
 		container.Visible = visible
 	end
-	function self:Destroy()
+	self.Destroy = function(_self)
 		if container and container.Parent then container:Destroy() end
 	end
 	-- No ApplyTheme / Register: all themed properties are bindings above.

@@ -98,7 +98,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	card.AutoButtonColor = false
 	card.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(16, 16, 17)
 	card.BackgroundTransparency = 0
-	card.Size = UDim2.new(0.29, 0 ,0.266, 0)
+	card.Size = UDim2.fromScale(0.29, 0.266)
 	card.Text = ""
 	card.Parent = parent
 
@@ -117,15 +117,15 @@ local function makeCard(parent, name, theme, active, onActivate)
 	divider.BackgroundTransparency = active and 0.72 or 0.9
 	divider.AnchorPoint = Vector2.new(0.5, 0.5)
 	divider.Size = UDim2.new(0, 1, 0.7, 0)
-	divider.Position = UDim2.new(0.5, 0, 0.5, 0)
+	divider.Position = UDim2.fromScale(0.5, 0.5)
 	divider.Parent = card
 
 	-- 2x2 color swatch holder
 	local colorHolder = Instance.new("Frame")
 	colorHolder.Name = "ThemeColorHolder"
 	colorHolder.AnchorPoint = Vector2.new(0.5, 0.5)
-	colorHolder.Size = UDim2.new(0.35342, 0, 0.56731, 0)
-	colorHolder.Position = UDim2.new(0.73333, 0, 0.5, 0)
+	colorHolder.Size = UDim2.fromScale(0.35342, 0.56731)
+	colorHolder.Position = UDim2.fromScale(0.73333, 0.5)
 	colorHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorHolder.BackgroundTransparency = 1
 	colorHolder.Parent = card
@@ -172,7 +172,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	backImage.Image = theme.Wallpaper or FallbackImage
 	backImage.ImageTransparency = active and 0.5 or 0.7
 	backImage.AnchorPoint = Vector2.new(0.5, 0.5)
-	backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	backImage.Position = UDim2.fromScale(0.5, 0.5)
 	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.ScaleType = Enum.ScaleType.Stretch
 	backImage.Parent = card
@@ -248,8 +248,8 @@ function Themes.Build(window, tab)
 	local pageTheme = ThemeManager.GetTheme(tab._theme)
 
 	-- The Themes page uses the template's proportion: {1,0},{0.879,0}.
-	page.Size = UDim2.new(1, 0, 0.87857, 0)
-	page.Position = UDim2.new(0.5, 0, 0.561, 0)
+	page.Size = UDim2.fromScale(1, 0.87857)
+	page.Position = UDim2.fromScale(0.5, 0.561)
 	page.AnchorPoint = Vector2.new(0.5, 0.5)
 	
 	--ui constraint for page
@@ -271,10 +271,10 @@ function Themes.Build(window, tab)
 	pageTitle.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	pageTitle.TextColor3 = pageTheme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 	pageTitle.RichText = true
-	pageTitle.Size = UDim2.new(0, 0, 0.06849, 0)
+	pageTitle.Size = UDim2.fromScale(0, 0.06849)
 	pageTitle.AutomaticSize = Enum.AutomaticSize.X
 	pageTitle.Text = "Native themes"
-	pageTitle.Position = UDim2.new(0, 0, 0, 0)
+	pageTitle.Position = UDim2.fromScale(0, 0)
 	pageTitle.Parent = page
 
 	-- PageHolder: a scrolling container for the theme cards, sitting below
@@ -286,9 +286,9 @@ function Themes.Build(window, tab)
 	pageHolder.BorderSizePixel = 0
 	pageHolder.BackgroundColor3 = pageTheme.SectionBackgroundColor
 	pageHolder.BackgroundTransparency = 1
-	pageHolder.Size = UDim2.new(1, 0, 0.89, 0)
-	pageHolder.Position = UDim2.new(0, 0, 0.11, 0)
-	pageHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
+	pageHolder.Size = UDim2.fromScale(1, 0.89)
+	pageHolder.Position = UDim2.fromScale(0, 0.11)
+	pageHolder.CanvasSize = UDim2.fromScale(0, 0)
 	pageHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	pageHolder.ScrollingDirection = Enum.ScrollingDirection.Y
 	pageHolder.ScrollBarThickness = 1
@@ -353,10 +353,10 @@ function Themes.Build(window, tab)
 	currentText.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	currentText.TextColor3 = pageTheme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 	currentText.RichText = true
-	currentText.Size = UDim2.new(0.32573, 0, 0.03814, 0)
+	currentText.Size = UDim2.fromScale(0.32573, 0.03814)
 	currentText.AutomaticSize = Enum.AutomaticSize.X
 	currentText.Text = "<b>Current theme:</b> Light"
-	currentText.Position = UDim2.new(0, 0, 0.06, 0)
+	currentText.Position = UDim2.fromScale(0, 0.06)
 	currentText.Parent = page
 
 	-- Store card states and active theme name

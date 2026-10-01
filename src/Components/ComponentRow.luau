@@ -59,7 +59,7 @@ function ComponentRow.new(parent, Settings)
 	row.BackgroundTransparency = (Settings.BackgroundTransparency == nil) and 1 or Settings.BackgroundTransparency
 	row.AnchorPoint = Vector2.new(0.5, 0.5)
 	row.Size = UDim2.new(1, 0, 0, height)
-	row.Position = UDim2.new(0.5, 0, 0.5, 0)
+	row.Position = UDim2.fromScale(0.5, 0.5)
 	if Settings.ClipsDescendants then
 		row.ClipsDescendants = true
 	end
@@ -101,11 +101,11 @@ function ComponentRow.new(parent, Settings)
 		-- variable-width label (e.g. TextInput's field cap) opt in with this.
 		label.TextWrapped = false
 		label.AutomaticSize = Enum.AutomaticSize.X
-		label.Size = UDim2.new(0, 0, labelHeight, 0)
+		label.Size = UDim2.fromScale(0, labelHeight)
 	else
-		label.Size = UDim2.new(labelWidth, 0, labelHeight, 0)
+		label.Size = UDim2.fromScale(labelWidth, labelHeight)
 	end
-	label.Position = Settings.LabelPosition or UDim2.new(0, 0, 0.5, 0)
+	label.Position = Settings.LabelPosition or UDim2.fromScale(0, 0.5)
 	label.Parent = row
 
 	if theme then

@@ -77,7 +77,7 @@ end
 function Console:_makeLabel()
 	local label = Instance.new("TextLabel")
 	label.Name = "Line"
-	label.Size = UDim2.new(1, 0, 0, 0)
+	label.Size = UDim2.fromScale(1, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.BackgroundTransparency = 1
 	label.BorderSizePixel = 0
@@ -182,7 +182,7 @@ function Console:_build()
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+	scroll.CanvasSize = UDim2.fromScale(0, 0)
 	scroll.ScrollBarThickness = 0
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.Parent = panel

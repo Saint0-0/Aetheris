@@ -7,7 +7,7 @@
 
 	Rayfield mechanics copied verbatim:
 		· The pill is a CHILD of the fill and is carried by it -- it has no
-		  position of its own. Position = UDim2.new(1, 0, 0.5, 0), centred on
+		  position of its own. Position = UDim2.fromScale(1, 0.5), centred on
 		  the fill's leading edge, so half of it hangs past the track at each
 		  end of the range.
 		· Pointer travel is the WHOLE track (ratioFromPointer maps straight
@@ -77,13 +77,13 @@ end
 
 -- The fill is a plain ratio of the track; the pill rides its leading edge.
 local function fillSize(ratio)
-	return UDim2.new(ratio, 0, 1, 0)
+	return UDim2.fromScale(ratio, 1)
 end
 
 -- The pill sits centred on the fill's leading edge and lives inside the fill,
 -- so it tracks the value without a position of its own.
 local function handleOffset()
-	return UDim2.new(1, 0, 0.5, 0)
+	return UDim2.fromScale(1, 0.5)
 end
 
 -- The pointer maps over the whole track, because the pill's centre does too.
@@ -121,7 +121,7 @@ function Slider.new(parent, Settings, theme)
 		Height = 52,
 		LabelWidth = 0.59985,
 		LabelHeight = 0.31745,
-		LabelPosition = UDim2.new(0, 0, 0.05, 0),
+		LabelPosition = UDim2.fromScale(0, 0.05),
 		LabelAnchorPoint = Vector2.new(0, 0),
 	})
 
@@ -147,7 +147,7 @@ function Slider.new(parent, Settings, theme)
 	visual.Name = "SliderVisual"
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = (theme and theme.PrimaryColor)
-	visual.Size = UDim2.new(0, 0, 1, 0)
+	visual.Size = UDim2.fromScale(0, 1)
 	visual.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	visual.Parent = holder
 	local visualCorner = Instance.new("UICorner")
@@ -163,10 +163,10 @@ function Slider.new(parent, Settings, theme)
 	backImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	backImage.Image = theme.Wallpaper or "rbxassetid://11094025229"
 	backImage:SetAttribute("IsThemeSheen", true)
-	backImage.Size = UDim2.new(1, 0, 1, 0)
+	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1
-	backImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+	backImage.Position = UDim2.fromScale(0.5, 0.5)
 	backImage.Parent = visual
 	backImage.Visible = not (theme and theme.WallpaperEnabled == false)
 	local backCorner = Instance.new("UICorner")
@@ -210,8 +210,8 @@ function Slider.new(parent, Settings, theme)
 	local controlHolder = Instance.new("Frame")
 	controlHolder.Name = "ControlHolder"
 	controlHolder.AnchorPoint = Vector2.new(1, 0)
-	controlHolder.Position = UDim2.new(1, 0, 0.05, 0)
-	controlHolder.Size = UDim2.new(0, 50, 0, 10)
+	controlHolder.Position = UDim2.fromScale(1, 0.05)
+	controlHolder.Size = UDim2.fromOffset(50, 10)
 	controlHolder.BackgroundTransparency = 1
 	controlHolder.Parent = row
 
@@ -238,7 +238,7 @@ function Slider.new(parent, Settings, theme)
 	statBox.AnchorPoint = Vector2.new(1, 0)
 	statBox.TextTruncate = Enum.TextTruncate.AtEnd
 	statBox.PlaceholderText = "0"
-	statBox.Size = UDim2.new(0, 56, 0, 16)
+	statBox.Size = UDim2.fromOffset(56, 16)
 	statBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	statBox.Text = ""
 	statBox.BackgroundTransparency = theme.InputBackgroundTransparency
@@ -262,7 +262,7 @@ function Slider.new(parent, Settings, theme)
 	percentLabel.TextWrapped = true
 	percentLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	percentLabel.BorderSizePixel = 0
-	percentLabel.Size = UDim2.new(0, 0, 0, 16)
+	percentLabel.Size = UDim2.fromOffset(0, 16)
 	percentLabel.AutomaticSize = Enum.AutomaticSize.X
 	percentLabel.TextSize = 11
 	percentLabel.TextTransparency = theme.SecondaryTextTransparency
@@ -282,7 +282,7 @@ function Slider.new(parent, Settings, theme)
 	resetBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	resetBtn.Image = Icons["rotate-ccw"] or "rbxassetid://110116685948665"
 	resetBtn.ImageColor3 = theme.AccentColor
-	resetBtn.Size = UDim2.new(0, 13, 0, 13)
+	resetBtn.Size = UDim2.fromOffset(13, 13)
 	resetBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	resetBtn.AnchorPoint = Vector2.new(1, 0.5)
 	resetBtn.Parent = controlHolder
@@ -291,7 +291,6 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- state --------------------------------------------------------------
 	local currentValue = snapTo({ min, max }, increment, default)
-	local currentPercentage = 0
 	local isDragging = false
 	local isHovered = false
 	local dragConnection = nil
@@ -306,7 +305,6 @@ function Slider.new(parent, Settings, theme)
 	local function renderProgress(info)
 		local span = max - min
 		local ratio = (span ~= 0) and math.clamp((currentValue - min) / span, 0, 1) or 0
-		currentPercentage = ratio
 		local size = fillSize(ratio)
 		if info then
 			TweenService:Create(visual, info, { Size = size }):Play()
@@ -366,7 +364,7 @@ function Slider.new(parent, Settings, theme)
 		updateVisibility()
 	end
 
-	local function beginDrag(input)
+	local function beginDrag(_input)
 		isDragging = true
 		setHeld(true)
 		updateFromMouse()
@@ -456,14 +454,14 @@ function Slider.new(parent, Settings, theme)
 		TweenService:Create(
 			resetBtn,
 			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Size = UDim2.new(0, 10, 0, 10) }
+			{ Size = UDim2.fromOffset(10, 10) }
 		):Play()
 		task.delay(0.12, function()
 			if resetBtn.Parent then
 				TweenService:Create(
 					resetBtn,
 					TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-					{ Size = UDim2.new(0, 13, 0, 13) }
+					{ Size = UDim2.fromOffset(13, 13) }
 				):Play()
 			end
 		end)
@@ -565,9 +563,9 @@ function Slider.new(parent, Settings, theme)
 		end,
 	})
 
-	function self:ApplyTheme(newTheme)
+	self.ApplyTheme = function(me, newTheme)
 		theme = ThemeManager.GetTheme(newTheme)
-		self._theme = theme
+		me._theme = theme
 		holder.BackgroundTransparency = 0
 		visual.BackgroundTransparency = 0
 		resetBtn.ImageTransparency = 0

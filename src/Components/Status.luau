@@ -17,7 +17,6 @@
 		})
 ]]
 
-local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 
@@ -68,8 +67,8 @@ function Status.new(parent, Settings, theme)
 	frame.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	frame.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
 	frame.AutomaticSize = Enum.AutomaticSize.Y
-	frame.Size = UDim2.new(1, 0, 0, 0)
-	frame.Position = UDim2.new(0, 0, 0, 0)
+	frame.Size = UDim2.fromScale(1, 0)
+	frame.Position = UDim2.fromScale(0, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	frame:SetAttribute("IsComponentContainer", true)
 	frame.Parent = parent
@@ -115,7 +114,7 @@ function Status.new(parent, Settings, theme)
 	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = 1
 	holder.AutomaticSize = Enum.AutomaticSize.Y
-	holder.Size = UDim2.new(0.90756, 0, 0, 0)
+	holder.Size = UDim2.fromScale(0.90756, 0)
 	holder.Position = UDim2.new(0.043, 0, 0, 38)
 	holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	holder.Parent = frame
@@ -129,7 +128,7 @@ function Status.new(parent, Settings, theme)
 	padding.Parent = holder
 	-- Create status entries
 	local statusLabels = {}
-	for i, entry in ipairs(entries) do
+	for _, entry in ipairs(entries) do
 		local title = entry[1] or ""
 		local description = entry[2] or ""
 		local color = entry[3]
@@ -180,7 +179,7 @@ function Status.new(parent, Settings, theme)
 		end
 		self.Entries = newEntries
 		-- Rebuild
-		for i, entry in ipairs(newEntries) do
+		for _, entry in ipairs(newEntries) do
 			local title = entry[1] or ""
 			local description = entry[2] or ""
 			local color = entry[3]
@@ -210,11 +209,11 @@ function Status.new(parent, Settings, theme)
 		self.StatusLabels = statusLabels
 	end
 	-- Uniform component API (p2-4).
-	function self:SetVisibility(visible)
-		if self.Holder then self.Holder.Visible = visible end
+	self.SetVisibility = function(me, visible)
+		if me.Holder then me.Holder.Visible = visible end
 	end
-	function self:Destroy()
-		if self.Holder and self.Holder.Parent then self.Holder:Destroy() end
+	self.Destroy = function(me)
+		if me.Holder and me.Holder.Parent then me.Holder:Destroy() end
 	end
 	return self
 end
