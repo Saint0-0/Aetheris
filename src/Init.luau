@@ -9,7 +9,7 @@
 		local window = Aetheris:CreateWindow({
 			Title = "Aetheris | Jailbreak",
 			Description = "hey",
-			Theme = "Default",
+			Theme = "Umbral",
 			MinimizeKey = "LeftControl",
 			AnimationStyle = "Smooth",  -- or "Snappy"
 			SettingsPages = {

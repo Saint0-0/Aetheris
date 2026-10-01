@@ -1084,7 +1084,7 @@ function Window.new(Settings)
 	if type(Settings.Theme) == "string" then
 		self._themeName = Settings.Theme
 	else
-		self._themeName = "Default"
+		self._themeName = ThemeManager.DefaultTheme
 	end
 
 	-- Default minimize keybind (settable via CreateWindow's MinimizeKey). Only a

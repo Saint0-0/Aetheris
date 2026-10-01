@@ -30,6 +30,12 @@ local ThemeManager = {}
 -- the tween time, so a nil here throws at the first animated binding.
 ThemeManager.ColorFadeTime = 0.7
 
+-- Launch default. The theme applied when a caller does not pass one (or when
+-- GetTheme is given nil). Change this ONE string to make any theme the
+-- default -- dark, light, whatever. It is independent of the structural merge
+-- base (`Base`), which only fills in keys a theme omits.
+ThemeManager.DefaultTheme = "Umbral"
+
 -- Component registry. Components call ThemeManager.Register(rootInstance, self)
 -- at construction; ApplyTheme then invokes each component's own ApplyTheme(theme)
 -- instead of relying solely on fragile name/attribute matching. Keyed by the
@@ -420,7 +426,7 @@ end
 -- Interaction-time read: current value of a theme key, without touching an
 -- instance. Handlers use this instead of reading a mid-tween instance[prop].
 function ThemeManager.Get(themeKey)
-    local theme = ActiveTheme.theme or ThemeManager.GetTheme("Default")
+    local theme = ActiveTheme.theme or ThemeManager.GetTheme(ThemeManager.DefaultTheme)
     return theme[themeKey]
 end
 
@@ -476,12 +482,12 @@ local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
 local themeMemo = {}
 
 function ThemeManager.GetTheme(themeInput)
-    -- Cache key: a named theme, or "Default" for nil/unknown input.
+    -- Cache key: a named theme, or the launch default for nil input.
     local key
     if type(themeInput) == "string" then
         key = themeInput
     elseif themeInput == nil then
-        key = "Default"
+        key = ThemeManager.DefaultTheme
     end
 
     if key then
@@ -496,23 +502,23 @@ function ThemeManager.GetTheme(themeInput)
     if type(themeInput) == "string" then
         themeTable = ThemeDefinitions[themeInput]
         if not themeTable then
-            warn("[ThemeManager] Theme '" .. tostring(themeInput) .. "' not found, using Default")
-            themeTable = ThemeDefinitions.Default
+            warn("[ThemeManager] Theme '" .. tostring(themeInput) .. "' not found, using Base")
+            themeTable = ThemeDefinitions.Base
         end
     elseif type(themeInput) == "table" then
         themeTable = themeInput
     else
-        themeTable = ThemeDefinitions.Default
+        themeTable = ThemeDefinitions.Base
     end
 
-    -- Merge with defaults
+    -- Merge with the structural base (fills any key a theme omits).
     local theme = {}
-    for k, v in pairs(ThemeDefinitions.Default) do
+    for k, v in pairs(ThemeDefinitions.Base) do
         theme[k] = themeTable[k] ~= nil and themeTable[k] or v
     end
 
     -- Only intern named/nil results; a missing name warns and falls back to
-    -- Default, so cache it under "Default" rather than the bad name.
+    -- Base, so a bad name never poisons the memo with a real theme's table.
     if key then
         themeMemo[key] = theme
     end

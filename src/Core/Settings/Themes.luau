@@ -17,56 +17,40 @@ local Constants = require("../../Constants")
 local Themes = {}
 
 local THEME_ORDER = {
-	"Default",
-	"Black",
-	"Light",
-	"Midnight",
-	"Graphite",
-	"Pearl",
-	"Slate",
-	"Ocean",
-	"Nord",
-	"Forest",
-	"Amethyst",
-	"Rose",
-	"Retro",
-	"Glass",
-	"Porcelain",
-	"Mist",
-	"Sandstone",
-	"Dusk",
-	"Frost",
-	"Azure",
-	"Fjord",
-	"Summit",
-	"Blossom",
+	"Umbral",
+	"Ember",
+	"Vesper",
+	"Duskfall",
+	"Canopy",
+	"Tidewater",
+	"Nocturne",
+	"Solace",
+	"Cielo",
+	"Honey",
+	"Dawn",
+	"Alpine",
+	"Peony",
+	"Sakura",
+	"Blush",
 }
 
 -- Short (card-sized) descriptions, one per theme.
 local THEME_DESCRIPTIONS = {
-	Default = "Balanced slate",
-	Black = "OLED black",
-	Light = "Clean & bright",
-	Midnight = "Deep indigo",
-	Graphite = "Cool gray teal",
-	Pearl = "Warm and soft",
-	Slate = "Cool blue-gray",
-	Ocean = "Navy & sunset",
-	Nord = "Arctic frost",
-	Forest = "Deep forest",
-	Amethyst = "Royal purple",
-	Rose = "Soft plum pink",
-	Retro = "Warm vintage",
-	Glass = "Frosted glass",
-	Porcelain = "Crisp and clean",
-	Mist = "Frosted light",
-	Sandstone = "Warm neutral",
-	Dusk = "Plum twilight",
-	Frost = "Icy blue-gray",
-	Azure = "Deep mountain blue",
-	Fjord = "Muted blue-grey",
-	Summit = "Crisp alpine",
-	Blossom = "Soft pink",
+	Umbral = "Flagship dark",
+	Ember = "Burnt orange",
+	Vesper = "Violet dusk",
+	Duskfall = "Plum & amber",
+	Canopy = "Emerald canopy",
+	Tidewater = "Cyan coast",
+	Nocturne = "Vivid magenta",
+	Solace = "Ice blue light",
+	Cielo = "Cobalt daylight",
+	Honey = "Warm amber",
+	Dawn = "Soft peach",
+	Alpine = "Crisp sky blue",
+	Peony = "Coral bloom",
+	Sakura = "Rose pink",
+	Blush = "Deep rose",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)
@@ -312,7 +296,7 @@ function Themes.Build(window, tab)
 		end
 	end
 	for name in pairs(ThemeDefinitions) do
-		if not seen[name] then
+		if not seen[name] and name ~= "Base" then
 			table.insert(ordered, name)
 		end
 	end
@@ -339,7 +323,7 @@ function Themes.Build(window, tab)
 
 	-- Store card states and active theme name
 	tab._themeCards = {}
-	tab._activeThemeName = window._themeName or "Default"
+	tab._activeThemeName = window._themeName or ThemeManager.DefaultTheme
 
 	local function setActive(newName)
 		if tab._activeThemeName == newName then
