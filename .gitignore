@@ -32,3 +32,8 @@ Thumbs.db
 
 # Local commit-message scratch file (never track)
 .commitmsg.tmp
+
+# Wallpaper scratch / derived artifacts (never track: huge, regenerable)
+assets/wallpapers/*.zip
+assets/wallpapers/_backup_pre_upscale/
+assets/wallpapers/_archive/

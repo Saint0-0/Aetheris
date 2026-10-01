@@ -35,22 +35,24 @@ local THEME_ORDER = {
 }
 
 -- Short (card-sized) descriptions, one per theme.
+-- Card-sized descriptions, one per theme. Hard cap: 12 characters including
+-- spaces, so they never wrap inside the card layout.
 local THEME_DESCRIPTIONS = {
-	Umbral = "Flagship dark",
-	Ember = "Burnt orange",
+	Umbral = "Navy night",
+	Ember = "Molten glow",
 	Vesper = "Violet dusk",
-	Duskfall = "Plum & amber",
-	Canopy = "Emerald canopy",
-	Tidewater = "Cyan coast",
-	Nocturne = "Vivid magenta",
-	Solace = "Ice blue light",
-	Cielo = "Cobalt daylight",
-	Honey = "Warm amber",
-	Dawn = "Soft peach",
-	Alpine = "Crisp sky blue",
+	Duskfall = "Plum sunset",
+	Canopy = "Forest mist",
+	Tidewater = "Teal coast",
+	Nocturne = "Aurora night",
+	Solace = "Ice calm",
+	Cielo = "Clear sky",
+	Honey = "Golden hour",
+	Dawn = "Soft dawn",
+	Alpine = "Crisp peaks",
 	Peony = "Coral bloom",
-	Sakura = "Rose pink",
-	Blush = "Deep rose",
+	Sakura = "Pink petals",
+	Blush = "Rose dusk",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)

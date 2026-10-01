@@ -1236,24 +1236,53 @@ ThemeDefinitions.Blush = {
 -- Wallpapers (from the MaterialService decals). Assigned per theme so each
 -- keeps its character; the tab/backdrop images use these when present.
 local WALLPAPERS = {
-    -- Big Sur-era wallpapers. Dark themes take the dark variants, light themes
-    -- the light/morning ones, mid-tone themes the saturated or neutral ones.
-    Base      = "rbxassetid://126475867393987", -- Monterey dark
-    Umbral    = "rbxassetid://126475867393987", -- Monterey dark
-    Ember     = "rbxassetid://114699504726298", -- Sonoma dark
-    Vesper    = "rbxassetid://100629172964437", -- Ventura dark
-    Duskfall  = "rbxassetid://18571374017",      -- plum + orange
-    Canopy    = "rbxassetid://116321051235221",  -- forest
-    Tidewater = "rbxassetid://135568871834704",  -- blue mountains
-    Nocturne  = "rbxassetid://78613064348772",    -- Monterey (vivid)
-    Solace    = "rbxassetid://81270141924137",    -- WhiteSur light
-    Cielo     = "rbxassetid://98569091830887",    -- WhiteSur
-    Honey     = "rbxassetid://79886157813963",    -- WhiteSur morning
-    Dawn      = "rbxassetid://88171125327716",    -- Monterey morning
-    Alpine    = "rbxassetid://123969479560901",   -- blue + white mountains
-    Peony     = "rbxassetid://131979800493713",   -- pink waves
-    Sakura    = "rbxassetid://107522899082679",   -- pink mountains
-    Blush     = "rbxassetid://8350591200",        -- pink minimal
+    -- Custom art set (2026-10). Each theme gets one dominant-hue backdrop that
+    -- matches its chrome; the image sits behind frosted chrome, so these are
+    -- deliberately even-toned and low-clutter.
+    Base      = "rbxassetid://126475867393987", -- Monterey dark (structural base)
+    Umbral    = "rbxassetid://108134687422467", -- navy night range
+    Ember     = "rbxassetid://112056619173488", -- molten coals
+    Vesper    = "rbxassetid://139008744622245", -- violet twilight
+    Duskfall  = "rbxassetid://84448785488489",  -- plum + amber dusk
+    Canopy    = "rbxassetid://117265363863813", -- misty forest
+    Tidewater = "rbxassetid://135568871834704", -- blue mountains (legacy)
+    Nocturne  = "rbxassetid://95435913199118",  -- aurora
+    Solace    = "rbxassetid://92445107726358",  -- ice-blue mist
+    Cielo     = "rbxassetid://98569091830887",  -- WhiteSur (legacy)
+    Honey     = "rbxassetid://73850635447680",  -- golden hour
+    Dawn      = "rbxassetid://88171125327716",  -- Monterey morning (legacy)
+    Alpine    = "rbxassetid://123969479560901", -- blue + white mountains (legacy)
+    Peony     = "rbxassetid://131979800493713", -- pink waves (legacy)
+    Sakura    = "rbxassetid://83848197180836",  -- rose blossom
+    Blush     = "rbxassetid://8350591200",      -- pink minimal (legacy)
+}
+
+-- Alternate / legacy backdrops, kept for swapping and reuse. Nothing here is
+-- referenced by default: assign an entry into WALLPAPERS, or set a theme's own
+-- Wallpaper key to one of these, to bring it back.
+local ALT_WALLPAPERS = {
+    -- Extra custom art that did not take the primary slot this round.
+    EmberAlt     = "rbxassetid://91682462344785",   -- ember 2, brighter blaze
+    VesperAlt    = "rbxassetid://129556634773235",  -- vesper 2
+    VesperDeep   = "rbxassetid://74675854421559",   -- vesper 3
+    DuskfallAlt  = "rbxassetid://80301124180881",   -- duskfall 2
+    DuskfallDeep = "rbxassetid://110295134647166",  -- duskfall 3
+    CanopyAlt    = "rbxassetid://97394507475736",   -- canopy 2
+    NocturneAlt  = "rbxassetid://110937489750863",  -- nocturne 2
+    SakuraAlt    = "rbxassetid://13426533185317",   -- sakura 2
+    SakuraDeep   = "rbxassetid://119516266319751",  -- sakura 3
+
+    -- Previous Big Sur / WhiteSur set. Superseded by the art above, but still
+    -- good imagery and useful for docs or future themes.
+    LegacyUmbral   = "rbxassetid://126475867393987", -- Monterey dark
+    LegacyEmber    = "rbxassetid://114699504726298", -- Sonoma dark
+    LegacyVesper   = "rbxassetid://100629172964437", -- Ventura dark
+    LegacyDuskfall = "rbxassetid://18571374017",     -- plum + orange
+    LegacyCanopy   = "rbxassetid://116321051235221", -- forest
+    LegacyNocturne = "rbxassetid://78613064348772",  -- Monterey vivid
+    LegacySolace   = "rbxassetid://81270141924137",  -- WhiteSur light
+    LegacyHoney    = "rbxassetid://79886157813963",  -- WhiteSur morning
+    LegacySakura   = "rbxassetid://107522899082679", -- pink mountains
 }
 
 for name, wallpaper in pairs(WALLPAPERS) do
@@ -1261,6 +1290,11 @@ for name, wallpaper in pairs(WALLPAPERS) do
         ThemeDefinitions[name].Wallpaper = wallpaper
     end
 end
+
+-- Exposed so callers can build a wallpaper picker or swap a theme's backdrop
+-- at runtime without touching this file. Keyed by a descriptive name, not by
+-- theme, since several entries are alternates for the same family.
+ThemeDefinitions.AltWallpapers = ALT_WALLPAPERS
 
 -- Window control icon colors (close/maximize/minimize). Dark themes get light
 -- icons, light themes get dark ones, so they stay visible on the window chrome.
@@ -1293,23 +1327,34 @@ end
 -- content, or content-translucent over a solid sidebar -- never both washed
 -- out. { WindowTransparency, SidebarTransparency, ContentBackgroundTransparency }.
 local THEME_TRANSPARENCY = {
-    -- Flagship: near-black window, deeply frosted sidebar, faint content tint.
+    -- Three profiles, deliberately never both washed out:
+    --   A = { 0.15, 0.72, 0.10 } deeply frosted sidebar, faint content tint
+    --   B = { 0.22, 0.62, 0.00 } frosted sidebar, fully opaque content
+    --   C = { 0.28, 0.00, 0.42 } solid sidebar, translucent content
+
+    -- Profile A: flagship darks. The sidebar reads as glass over the wallpaper
+    -- while the content area keeps only a hint of tint.
     Base      = { 0.15, 0.72, 0.1  },
     Umbral    = { 0.15, 0.72, 0.1  },
+    Nocturne  = { 0.15, 0.72, 0.1  },
+
+    -- Profile B: frosted sidebar, opaque content. Keeps text-heavy pages clean.
     Ember     = { 0.22, 0.62, 0    },
-    Vesper    = { 0.28, 0,    0.42 },
-    Duskfall  = { 0.28, 0,    0.42 },
-    Canopy    = { 0.28, 0,    0.42 },
-    Tidewater = { 0.28, 0,    0.42 },
-    Nocturne  = { 0.22, 0.68, 0    },
     Solace    = { 0.22, 0.62, 0    },
     Cielo     = { 0.22, 0.62, 0    },
     Honey     = { 0.22, 0.62, 0    },
     Dawn      = { 0.22, 0.62, 0    },
+    Blush     = { 0.22, 0.62, 0    },
+
+    -- Profile C: solid sidebar, translucent content. The wallpaper carries the
+    -- content region instead of the rail.
+    Vesper    = { 0.28, 0,    0.42 },
+    Duskfall  = { 0.28, 0,    0.42 },
+    Canopy    = { 0.28, 0,    0.42 },
+    Tidewater = { 0.28, 0,    0.42 },
     Alpine    = { 0.28, 0,    0.42 },
     Peony     = { 0.28, 0,    0.42 },
     Sakura    = { 0.28, 0,    0.42 },
-    Blush     = { 0.22, 0.62, 0    },
 }
 
 for name, t in pairs(THEME_TRANSPARENCY) do
