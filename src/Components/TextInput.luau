@@ -159,7 +159,7 @@ function TextInput.new(parent, Settings, theme)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80)
-	stroke.Transparency = restStrokeTransparency()
+	stroke.Transparency = theme.StrokeTransparency or 0.4
 	stroke.Thickness = 1
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = field
