@@ -2653,4 +2653,64 @@ for _, t in pairs(ThemeDefinitions) do
 	end
 end
 
+-- Section card surfaces. Every theme previously shared one flat white fill at
+-- ~0.98 transparency, so sections looked identical no matter the theme. Give
+-- each theme its own tint (a blend of its popup/window surface toward its
+-- accent) and its own opacity, spanning fully opaque to nearly transparent.
+local SECTION_OPACITY = {
+	Base = 0.86,
+	Umbral = 0.88,
+	Ember = 0.80,
+	Vesper = 0.66,
+	Duskfall = 0.72,
+	Canopy = 0.78,
+	Tidewater = 0.80,
+	Nocturne = 0.86,
+	Solace = 0.58,
+	Cielo = 0.60,
+	Honey = 0.52,
+	Dawn = 0.55,
+	Alpine = 0.62,
+	Peony = 0.68,
+	Sakura = 0.70,
+	Blush = 0.64,
+	Cinder = 0.08,
+	Mauve = 0.46,
+	Iris = 0.48,
+	Sundown = 0.52,
+	Twilight = 0.50,
+	Nebula = 0.84,
+	Monterey = 0.85,
+	Sonoma = 0.54,
+	Ventura = 0.48,
+	Vermilion = 0.56,
+	Grove = 0.60,
+	Prism = 0.14,
+	Sage = 0.10,
+	Blossom = 0.62,
+	Petal = 0.64,
+	Frost = 0.06,
+	Amber = 0.12,
+	Rosa = 0.62,
+}
+local SECTION_TINT = 0.12 -- how far the fill leans toward the accent colour
+
+local function blendColor(a, b, t)
+	return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t)
+end
+
+for name, def in pairs(ThemeDefinitions) do
+	local opacity = SECTION_OPACITY[name] or 0.7
+	local base = def.PopupBackgroundColor or def.WindowColor or Color3.fromRGB(20, 20, 22)
+	local accent = def.AccentColor or def.PrimaryColor or Color3.fromRGB(108, 140, 255)
+	def.SectionBackgroundColor = blendColor(base, accent, SECTION_TINT)
+	def.SectionBackgroundTransparency = opacity
+	-- Border leans slightly further toward the accent so the card edge reads as
+	-- part of the same theme.
+	def.SectionStrokeColor = blendColor(base, accent, SECTION_TINT * 1.8)
+	if def.SectionStrokeTransparency == nil then
+		def.SectionStrokeTransparency = 0.9
+	end
+end
+
 return ThemeDefinitions

@@ -117,6 +117,10 @@ function Label.new(parent, Settings, theme)
 	-- Declarative theming: every themed property is a BINDING. No ApplyTheme.
 	local bgTransBinding =
 		ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	-- Text COLOUR was stamped once from the construction-time theme and never
+	-- bound, so a theme switch left the label text at its original colour (white
+	-- on the default theme). Bind it like every other themed colour.
+	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	-- Conditional properties: a binding drives the value only while its
@@ -174,6 +178,11 @@ function Label.new(parent, Settings, theme)
 		container.Visible = visible
 	end
 	self.Destroy = function(_self)
+		-- Drop the theme bindings so a destroyed label leaves nothing behind in
+		-- the ThemeManager registry.
+		ThemeManager.UnbindInstance(label)
+		ThemeManager.UnbindInstance(container)
+		ThemeManager.UnbindInstance(stroke)
 		if container and container.Parent then
 			container:Destroy()
 		end

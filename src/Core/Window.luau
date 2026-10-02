@@ -338,7 +338,7 @@ function Window.new(Settings)
 	PageTitle.BorderSizePixel = 0
 	PageTitle.TextSize = 14
 	PageTitle.TextXAlignment = Enum.TextXAlignment.Left
-	PageTitle.TextTransparency = theme.PrimaryTextTransparency or 0.4 -- [THEME] title text transparency
+	PageTitle.TextTransparency = 0.3 -- matches ScriptName/Username/DisplayName (title-bar text)
 	PageTitle.BackgroundTransparency = 1
 	-- Base weight is Regular. The "Settings | " prefix and sidebar tab names are
 	-- rendered Medium via <font weight="500"> rich-text spans (wrapping them in
@@ -883,6 +883,7 @@ function Window.new(Settings)
 	ScriptName.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	ScriptName.TextColor3 = theme.TitleTextColor
 	ScriptName.Size = UDim2.fromScale(1.36294, 0.44828)
+	ScriptName.RichText = true
 	ScriptName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ScriptName.Text = "Aetheris | Jailbreak"
 	ScriptName.LayoutOrder = 1
@@ -903,15 +904,23 @@ function Window.new(Settings)
 	-- at startup and on every theme round-trip.
 	local function restampThemeGradients(t)
 		local accent = t.AccentColor or Color3.fromRGB(108, 140, 255)
+		local base = t.PopupBackgroundColor or t.WindowColor or Color3.fromRGB(20, 20, 22)
 		for _, g in ipairs(tagGradients) do
 			local pill = g and g.Parent
 			if pill then
+				-- Two independent roles: the pill's BACKGROUND (fill) and the
+				-- gradient's fade target (accent). Previously the pinned accent was
+				-- written to the background too, so a caller-supplied BackgroundColor
+				-- was lost and the fill always followed the accent.
+				local pinnedBase = g:GetAttribute("TagBaseColor")
 				local pinnedAccent = g:GetAttribute("TagAccentColor")
+				local fill = (typeof(pinnedBase) == "Color3") and pinnedBase or base
 				local hue = (typeof(pinnedAccent) == "Color3") and pinnedAccent or accent
-				pill.BackgroundColor3 = hue
+				pill.BackgroundColor3 = fill
+				g.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), hue)
 				local glow = pill:FindFirstChildOfClass("UIShadow")
 				if glow then
-					glow.Color = hue
+					glow.Color = fill
 				end
 			end
 		end
@@ -945,10 +954,11 @@ function Window.new(Settings)
 
 	local TAG_GAP = 4
 	local function buildTag(spec, index, total)
-		local name, txtColor, accColor
+		local name, txtColor, bgColor, accColor
 		if type(spec) == "table" then
 			name = spec.Name or spec.Text or ""
 			txtColor = spec.TextColor
+			bgColor = spec.BackgroundColor
 			accColor = spec.AccentColor
 		else
 			name = tostring(spec)
@@ -964,7 +974,10 @@ function Window.new(Settings)
 		-- UIGradient below carries a fixed white -> grey brightness ramp
 		-- (multiplied against the slab). The hue lives on BackgroundColor3,
 		-- exactly like LiveStat's accent overlay.
-		pill.BackgroundColor3 = accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
+		-- The pill's fill is the caller's BackgroundColor (falling back to the
+		-- theme popup surface); the gradient below fades that fill toward the
+		-- caller's AccentColor.
+		pill.BackgroundColor3 = bgColor or theme.PopupBackgroundColor or theme.WindowColor or Color3.fromRGB(20, 20, 22)
 		pill.BackgroundTransparency = 0
 		pill.Size = UDim2.new(1 / total, widthOffset, 0, 14)
 		pill.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -977,14 +990,21 @@ function Window.new(Settings)
 
 		local pillGradient = Instance.new("UIGradient")
 		pillGradient.Rotation = -55
-		-- Record the pinned accent so a theme switch preserves it (restamp...).
+		-- Record the pinned base + accent so a theme switch preserves them
+		-- (see restampThemeGradients).
+		if bgColor then
+			pillGradient:SetAttribute("TagBaseColor", bgColor)
+		end
 		if accColor then
 			pillGradient:SetAttribute("TagAccentColor", accColor)
 		end
-		-- LiveStat's fixed brightness ramp: white -> grey, near-opaque at the
-		-- bright end and slightly faded at the dark end. The hue comes from the
-		-- pill's BackgroundColor3, NOT from this ramp.
-		pillGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
+		-- White -> accent: the bright end shows the pill's own BackgroundColor and
+		-- the far end fades into the caller's AccentColor (previously this ramped
+		-- to mid-grey, which read as fading to black).
+		pillGradient.Color = ColorSequence.new(
+			Color3.fromRGB(255, 255, 255),
+			accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
+		)
 		pillGradient.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0),
 			NumberSequenceKeypoint.new(1, 0.12),
@@ -994,7 +1014,8 @@ function Window.new(Settings)
 
 		-- Matching bloom behind the pill (LiveStat's UIShadow glow).
 		local glow = Instance.new("UIShadow")
-		glow.Color = accColor or theme.AccentColor or Color3.fromRGB(108, 140, 255)
+		-- Shadow matches the pill's BACKGROUND colour, not the accent.
+		glow.Color = bgColor or theme.PopupBackgroundColor or theme.WindowColor or Color3.fromRGB(20, 20, 22)
 		glow.Transparency = 0.6
 		glow.BlurRadius = UDim.new(0, 8)
 		glow.Spread = UDim2.fromOffset(1, 1)
@@ -1569,7 +1590,7 @@ function Window.new(Settings)
 	pillCorner.Parent = pill
 	local pillStroke = Instance.new("UIStroke")
 	pillStroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	pillStroke.Transparency = 0.7
+	pillStroke.Transparency = 0.8
 	pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	pillStroke.Parent = pill
 	local pillShadow = Instance.new("UIShadow")
@@ -1626,7 +1647,7 @@ function Window.new(Settings)
 		pill.BackgroundTransparency = 0.05
 		pill.GroupTransparency = PILL_REST_GROUP
 		pillStroke.Color = t.StrokeColor or Color3.fromRGB(255, 255, 255)
-		pillStroke.Transparency = 0.7
+		pillStroke.Transparency = 0.8
 		pillShadow.Color = t.PopupShadowColor or Color3.fromRGB(0, 0, 0)
 		pillShadow.Transparency = 1 -- rest: hidden; hover sets 0.5
 	end
@@ -2031,9 +2052,12 @@ function Window.new(Settings)
 			doClose()
 			return
 		end
+		-- Name the UI after the script (Settings.Title sets ScriptName.Text) so the
+		-- prompt reads "Close <name>?" instead of a hard-coded "Aetheris".
+		local appName = (ScriptName.Text ~= "" and ScriptName.Text) or "the UI"
 		self:UINotification({
-			Title = "Close Aetheris?",
-			Description = 'Are you sure you want to <font color="#FF0000">close</font> the UI?',
+			Title = "Close " .. appName .. "?",
+			Description = 'Are you sure you want to <font color="#FF0000">close</font> ' .. appName .. "?",
 			TitleColor = Color3.fromRGB(255, 0, 0),
 			ConfirmText = "Yes, close it",
 			CancelText = "No, keep it open",
@@ -2133,7 +2157,9 @@ function Window.new(Settings)
 		end
 	end
 	ThemeManager.BindColor(PageTitle, "TextColor3", "TitleTextColor")
-	ThemeManager.BindTransparency(PageTitle, "TextTransparency", "PrimaryTextTransparency")
+	-- PageTitle transparency is a literal 0.3 to match the rest of the title bar
+	-- (ScriptName/Username/DisplayName/TimeLabel); it is intentionally NOT bound
+	-- to PrimaryTextTransparency, which diverged from ScriptName's value.
 	ThemeManager.BindColor(PageTitleDivider, "BackgroundColor3", "TertiaryColor")
 	ThemeManager.BindTransparency(PageTitleDivider, "BackgroundTransparency", "SectionDividerTransparency")
 	ThemeManager.BindColor(SearchBar, "BackgroundColor3", "SearchBarBackgroundColor")

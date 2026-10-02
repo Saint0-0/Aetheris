@@ -104,6 +104,15 @@ function RadioButton.new(parent, group, Settings, theme)
 	activatedImage.Image = "rbxassetid://8445470984"
 	activatedImage.ImageRectSize = Vector2.new(96, 96)
 	activatedImage.ImageRectOffset = Vector2.new(804, 904)
+	-- Optional custom icon. Settings.Icon replaces the default activated mark; a
+	-- plain asset id displays whole (the default sprite-sheet crop is cleared).
+	-- Omitting Icon (or passing "") keeps the built-in glyph.
+	local iconOverride = Settings.Icon
+	if type(iconOverride) == "string" and iconOverride ~= "" then
+		activatedImage.Image = iconOverride
+		activatedImage.ImageRectSize = Vector2.new(0, 0)
+		activatedImage.ImageRectOffset = Vector2.new(0, 0)
+	end
 	activatedImage.Size = UDim2.fromOffset(17, 17)
 	activatedImage.BackgroundTransparency = 1
 	activatedImage.Position = UDim2.fromScale(0.5, 0.5)
@@ -182,9 +191,14 @@ function RadioButton.new(parent, group, Settings, theme)
 		holderStroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
 	end
 	----------------------------------------------------------------
-	-- HOVER
+	-- HOVER / CLICK
 	----------------------------------------------------------------
-	button.MouseEnter:Connect(function()
+	-- The whole row is interactive: hovering or pressing either the holder frame
+	-- (the pill) or the inner button drives the same visuals, so a user can tap
+	-- the frame as well as the button. Mirrors Toggle's shared handleClick wired
+	-- to both `row` and `thumb`. Selection is idempotent, so the mouse-event
+	-- bubbling between holder and button can't double-apply.
+	local function enterHover()
 		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
 		if self.IsSelected then
 			Tween.Play(activatedImage, "HoverIn", {
@@ -199,8 +213,8 @@ function RadioButton.new(parent, group, Settings, theme)
 				Transparency = (theme.StrokeTransparency or 0.4) * 0.5,
 			})
 		end
-	end)
-	button.MouseLeave:Connect(function()
+	end
+	local function leaveHover()
 		Tween.Play(bounceScale, "HoverOut", { Scale = 1 })
 		local isOn = self.IsSelected
 		local targetColor = isOn and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
@@ -211,22 +225,25 @@ function RadioButton.new(parent, group, Settings, theme)
 		Tween.Play(holderStroke, "HoverOut", {
 			Transparency = isOn and 1 or (theme.StrokeTransparency or 0.4),
 		})
-	end)
-	----------------------------------------------------------------
-	-- CLICK
-	----------------------------------------------------------------
-	button.MouseButton1Down:Connect(function()
+	end
+	local function pressDown()
 		Tween.Play(bounceScale, "Fast", { Scale = 0.97 })
-	end)
-	button.MouseButton1Up:Connect(function()
+	end
+	local function pressUp()
 		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
-	end)
-
-	button.MouseButton1Click:Connect(function()
+	end
+	local function handleClick()
 		if self.Group then
 			self.Group:Select(self)
 		end
-	end)
+	end
+	for _, hit in ipairs({ holder, button }) do
+		hit.MouseEnter:Connect(enterHover)
+		hit.MouseLeave:Connect(leaveHover)
+		hit.MouseButton1Down:Connect(pressDown)
+		hit.MouseButton1Up:Connect(pressUp)
+		hit.MouseButton1Click:Connect(handleClick)
+	end
 	----------------------------------------------------------------
 	-- SPINNING GRADIENT (using centralized Tween.StartSpin/StopSpin)
 	----------------------------------------------------------------
