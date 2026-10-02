@@ -21,7 +21,7 @@ Two files are attached to each release:
 - **Aetheris.luau** - the single-file build, load it with `loadstring`.
 - **Aetheris.rbxm** - a Roblox model (an `Aetheris` folder holding an `Init` ModuleScript). Drop it into `ReplicatedStorage` and require `Aetheris.Init`.
 
-## Install
+## Load
 
 ```lua
 loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau"))()
