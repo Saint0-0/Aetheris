@@ -52,7 +52,7 @@ TextInput.__index = TextInput
 local FIELD_HEIGHT = 29
 local FIELD_MIN_W = 40 -- floor width; the default still hugs the placeholder
 local FIELD_MAX_W = 220 -- absolute ceiling regardless of row width
-local TEXT_SIZE = 15
+local TEXT_SIZE = 9
 local PAD_X = 15 -- clearance each side of the text (centred)
 local LABEL_GAP = 20 -- px the field always keeps clear before the label
 

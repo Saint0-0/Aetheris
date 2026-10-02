@@ -32,24 +32,11 @@ Setup, theming, the component API and examples all live in the docs:
 
 **[Aetheris documentation ->](https://app.gitbook.com/s/WPkBDlqrRRp8P5YpSOrg)**
 
-## Build from source
-
-The build pipeline lives in `build/` and is run with [lune](https://github.com/lune-org/lune):
-
-```
-tools\lune.exe run build
-```
-
-That produces two artifacts in `dist/` (gitignored - they are build artefacts, not source):
-
-- `dist/Aetheris.luau` - the bundle, minified with darklua, header prepended.
-- `dist/Aetheris.rbxm` - the Roblox model, built with rojo from the bundle.
-
 ## Credits
 
 - **WinUI3** by Microsoft, for the visual language Aetheris is built around.
 - **[maclib](https://brady-xyz.gitbook.io/maclib-ui-library)** by brady-xyz, for inspiration.
-- **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration, and for the build tooling - the files in [`build/`](build) are adapted from [Fluent's `build/` folder](https://github.com/dawid-scripts/Fluent/tree/master/build).
+- **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration, and for the build tooling.
 
 ## License
 
