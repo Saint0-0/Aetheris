@@ -240,10 +240,12 @@ function RadioButton.new(parent, group, Settings, theme)
 	for _, hit in ipairs({ holder, button }) do
 		hit.MouseEnter:Connect(enterHover)
 		hit.MouseLeave:Connect(leaveHover)
-		hit.MouseButton1Down:Connect(pressDown)
-		hit.MouseButton1Up:Connect(pressUp)
-		hit.MouseButton1Click:Connect(handleClick)
 	end
+	-- `holder` is a Frame (no MouseButton1Down/Up/Click members); the button
+	-- fills it, so button-only click connections still cover the whole pill.
+	button.MouseButton1Down:Connect(pressDown)
+	button.MouseButton1Up:Connect(pressUp)
+	button.MouseButton1Click:Connect(handleClick)
 	----------------------------------------------------------------
 	-- SPINNING GRADIENT (using centralized Tween.StartSpin/StopSpin)
 	----------------------------------------------------------------

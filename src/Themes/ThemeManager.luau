@@ -532,6 +532,10 @@ local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
 local themeMemo = {}
 
 function ThemeManager.GetTheme(themeInput)
+	-- Legacy alias: "Default" resolves to the library default theme.
+	if themeInput == "Default" then
+		themeInput = ThemeManager.DefaultTheme
+	end
 	-- Cache key: a named theme, or the launch default for nil input.
 	local key
 	if type(themeInput) == "string" then
