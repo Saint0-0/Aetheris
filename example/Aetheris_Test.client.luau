@@ -56,26 +56,32 @@ local window = Aetheris:CreateWindow({
 	-- (a pinned colour is override-locked so theme switches leave it alone).
 	Tags = {
 		-- orange bg, white text, lighter-orange accent gradient
-		{ Name = "v0.2.0",
-		  BackgroundColor = Color3.fromRGB(217, 119, 6),
-		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(255, 221, 109) },
+		{
+			Name = "v0.2.0",
+			BackgroundColor = Color3.fromRGB(217, 119, 6),
+			TextColor = Color3.fromRGB(255, 255, 255),
+			AccentColor = Color3.fromRGB(255, 221, 109),
+		},
 		-- blue, same pattern
-		{ Name = "build",
-		  BackgroundColor = Color3.fromRGB(9, 52, 145),
-		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(167, 206, 255) },
+		{
+			Name = "build",
+			BackgroundColor = Color3.fromRGB(9, 52, 145),
+			TextColor = Color3.fromRGB(255, 255, 255),
+			AccentColor = Color3.fromRGB(167, 206, 255),
+		},
 		-- green, same pattern
-		{ Name = "DEMO",
-		  BackgroundColor = Color3.fromRGB(6, 119, 47),
-		  TextColor = Color3.fromRGB(255, 255, 255),
-		  AccentColor = Color3.fromRGB(149, 255, 188) },
+		{
+			Name = "DEMO",
+			BackgroundColor = Color3.fromRGB(6, 119, 47),
+			TextColor = Color3.fromRGB(255, 255, 255),
+			AccentColor = Color3.fromRGB(149, 255, 188),
+		},
 	},
-	Theme = "Default",           -- any name from ThemeDefinitions
-	AnimationStyle = "Smooth",   -- "Smooth" | "Snappy"
-	DragStyle = "Smooth",        -- "Smooth" (glides) | "Instant" (snaps)
+	Theme = "Default", -- any name from ThemeDefinitions
+	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
+	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl", -- press to minimize / restore the window
-	SettingsPages = {            -- extra pages shown in the Settings tab
+	SettingsPages = { -- extra pages shown in the Settings tab
 		{
 			Name = "Keybinds",
 			Icon = ico("keyboard"),
@@ -85,17 +91,21 @@ local window = Aetheris:CreateWindow({
 			-- openColorPicker, notify are all defined later in this file).
 			Build = function(window, tab)
 				local move = tab:Section({ Name = "Movement" })
-				move:Keybind({ Name = "Jump",   Default = "Space",       Callback = function() end })
+				move:Keybind({ Name = "Jump", Default = "Space", Callback = function() end })
 				move:Keybind({ Name = "Crouch", Default = "LeftControl", Callback = function() end })
-				move:Keybind({ Name = "Sprint", Default = "LeftShift",   Callback = function() end })
+				move:Keybind({ Name = "Sprint", Default = "LeftShift", Callback = function() end })
 
 				move:Divider({ Padding = 10 })
 				move:Toggle({ Name = "Toggle Sprint", Default = false, Callback = function() end })
 
 				local combat = tab:Section({ Name = "Combat" })
-				combat:Keybind({ Name = "Aim",    Default = "Q", Callback = function() end })
+				combat:Keybind({ Name = "Aim", Default = "Q", Callback = function() end })
 				combat:Keybind({ Name = "Reload", Default = "R", Callback = function() end })
-				combat:Label({ Text = "Dummy keybind page built via the Build callback.", ShowContainer = false, ShowStroke = false })
+				combat:Label({
+					Text = "Dummy keybind page built via the Build callback.",
+					ShowContainer = false,
+					ShowStroke = false,
+				})
 			end,
 		},
 		{
@@ -109,13 +119,38 @@ local window = Aetheris:CreateWindow({
 					Description = "Sample custom settings page. Everything here is a real Aetheris component, stacked in one column.",
 				})
 				list:Divider({ Padding = 10 })
-				list:Label({ Text = "No macros recorded yet.", FontWeight = "SemiBold", ShowContainer = false, ShowStroke = false })
+				list:Label({
+					Text = "No macros recorded yet.",
+					FontWeight = "SemiBold",
+					ShowContainer = false,
+					ShowStroke = false,
+				})
 
 				local timing = tab:Section({ Name = "Timing" })
-				timing:Slider({ Name = "Loop Delay",  Min = 0, Max = 100, Default = 25, Precision = 0, Callback = function() end })
-				timing:Stepper({ Name = "Repeat Count", Min = 1, Max = 50, Default = 5, Step = 1, Integer = true, Callback = function() end })
+				timing:Slider({
+					Name = "Loop Delay",
+					Min = 0,
+					Max = 100,
+					Default = 25,
+					Precision = 0,
+					Callback = function() end,
+				})
+				timing:Stepper({
+					Name = "Repeat Count",
+					Min = 1,
+					Max = 50,
+					Default = 5,
+					Step = 1,
+					Integer = true,
+					Callback = function() end,
+				})
 				timing:Toggle({ Name = "Loop Forever", Default = true, Callback = function() end })
-				timing:Button({ Name = "Record Macro", Callback = function() print("[Demo] Record Macro") end })
+				timing:Button({
+					Name = "Record Macro",
+					Callback = function()
+						print("[Demo] Record Macro")
+					end,
+				})
 			end,
 		},
 	},
@@ -127,17 +162,15 @@ local window = Aetheris:CreateWindow({
 -- Popup engines are now built into the components (see Section): no helper
 -- arguments are required when building toggles/dropdowns/color pickers.
 
-
-
 -- == 2. CREATE THE TABS ====================================================
 -- window:Tab(name, icon) adds a page to the sidebar. window:Divider() inserts
 -- a thin separator (used here to visually detach the Settings tab).
-local homeTab     = window:Tab("Home", ico("home"))
+local homeTab = window:Tab("Home", ico("home"))
 local controlsTab = window:Tab("Controls", ico("sliders-horizontal"))
-local inputsTab   = window:Tab("Inputs", ico("list"))
+local inputsTab = window:Tab("Inputs", ico("list"))
 local feedbackTab = window:Tab("Feedback", ico("bell"))
-local mediaTab    = window:Tab("Media", ico("play"))
-local statsTab    = window:Tab("Stats", ico("chart-line"))
+local mediaTab = window:Tab("Media", ico("play"))
+local statsTab = window:Tab("Stats", ico("chart-line"))
 window:Divider()
 local settingsTab = window:Tab("Settings", ico("settings"))
 
@@ -176,7 +209,9 @@ local actionSection = homeTab:Section({ Name = "Actions", Side = "Right" })
 
 actionSection:Button({
 	Name = "Do The Thing",
-	Callback = function() print("[Demo] Button clicked") end,
+	Callback = function()
+		print("[Demo] Button clicked")
+	end,
 })
 
 -- A button that fires the full UINotification modal (confirm/cancel dialog).
@@ -188,8 +223,12 @@ actionSection:Button({
 			Description = "This action cannot be undone.",
 			ConfirmText = "Delete",
 			CancelText = "Keep",
-			OnConfirm = function() print("[Demo] UINotification confirmed") end,
-			OnCancel = function() print("[Demo] UINotification cancelled") end,
+			OnConfirm = function()
+				print("[Demo] UINotification confirmed")
+			end,
+			OnCancel = function()
+				print("[Demo] UINotification cancelled")
+			end,
 		})
 	end,
 })
@@ -204,7 +243,12 @@ actionSection:Button({
 			Duration = 6,
 			ShowBackground = true,
 			Actions = {
-				{ Text = "Nice", Callback = function() print("[Demo] toast action") end },
+				{
+					Text = "Nice",
+					Callback = function()
+						print("[Demo] toast action")
+					end,
+				},
 			},
 		})
 	end,
@@ -243,10 +287,30 @@ local statControls = statsTab:Section({ Name = "Controls", Side = "Right" })
 
 -- Drive the stat to different numbers so the count-up roll + accent direction
 -- change (up = positive accent, down = negative accent) are visible.
-statControls:Button({ Name = "Set Score = 100",  Callback = function() scoreStat:Set(100) end })
-statControls:Button({ Name = "Set Score = 2500", Callback = function() scoreStat:Set(2500) end })
-statControls:Button({ Name = "Set Score = 40",   Callback = function() scoreStat:Set(40) end })
-statControls:Button({ Name = "Tick Time",        Callback = function() timeStat:Set(timeStat:Get() + 1) end })
+statControls:Button({
+	Name = "Set Score = 100",
+	Callback = function()
+		scoreStat:Set(100)
+	end,
+})
+statControls:Button({
+	Name = "Set Score = 2500",
+	Callback = function()
+		scoreStat:Set(2500)
+	end,
+})
+statControls:Button({
+	Name = "Set Score = 40",
+	Callback = function()
+		scoreStat:Set(40)
+	end,
+})
+statControls:Button({
+	Name = "Tick Time",
+	Callback = function()
+		timeStat:Set(timeStat:Get() + 1)
+	end,
+})
 
 -- =========================================================================
 --  4. CONTROLS TAB  -  Toggle, Slider, Keybind, TextInput, Stepper, Radio
@@ -258,7 +322,9 @@ local switchSection = controlsTab:Section({ Name = "Switches", Side = "Left" })
 switchSection:Toggle({
 	Name = "Enable Feature",
 	Default = true,
-	Callback = function(state) print("[Demo] Toggle:", state) end,
+	Callback = function(state)
+		print("[Demo] Toggle:", state)
+	end,
 })
 
 -- Toggle with a confirmation prompt. When Confirm.Enabled is true, flipping
@@ -274,7 +340,9 @@ switchSection:Toggle({
 		ConfirmText = "Yes, enable it",
 		CancelText = "No, cancel",
 	},
-	Callback = function(state) print("[Demo] Dangerous toggle:", state) end,
+	Callback = function(state)
+		print("[Demo] Dangerous toggle:", state)
+	end,
 })
 
 local valueSection = controlsTab:Section({ Name = "Values", Side = "Left" })
@@ -286,7 +354,9 @@ valueSection:Slider({
 	Max = 100,
 	Default = 50,
 	Precision = 1,
-	Callback = function(v) print("[Demo] Slider:", v) end,
+	Callback = function(v)
+		print("[Demo] Slider:", v)
+	end,
 })
 
 -- Stepper: +/- numeric field. Integer=true forces whole numbers, Step sets the
@@ -298,7 +368,9 @@ valueSection:Stepper({
 	Default = 30,
 	Step = 5,
 	Integer = true,
-	Callback = function(v) print("[Demo] Stepper:", v) end,
+	Callback = function(v)
+		print("[Demo] Stepper:", v)
+	end,
 })
 
 local textSection = controlsTab:Section({ Name = "Text", Side = "Right" })
@@ -307,7 +379,9 @@ local textSection = controlsTab:Section({ Name = "Text", Side = "Right" })
 textSection:Keybind({
 	Name = "Primary Key",
 	Default = "G",
-	Callback = function(key) print("[Demo] Keybind:", key) end,
+	Callback = function(key)
+		print("[Demo] Keybind:", key)
+	end,
 })
 
 -- TextInput: free-form single-line text with a placeholder.
@@ -315,25 +389,43 @@ textSection:TextInput({
 	Name = "Player Name",
 	Placeholder = "Enter a name...",
 	Default = "",
-	Callback = function(text) print("[Demo] TextInput:", text) end,
+	Callback = function(text)
+		print("[Demo] TextInput:", text)
+	end,
 })
 
 -- RadioButtonGroup: mutually-exclusive choices. Create the group, then add
 -- RadioButtons to it; only one can be selected at a time.
 local choiceSection = controlsTab:Section({ Name = "Choices", Side = "Right" })
 local radioGroup = choiceSection:RadioButtonGroup()
-radioGroup:RadioButton({ Name = "Option A", Default = true, Callback = function() print("[Demo] Radio A") end })
-radioGroup:RadioButton({ Name = "Option B", Callback = function() print("[Demo] Radio B") end })
-radioGroup:RadioButton({ Name = "Option C", Callback = function() print("[Demo] Radio C") end })
+radioGroup:RadioButton({
+	Name = "Option A",
+	Default = true,
+	Callback = function()
+		print("[Demo] Radio A")
+	end,
+})
+radioGroup:RadioButton({
+	Name = "Option B",
+	Callback = function()
+		print("[Demo] Radio B")
+	end,
+})
+radioGroup:RadioButton({
+	Name = "Option C",
+	Callback = function()
+		print("[Demo] Radio C")
+	end,
+})
 
 -- =========================================================================
 --  5. INPUTS TAB  -  Dropdown, ColorPicker
 -- =========================================================================
 local dropdownItems = {
-	{ name = "Apple",      icon = ico("apple"),      value = "apple" },
-	{ name = "Banana",     icon = ico("banana"),     value = "banana" },
-	{ name = "Orange",     icon = ico("orange"),     value = "orange" },
-	{ name = "Grapes",     icon = ico("grapes"),     value = "grapes" },
+	{ name = "Apple", icon = ico("apple"), value = "apple" },
+	{ name = "Banana", icon = ico("banana"), value = "banana" },
+	{ name = "Orange", icon = ico("orange"), value = "orange" },
+	{ name = "Grapes", icon = ico("grapes"), value = "grapes" },
 	{ name = "Strawberry", icon = ico("strawberry"), value = "strawberry" },
 	{ name = "Watermelon", icon = ico("watermelon"), value = "watermelon" },
 }
@@ -348,7 +440,9 @@ dropSection:Dropdown({
 	MaxItemsChoosable = 1,
 	Placeholder = "Pick one...",
 	Callback = function(selected)
-		if selected[1] then print("[Demo] Dropdown (single):", selected[1].name) end
+		if selected[1] then
+			print("[Demo] Dropdown (single):", selected[1].name)
+		end
 	end,
 })
 
@@ -361,7 +455,9 @@ dropSection:Dropdown({
 	Placeholder = "Pick up to two...",
 	Callback = function(selected)
 		local names = {}
-		for _, item in ipairs(selected) do table.insert(names, item.name) end
+		for _, item in ipairs(selected) do
+			table.insert(names, item.name)
+		end
 		print("[Demo] Dropdown (multi):", table.concat(names, ", "))
 	end,
 })
@@ -372,7 +468,9 @@ dropSection:Dropdown({
 	Items = dropdownItems,
 	Default = {},
 	Placeholder = "Choose freely...",
-	Callback = function(selected) print("[Demo] Dropdown (uncapped):", #selected, "items") end,
+	Callback = function(selected)
+		print("[Demo] Dropdown (uncapped):", #selected, "items")
+	end,
 })
 
 local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
@@ -382,13 +480,17 @@ local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
 colorSection:ColorPicker({
 	Name = "Accent Colour",
 	Default = Color3.fromRGB(108, 140, 255),
-	Callback = function(color) print("[Demo] ColorPicker:", color) end,
+	Callback = function(color)
+		print("[Demo] ColorPicker:", color)
+	end,
 })
 
 colorSection:ColorPicker({
 	Name = "Crosshair Colour",
 	Default = Color3.fromRGB(255, 80, 80),
-	Callback = function(color) print("[Demo] ColorPicker 2:", color) end,
+	Callback = function(color)
+		print("[Demo] ColorPicker 2:", color)
+	end,
 })
 
 -- =========================================================================
@@ -401,10 +503,10 @@ local statusSection = feedbackTab:Section({ Name = "System Status", Side = "Left
 statusSection:Status({
 	Name = "Diagnostics",
 	Entries = {
-		{ "info",  "All systems nominal",   "green" },
-		{ "alert", "CPU usage high",        "orange" },
-		{ "error", "Cache miss detected",   "red" },
-		{ "custom", "Custom-tinted entry",  Color3.fromRGB(255, 200, 100) },
+		{ "info", "All systems nominal", "green" },
+		{ "alert", "CPU usage high", "orange" },
+		{ "error", "Cache miss detected", "red" },
+		{ "custom", "Custom-tinted entry", Color3.fromRGB(255, 200, 100) },
 	},
 })
 
@@ -421,7 +523,9 @@ local healthBar = progressSection:ProgressBar({
 	ShowFraction = true,
 	Animate = true,
 })
-humanoid.HealthChanged:Connect(function(hp) healthBar:SetValue(hp) end)
+humanoid.HealthChanged:Connect(function(hp)
+	healthBar:SetValue(hp)
+end)
 
 -- A second, static progress bar to show the default styling.
 progressSection:ProgressBar({
@@ -464,8 +568,18 @@ toastSection:Button({
 			GradientColor = Color3.fromRGB(139, 92, 246),
 			ShowBackground = true,
 			Actions = {
-				{ Text = "Install", Callback = function() print("[Demo] Install") end },
-				{ Text = "Later",   Callback = function() print("[Demo] Later") end },
+				{
+					Text = "Install",
+					Callback = function()
+						print("[Demo] Install")
+					end,
+				},
+				{
+					Text = "Later",
+					Callback = function()
+						print("[Demo] Later")
+					end,
+				},
 			},
 		})
 	end,
@@ -504,7 +618,20 @@ for _, name in ipairs(Aetheris.ThemeManager.ThemeOrder or {}) do
 end
 -- Fallback: if ThemeOrder isn't exposed, list the ones we know are safe.
 if #themeItems == 0 then
-	for _, name in ipairs({ "Default", "Black", "Light", "Midnight", "Graphite", "Ocean", "Nord", "Forest", "Glass", "Azure", "Fjord", "Summit" }) do
+	for _, name in ipairs({
+		"Default",
+		"Black",
+		"Light",
+		"Midnight",
+		"Graphite",
+		"Ocean",
+		"Nord",
+		"Forest",
+		"Glass",
+		"Azure",
+		"Fjord",
+		"Summit",
+	}) do
 		table.insert(themeItems, { name = name, value = name })
 	end
 end
@@ -584,7 +711,9 @@ consoleControls:Button({
 -- =========================================================================
 print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Settings")
 print("[Aetheris Demo] Active tab:", window.TabGroup.ActiveTab.Name)
-print("[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video.")
+print(
+	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video."
+)
 
 -- =========================================================================
 -- 10. OPTIONAL: auto-destroy after 10s (uncomment to test teardown)
