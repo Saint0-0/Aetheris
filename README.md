@@ -38,6 +38,7 @@ Setup, theming, the component API and examples all live in the docs:
 - **WinUI3** by Microsoft, for the visual language Aetheris is built around.
 - **[maclib](https://brady-xyz.gitbook.io/maclib-ui-library)** by brady-xyz, for inspiration.
 - **[Fluent](https://github.com/dawid-scripts/Fluent)** by dawid-scripts, for inspiration, and for the build tooling.
+- **[RayField Gen-2](https://github.com/SiriusSoftwareLtd/rayfield-gen2)** by Shlex, for inspiration (Live Stat Element and Compact Mode)
 
 ## License
 
