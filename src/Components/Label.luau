@@ -2,8 +2,9 @@
 	Label  ·  Aetheris UI Library
 
 	Styled text label with an optional container (background + corner +
-	stroke). A label built with ShowStroke = false tags its stroke
-	HiddenStroke so ThemeManager keeps it invisible on theme switches.
+	stroke). A label built with ShowStroke = false stamps a
+	ThemeOverride_Transparency attribute so ThemeManager treats the stroke as
+	caller-owned and leaves it hidden across theme switches.
 
 	Usage:
 		local label = section:Label({
@@ -50,8 +51,9 @@ function Label.new(parent, Settings, theme)
 	container.Name = text .. " [Label]"
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
-	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency)
-		or (showContainer and 0.985 or 1)
+	container.BackgroundTransparency = showContainer
+			and ((theme and theme.ComponentBackgroundTransparency) or 0.985)
+		or 1
 	container.AutomaticSize = Enum.AutomaticSize.Y
 	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute("IsComponentContainer", true)
@@ -67,7 +69,10 @@ function Label.new(parent, Settings, theme)
 		stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	else
 		stroke.Transparency = 1
-		stroke:SetAttribute("HiddenStroke", true)
+		-- Own the property outright via the theme override mechanism: applyEntry
+		-- treats any ThemeOverride_<prop> attribute as caller-owned and skips
+		-- this stroke on every theme switch, so a hidden stroke stays hidden.
+		stroke:SetAttribute("ThemeOverride_Transparency", 1)
 	end
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -127,10 +132,12 @@ function Label.new(parent, Settings, theme)
 	-- condition holds; otherwise it is disabled and the value set directly.
 	if not showContainer then
 		bgTransBinding:SetEnabled(false)
+		container:SetAttribute("ThemeOverride_BackgroundTransparency", 1)
 		container.BackgroundTransparency = 1
 	end
 	if not showStroke then
 		strokeTransBinding:SetEnabled(false)
+		stroke:SetAttribute("ThemeOverride_Transparency", 1)
 		stroke.Transparency = 1
 	end
 	if customTextTransparency ~= nil then
@@ -157,19 +164,22 @@ function Label.new(parent, Settings, theme)
 	self.SetShowContainer = function(show)
 		self._showContainer = show
 		if show then
+			container:SetAttribute("ThemeOverride_BackgroundTransparency", nil)
 			bgTransBinding:SetEnabled(true)
 		else
 			bgTransBinding:SetEnabled(false)
+			container:SetAttribute("ThemeOverride_BackgroundTransparency", 1)
 			container.BackgroundTransparency = 1
 		end
 	end
 	self.SetShowStroke = function(show)
 		self._showStroke = show
-		stroke:SetAttribute("HiddenStroke", not show)
 		if show then
+			stroke:SetAttribute("ThemeOverride_Transparency", nil)
 			strokeTransBinding:SetEnabled(true)
 		else
 			strokeTransBinding:SetEnabled(false)
+			stroke:SetAttribute("ThemeOverride_Transparency", 1)
 			stroke.Transparency = 1
 		end
 	end

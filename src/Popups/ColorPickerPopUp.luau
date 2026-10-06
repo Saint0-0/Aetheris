@@ -217,7 +217,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		row.BackgroundTransparency = 1
 		row.AutomaticSize = Enum.AutomaticSize.XY
 		row.LayoutOrder = layoutOrder
-		row.Parent = parent
+		row.Parent = inputsFrame
 		local rowLayout = Instance.new("UIListLayout")
 		rowLayout.Padding = UDim.new(0, 15)
 		rowLayout.VerticalAlignment = Enum.VerticalAlignment.Center

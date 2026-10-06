@@ -1590,7 +1590,7 @@ function Window.new(Settings)
 	pillCorner.Parent = pill
 	local pillStroke = Instance.new("UIStroke")
 	pillStroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	pillStroke.Transparency = 0.8
+	pillStroke.Transparency = 0.985
 	pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	pillStroke.Parent = pill
 	local pillShadow = Instance.new("UIShadow")
@@ -1647,7 +1647,7 @@ function Window.new(Settings)
 		pill.BackgroundTransparency = 0.05
 		pill.GroupTransparency = PILL_REST_GROUP
 		pillStroke.Color = t.StrokeColor or Color3.fromRGB(255, 255, 255)
-		pillStroke.Transparency = 0.8
+		pillStroke.Transparency = 0.985
 		pillShadow.Color = t.PopupShadowColor or Color3.fromRGB(0, 0, 0)
 		pillShadow.Transparency = 1 -- rest: hidden; hover sets 0.5
 	end

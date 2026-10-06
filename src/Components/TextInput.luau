@@ -159,12 +159,12 @@ function TextInput.new(parent, Settings, theme)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80)
-	stroke.Transparency = theme.StrokeTransparency or 0.4
-	stroke.Thickness = 1
+	stroke.Transparency = theme.StrokeTransparency or 0.95
+	stroke.Thickness = 0.7
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	-- Snapshot the resting transparency so PageFade restores to the theme value
-	-- instead of capturing a mid-fade one. Mirrors RadioButton's holderStroke.
-	stroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
+	-- instead of capturing a mid-fade one. Mirrors Keybind's stroke.
+	stroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.95)
 	stroke.Parent = field
 
 	local glow = Instance.new("UIShadow")
@@ -194,9 +194,11 @@ function TextInput.new(parent, Settings, theme)
 
 	-- Same resting stroke transparency as RadioButton (theme.StrokeTransparency
 	-- or 0.4), so the two components read as one family.
+	-- Same resting stroke transparency as Keybind (theme.StrokeTransparency or
+	-- 0.95), so the two components read as one family.
 	local function restStrokeTransparency()
 		local t = activeTheme()
-		return (t and t.StrokeTransparency) or 0.4
+		return (t and t.StrokeTransparency) or 0.95
 	end
 
 	local function maxWidth()
@@ -225,6 +227,12 @@ function TextInput.new(parent, Settings, theme)
 		Tween.Play(field, FOCUS_INFO, {
 			TextTransparency = lookFocused and 0 or REST_TEXT_TRANSPARENCY,
 		})
+		-- Match Keybind: the focused stroke brightens to 0.3, unfocused returns to
+		-- the resting theme transparency.
+		Tween.Play(stroke, FOCUS_INFO, {
+			Transparency = lookFocused and 0.3 or restStrokeTransparency(),
+		})
+		stroke:SetAttribute("PageFadeBase", restStrokeTransparency())
 	end
 
 	local flashToken = 0
@@ -302,13 +310,15 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- Hover: brighten the stroke on mouse-over, restore on leave -- same feel as
-	-- RadioButton (hover = resting transparency * 0.5).
+	-- Hover: brighten the stroke to Keybind's 0.3 and restore on leave, but only
+	-- if the field is not focused (focus owns the bright state while active).
 	field.MouseEnter:Connect(function()
-		Tween.Play(stroke, "HoverIn", { Transparency = restStrokeTransparency() * 0.5 })
+		Tween.Play(stroke, "HoverIn", { Transparency = 0.3 })
 	end)
 	field.MouseLeave:Connect(function()
-		Tween.Play(stroke, "HoverOut", { Transparency = restStrokeTransparency() })
+		if not field:IsFocused() then
+			Tween.Play(stroke, "HoverOut", { Transparency = restStrokeTransparency() })
+		end
 	end)
 
 	-- Recompute the cap (and re-hug) if the row or the auto-sized label resizes.
