@@ -1,10 +1,8 @@
 --[[
 	SettingsTabGroup  ·  Aetheris UI Library
 
-	Horizontal settings tab bar inside SettingsPages. Mirrors Core/TabGroup
-	mechanics: spinning-gradient back images, a SelectionStatus indicator,
-	active/inactive theme keys, and a per-tab SINGLE-COLUMN content area.
-	(Unlike Core/TabGroup, settings pages have no left/right split.)
+	Horizontal settings tab bar with a single-column content area per page.
+	It mirrors Core/TabGroup without the two-column split.
 ]]
 
 local Tween = require("../../Utils/Tween")
@@ -13,6 +11,7 @@ local FallbackImage = require("../../Constants").FallbackImage
 local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
 local Constants = require("../../Constants")
+local UUID = require("../../Utils/UUID")
 
 local SettingsTabGroup = {}
 SettingsTabGroup.__index = SettingsTabGroup
@@ -37,7 +36,7 @@ function SettingsTabHandle:Scroller()
 	end
 	local theme = self._theme or {}
 	local scroller = Instance.new("ScrollingFrame")
-	scroller.Name = "SettingsScroller"
+	scroller.Name = UUID.Static("SettingsScroller")
 	scroller.Active = true
 	scroller.BorderSizePixel = 0
 	scroller.ScrollBarImageTransparency = 1 -- hidden until scrolling
@@ -94,7 +93,7 @@ function SettingsTabGroup.new(window, theme)
 
 	-- Horizontal tab bar at the top of SettingsPages
 	self.Bar = Instance.new("Frame")
-	self.Bar.Name = "SettingsTabBar"
+	self.Bar.Name = UUID.Static("SettingsTabBar")
 	self.Bar.BorderSizePixel = 0
 	self.Bar.BackgroundTransparency = 1
 	self.Bar.Size = UDim2.fromScale(1, 0.07969)
@@ -115,7 +114,7 @@ function SettingsTabGroup.new(window, theme)
 
 	-- Content container below the tab bar
 	self.Content = Instance.new("Frame")
-	self.Content.Name = "SettingsContent"
+	self.Content.Name = UUID.Static("SettingsContent")
 	self.Content.BorderSizePixel = 0
 	self.Content.BackgroundTransparency = 1
 	self.Content.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -167,7 +166,7 @@ function SettingsTabGroup:Tab(Settings)
 
 	-- Tab button
 	local Button = Instance.new("TextButton")
-	Button.Name = name .. "SettingsTab"
+	Button.Name = UUID.Generate()
 	Button.BorderSizePixel = 0
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
@@ -183,7 +182,7 @@ function SettingsTabGroup:Tab(Settings)
 	ButtonCorner.Parent = Button
 
 	local TabName = Instance.new("TextLabel")
-	TabName.Name = "TabName"
+	TabName.Name = UUID.Static("TabName")
 	TabName.BorderSizePixel = 0
 	TabName.TextSize = 11
 	TabName.TextXAlignment = Enum.TextXAlignment.Left
@@ -199,7 +198,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.Parent = Button
 
 	local BackImage = Instance.new("ImageLabel")
-	BackImage.Name = "BackImage"
+	BackImage.Name = UUID.Static("BackImage")
 	BackImage.BorderSizePixel = 0
 	BackImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	BackImage.ImageTransparency = 1
@@ -234,7 +233,7 @@ function SettingsTabGroup:Tab(Settings)
 	BackImageGradient.Parent = BackImage
 
 	local TabImage = Instance.new("ImageLabel")
-	TabImage.Name = "TabImage"
+	TabImage.Name = UUID.Static("TabImage")
 	TabImage.BorderSizePixel = 0
 	TabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	TabImage.ImageTransparency = theme.InactiveTabIconTransparency
@@ -248,7 +247,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabImage.Parent = Button
 
 	local SelectionStatus = Instance.new("Frame")
-	SelectionStatus.Name = "SelectionStatus"
+	SelectionStatus.Name = UUID.Static("SelectionStatus")
 	SelectionStatus.BorderSizePixel = 0
 	SelectionStatus.BackgroundColor3 = theme.SecondaryColor
 	SelectionStatus.BackgroundTransparency = 1
@@ -260,7 +259,7 @@ function SettingsTabGroup:Tab(Settings)
 
 	-- Simple page frame for this settings page (no automatic scroller)
 	local Page = Instance.new("Frame")
-	Page.Name = name
+	Page.Name = UUID.Generate()
 	Page.BorderSizePixel = 0
 	Page.BackgroundTransparency = 1
 	Page.Size = UDim2.fromScale(1, 1)
@@ -269,7 +268,7 @@ function SettingsTabGroup:Tab(Settings)
 	-- Page transition layer: ONE CanvasGroup per settings page owns the fade
 	-- (see Utils/PageFade). The Page itself is never transparency-faded, so
 	-- component state encoded as transparency can never be stomped.
-	local FadeLayer = PageFade.Layer(self.Content, name .. "SettingsPage")
+	local FadeLayer = PageFade.Layer(self.Content, UUID.Generate())
 	FadeLayer.Visible = false
 	Page.Parent = FadeLayer
 

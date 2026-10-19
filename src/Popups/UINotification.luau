@@ -1,26 +1,14 @@
 --[[
 	UINotification  ·  Aetheris UI Library
 
-	Modal dialog with confirm/cancel buttons. Open via window:UINotification().
-	Descriptions support RichText; colours are emitted as hex (Roblox RichText
-	rejects rgb()).
-
-	Usage:
-		window:UINotification({
-			Title = "Confirm Action",
-			Description = "Are you sure?",
-			TitleColor = Color3.fromRGB(255, 255, 255),
-			ConfirmText = "Confirm",
-			CancelText = "Cancel",
-			OnConfirm = function() end,
-			OnCancel = function() end,
-		})
+	Modal confirm/cancel dialog. Descriptions and title colors support RichText.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
 UINotification.__index = UINotification
@@ -59,7 +47,7 @@ function UINotification.new(parent, Settings)
 	-- POPUP
 	----------------------------------------------------------------
 	local popup = Instance.new("CanvasGroup")
-	popup.Name = "NotificationPopup"
+	popup.Name = UUID.Generate()
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
@@ -97,7 +85,7 @@ function UINotification.new(parent, Settings)
 	-- HEADER
 	----------------------------------------------------------------
 	local header = Instance.new("TextLabel")
-	header.Name = "Header"
+	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
 	header.TextSize = 16
 	header.TextXAlignment = Enum.TextXAlignment.Left
@@ -117,7 +105,7 @@ function UINotification.new(parent, Settings)
 	-- DESCRIPTION
 	----------------------------------------------------------------
 	local notifText = Instance.new("TextLabel")
-	notifText.Name = "NotificationText"
+	notifText.Name = UUID.Static("NotificationText")
 	notifText.TextWrapped = true
 	notifText.BorderSizePixel = 0
 	notifText.TextSize = 14
@@ -142,7 +130,7 @@ function UINotification.new(parent, Settings)
 	-- DIVIDER
 	----------------------------------------------------------------
 	local divider = Instance.new("Frame")
-	divider.Name = "ComponentDivider"
+	divider.Name = UUID.Static("ComponentDivider")
 	divider.BorderSizePixel = 0
 	divider.BackgroundColor3 = (theme and theme.AccentColor)
 	divider.BackgroundTransparency = 0.9
@@ -155,7 +143,7 @@ function UINotification.new(parent, Settings)
 	-- INTERACTIONS
 	----------------------------------------------------------------
 	local interactions = Instance.new("Frame")
-	interactions.Name = "Interactions"
+	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
 	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
 	interactions.BackgroundTransparency = 0.8
@@ -185,7 +173,7 @@ function UINotification.new(parent, Settings)
 	-- CONFIRM BUTTON
 	----------------------------------------------------------------
 	local confirmBtn = Instance.new("TextButton")
-	confirmBtn.Name = "Confirm"
+	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = (theme and theme.PopupTextTransparency) or 0.2
 	confirmBtn.TextSize = 12
@@ -212,7 +200,7 @@ function UINotification.new(parent, Settings)
 	-- CANCEL BUTTON
 	----------------------------------------------------------------
 	local cancelBtn = Instance.new("TextButton")
-	cancelBtn.Name = "Cancel"
+	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = (theme and theme.PopupTextTransparency) or 0.5
 	cancelBtn.TextSize = 12
@@ -315,13 +303,7 @@ function UINotification.new(parent, Settings)
 	cancelBtn.MouseLeave:Connect(function()
 		Tween.Play(cancelBtn, "Fast", { TextTransparency = CANCEL_TEXT_REST })
 	end)
-	----------------------------------------------------------------
-	-- IMPORTANT
-	----------------------------------------------------------------
-	-- NotificationPopup is a Frame.
-	-- Frames do NOT have MouseButton1Click.
-	--
-	-- No event should be connected to popup.MouseButton1Click.
+	-- NotificationPopup is a Frame, so never connect MouseButton1Click to it.
 	return self
 end
 ----------------------------------------------------------------
@@ -492,11 +474,15 @@ function UINotification:SetContent(Settings)
 	end
 	local title = Settings.Title or "Notification"
 	local description = Settings.Description or ""
-	local titleColor = Settings.TitleColor or Color3.fromRGB(255, 255, 255)
+	local titleColor = Settings.TitleColor or self.Header.TextColor3 or Color3.fromRGB(255, 255, 255)
 	local confirmText = Settings.ConfirmText or "Confirm"
 	local cancelText = Settings.CancelText or "Cancel"
 	self.OnConfirm = Settings.OnConfirm or function() end
 	self.OnCancel = Settings.OnCancel or function() end
+	self._title = title
+	if Settings.TitleColor ~= nil then
+		self._customTitleColor = true
+	end
 	-- Update header
 	local colorStr = colorToString(titleColor)
 	self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, title)
@@ -512,15 +498,12 @@ end
 -- SET TITLE
 ----------------------------------------------------------------
 function UINotification:SetTitle(title, color)
-	local colorStr
-	if color then
-		colorStr = colorToString(color)
-	else
-		-- RichText needs hex/named, NOT rgb(...). Use the shared converter so an
-		-- uncolored title still renders instead of producing an invalid tag.
-		colorStr = colorToString(Color3.fromRGB(255, 255, 255))
+	self._title = title
+	if color ~= nil then
+		self._customTitleColor = true
 	end
-	self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, title)
+	local titleColor = color or self.Header.TextColor3 or Color3.fromRGB(255, 255, 255)
+	self.Header.Text = string.format('<font color="%s">%s</font>', colorToString(titleColor), title)
 end
 ----------------------------------------------------------------
 -- SET DESCRIPTION

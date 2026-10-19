@@ -1,17 +1,8 @@
 --[[
 	TabGroup  ·  Aetheris UI Library
 
-	Owns the sidebar tab buttons, their per-tab content containers, switching
-	between them, and keeping Window.PageTitle in sync with the active tab.
-
-	Usage:
-		local tabs = TabGroup.new(window)  -- window = Window.new() result
-		local aimbotTab = tabs:Tab({ Name = "Aimbot", Icon = "rbxassetid://..." })
-		tabs:Divider()
-		local settingsTab = tabs:Tab({ Name = "Settings", Icon = "rbxassetid://..." })
-
-		aimbotTab.ContentScroller  -- this tab's own scroller
-		aimbotTab.ColumnLeft / aimbotTab.ColumnRight  -- the two layout columns
+	Owns sidebar tab buttons and their content containers, and keeps the page
+	title in sync with the active tab.
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -21,6 +12,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("./SearchFilter")
 local PageFade = require("../Utils/PageFade")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 local TabGroup = {}
 TabGroup.__index = TabGroup
 -- Tab handle metatable for methods like :Section()
@@ -48,28 +40,7 @@ function TabGroup.new(window, theme)
 	ThemeManager.Register(self.Window.TabList, self)
 	return self
 end
--- Helper: build fade cache for a tab's ContentScroller.
--- Recursively scans all descendants for properties:
--- BackgroundTransparency, TextTransparency, ImageTransparency, Transparency (for UIStroke etc.)
--- Returns an array of {instance, props = {{prop, base}, ...}}
--- Snapshot a tab's base transparencies. Only valid while the page is
--- natural (not faded); re-captured whenever the tab is natural so pages whose
--- content is added after creation are captured fully.
--- NOTE: the old per-element transparency cache system was REMOVED in the
--- PageFade rework. Page transitions are now driven by ONE CanvasGroup per tab
--- (tab.FadeLayer, see Utils/PageFade), so nothing inside a page is ever
--- transparency-faded and no base state can be stomped.
--- A tab's base transparencies are captured ONCE, then reused forever.
--- INVARIANT: tab content always rests at its base (hidden tabs are just
--- Visible=false, NOT faded to 1). That makes a single capture permanently
--- valid, so the window fade can snapshot/restore any tab without guards.
--- (Page transitions are handled entirely by Utils/PageFade now: one
--- CanvasGroup per tab, faded via PageFade.Crossfade/Show/Snap. The old
--- per-element transparency cache functions were removed.)
--- Tab backdrop spins route through the CENTRAL spin system so the global
--- Tween.SetSpinsEnabled toggle controls them too. Inactive tab backdrops are
--- PAUSED (angle preserved) rather than stopped, so switching back resumes the
--- sweep where it left off instead of snapping to 0.
+-- Pause a tab backdrop's spin so it resumes from the same angle later.
 function TabGroup:_pauseSpin(gradient)
 	if not gradient then
 		return
@@ -113,7 +84,7 @@ function TabGroup:Tab(Settings)
 	-- Tab button
 	----------------------------------------------------------------
 	local Button = Instance.new("TextButton")
-	Button.Name = name .. "Tab"
+	Button.Name = UUID.Generate()
 	Button.BorderSizePixel = 0
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
@@ -126,7 +97,7 @@ function TabGroup:Tab(Settings)
 	local ButtonCorner = Instance.new("UICorner")
 	ButtonCorner.Parent = Button
 	local TabName = Instance.new("TextLabel")
-	TabName.Name = "TabName"
+	TabName.Name = UUID.Static("TabName")
 	TabName.BorderSizePixel = 0
 	TabName.TextSize = 13
 	TabName.TextXAlignment = Enum.TextXAlignment.Left
@@ -141,7 +112,7 @@ function TabGroup:Tab(Settings)
 	TabName.Position = UDim2.fromScale(0.647, 0.5)
 	TabName.Parent = Button
 	local BackImage = Instance.new("ImageLabel")
-	BackImage.Name = "BackImage"
+	BackImage.Name = UUID.Static("BackImage")
 	BackImage.BorderSizePixel = 0
 	BackImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	BackImage.ImageTransparency = 1 -- deactivated: spinning gradient logo hidden
@@ -179,7 +150,7 @@ function TabGroup:Tab(Settings)
 	})
 	BackImageGradient.Parent = BackImage
 	local TabImage = Instance.new("ImageLabel")
-	TabImage.Name = "TabImage"
+	TabImage.Name = UUID.Static("TabImage")
 	TabImage.BorderSizePixel = 0
 	TabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	TabImage.ImageTransparency = theme.InactiveTabIconTransparency
@@ -195,7 +166,7 @@ function TabGroup:Tab(Settings)
 	-- but always exists so we can tween its transparency rather than
 	-- creating/destroying it on every switch.
 	local SelectionStatus = Instance.new("Frame")
-	SelectionStatus.Name = "SelectionStatus"
+	SelectionStatus.Name = UUID.Static("SelectionStatus")
 	SelectionStatus.BorderSizePixel = 0
 	SelectionStatus.BackgroundColor3 = theme.SecondaryColor
 	SelectionStatus.BackgroundTransparency = 1 -- hidden until active
@@ -209,7 +180,7 @@ function TabGroup:Tab(Settings)
 	-- tabs -- each tab gets a dedicated ContentScroller)
 	----------------------------------------------------------------
 	local ContentScroller = Instance.new("ScrollingFrame")
-	ContentScroller.Name = name .. "Scroller"
+	ContentScroller.Name = UUID.Generate()
 	ContentScroller.BorderSizePixel = 0
 	ContentScroller.CanvasSize = UDim2.fromScale(0, 0)
 	ContentScroller.TopImage = ""
@@ -230,7 +201,7 @@ function TabGroup:Tab(Settings)
 	-- The scroller (and everything inside it) is never transparency-faded,
 	-- so component state encoded as transparency (radio selection, slider
 	-- fill, etc.) can never be stomped by a page switch. See Utils/PageFade.
-	local FadeLayer = PageFade.Layer(self.Window.TabContent, name .. "Page")
+	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate())
 	FadeLayer.Visible = false
 	ContentScroller.Parent = FadeLayer
 	-- Scrollbar: only visible while scrolling
@@ -256,7 +227,7 @@ function TabGroup:Tab(Settings)
 	ContentScrollerLayout.FillDirection = Enum.FillDirection.Horizontal
 	ContentScrollerLayout.Parent = ContentScroller
 	local ColumnLeft = Instance.new("Frame")
-	ColumnLeft.Name = "Left"
+	ColumnLeft.Name = UUID.Static("Left")
 	ColumnLeft.BorderSizePixel = 0
 	ColumnLeft.BackgroundTransparency = 1
 	ColumnLeft.AutomaticSize = Enum.AutomaticSize.Y
@@ -269,7 +240,7 @@ function TabGroup:Tab(Settings)
 	ColumnLeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	ColumnLeftLayout.Parent = ColumnLeft
 	local ColumnRight = Instance.new("Frame")
-	ColumnRight.Name = "Right"
+	ColumnRight.Name = UUID.Static("Right")
 	ColumnRight.BorderSizePixel = 0
 	ColumnRight.BackgroundTransparency = 1
 	ColumnRight.AutomaticSize = Enum.AutomaticSize.Y
@@ -302,12 +273,8 @@ function TabGroup:Tab(Settings)
 		_scrollerPadding = ContentScrollerPadding,
 		_theme = theme,
 	}, TabHandle)
-	-- Declarative STATE-AWARE theming for the tab button visuals. Each handle
-	-- flips between the Active/Inactive theme keys via SetState (called from
-	-- _applyTabVisuals), so a THEME switch and a TAB switch both resolve through
-	-- the binding system -- no Tween.Play color stomps, no registry ApplyTheme
-	-- for these properties. duration = 0.2 matches the old "Fast" preset so the
-	-- tab-switch highlight animates at the same speed.
+	-- Tab visuals use state-aware color bindings so theme and tab switches
+	-- resolve through the same path without color tween stomps.
 	tab._bgHandle = ThemeManager.BindColor(
 		Button,
 		"BackgroundColor3",
@@ -365,13 +332,8 @@ function TabGroup:Tab(Settings)
 	end
 	return tab
 end
--- Flip one tab between the 2-column (expanded) and 1-column (compact)
--- layout. In compact the UIListLayout that holds ColumnLeft/ColumnRight goes
--- Vertical and each column spans the full width, so ColumnLeft's sections
--- stack directly above ColumnRight's -- one scrolling column of content.
--- Nothing is reparented: Sections keep their parent column, so search
--- filtering, layout orders and fade caches are all untouched, and the change
--- is a pure property swap that reverses exactly.
+-- Flip one tab between the two-column expanded layout and one-column compact
+-- layout. Only the list direction and column widths change; sections stay put.
 local EXPANDED_COLUMN_SIZE = UDim2.new(0.5, -10, 0, 0)
 -- Per-tab scroller right padding. Compact gets a little more breathing room so
 -- the single column doesn't sit flush against the scrollbar edge.
@@ -415,7 +377,7 @@ end
 function TabGroup:Divider()
 	local theme = self._theme or {}
 	local Divider = Instance.new("Frame")
-	Divider.Name = "Divider"
+	Divider.Name = UUID.Static("Divider")
 	Divider.BorderSizePixel = 0
 	-- Dividers now share the same theme keys as the Divider component
 	-- (SectionDividerColor / SectionDividerTransparency) so there is ONE notion

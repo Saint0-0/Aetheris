@@ -1,21 +1,8 @@
 --[[
 	Keybind  ·  Aetheris UI Library
 
-	Captures a single key and dispatches on press. The component owns its own
-	input listener, so callers only supply the callbacks -- no external
-	registry or shared listener is required.
-
-	Callbacks:
-		Callback(key)  - fires when the bound key is PRESSED in gameplay.
-		OnRebind(key)  - fires when the bind CHANGES (including the initial set).
-
-	Usage:
-		local keybind = section:Keybind({
-			Name = "My Keybind",
-			Default = "G",                    -- optional initial key
-			Callback = function(key) end,     -- on press
-			OnRebind = function(key) end,     -- on change
-		})
+	Captures one key, owns its input listener, and dispatches press/rebind
+	callbacks without an external registry.
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -26,6 +13,7 @@ local KeybindDispatcher = require("../Utils/KeybindDispatcher")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Keybind = {}
 Keybind.__index = Keybind
 
@@ -138,7 +126,7 @@ function Keybind.new(parent, Settings, theme)
 	})
 	-- Input box
 	local inputBox = Instance.new("TextBox")
-	inputBox.Name = "InputBox"
+	inputBox.Name = UUID.Static("InputBox")
 	inputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	inputBox.BorderSizePixel = 0
 	inputBox.TextWrapped = true

@@ -11,6 +11,7 @@
 
 local Tween = require("./Tween")
 local ThemeManager = require("../Themes/ThemeManager")
+local UUID = require("./UUID")
 
 local Aurora = {}
 Aurora.__index = Aurora
@@ -19,7 +20,7 @@ local function makeBlob(parent, theme, opts)
 	local color = theme[opts.colorKey] or theme.AccentColor or Color3.fromRGB(122, 156, 210)
 
 	local blob = Instance.new("Frame")
-	blob.Name = "AuroraBlob"
+	blob.Name = UUID.Generate()
 	blob.AnchorPoint = Vector2.new(0.5, 0.5)
 	blob.Size = UDim2.fromScale(opts.width, opts.height)
 	blob.Position = UDim2.fromScale(opts.from[1], opts.from[2])
@@ -60,7 +61,7 @@ function Aurora.new(parent, opts)
 	self._theme = ThemeManager.GetTheme(opts.Theme)
 
 	self.Root = Instance.new("CanvasGroup")
-	self.Root.Name = "Aurora"
+	self.Root.Name = UUID.Static("Aurora")
 	self.Root.BackgroundTransparency = 1
 	self.Root.BorderSizePixel = 0
 	self.Root.ClipsDescendants = true

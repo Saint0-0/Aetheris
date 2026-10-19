@@ -12,6 +12,7 @@
 			Theme = "Umbral",
 			MinimizeKey = "LeftControl",
 			AnimationStyle = "Smooth",  -- or "Snappy"
+			AETHERIS_SECUREMODE = false, -- optional hardening; default false
 			SettingsPages = {
 				{ Name = "Keybinds", Icon = Aetheris.Icons["keyboard"] },
 			},
@@ -38,7 +39,9 @@ Aetheris.ThemeManager = ThemeManager
 Aetheris.ThemeDefinitions = ThemeDefinitions
 
 function Aetheris:CreateWindow(Settings)
-	return Window.new(Settings)
+	local options = table.clone(Settings or {})
+	options.AETHERIS_SECUREMODE = options.AETHERIS_SECUREMODE == true
+	return Window.new(options)
 end
 
 return Aetheris

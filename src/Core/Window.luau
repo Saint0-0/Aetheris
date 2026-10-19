@@ -1,22 +1,8 @@
 --[[
 	Window  ·  Aetheris UI Library
 
-	Builds the main Aetheris window shell: chrome, sidebar, content area,
-	settings container, drag, resize, minimize/maximize/close, and notifications.
-	Returns a window object; use Window.new({...}) via the library facade.
-
-	Public API:
-	  :Tab / :Divider              - sidebar tabs (delegated to TabGroup)
-	  :SetTitle                    - script info title (tags below via Settings.Tags)
-	  :SetTheme(name|table)        - live theme switch (crossfades)
-	  :UINotification / :Alert / :Error / :Toast
-	  :DropdownPopUp / :ColorPickerPopUp / :HidePopups
-	  :ResetLayout                 - restore default size/position
-	  :Destroy                     - fade out + full teardown
-
-	Teardown: closing the UI calls _teardown(), which disconnects global
-	input listeners, cancels tasks/tweens, drops cached popups, and marks the
-	window destroyed so nothing animates a dead UI. See _teardown for details.
+	Builds the main window shell and exposes tabs, themes, popups and
+	notifications. Teardown disconnects listeners and cancels pending tweens.
 ]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -26,6 +12,7 @@ local Tween = require("../Utils/Tween")
 local PageFade = require("../Utils/PageFade")
 local Sound = require("../Utils/Sound")
 local Aurora = require("../Utils/Aurora")
+local Security = require("../Utils/Security")
 local Icons = require("../Assets/Icons")
 local TabGroup = require("./TabGroup")
 local UINotification = require("../Popups/UINotification")
@@ -38,6 +25,7 @@ local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local Window = {}
 Window.__index = Window
@@ -71,6 +59,7 @@ function Window.new(Settings)
 	local theme = resolvedTheme
 
 	local player = Players.LocalPlayer
+	local secureMode = Settings.AETHERIS_SECUREMODE == true
 
 	-- Forward declaration so early closures (e.g. the settings gear click)
 	-- can reach the window object created near the end of this function.
@@ -96,7 +85,7 @@ function Window.new(Settings)
 	-- Root
 	----------------------------------------------------------------
 	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = Settings.ScreenGuiName or "Aetheris"
+	ScreenGui.Name = Settings.ScreenGuiName or UUID.Static("Aetheris")
 	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	ScreenGui.ResetOnSpawn = false
 	-- Host control (p2-5): DisplayOrder + inset are caller-settable; Parent may
@@ -105,7 +94,11 @@ function Window.new(Settings)
 		ScreenGui.DisplayOrder = Settings.DisplayOrder
 	end
 	ScreenGui.IgnoreGuiInset = Settings.IgnoreGuiInset == true
-	if Settings.Parent ~= nil then
+	if secureMode then
+		-- AETHERIS_SECUREMODE: prefer a hidden gethui container, then CoreGui,
+		-- then PlayerGui; rename + protect when the executor supports it.
+		Security.Apply(ScreenGui, { Parent = Settings.Parent, Player = player })
+	elseif Settings.Parent ~= nil then
 		ScreenGui.Parent = Settings.Parent
 	else
 		-- Bounded wait: never hang a loadstring forever if LocalPlayer/PlayerGui
@@ -120,17 +113,10 @@ function Window.new(Settings)
 	----------------------------------------------------------------
 	-- Window (main frame)
 	----------------------------------------------------------------
-	-- Window chrome is themed at construction so it is correct on first paint
-	-- (and on every later ApplyTheme). theme.X or <literal> is safe here: in Lua
-	-- only nil/false are falsy, so a theme value of 0 (fully opaque) is kept.
-	-- CanvasGroup (not Frame) so a SINGLE GroupTransparency can fade the whole
-	-- window for minimize / restore / close / intro, instead of snapshotting and
-	-- tweening every descendant's own transparency. That old approach stomped
-	-- any component state encoded as transparency (radio selection, slider fill)
-	-- and forced the old RefreshVisuals/RestoreActiveTab repair calls (RefreshVisuals
-	-- has since been deleted outright). See Utils/PageFade.
+	-- Theme at construction so the first paint matches. CanvasGroup lets
+	-- PageFade animate the whole shell with one GroupTransparency.
 	local MainFrame = Instance.new("CanvasGroup")
-	MainFrame.Name = "Window"
+	MainFrame.Name = UUID.Static("Window")
 	MainFrame.GroupTransparency = 0
 	MainFrame.BorderSizePixel = 0
 	MainFrame.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 15)
@@ -145,7 +131,7 @@ function Window.new(Settings)
 
 	local DragFrame = Instance.new("Frame")
 	DragFrame.AnchorPoint = Vector2.new(0.5, 0)
-	DragFrame.Name = "DragFrame"
+	DragFrame.Name = UUID.Static("DragFrame")
 	DragFrame.Position = UDim2.fromScale(0.5, 0)
 	DragFrame.Size = UDim2.new(1, 0, 0, 60)
 	DragFrame.BackgroundTransparency = 1
@@ -213,7 +199,7 @@ function Window.new(Settings)
 	-- Window UI scale (user-adjustable in UI Settings). Applied to the whole
 	-- window so it resizes around its top-left anchor.
 	local MainFrameScale = Instance.new("UIScale")
-	MainFrameScale.Name = "WindowScale"
+	MainFrameScale.Name = UUID.Static("WindowScale")
 	MainFrameScale.Scale = SettingsStore.Get("UIScale") or 1
 	MainFrameScale.Parent = MainFrame
 
@@ -232,13 +218,10 @@ function Window.new(Settings)
 	----------------------------------------------------------------
 	-- Content background (region right of the sidebar, full height)
 	----------------------------------------------------------------
-	-- A separate fill for the area to the right of the sidebar. Themes can make
-	-- the window/sidebar translucent while keeping this opaque (or the reverse)
-	-- so content stays readable over the game. Positioned at the sidebar's
-	-- right edge and sized with scale so it tracks window resizes; rounded on
-	-- the right to follow the window's corners.
+	-- Separate fill right of the sidebar so themes can keep content readable
+	-- while the window or sidebar stays translucent.
 	local ContentBackground = Instance.new("Frame")
-	ContentBackground.Name = "ContentBackground"
+	ContentBackground.Name = UUID.Static("ContentBackground")
 	ContentBackground.BorderSizePixel = 0
 	ContentBackground.BackgroundColor3 = theme.ContentBackgroundColor or theme.WindowColor
 	-- NOTE: the old idiom (x ~= nil and x) collapsed to `false` when the theme
@@ -274,7 +257,7 @@ function Window.new(Settings)
 	-- Window controls (Close / Maximize / Minimize)
 	----------------------------------------------------------------
 	local WindowControls = Instance.new("Frame")
-	WindowControls.Name = "WindowControls"
+	WindowControls.Name = UUID.Static("WindowControls")
 	WindowControls.BorderSizePixel = 0
 	WindowControls.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	WindowControls.BackgroundTransparency = 1
@@ -296,7 +279,7 @@ function Window.new(Settings)
 	-- Each gets a UIScale for a bouncy hover/press feel.
 	local function makeControlButton(name, icon, layoutOrder, parent)
 		local btn = Instance.new("ImageButton")
-		btn.Name = name
+		btn.Name = UUID.Static("WindowControl:" .. name)
 		btn.BackgroundTransparency = 1
 		btn.ImageTransparency = 0.5 -- idle transparency (dims toward 0 on hover)
 		btn.ImageColor3 = theme.WindowControlColor or Color3.fromRGB(203, 213, 225)
@@ -342,7 +325,7 @@ function Window.new(Settings)
 	-- Page title (drag handle lives here -- whole title bar draggable)
 	----------------------------------------------------------------
 	local PageTitle = Instance.new("TextLabel")
-	PageTitle.Name = "PageTitle"
+	PageTitle.Name = UUID.Static("PageTitle")
 	PageTitle.TextWrapped = true
 	PageTitle.BorderSizePixel = 0
 	PageTitle.TextSize = 14
@@ -366,7 +349,7 @@ function Window.new(Settings)
 	PageTitle.Parent = MainFrame
 
 	local PageTitleDivider = Instance.new("Frame")
-	PageTitleDivider.Name = "ComponentDivider"
+	PageTitleDivider.Name = UUID.Static("ComponentDivider")
 	PageTitleDivider.BorderSizePixel = 0
 	PageTitleDivider.BackgroundColor3 = theme.TertiaryColor -- [THEME] divider color
 	PageTitleDivider.BackgroundTransparency = theme.SectionDividerTransparency or 0.9 -- [THEME] divider transparency
@@ -379,7 +362,7 @@ function Window.new(Settings)
 	-- Content area (holds TabContent + SettingsPages)
 	----------------------------------------------------------------
 	local Content = Instance.new("Frame")
-	Content.Name = "Content"
+	Content.Name = UUID.Static("Content")
 	Content.BorderSizePixel = 0
 	Content.BackgroundTransparency = 1
 	-- Left edge pinned 14px past the sidebar's fixed 186px width (offset, not
@@ -391,13 +374,13 @@ function Window.new(Settings)
 
 	-- PopUps folder (for dropdown popups and other overlays)
 	local PopUpsFolder = Instance.new("Folder")
-	PopUpsFolder.Name = "PopUps"
+	PopUpsFolder.Name = UUID.Static("PopUps")
 	PopUpsFolder.Parent = Content
 
 	-- Notifications container (direct child of the ScreenGui so toasts sit
 	-- above the whole window and are not clipped). Toasts stack bottom-right.
 	local Notifications = Instance.new("Frame")
-	Notifications.Name = "Notifications"
+	Notifications.Name = UUID.Static("Notifications")
 	Notifications.BorderSizePixel = 0
 	Notifications.BackgroundTransparency = 1
 	Notifications.AnchorPoint = Vector2.new(1, 1)
@@ -421,7 +404,7 @@ function Window.new(Settings)
 	-- Container for opt-in settings pages (UISettings ships by default,
 	-- any others are registered by the developer using Aetheris)
 	local SettingsPages = Instance.new("Frame")
-	SettingsPages.Name = "SettingsPages"
+	SettingsPages.Name = UUID.Static("SettingsPages")
 	SettingsPages.Visible = false
 	SettingsPages.BorderSizePixel = 0
 	SettingsPages.BackgroundTransparency = 1
@@ -433,7 +416,7 @@ function Window.new(Settings)
 	SettingsPages.Parent = Content
 
 	local TabContent = Instance.new("Frame")
-	TabContent.Name = "TabContent"
+	TabContent.Name = UUID.Static("TabContent")
 	TabContent.BorderSizePixel = 0
 	TabContent.BackgroundTransparency = 1
 	TabContent.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -454,7 +437,7 @@ function Window.new(Settings)
 	-- Sidebar
 	----------------------------------------------------------------
 	local Sidebar = Instance.new("Frame")
-	Sidebar.Name = "Sidebar"
+	Sidebar.Name = UUID.Static("Sidebar")
 	Sidebar.BorderSizePixel = 0
 	Sidebar.BackgroundColor3 = Color3.fromRGB(21, 21, 21) -- [THEME] sidebar background
 	Sidebar.BackgroundTransparency = 1
@@ -488,7 +471,7 @@ function Window.new(Settings)
 	SidebarSizeConstraint.Parent = Sidebar
 
 	local TabList = Instance.new("ScrollingFrame")
-	TabList.Name = "TabList"
+	TabList.Name = UUID.Static("TabList")
 	TabList.Active = true
 	TabList.ScrollingDirection = Enum.ScrollingDirection.Y
 	TabList.BorderSizePixel = 0
@@ -531,7 +514,7 @@ function Window.new(Settings)
 	TabListLayout.Parent = TabList
 
 	local SearchBar = Instance.new("Frame")
-	SearchBar.Name = "SearchBar"
+	SearchBar.Name = UUID.Static("SearchBar")
 	SearchBar.BorderSizePixel = 0
 	SearchBar.BackgroundColor3 = theme.SearchBarBackgroundColor
 	SearchBar.BackgroundTransparency = 1
@@ -553,7 +536,7 @@ function Window.new(Settings)
 	SearchBoxStroke.Parent = SearchBar
 
 	local SearchBox = Instance.new("TextBox")
-	SearchBox.Name = "SearchBox"
+	SearchBox.Name = UUID.Static("SearchBox")
 	SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 	SearchBox.PlaceholderColor3 = theme.SecondaryTextColor or Color3.fromRGB(100, 100, 100) -- [THEME] placeholder color
 	SearchBox.BorderSizePixel = 0
@@ -571,7 +554,7 @@ function Window.new(Settings)
 	SearchBox.Parent = SearchBar
 
 	local SearchIcon = Instance.new("ImageLabel")
-	SearchIcon.Name = "SearchIcon"
+	SearchIcon.Name = UUID.Static("SearchIcon")
 	SearchIcon.BorderSizePixel = 0
 	SearchIcon.BackgroundTransparency = 1
 	SearchIcon.ImageTransparency = 0.5 -- [THEME] search icon transparency
@@ -584,7 +567,7 @@ function Window.new(Settings)
 	SearchIcon.Parent = SearchBar
 
 	local SearchBarBottomDivider = Instance.new("Frame")
-	SearchBarBottomDivider.Name = "BottomDivider"
+	SearchBarBottomDivider.Name = UUID.Static("BottomDivider")
 	SearchBarBottomDivider.BorderSizePixel = 0
 	SearchBarBottomDivider.BackgroundColor3 = theme.TertiaryColor
 	SearchBarBottomDivider.BackgroundTransparency = 0.9 -- [THEME] divider transparency
@@ -617,13 +600,8 @@ function Window.new(Settings)
 		Tween.Play(SearchBarBottomDivider, "Fast", { BackgroundTransparency = 0.9 })
 	end)
 
-	-- Live filter: as the user types, hide non-matching sections on the active
-	-- page and highlight the matched substring in each component's label.
-	-- DEBOUNCED: ApplySearch walks the whole page (GetDescendants), toggles every
-	-- section's visibility and rewrites RichText on matching labels, so running it
-	-- on every keystroke makes fast typing do N full-tree passes per second.
-	-- Coalesce a burst of input into a single pass ~0.15s after the last key.
-	-- The delay is imperceptible and the end result is identical.
+	-- Live search walks the active page and rewrites labels, so debounce bursts
+	-- of typing into one pass.
 	local searchDebounce
 	SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		if searchDebounce then
@@ -640,7 +618,7 @@ function Window.new(Settings)
 	end)
 
 	local SidebarDivider = Instance.new("Frame")
-	SidebarDivider.Name = "Divider"
+	SidebarDivider.Name = UUID.Static("Divider")
 	SidebarDivider.BorderSizePixel = 0
 	SidebarDivider.BackgroundColor3 = theme.TertiaryColor
 	SidebarDivider.BackgroundTransparency = 0.9 -- [THEME] divider transparency
@@ -655,7 +633,7 @@ function Window.new(Settings)
 	-- Sidebar: user info (bottom)
 	----------------------------------------------------------------
 	local UserInfo = Instance.new("Frame")
-	UserInfo.Name = "UserInfo"
+	UserInfo.Name = UUID.Static("UserInfo")
 	UserInfo.BorderSizePixel = 0
 	UserInfo.BackgroundTransparency = 1
 	UserInfo.AnchorPoint = Vector2.new(0.5, 1)
@@ -670,7 +648,7 @@ function Window.new(Settings)
 	UserInfoPadding.Parent = UserInfo
 
 	local UserInfoGroup = Instance.new("Frame")
-	UserInfoGroup.Name = "InformationGroup"
+	UserInfoGroup.Name = UUID.Static("InformationGroup")
 	UserInfoGroup.BorderSizePixel = 0
 	UserInfoGroup.BackgroundTransparency = 1
 	UserInfoGroup.Size = UDim2.fromScale(1, 0.85)
@@ -684,7 +662,7 @@ function Window.new(Settings)
 	UserInfoGroupLayout.Parent = UserInfoGroup
 
 	local PlayerHeadshot = Instance.new("ImageLabel")
-	PlayerHeadshot.Name = "PlayerHeadshot"
+	PlayerHeadshot.Name = UUID.Static("PlayerHeadshot")
 	PlayerHeadshot.BorderSizePixel = 0
 	PlayerHeadshot.BackgroundTransparency = 1
 	PlayerHeadshot.Image = "rbxthumb://type=AvatarBust&id=" .. (player and player.UserId or 1) .. "&w=48&h=48"
@@ -697,18 +675,8 @@ function Window.new(Settings)
 	PlayerHeadshotCorner.CornerRadius = UDim.new(0, 10)
 	PlayerHeadshotCorner.Parent = PlayerHeadshot
 
-	-- The player headshot is a static avatar now: its old hover-swap (fade the
-	-- avatar out, reveal a settings gear) was removed. The settings button now
-	-- lives in the window-controls cluster (top-right); wire its click handler
-	-- here, where TabContent/SettingsPages are in scope.
-	-- Settings button toggles between the settings pages and whatever tab the
-	-- user was last on. Clicking it while settings are open returns to that
-	-- previous page instead of leaving the user stranded on settings.
-	-- Toggle off the LIVE visibility of SettingsPages, not a separate local
-	-- flag. Other paths (the pill/minimized tab handler) also hide SettingsPages
-	-- without touching this closure; a stale flag there made the first settings
-	-- click take the wrong branch, so it looked like the button needed two
-	-- clicks to open/close after any tab interaction.
+	-- The settings button lives in the window-controls cluster. Read the live
+	-- SettingsPages.Visible state so other paths that hide settings stay in sync.
 	SettingsButton.MouseButton1Click:Connect(function()
 		if SettingsPages.Visible then
 			SettingsPages.Visible = false
@@ -723,7 +691,7 @@ function Window.new(Settings)
 	end)
 
 	local NameContainer = Instance.new("Frame")
-	NameContainer.Name = "NameContainer"
+	NameContainer.Name = UUID.Static("NameContainer")
 	NameContainer.BorderSizePixel = 0
 	NameContainer.BackgroundTransparency = 1
 	NameContainer.Size = UDim2.new(0.95823, -42, 0, 32)
@@ -733,19 +701,19 @@ function Window.new(Settings)
 	NameContainer.Parent = UserInfoGroup
 
 	local NameContainerPadding = Instance.new("UIPadding")
-	NameContainerPadding.Name = "UserAndDisplayFrameUIPadding"
+	NameContainerPadding.Name = UUID.Static("UserAndDisplayFrameUIPadding")
 	NameContainerPadding.PaddingTop = UDim.new(0, 3)
 	NameContainerPadding.PaddingLeft = UDim.new(0, 8)
 	NameContainerPadding.Parent = NameContainer
 
 	local NameContainerLayout = Instance.new("UIListLayout")
-	NameContainerLayout.Name = "UserAndDisplayFrameUIListLayout"
+	NameContainerLayout.Name = UUID.Static("UserAndDisplayFrameUIListLayout")
 	NameContainerLayout.Padding = UDim.new(0, 4)
 	NameContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	NameContainerLayout.Parent = NameContainer
 
 	local Username = Instance.new("TextLabel")
-	Username.Name = "Username"
+	Username.Name = UUID.Static("Username")
 	Username.TextTruncate = Enum.TextTruncate.SplitWord
 	Username.BorderSizePixel = 0
 	Username.TextSize = 12
@@ -763,7 +731,7 @@ function Window.new(Settings)
 	Username.Parent = NameContainer
 
 	local DisplayName = Instance.new("TextButton")
-	DisplayName.Name = "DisplayName"
+	DisplayName.Name = UUID.Static("DisplayName")
 	DisplayName.BorderSizePixel = 0
 	DisplayName.TextXAlignment = Enum.TextXAlignment.Left
 	DisplayName.TextTransparency = 0.3 -- matches ScriptName
@@ -788,7 +756,7 @@ function Window.new(Settings)
 	end)
 
 	local TimeLabel = Instance.new("TextLabel")
-	TimeLabel.Name = "TimeLabel"
+	TimeLabel.Name = UUID.Static("TimeLabel")
 	TimeLabel.TextWrapped = true
 	TimeLabel.BorderSizePixel = 0
 	TimeLabel.TextSize = 12
@@ -828,7 +796,7 @@ function Window.new(Settings)
 	-- Sidebar: script info
 	----------------------------------------------------------------
 	local ScriptInfo = Instance.new("Frame")
-	ScriptInfo.Name = "ScriptInfo"
+	ScriptInfo.Name = UUID.Static("ScriptInfo")
 	ScriptInfo.BorderSizePixel = 0
 	ScriptInfo.BackgroundTransparency = 1
 	ScriptInfo.Size = UDim2.new(0.84065, 0, 0, 42) -- fixed height; scale Y made it shrink on resize
@@ -836,7 +804,7 @@ function Window.new(Settings)
 	ScriptInfo.Parent = Sidebar
 
 	local ScriptInfoGroup = Instance.new("Frame")
-	ScriptInfoGroup.Name = "InformationGroup"
+	ScriptInfoGroup.Name = UUID.Static("InformationGroup")
 	ScriptInfoGroup.BorderSizePixel = 0
 	ScriptInfoGroup.BackgroundTransparency = 1
 	ScriptInfoGroup.Size = UDim2.fromScale(1, 1)
@@ -851,7 +819,7 @@ function Window.new(Settings)
 	ScriptInfoGroupLayout.Parent = ScriptInfoGroup
 
 	local ScriptLogo = Instance.new("ImageLabel")
-	ScriptLogo.Name = "ScriptLogo"
+	ScriptLogo.Name = UUID.Static("ScriptLogo")
 	ScriptLogo.BorderSizePixel = 0
 	ScriptLogo.BackgroundTransparency = 1
 	ScriptLogo.Image = "rbxassetid://92458734285074"
@@ -865,7 +833,7 @@ function Window.new(Settings)
 	ScriptLogoUICorner.Parent = ScriptLogo
 
 	local ScriptInfoContainer = Instance.new("Frame")
-	ScriptInfoContainer.Name = "ScriptInfoContainer"
+	ScriptInfoContainer.Name = UUID.Static("ScriptInfoContainer")
 	ScriptInfoContainer.BorderSizePixel = 0
 	ScriptInfoContainer.BackgroundTransparency = 1
 	ScriptInfoContainer.Size = UDim2.new(0.95823, -42, 0, 32)
@@ -875,13 +843,13 @@ function Window.new(Settings)
 	ScriptInfoContainer.Parent = ScriptInfoGroup
 
 	local ScriptInfoContainerLayout = Instance.new("UIListLayout")
-	ScriptInfoContainerLayout.Name = "UserAndDisplayFrameUIListLayout"
+	ScriptInfoContainerLayout.Name = UUID.Static("UserAndDisplayFrameUIListLayout")
 	ScriptInfoContainerLayout.Padding = UDim.new(0, 4)
 	ScriptInfoContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	ScriptInfoContainerLayout.Parent = ScriptInfoContainer
 
 	local ScriptName = Instance.new("TextLabel")
-	ScriptName.Name = "ScriptName"
+	ScriptName.Name = UUID.Static("ScriptName")
 	ScriptName.TextTruncate = Enum.TextTruncate.SplitWord
 	ScriptName.BorderSizePixel = 0
 	ScriptName.TextSize = 13
@@ -939,15 +907,10 @@ function Window.new(Settings)
 	----------------------------------------------------------------
 	-- Tags  (Settings.Tags: up to 3 pills under the title)
 	----------------------------------------------------------------
-	-- Each entry is either a plain string (Name only) or a table
-	-- { Name=, BackgroundColor=, TextColor=, AccentColor= }. Any colour that is
-	-- omitted falls back to the theme (fill -> AccentColor, text ->
-	-- TitleTextColor, accent -> AccentColor). A colour that IS supplied is pinned
-	-- with ThemeManager.SetColorOverride so a theme switch never stomps it; the
-	-- omitted ones stay as live theme bindings. Pills share the row width evenly
-	-- (1 tag = full width, 2 = halves, 3 = thirds).
+	-- Tags are plain strings or { Name, BackgroundColor, TextColor, AccentColor }
+	-- tables. Supplied colors are pinned; omitted ones stay theme-bound.
 	local TagsContainer = Instance.new("Frame")
-	TagsContainer.Name = "ScriptTags"
+	TagsContainer.Name = UUID.Static("ScriptTags")
 	TagsContainer.BorderSizePixel = 0
 	TagsContainer.BackgroundTransparency = 1
 	TagsContainer.Size = UDim2.new(1, 0, 0, 14)
@@ -955,7 +918,7 @@ function Window.new(Settings)
 	TagsContainer.Parent = ScriptInfoContainer
 
 	local TagsLayout = Instance.new("UIListLayout")
-	TagsLayout.Name = "ScriptTagsLayout"
+	TagsLayout.Name = UUID.Static("ScriptTagsLayout")
 	TagsLayout.FillDirection = Enum.FillDirection.Horizontal
 	TagsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	TagsLayout.Padding = UDim.new(0, 4)
@@ -977,15 +940,10 @@ function Window.new(Settings)
 		local widthOffset = -(TAG_GAP * (total - 1)) / total
 
 		local pill = Instance.new("Frame")
-		pill.Name = "Tag" .. tostring(index)
+		pill.Name = UUID.Generate()
 		pill.BorderSizePixel = 0
-		-- LiveStat-style surface: the pill is a SOLID accent slab, and the
-		-- UIGradient below carries a fixed white -> grey brightness ramp
-		-- (multiplied against the slab). The hue lives on BackgroundColor3,
-		-- exactly like LiveStat's accent overlay.
-		-- The pill's fill is the caller's BackgroundColor (falling back to the
-		-- theme popup surface); the gradient below fades that fill toward the
-		-- caller's AccentColor.
+		-- The pill fill is caller-colored; the gradient below fades it toward
+		-- the caller's accent color.
 		pill.BackgroundColor3 = bgColor or theme.PopupBackgroundColor or theme.WindowColor or Color3.fromRGB(20, 20, 22)
 		pill.BackgroundTransparency = 0
 		pill.Size = UDim2.new(1 / total, widthOffset, 0, 14)
@@ -1031,7 +989,7 @@ function Window.new(Settings)
 		glow.Parent = pill
 
 		local label = Instance.new("TextLabel")
-		label.Name = "TagText"
+		label.Name = UUID.Static("TagText")
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
 		label.Text = name
@@ -1080,7 +1038,7 @@ function Window.new(Settings)
 	-- Resize handle
 	----------------------------------------------------------------
 	local ResizeButton = Instance.new("ImageButton")
-	ResizeButton.Name = "ResizeButton"
+	ResizeButton.Name = UUID.Static("ResizeButton")
 	ResizeButton.BorderSizePixel = 0
 	ResizeButton.AutoButtonColor = false
 	ResizeButton.ImageTransparency = 1
@@ -1240,7 +1198,7 @@ function Window.new(Settings)
 	-- CanvasGroup so GroupTransparency can dim the WHOLE pill (background +
 	-- buttons + stroke) at rest in one property, and clear on hover.
 	local pill = Instance.new("CanvasGroup")
-	pill.Name = "MinimizePill"
+	pill.Name = UUID.Generate()
 	pill.AutomaticSize = Enum.AutomaticSize.None
 	pill.Size = UDim2.fromOffset(56, 56)
 
@@ -1316,12 +1274,7 @@ function Window.new(Settings)
 	end
 
 	----------------------------------------------------------------
-	-- Compact mode (responsive). When the window gets narrow (or the user
-	-- forces it), the side sidebar collapses, the tab pills reflow into a
-	-- horizontal, horizontally-scrolling row under the title bar, search moves
-	-- up next to the window controls, and the content area goes full-width.
-	-- Trigger: AUTO by MainFrame absolute width (with hysteresis) unless
-	-- SettingsStore.CompactMode is "always"/"never".
+	-- Compact mode collapses the sidebar and moves pills under the title bar.
 	----------------------------------------------------------------
 	do
 		local COMPACT_ENTER = 672 -- below this width -> compact (auto); 672 is the last expanded width
@@ -1377,8 +1330,8 @@ function Window.new(Settings)
 			-- Raise the pill + its children above everything else in the window so
 			-- they can't be hidden behind Content/ContentBackground/SettingsPages.
 			btn.ZIndex = 60
-			local tabName = btn:FindFirstChild("TabName")
-			local tabImage = btn:FindFirstChild("TabImage")
+			local tabName = btn:FindFirstChild(UUID.Static("TabName"))
+			local tabImage = btn:FindFirstChild(UUID.Static("TabImage"))
 			if tabName then
 				tabName.ZIndex = 61
 			end
@@ -1445,10 +1398,10 @@ function Window.new(Settings)
 				TabList.Size = UDim2.new(0.95, 0, 0, 40)
 				-- 4px bottom padding + hide sidebar dividers (they add spacing
 				-- between pills in the horizontal row).
-				local compactPad = TabList:FindFirstChild("CompactPad")
+				local compactPad = TabList:FindFirstChild(UUID.Static("CompactPad"))
 				if not compactPad then
 					compactPad = Instance.new("UIPadding")
-					compactPad.Name = "CompactPad"
+					compactPad.Name = UUID.Static("CompactPad")
 					compactPad.Parent = TabList
 				end
 				compactPad.PaddingBottom = UDim.new(0, 4)
@@ -1511,7 +1464,7 @@ function Window.new(Settings)
 				TabList.Size = saved.tabListSize
 				TabList.Position = saved.tabListPos
 				TabList.AnchorPoint = saved.tabListAnchor
-				local compactPad = TabList:FindFirstChild("CompactPad")
+				local compactPad = TabList:FindFirstChild(UUID.Static("CompactPad"))
 				if compactPad then
 					compactPad:Destroy()
 				end
@@ -1682,7 +1635,7 @@ function Window.new(Settings)
 	-- off-screen. The scrollbar mirrors the sidebar/tab one: 1px, tertiary,
 	-- hidden until the user scrolls, then fades back out after 1.5s.
 	pillScroll = Instance.new("ScrollingFrame")
-	pillScroll.Name = "MinimizePillScroll"
+	pillScroll.Name = UUID.Static("MinimizePillScroll")
 	pillScroll.Active = true
 	pillScroll.BackgroundTransparency = 1
 	pillScroll.BorderSizePixel = 0
@@ -1754,7 +1707,7 @@ function Window.new(Settings)
 	local function stylePillButton(btn, tab, t, isActive)
 		btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)
 		btn.BackgroundTransparency = isActive and 0.1 or 1
-		local back = btn:FindFirstChild("BackImage")
+		local back = btn:FindFirstChild(UUID.Static("BackImage"))
 		if back then
 			back.Image = (tab.BackImage and tab.BackImage.Image) or "rbxassetid://11094025229"
 			back.ImageTransparency = isActive and 0 or 1
@@ -1773,7 +1726,7 @@ function Window.new(Settings)
 				end
 			end
 		end
-		local icon = btn:FindFirstChild("PillIcon")
+		local icon = btn:FindFirstChild(UUID.Static("PillIcon"))
 		if icon then
 			icon.Image = (tab.TabImage and tab.TabImage.Image) or "rbxassetid://8445470392"
 			icon.ImageColor3 = isActive and (t.ActiveTabIconColor or Color3.fromRGB(255, 255, 255))
@@ -1787,7 +1740,7 @@ function Window.new(Settings)
 	local function createPillButton(tab, i, t)
 		local isActive = (tab == (self.TabGroup and self.TabGroup.ActiveTab))
 		local btn = Instance.new("TextButton")
-		btn.Name = tab.Name .. "PillButton"
+		btn.Name = UUID.Generate()
 		btn.Size = UDim2.fromOffset(40, 40)
 		-- Only the ACTIVE tab shows its filled background; the rest are plain.
 		btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)
@@ -1806,7 +1759,7 @@ function Window.new(Settings)
 		btnScale.Parent = btn
 		-- Spinning-gradient backdrop, same look as the sidebar tab buttons.
 		local back = Instance.new("ImageLabel")
-		back.Name = "BackImage"
+		back.Name = UUID.Static("BackImage")
 		back.BorderSizePixel = 0
 		back.BackgroundTransparency = 1
 		back.Image = (tab.BackImage and tab.BackImage.Image) or "rbxassetid://11094025229"
@@ -1832,7 +1785,7 @@ function Window.new(Settings)
 		})
 		grad.Parent = back
 		local icon = Instance.new("ImageLabel")
-		icon.Name = "PillIcon"
+		icon.Name = UUID.Static("PillIcon")
 		icon.BorderSizePixel = 0
 		icon.BackgroundTransparency = 1
 		icon.Image = (tab.TabImage and tab.TabImage.Image) or "rbxassetid://8445470392"
@@ -2087,9 +2040,7 @@ function Window.new(Settings)
 	----------------------------------------------------------------
 	-- Close (confirm -> fade out + sound -> destroy)
 	----------------------------------------------------------------
-	-- Teardown: unload EVERYTHING tied to this window when the UI closes.
-	-- (Disconnects global UserInputService listeners, unbinds the minimize
-	-- keybind, cancels pending tasks + all tweens, destroys cached popups.)
+	-- Tear down listeners, tasks, tweens and cached popups on close.
 	self._teardown = function()
 		if self._destroyed then
 			return
@@ -2187,21 +2138,8 @@ function Window.new(Settings)
 	-- Build default settings pages (Themes + UI Settings) first.
 	SettingsSystem.BuildDefaultPages(self)
 
-	-- Developer-provided extra settings pages from CreateWindow options.
-	-- Each entry may supply a Build(window, tab) callback; `tab` is the
-	-- SettingsTabHandle returned by :Tab(), which exposes :Section(Settings).
-	-- Sections are the component factories (Toggle/Slider/Keybind/Button/
-	-- Dropdown/TextInput/ColorPicker/...). Settings pages are a SINGLE
-	-- vertical column (no left/right split) -- sections stack top to bottom.
-	-- Example:
-	--
-	--   SettingsPages = {
-	--     { Name = "Keybinds", Icon = ico("keyboard"),
-	--       Build = function(window, tab)
-	--         local s = tab:Section({ Name = "Combat" })
-	--         s:Keybind({ Name = "Aim", Default = "Q", Callback = function() end })
-	--       end },
-	--   }
+	-- Extra settings pages: each entry gets Build(window, tab) and a single
+	-- auto-scrolling column of sections.
 	if type(Settings.SettingsPages) == "table" then
 		for _, page in ipairs(Settings.SettingsPages) do
 			local tab = self.SettingsTabGroup:Tab({

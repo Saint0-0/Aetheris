@@ -1,30 +1,8 @@
 --[[
 	LiveStat  ·  Aetheris UI Library
 
-	A live numeric stat card, laid out to match Rayfield's Statistic:
-
-	  FULL (90px)   : title (+ optional icon) top-left, big value bottom-left,
-	                  % / absolute change bottom-right, accent fill + glow.
-	  COMPACT (41px): icon + title left, single value right.
-
-	The caller pushes a NUMBER in with :Set(); the card renders it with the
-	odometer slot-reel roll and tints itself toward the value's direction --
-	rising = positive accent (green), falling = negative (red), idle = neutral.
-
-	Accent colours are Rayfield's exact statAccents (the bright stop of each
-	fill); the card's UIStroke uses the brighter stroke edge. The accent
-	gradient SPINS slowly (12s / revolution) through the shared Tween spin
-	system, which gates on visibility -- an off-screen card pauses and resumes
-	from the frozen angle, like Slider / Toggle / RadioButton.
-
-	Usage:
-		local stat = section:LiveStat({
-			Name   = "Score",
-			Value  = 100,
-			Size   = "Full",          -- "Full" | "Compact"
-			Icon   = ico("trophy"),
-		})
-		stat:Set(250)                 -- rolls up, flips green
+	Animated numeric stat card with Full and Compact layouts. Values roll
+	through the odometer and tint positive, negative or neutral.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -32,6 +10,7 @@ local ActiveTheme = require("../Themes/ActiveTheme")
 local Tween = require("../Utils/Tween")
 local Odometer = require("../Utils/Odometer")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local LiveStat = {}
 LiveStat.__index = LiveStat
@@ -150,7 +129,7 @@ function LiveStat:_buildFull()
 	local theme = self._theme
 
 	local main = Instance.new("Frame")
-	main.Name = self._name
+	main.Name = UUID.Generate()
 	main.Size = UDim2.new(1, 0, 0, FULL_HEIGHT)
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
@@ -185,7 +164,7 @@ function LiveStat:_buildFull()
 	-- Title row: Rayfield uses a 1,-40 x 32 container at (20,15) with an 8px
 	-- horizontal, vertically-centred list layout (icon then title).
 	local titleContainer = Instance.new("Frame")
-	titleContainer.Name = "Title"
+	titleContainer.Name = UUID.Static("Title")
 	titleContainer.Size = UDim2.new(1, -40, 0, 32)
 	titleContainer.Position = UDim2.fromOffset(20, 15)
 	titleContainer.BackgroundTransparency = 1
@@ -235,7 +214,7 @@ function LiveStat:_buildFull()
 
 	-- Value (bottom-left): Rayfield puts a 200x20 host at (0,20,1,-15).
 	local valueHost = Instance.new("Frame")
-	valueHost.Name = "Value"
+	valueHost.Name = UUID.Static("Value")
 	valueHost.AnchorPoint = Vector2.new(0, 1)
 	valueHost.Position = UDim2.new(0, 20, 1, -15)
 	valueHost.Size = UDim2.fromOffset(200, 20)
@@ -253,7 +232,7 @@ function LiveStat:_buildFull()
 	-- Change (bottom-right): 200x15 host at (1,-20,1,-15), right-aligned.
 	if self._showChange then
 		local changeHost = Instance.new("Frame")
-		changeHost.Name = "Change"
+		changeHost.Name = UUID.Static("Change")
 		changeHost.AnchorPoint = Vector2.new(1, 1)
 		changeHost.Position = UDim2.new(1, -20, 1, -15)
 		changeHost.Size = UDim2.fromOffset(200, 15)
@@ -275,7 +254,7 @@ function LiveStat:_buildCompact()
 	local theme = self._theme
 
 	local main = Instance.new("Frame")
-	main.Name = self._name
+	main.Name = UUID.Generate()
 	main.Size = UDim2.new(1, 0, 0, COMPACT_HEIGHT)
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
@@ -342,7 +321,7 @@ function LiveStat:_buildCompact()
 	self._title = title
 
 	local valueHost = Instance.new("Frame")
-	valueHost.Name = "Value"
+	valueHost.Name = UUID.Static("Value")
 	valueHost.AnchorPoint = Vector2.new(1, 0.5)
 	valueHost.Position = UDim2.new(1, -14, 0.5, 0)
 	valueHost.Size = UDim2.new(0.5, -14, 1, 0)

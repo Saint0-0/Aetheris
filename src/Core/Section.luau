@@ -29,6 +29,7 @@ local LiveStat = require("../Components/LiveStat")
 local Console = require("../Components/Console")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local Section = {}
 Section.__index = Section
@@ -57,7 +58,7 @@ function Section.new(parent, Settings, theme, window)
 	end
 	-- Build the section frame
 	local frame = Instance.new("Frame")
-	frame.Name = Settings.Name or "Section"
+	frame.Name = UUID.Generate()
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = theme.SectionBackgroundColor
 	frame.BackgroundTransparency = theme.SectionBackgroundTransparency
@@ -68,7 +69,7 @@ function Section.new(parent, Settings, theme, window)
 	frame:SetAttribute("IsSection", true)
 	frame.Parent = parent
 	local corner = Instance.new("UICorner")
-	corner.Name = "SectionUICorner"
+	corner.Name = UUID.Static("SectionUICorner")
 	corner.Parent = frame
 	-- Section strokes are their own thing: prefer the section-specific keys so
 	-- construction matches ApplyTheme (previously construction used the general
@@ -76,20 +77,20 @@ function Section.new(parent, Settings, theme, window)
 	-- freshly-built section and a theme-switched one disagreed). Fall back to the
 	-- general stroke keys, then a sane default.
 	local stroke = Instance.new("UIStroke")
-	stroke.Name = "SectionUIStroke"
+	stroke.Name = UUID.Static("SectionUIStroke")
 	stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or 0.985
 	stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 	local layout = Instance.new("UIListLayout")
-	layout.Name = "SectionUIListLayout"
+	layout.Name = UUID.Static("SectionUIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.Padding = UDim.new(0, 10)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = frame
 	local padding = Instance.new("UIPadding")
-	padding.Name = "SectionUIPadding"
+	padding.Name = UUID.Static("SectionUIPadding")
 	padding.PaddingTop = UDim.new(0, 12)
 	padding.PaddingRight = UDim.new(0, 15)
 	padding.PaddingLeft = UDim.new(0, 15)
@@ -106,7 +107,7 @@ function Section.new(parent, Settings, theme, window)
 	-- the normal ThemeManager descendant pass (no override stamped).
 	if Settings.Name and Settings.Name ~= "" then
 		local title = Instance.new("TextLabel")
-		title.Name = "SectionTitle"
+		title.Name = UUID.Static("SectionTitle")
 		title.BackgroundTransparency = 1
 		title.BorderSizePixel = 0
 		title.Text = Settings.Name

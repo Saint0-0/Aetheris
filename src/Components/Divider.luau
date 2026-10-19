@@ -24,6 +24,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Divider = {}
 Divider.__index = Divider
 function Divider.new(parent, Settings, theme)
@@ -41,7 +42,7 @@ function Divider.new(parent, Settings, theme)
 	local padding = Settings.Padding or 1
 	-- Holder: full width, fully transparent, Y size = the requested padding.
 	local holder = Instance.new("Frame")
-	holder.Name = "DividerHolder"
+	holder.Name = UUID.Static("DividerHolder")
 	holder.BorderSizePixel = 0
 	holder.BackgroundTransparency = 1
 	holder.Size = UDim2.new(1, 0, 0, padding)
@@ -49,7 +50,7 @@ function Divider.new(parent, Settings, theme)
 	holder.Parent = parent
 	-- Divider line, centred inside the holder.
 	local frame = Instance.new("Frame")
-	frame.Name = "Divider"
+	frame.Name = UUID.Static("Divider")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = color
 	frame.BackgroundTransparency = transparency

@@ -14,6 +14,8 @@
 	restore exactly on clear, keeping behavior identical to before.
 ]]
 
+local UUID = require("../Utils/UUID")
+
 local SearchFilter = {}
 
 local function colorToHex(c)
@@ -80,7 +82,7 @@ local function buildIndex(page)
 	for _, d in ipairs(page:GetDescendants()) do
 		if d:GetAttribute("IsSection") then
 			sections[d] = false
-		elseif d:IsA("TextLabel") and d.Name == "ElementName" then
+		elseif d:IsA("TextLabel") and d.Name == UUID.Static("ElementName") then
 			-- Resolve the owning section once, at index time, instead of
 			-- walking parents on every keystroke.
 			local sec = nil

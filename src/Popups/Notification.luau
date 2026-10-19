@@ -14,6 +14,7 @@
 ]]
 
 local Tween = require("../Utils/Tween")
+local UUID = require("../Utils/UUID")
 local ThemeManager = require("../Themes/ThemeManager")
 local FallbackImage = require("../Constants").FallbackImage
 local Icons = require("../Assets/Icons")
@@ -125,7 +126,7 @@ function Notification.new(container, Settings, theme)
 	local gradientColor = Settings.GradientColor or accent
 
 	local root = new("CanvasGroup", {
-		Name = ntype .. "Notification",
+		Name = UUID.Generate(),
 		ZIndex = 999,
 		BorderSizePixel = 0,
 		GroupTransparency = 1,
@@ -144,7 +145,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Gradient glow (behind the content)
 	local grad = new("Frame", {
-		Name = "GradientBackground",
+		Name = UUID.Static("GradientBackground"),
 		BorderSizePixel = 0,
 		BackgroundColor3 = gradientColor,
 		BackgroundTransparency = 0.65,
@@ -176,7 +177,7 @@ function Notification.new(container, Settings, theme)
 	-- Optional sheen background image
 	if Settings.ShowBackground then
 		local bg = new("ImageLabel", {
-			Name = "Background",
+			Name = UUID.Static("Background"),
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
 			ImageTransparency = 0.5,
@@ -211,7 +212,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Header + divider
 	local header = new("TextLabel", {
-		Name = "Header",
+		Name = UUID.Static("Header"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -228,7 +229,7 @@ function Notification.new(container, Settings, theme)
 		Parent = root,
 	})
 	new("Frame", {
-		Name = "Divider",
+		Name = UUID.Static("Divider"),
 		BorderSizePixel = 0,
 		BackgroundColor3 = theme.NotificationDividerColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.NotificationDividerTransparency or 0.7,
@@ -240,7 +241,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Icon (full image from the Icons module; no rect offset/size)
 	local icon = new("ImageLabel", {
-		Name = "Icon",
+		Name = UUID.Static("Icon"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		ImageColor3 = iconColor,
@@ -255,7 +256,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Description
 	local desc = new("TextLabel", {
-		Name = "Description",
+		Name = UUID.Static("Description"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		TextWrapped = true,
@@ -282,7 +283,7 @@ function Notification.new(container, Settings, theme)
 	local actions = Settings.Actions or {}
 	if #actions > 0 then
 		local holder = new("Frame", {
-			Name = "InterractionHolder",
+			Name = UUID.Static("InterractionHolder"),
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 30),
@@ -302,7 +303,7 @@ function Notification.new(container, Settings, theme)
 		for i = 1, math.min(#actions, MAX_ACTIONS) do
 			local action = actions[i]
 			local btn = new("TextButton", {
-				Name = "Interraction",
+				Name = UUID.Static("Interraction"),
 				BorderSizePixel = 0,
 				AutoButtonColor = false,
 				TextSize = 12,
@@ -355,7 +356,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Dismiss button (full image from the Icons module; no rect offset/size)
 	local dismiss = new("ImageButton", {
-		Name = "DismissButton",
+		Name = UUID.Static("DismissButton"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		ImageTransparency = 0.5,
@@ -390,7 +391,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Timer bar
 	self.TimerFrame = new("Frame", {
-		Name = "TimerFrame",
+		Name = UUID.Static("TimerFrame"),
 		BorderSizePixel = 0,
 		BackgroundColor3 = accent,
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -460,7 +461,7 @@ function Notification:ApplyTheme(themeInput)
 		if theme.NotificationHeaderTransparency then
 			self._header.TextTransparency = theme.NotificationHeaderTransparency
 		end
-		local divider = self._header:FindFirstChild("Divider")
+		local divider = self._header:FindFirstChild(UUID.Static("Divider"))
 		if divider then
 			if theme.NotificationDividerColor then
 				divider.BackgroundColor3 = theme.NotificationDividerColor
@@ -482,7 +483,7 @@ function Notification:ApplyTheme(themeInput)
 		if theme.NotificationTextTransparency then
 			self._desc.TextTransparency = theme.NotificationTextTransparency
 		end
-		local holder = self._desc:FindFirstChild("InterractionHolder")
+		local holder = self._desc:FindFirstChild(UUID.Static("InterractionHolder"))
 		if holder then
 			local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
 			local btnText = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255)

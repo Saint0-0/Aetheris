@@ -16,6 +16,7 @@
 local VideoFade = require("../Utils/VideoFade")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Video = {}
 Video.__index = Video
 function Video.new(parent, Settings, theme)
@@ -28,7 +29,7 @@ function Video.new(parent, Settings, theme)
 	local height = Settings.Height or 100
 	-- Container frame
 	local frame = Instance.new("Frame")
-	frame.Name = "Video"
+	frame.Name = UUID.Static("Video")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	frame.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
@@ -50,7 +51,7 @@ function Video.new(parent, Settings, theme)
 	stroke.Parent = frame
 	-- VideoFrame
 	local videoFrame = Instance.new("VideoFrame")
-	videoFrame.Name = "VideoFrame"
+	videoFrame.Name = UUID.Static("VideoFrame")
 	videoFrame.BorderSizePixel = 0
 	videoFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	videoFrame.BackgroundTransparency = 1

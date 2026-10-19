@@ -19,6 +19,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local Status = {}
 Status.__index = Status
@@ -74,7 +75,7 @@ function Status.new(parent, Settings, theme)
 	local entries = copyEntries(Settings.Entries or {})
 	-- Main container
 	local frame = Instance.new("Frame")
-	frame.Name = "Status"
+	frame.Name = UUID.Static("Status")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	frame.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
@@ -96,7 +97,7 @@ function Status.new(parent, Settings, theme)
 	stroke.Parent = frame
 	-- ElementName label
 	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
+	label.Name = UUID.Static("ElementName")
 	label.TextWrapped = true
 	label.BorderSizePixel = 0
 	label.TextSize = 14
@@ -121,7 +122,7 @@ function Status.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	-- StatusTextHolder
 	local holder = Instance.new("Frame")
-	holder.Name = "StatusTextHolder"
+	holder.Name = UUID.Static("StatusTextHolder")
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = 1
@@ -151,7 +152,7 @@ function Status.new(parent, Settings, theme)
 
 	local function makeLabel(parentHolder, entry)
 		local textLabel = Instance.new("TextLabel")
-		textLabel.Name = "StatusText"
+		textLabel.Name = UUID.Generate()
 		textLabel.TextWrapped = true
 		textLabel.TextTruncate = Enum.TextTruncate.AtEnd
 		textLabel.BorderSizePixel = 0

@@ -1,99 +1,15 @@
 --[[
 	ThemeDefinitions  ·  Aetheris UI Library
 
-	Defines every named theme and the full theme-key schema. Each theme table
-	overrides specific visual properties; GetTheme merges a theme over Default
-	so any missing key falls back safely. Three post-processing maps are
-	applied before `return ThemeDefinitions`:
-
-	  * WALLPAPERS          - per-theme backdrop asset (brand imagery)
-	  * WINDOW_CONTROLS     - per-theme close/max/min icon color
-	  * THEME_TRANSPARENCY  - per-theme {WindowT, SidebarT, ContentT}
-
-	Public access is via Themes.ThemeManager (GetTheme / ApplyTheme / Update).
+	Defines the merge base and every named theme; missing keys fall back to Base.
 ]]
 
---[[
-    THEME KEYS & THEIR EFFECTS
-
-    Window:
-        WindowColor                     - Background of the main window frame.
-        WindowTransparency              - Transparency of the window background.
-        WindowControlColor              - Color of the close/maximize/minimize icons.
-        ContentBackgroundColor          - Fill for the region right of the sidebar (falls back to WindowColor).
-        ContentBackgroundTransparency   - Transparency of that content fill (falls back to WindowTransparency).
-        MainframeShadowColor            - Color of the drop shadow behind the window.
-
-    Sidebar:
-        SidebarColor                    - Background color of the sidebar.
-        SidebarTransparency             - Transparency of the sidebar.
-
-    Components (common):
-        ComponentBackgroundColor        - Background color for component containers (rows, frames).
-        ComponentBackgroundTransparency - Transparency for component backgrounds.
-        InputBackgroundColor            - Background color for text inputs (Slider, Stepper, Keybind, TextInput).
-        InputBackgroundTransparency     - Transparency for text input backgrounds.
-        ComponentShadowColor            - Color of shadows on interactive components.
-        StrokeColor                     - Color of borders/outlines.
-        StrokeTransparency              - Transparency of borders/outlines.
-        PrimaryColor                    - Main fill/accent color (e.g., slider fill, toggle on, button glow, radio selected).
-        SecondaryColor                  - Secondary fill color (e.g., toggle track off, selection status background).
-        TertiaryColor                   - Tertiary fill (e.g., some inactive indicators).
-        Undercolor                      - Color for unfilled portions (e.g., progress bar track).
-        AccentColor                     - Highlight color (e.g., icons, chevrons, dividers, search icon, tab image, active elements).
-
-    Text:
-        PrimaryTextColor                - Main text for labels, titles, inputs.
-        PrimaryTextTransparency         - Transparency of primary text (0=opaque, 1=transparent).
-        SecondaryTextColor              - Less prominent text (e.g., descriptions, stats, placeholders).
-        SecondaryTextTransparency       - Transparency for secondary text.
-        TitleTextColor                  - Title text (PageTitle, ScriptName, DisplayName, etc.).
-        InactiveTabTextColor            - Text color for tab labels when not selected.
-        InactiveTabIconColor            - Icon color for tab icons when not selected.
-        ActiveTabTextColor              - Text color for tab labels when selected.
-        ActiveTabIconColor              - Icon color for tab icons when selected.
-        ActiveTabTextTransparency       - Transparency for active tab text (0=opaque, 1=transparent).
-        InactiveTabTextTransparency     - Transparency for inactive tab text.
-        ActiveTabIconTransparency       - Transparency for active tab icon.
-        InactiveTabIconTransparency     - Transparency for inactive tab icon.
-
-    Tabs:
-        ActiveTabButtonColor            - Background color for the active tab button.
-        ActiveTabButtonTransparency     - Transparency for the active tab button.
-        InactiveTabButtonColor          - Background color for inactive tab buttons.
-        InactiveTabButtonTransparency   - Transparency for inactive tab buttons.
-
-    Section:
-        SectionBackgroundColor          - Background of section containers.
-        SectionBackgroundTransparency   - Transparency of section backgrounds.
-        SectionStrokeColor              - Color of the section's own border stroke (falls back to StrokeColor).
-        SectionStrokeTransparency       - Transparency of the section's own border stroke (falls back to StrokeTransparency).
-        SectionDividerColor             - Background color of section dividers.
-        SectionDividerTransparency      - Transparency of section dividers.
-
-    Search bar:
-        SearchBarBackgroundColor        - Background color of the sidebar search bar.
-        SearchBarBackgroundTransparency - Transparency of the sidebar search bar.
-
-    Popups (notifications, dropdowns, color picker):
-        PopupBackgroundColor            - Main background of popup frames.
-        PopupBackgroundTransparency     - Transparency of popup background.
-        PopupNeutralColor               - Neutral color (e.g., cancel buttons, inactive elements).
-        PopupShadowColor                - Shadow color for popups.
-        PopupTextColor                  - Text color inside popups.
-        PopupTextTransparency           - Transparency of popup text.
-
-    Wallpaper:
-        Wallpaper                       - Image asset ID for the decorative background.
-        WallpaperEnabled                - Whether the wallpaper and all brand back images are shown.
---]]
+-- Themes override Base; the maps below add wallpapers, control colors and transparency profiles.
 
 local ThemeDefinitions = {}
 
--- Base: the structural merge base. Every theme is merged over this table, so
--- any key a theme omits falls back here. It is NOT the launch default -- that
--- lives in ThemeManager.DefaultTheme. Matches the original Aetheris look:
--- near-black window @ 0.1, dark sidebar, white strokes/icons, deep blue accents.
+-- Base is the merge fallback for every theme; ThemeManager.DefaultTheme is the
+-- launch theme.
 ThemeDefinitions.Base = {
 	-- Window
 	WindowColor = Color3.fromRGB(15, 15, 16),
@@ -2631,8 +2547,66 @@ for name, t in pairs(THEME_TRANSPARENCY) do
 	end
 end
 
+-- Palette refresh: keep every accent/wallpaper pairing, but lift the chrome
+-- off flat black/white with a small amount of the theme's own accent. Surfaces
+-- stay neutral enough for text while borders, inputs and text pick up the hue.
+local DARK_SURFACE_TINT = {
+	Window = 0.045,
+	Sidebar = 0.085,
+	Content = 0.05,
+	Input = 0.075,
+	Popup = 0.06,
+	Neutral = 0.08,
+	Under = 0.07,
+	Search = 0.07,
+	Stroke = 0.1,
+	Text = 0.04,
+	SecondaryText = 0.07,
+	Tertiary = 0.16,
+}
+local LIGHT_SURFACE_TINT = {
+	Window = 0.025,
+	Sidebar = 0.055,
+	Content = 0.02,
+	Input = 0.045,
+	Popup = 0.03,
+	Neutral = 0.05,
+	Under = 0.04,
+	Search = 0.045,
+	Stroke = 0.12,
+	Text = 0.055,
+	SecondaryText = 0.08,
+	Tertiary = 0.16,
+}
+
+local function luminance(color)
+	return 0.2126 * color.R + 0.7152 * color.G + 0.0722 * color.B
+end
+
+for name, def in pairs(ThemeDefinitions) do
+	if name ~= "Base" then
+		local accent = def.AccentColor or def.PrimaryColor
+		local dark = luminance(def.WindowColor) < 0.4
+		local amounts = dark and DARK_SURFACE_TINT or LIGHT_SURFACE_TINT
+		def.WindowColor = def.WindowColor:Lerp(accent, amounts.Window)
+		def.SidebarColor = def.SidebarColor:Lerp(accent, amounts.Sidebar)
+		def.ContentBackgroundColor = def.ContentBackgroundColor:Lerp(accent, amounts.Content)
+		def.InputBackgroundColor = def.InputBackgroundColor:Lerp(accent, amounts.Input)
+		def.PopupBackgroundColor = def.PopupBackgroundColor:Lerp(accent, amounts.Popup)
+		def.PopupNeutralColor = def.PopupNeutralColor:Lerp(accent, amounts.Neutral)
+		def.Undercolor = def.Undercolor:Lerp(accent, amounts.Under)
+		def.SearchBarBackgroundColor = def.SearchBarBackgroundColor:Lerp(accent, amounts.Search)
+		def.StrokeColor = def.StrokeColor:Lerp(accent, amounts.Stroke)
+		def.PrimaryTextColor = def.PrimaryTextColor:Lerp(accent, amounts.Text)
+		def.SecondaryTextColor = def.SecondaryTextColor:Lerp(accent, amounts.SecondaryText)
+		def.TitleTextColor = def.TitleTextColor:Lerp(accent, amounts.Text)
+		def.PopupTextColor = def.PopupTextColor:Lerp(accent, amounts.Text)
+		def.TertiaryColor = def.TertiaryColor:Lerp(accent, amounts.Tertiary)
+	end
+end
+
 -- Notifications derive their surface colors from the theme's popup/text colors
--- so every theme stays coherent without hand-authoring 15 keys x 19 themes.
+-- so every theme stays coherent without hand-authoring every notification key.
 for _, t in pairs(ThemeDefinitions) do
 	if t.NotificationBackgroundColor == nil then
 		t.NotificationBackgroundColor = t.PopupBackgroundColor or t.WindowColor

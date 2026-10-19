@@ -13,6 +13,7 @@ local ThemeManager = require("../../Themes/ThemeManager")
 local FallbackImage = require("../../Constants").FallbackImage
 local Tween = require("../../Utils/Tween")
 local Constants = require("../../Constants")
+local UUID = require("../../Utils/UUID")
 
 local Themes = {}
 
@@ -52,48 +53,46 @@ local THEME_ORDER = {
 	"Rosa",
 }
 
--- Short (card-sized) descriptions, one per theme.
--- Card-sized descriptions, one per theme. Hard cap: 12 characters including
--- spaces, so they never wrap inside the card layout.
+-- Card-sized descriptions; keep them short enough not to wrap.
 local THEME_DESCRIPTIONS = {
-	Umbral = "Navy night",
-	Ember = "Molten glow",
-	Vesper = "Violet dusk",
-	Duskfall = "Plum sunset",
+	Umbral = "Steel blue night",
+	Ember = "Molten ember",
+	Vesper = "Violet twilight",
+	Duskfall = "Plum & amber",
 	Canopy = "Forest mist",
 	Tidewater = "Teal coast",
-	Nocturne = "Aurora night",
-	Solace = "Ice calm",
+	Nocturne = "Neon aurora",
+	Solace = "Pale ice",
 	Cielo = "Clear sky",
 	Honey = "Golden hour",
-	Dawn = "Soft dawn",
-	Alpine = "Crisp peaks",
+	Dawn = "Peach dawn",
+	Alpine = "Glacier blue",
 	Peony = "Coral bloom",
-	Sakura = "Pink petals",
-	Blush = "Rose dusk",
+	Sakura = "Cherry blossom",
+	Blush = "Raspberry dusk",
 	Cinder = "Vivid fire",
-	Mauve = "Soft violet",
-	Iris = "Deep purple",
-	Sundown = "Warm dusk",
-	Twilight = "Cool dusk",
-	Nebula = "Aurora glow",
-	Monterey = "Classic dark",
-	Sonoma = "Warm dark",
-	Ventura = "Deep dusk",
+	Mauve = "Dusty mauve",
+	Iris = "Indigo bloom",
+	Sundown = "Coral sunset",
+	Twilight = "Periwinkle haze",
+	Nebula = "Magenta nebula",
+	Monterey = "Pacific blue",
+	Sonoma = "Warm sand",
+	Ventura = "Amethyst fog",
 	Vermilion = "Scarlet dusk",
 	Grove = "Deep forest",
-	Prism = "Vivid blue",
-	Sage = "Soft green",
+	Prism = "Prismatic blue",
+	Sage = "Soft sage",
 	Blossom = "Pink bloom",
 	Petal = "Rose petal",
-	Frost = "Cool white",
+	Frost = "Frosted white",
 	Amber = "Warm gold",
 	Rosa = "Dusty rose",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)
 	local card = Instance.new("TextButton")
-	card.Name = name
+	card.Name = UUID.Generate()
 	card.BorderSizePixel = 0
 	card.AutoButtonColor = false
 	card.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(16, 16, 17)
@@ -125,7 +124,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	-- Vertical divider reflects TertiaryColor (used for scrollbars etc.)
 	local divider = Instance.new("Frame")
-	divider.Name = "Divider"
+	divider.Name = UUID.Static("Divider")
 	divider.BorderSizePixel = 0
 	divider.BackgroundColor3 = theme.TertiaryColor or Color3.fromRGB(150, 150, 150)
 	divider.BackgroundTransparency = active and 0.72 or 0.9
@@ -136,7 +135,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	-- 2x2 color swatch holder
 	local colorHolder = Instance.new("Frame")
-	colorHolder.Name = "ThemeColorHolder"
+	colorHolder.Name = UUID.Static("ThemeColorHolder")
 	colorHolder.AnchorPoint = Vector2.new(0.5, 0.5)
 	colorHolder.Size = UDim2.fromScale(0.35342, 0.56731)
 	colorHolder.Position = UDim2.fromScale(0.73333, 0.5)
@@ -161,7 +160,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	}
 	for i, def in ipairs(swatchDefs) do
 		local swatch = Instance.new("Frame")
-		swatch.Name = def[1]
+		swatch.Name = UUID.Generate()
 		swatch.LayoutOrder = i
 		swatch.Size = UDim2.fromOffset(26, 18)
 		swatch.BackgroundColor3 = def[2] or Color3.fromRGB(255, 255, 255)
@@ -185,7 +184,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	-- Wallpaper backdrop
 	local backImage = Instance.new("ImageLabel")
-	backImage.Name = "BackImage"
+	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
 	backImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	backImage.BackgroundTransparency = 1
@@ -221,7 +220,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	-- Theme title (active cards use lower transparency)
 	local title = Instance.new("TextLabel")
-	title.Name = "ThemeTitle"
+	title.Name = UUID.Static("ThemeTitle")
 	title.TextSize = 13
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextTransparency = active and 0.2 or 0.5
@@ -236,7 +235,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	-- Theme description
 	local description = Instance.new("TextLabel")
-	description.Name = "ThemeDescription"
+	description.Name = UUID.Static("ThemeDescription")
 	description.TextSize = 9
 	description.TextXAlignment = Enum.TextXAlignment.Left
 	description.TextYAlignment = Enum.TextYAlignment.Top
@@ -349,7 +348,7 @@ function Themes.Build(window, tab)
 
 	-- Page title
 	local pageTitle = Instance.new("TextLabel")
-	pageTitle.Name = "ThemePageText"
+	pageTitle.Name = UUID.Static("ThemePageText")
 	pageTitle.TextWrapped = true
 	pageTitle.TextTruncate = Enum.TextTruncate.AtEnd
 	pageTitle.BorderSizePixel = 0
@@ -372,7 +371,7 @@ function Themes.Build(window, tab)
 	-- theme's tertiary color, hidden until the user scrolls) and is
 	-- re-colored on theme switch by ThemeManager's ScrollingFrame pass.
 	local pageHolder = Instance.new("ScrollingFrame")
-	pageHolder.Name = "PageHolder"
+	pageHolder.Name = UUID.Static("PageHolder")
 	pageHolder.BorderSizePixel = 0
 	pageHolder.BackgroundColor3 = pageTheme.SectionBackgroundColor
 	pageHolder.BackgroundTransparency = 1
@@ -431,7 +430,7 @@ function Themes.Build(window, tab)
 
 	-- Current theme label
 	local currentText = Instance.new("TextLabel")
-	currentText.Name = "CurrentThemeText"
+	currentText.Name = UUID.Static("CurrentThemeText")
 	currentText.TextWrapped = true
 	currentText.TextTruncate = Enum.TextTruncate.AtEnd
 	currentText.BorderSizePixel = 0

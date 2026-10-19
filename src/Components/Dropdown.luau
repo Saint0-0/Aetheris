@@ -23,6 +23,7 @@ local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Dropdown = {}
 Dropdown.__index = Dropdown
 local _counter = 0
@@ -56,7 +57,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	})
 	-- Interact button (covers the whole row to capture clicks)
 	local interact = Instance.new("TextButton")
-	interact.Name = "Interact"
+	interact.Name = UUID.Static("Interact")
 	interact.BorderSizePixel = 0
 	interact.TextSize = 14
 	interact.TextColor3 = Color3.fromRGB(0, 0, 0)
@@ -67,7 +68,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	interact.Parent = row
 	-- Dropdown chevron image
 	local dropdownImage = Instance.new("ImageLabel")
-	dropdownImage.Name = "DropdownImage"
+	dropdownImage.Name = UUID.Static("DropdownImage")
 	dropdownImage.BorderSizePixel = 0
 	dropdownImage.BackgroundTransparency = 1
 	dropdownImage.ImageTransparency = 0.5

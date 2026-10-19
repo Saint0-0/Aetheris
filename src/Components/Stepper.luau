@@ -22,6 +22,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local UUID = require("../Utils/UUID")
 local Stepper = {}
 Stepper.__index = Stepper
 function Stepper.new(parent, Settings, theme)
@@ -47,7 +48,7 @@ function Stepper.new(parent, Settings, theme)
 	-- Input shell: the real editable TextBox is transparent at rest; a rolling
 	-- Odometer sits on top. Focusing swaps them so typing still works.
 	local inputBox = Instance.new("TextBox")
-	inputBox.Name = "StepperInputBox"
+	inputBox.Name = UUID.Static("StepperInputBox")
 	inputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	inputBox.BorderSizePixel = 0
 	inputBox.TextWrapped = false
@@ -79,7 +80,7 @@ function Stepper.new(parent, Settings, theme)
 	inputStroke.Parent = inputBox
 
 	local valueReel = Instance.new("Frame")
-	valueReel.Name = "ValueReel"
+	valueReel.Name = UUID.Static("ValueReel")
 	valueReel.BackgroundTransparency = 1
 	valueReel.BorderSizePixel = 0
 	valueReel.Size = UDim2.fromScale(1, 1)
@@ -97,7 +98,7 @@ function Stepper.new(parent, Settings, theme)
 
 	-- Step controls: one compact two-segment pill at the right edge.
 	local controls = Instance.new("Frame")
-	controls.Name = "StepControls"
+	controls.Name = UUID.Static("StepControls")
 	controls.AnchorPoint = Vector2.new(1, 0.5)
 	controls.Position = UDim2.fromScale(1, 0.5)
 	controls.Size = UDim2.fromOffset(24, 32)
@@ -128,9 +129,9 @@ function Stepper.new(parent, Settings, theme)
 	controlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	controlsLayout.Parent = controls
 
-	local function makeStepButton(buttonName, icon, order)
+	local function makeStepButton(icon, order)
 		local btn = Instance.new("ImageButton")
-		btn.Name = buttonName
+		btn.Name = UUID.Generate()
 		btn.BorderSizePixel = 0
 		btn.AutoButtonColor = false
 		btn.Image = Icons[icon]
@@ -163,8 +164,8 @@ function Stepper.new(parent, Settings, theme)
 		end)
 		return btn
 	end
-	local stepUp = makeStepButton("StepUp", "chevron-up", 1)
-	local stepDown = makeStepButton("StepDown", "chevron-down", 2)
+	local stepUp = makeStepButton("chevron-up", 1)
+	local stepDown = makeStepButton("chevron-down", 2)
 	-- Store references
 	self.Row = row
 	self.Label = label

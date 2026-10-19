@@ -10,12 +10,13 @@
 ]]
 
 local RunService = game:GetService("RunService")
+local UUID = require("./UUID")
 
 local VideoFade = {}
 
 function VideoFade.attach(videoFrame)
 	local grad = Instance.new("UIGradient")
-	grad.Name = "FadeGradient"
+	grad.Name = UUID.Static("FadeGradient")
 	grad:SetAttribute("IsVideoFade", true)
 	grad.Transparency = NumberSequence.new(0)
 	grad.Parent = videoFrame

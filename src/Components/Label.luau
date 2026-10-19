@@ -18,6 +18,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Label = {}
 Label.__index = Label
 -- Map string to Enum.FontWeight
@@ -49,7 +50,7 @@ function Label.new(parent, Settings, theme)
 	local paddingOverride = Settings.Padding
 	-- Container (matches Paragraph's style)
 	local container = Instance.new("Frame")
-	container.Name = text .. " [Label]"
+	container.Name = UUID.Generate()
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = showContainer and ((theme and theme.ComponentBackgroundTransparency) or 0.985)
@@ -93,7 +94,7 @@ function Label.new(parent, Settings, theme)
 	padding.Parent = container
 	-- Label
 	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
+	label.Name = UUID.Static("ElementName")
 	label.FontFace = Constants.Font(fontWeight)
 	label.Text = text
 	label.RichText = true

@@ -41,6 +41,7 @@ local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 
 local Slider = {}
 Slider.__index = Slider
@@ -128,7 +129,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- track (Rayfield's `track`) -----------------------------------------
 	local holder = Instance.new("Frame")
-	holder.Name = "SliderHolder"
+	holder.Name = UUID.Static("SliderHolder")
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = theme.Undercolor
 	holder.BackgroundTransparency = 0
@@ -145,7 +146,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- fill (Rayfield's `progress`) ---------------------------------------
 	local visual = Instance.new("Frame")
-	visual.Name = "SliderVisual"
+	visual.Name = UUID.Static("SliderVisual")
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = (theme and theme.PrimaryColor)
 	visual.Size = UDim2.fromScale(0, 1)
@@ -157,7 +158,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- spinning sheen inside the fill (ours)
 	local backImage = Instance.new("ImageLabel")
-	backImage.Name = "BackImage"
+	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
 	backImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	backImage.ImageTransparency = 0.5
@@ -186,7 +187,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- the pill (Rayfield's `handle`) -- a child of the FILL, carried by it -
 	local thumb = Instance.new("ImageButton")
-	thumb.Name = "SliderButton"
+	thumb.Name = UUID.Static("SliderButton")
 	thumb.BorderSizePixel = 0
 	thumb.AutoButtonColor = false
 	thumb.ImageTransparency = 1
@@ -209,7 +210,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- readout cluster (ours) ---------------------------------------------
 	local controlHolder = Instance.new("Frame")
-	controlHolder.Name = "ControlHolder"
+	controlHolder.Name = UUID.Static("ControlHolder")
 	controlHolder.AnchorPoint = Vector2.new(1, 0)
 	controlHolder.Position = UDim2.fromScale(1, 0.05)
 	controlHolder.Size = UDim2.fromOffset(50, 10)
@@ -226,7 +227,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- value readout (Rayfield's odometer host; ours is a text box)
 	local statBox = Instance.new("TextBox")
-	statBox.Name = "SliderStat"
+	statBox.Name = UUID.Static("SliderStat")
 	statBox.LayoutOrder = 1
 	statBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	statBox.BorderSizePixel = 0
@@ -258,7 +259,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- percentage readout
 	local percentLabel = Instance.new("TextLabel")
-	percentLabel.Name = "PercentageStat"
+	percentLabel.Name = UUID.Static("PercentageStat")
 	percentLabel.LayoutOrder = 2
 	percentLabel.TextWrapped = true
 	percentLabel.TextTruncate = Enum.TextTruncate.AtEnd
@@ -275,7 +276,7 @@ function Slider.new(parent, Settings, theme)
 
 	-- reset button
 	local resetBtn = Instance.new("ImageButton")
-	resetBtn.Name = "ResetButton"
+	resetBtn.Name = UUID.Static("ResetButton")
 	resetBtn.LayoutOrder = 3
 	resetBtn.BorderSizePixel = 0
 	resetBtn.AutoButtonColor = false

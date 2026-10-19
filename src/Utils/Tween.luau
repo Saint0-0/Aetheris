@@ -1,21 +1,8 @@
 --[[
 	Tween  ·  Aetheris UI Library
 
-	Central tween registry and spin manager for the whole library. Every
-	animation routes through Tween.Play so that:
-
-	  * only one tween runs per instance + property-set at a time
-	    (new tweens cancel the previous one instead of fighting it),
-	  * tweens are tracked in a weak-keyed registry so destroyed
-	    instances never leak,
-	  * ThemeManager can blanket-cancel (CancelAll) and then restart the
-	    infinite spin gradients (RestartSpins) after a theme switch.
-
-	Public API: Play, Pause, Resume, Cancel, CancelAll, Group,
-	CancelGroup, PauseGroup, ResumeGroup, StartSpin, StopSpin,
-	PauseSpin, ResumeSpin, GateSpinOnVisibility, UngateSpin,
-	SetSpinWanted, RestartSpins, SetSpinsEnabled, Presets,
-	SpinsEnabled.
+	Central tween registry and spin manager. Play replaces conflicting tweens
+	per instance/property and tracks them weakly so destroyed instances do not leak.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -75,16 +62,8 @@ local function propertyKey(properties)
 	return table.concat(keys, ",")
 end
 
--- Play(instance, tweenInfoOrPresetName, properties, replace)
---
--- tweenInfoOrPresetName: a real TweenInfo, OR a string key into TweenUtil.Presets
--- replace (default true): if a tween is already running on this instance for
--- this exact set of properties, cancel it first instead of letting two
--- tweens fight over the same property. This generalizes the
--- `currentSpinTween:Cancel()` pattern from ButtonMechanics so every
--- component gets it for free.
---
--- Returns a handle: { Tween, Instance, Key, Paused }
+-- Play(instance, tweenInfoOrPresetName, properties, replace) returns a handle.
+-- replace (default true) cancels an existing tween for the same properties.
 function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 	if replace == nil then
 		replace = true
@@ -284,27 +263,9 @@ spinHandles = setmetatable({}, { __mode = "k" })
 -- StartSpin still REGISTERS the spin so enabling later can restart it.
 TweenUtil.SpinsEnabled = true
 
--- Launch the infinite spin. The SpinIdle/SpinBurst presets carry
--- RepeatCount = -1, so ONE tween loops forever with no gap between cycles.
--- For a Rotation spin the 360 -> 0 reset each cycle is the same visual angle,
--- so it reads as a seamless, never-stopping 0 -> 360 sweep.
+-- Launch an infinite spin. Reset to 0 first so every (re)launch is a complete
+-- sweep rather than continuing from a frozen angle.
 local function launchSpinSegment(instance, data)
-	-- Use the PRESET directly: it carries RepeatCount = -1 (infinite), so the
-	-- tween loops FOREVER with no gap between cycles. For a Rotation spin,
-	-- 360 -> 0 at each loop is the SAME visual angle, so the reset is invisible
-	-- and the whole thing reads as one continuous 0 -> 360 sweep.
-	--
-	-- (Previously this chained one-shot segments built from the CURRENT value;
-	-- the frame gap between one segment finishing and the next starting caused
-	-- the visible play -> pause -> play stutter, and rotation climbed
-	-- 360 -> 720 -> 1080 instead of cleanly looping.)
-	-- A freshly launched spin must always start from the property origin (0).
-	-- TweenService captures the instance's CURRENT value as the tween's start,
-	-- so rebuilding a spin after a theme switch's blanket CancelAll (which froze
-	-- the rotation at ~180) without this reset would sweep 180 -> 360 forever
-	-- instead of a full 0 -> 360. Reset first so every (re)launched spin is a
-	-- complete sweep from 0, whether it comes from StartSpin or a ResumeSpin
-	-- rebuild.
 	for prop in pairs(data.properties) do
 		pcall(function()
 			instance[prop] = 0
@@ -403,14 +364,8 @@ function TweenUtil.ResumeSpin(instance)
 	return true
 end
 
--- ---------------------------------------------------------------------
--- VISIBILITY GATING (shared, so components don't each reinvent it)
--- ---------------------------------------------------------------------
--- GateSpinOnVisibility keeps an infinite spin running ONLY while its instance
--- is actually on screen. Roblox does NOT cascade Visible, so the whole ancestor
--- chain is walked: a spin inside an inactive tab's ContentScroller / a hidden
--- Settings page / a collapsed section is paused (costing nothing per frame) and
--- resumed from its frozen angle when the page comes back.
+-- Visibility gating: keep infinite spins running only while their instance is
+-- on screen, pausing and resuming from the same angle otherwise.
 local spinGates = setmetatable({}, { __mode = "k" })
 
 local function spinOnScreen(instance)

@@ -1,49 +1,12 @@
 --[[
 	PageFade  ·  Aetheris UI Library
 
-	The ONE source of truth for page transitions. A page is faded by a single
-	CanvasGroup.GroupTransparency on a per-page layer -- never by scanning and
-	snapshotting each descendant's own transparency.
-
-	Why this exists: the old TabGroup / SettingsTabGroup fade systems captured a
-	per-element transparency "base" into a cache and restored it on page return.
-	That fights any component state that is itself encoded as transparency (a
-	radio's selected image, a slider's sheen, a label's resting alpha), so a
-	stale snapshot would REVERT a user's selection / hide elements after a theme
-	or page switch. Collapsing a whole page into ONE GroupTransparency removes
-	that entire class of bug: a page transition can never touch the per-element
-	state a component owns.
-
-	A CanvasGroup also fades a playing VideoFrame, so the page-level VideoFade
-	special case is no longer needed for page transitions.
-
-	Public API (used by Core/TabGroup and Core/Settings/SettingsTabGroup):
-		PageFade.Layer(parent, name?) -> CanvasGroup
-			Create a full-size, transparent CanvasGroup under `parent`. The
-			caller reparents the page content into it. GroupTransparency is the
-			page's fade value (0 = visible, 1 = hidden).
-
-		PageFade.Snap(layer, transparency)
-			Set GroupTransparency instantly (no tween). Cancels any in-flight
-			fade on that layer first.
-
-		PageFade.Show(layer, instant?)
-			Fade the layer fully in (GroupTransparency -> 0). instant = true snaps.
-
-		PageFade.Hide(layer, instant?)
-			Fade the layer fully out (GroupTransparency -> 1). instant = true snaps.
-
-		PageFade.Crossfade(outgoing, incoming, onComplete?)
-			Overlapped crossfade: the incoming layer fades in (-> 0) WHILE the
-			outgoing layer fades out (-> 1), both over PageFade.TIME so every page
-			transition in the library is identical. onComplete fires once both
-			tweens have finished.
-
-	PageFade.TIME is the single shared page-transition duration so TabGroup,
-	SettingsTabGroup and the window settings-button switch all match.
+	Fades whole pages through one CanvasGroup.GroupTransparency per layer.
+	This keeps component-owned transparency state untouched during transitions.
 ]]
 
 local Tween = require("./Tween")
+local UUID = require("./UUID")
 
 local PageFade = {}
 
@@ -61,7 +24,7 @@ PageFade.PRESET = "Fast"
 -- here: each call is for a distinct page/tab.
 function PageFade.Layer(parent, name)
 	local cg = Instance.new("CanvasGroup")
-	cg.Name = name or "PageFade"
+	cg.Name = name or UUID.Generate()
 	cg.BackgroundTransparency = 1
 	cg.BorderSizePixel = 0
 	cg.AnchorPoint = Vector2.new(0, 0)

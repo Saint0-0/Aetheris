@@ -9,6 +9,7 @@
 local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local Tooltip = {}
 Tooltip.__index = Tooltip
@@ -20,7 +21,7 @@ function Tooltip.new(container, theme)
 	local self = setmetatable({}, Tooltip)
 
 	local root = Instance.new("CanvasGroup")
-	root.Name = "Tooltip"
+	root.Name = UUID.Generate()
 	root.BorderSizePixel = 0
 	root.GroupTransparency = 1
 	root.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
@@ -59,7 +60,7 @@ function Tooltip.new(container, theme)
 	padding.Parent = root
 
 	local label = Instance.new("TextLabel")
-	label.Name = "Label"
+	label.Name = UUID.Static("Label")
 	label.BorderSizePixel = 0
 	label.BackgroundTransparency = 1
 	label.AutomaticSize = Enum.AutomaticSize.XY

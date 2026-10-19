@@ -19,6 +19,7 @@ local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local FallbackImage = Constants.FallbackImage
 local ProgressBar = {}
 ProgressBar.__index = ProgressBar
@@ -49,7 +50,7 @@ function ProgressBar.new(parent, Settings, theme)
 		LabelPosition = UDim2.fromScale(0, 0.12063),
 	})
 	local holder = Instance.new("Frame")
-	holder.Name = "ProgressBarHolder"
+	holder.Name = UUID.Static("ProgressBarHolder")
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = theme.Undercolor
 	holder.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -63,7 +64,7 @@ function ProgressBar.new(parent, Settings, theme)
 	local holderShadow = Instance.new("UIShadow")
 	holderShadow.Parent = holder
 	local visual = Instance.new("Frame")
-	visual.Name = "Visual"
+	visual.Name = UUID.Static("Visual")
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = color or (theme and theme.PrimaryColor)
 	visual.Size = UDim2.fromScale(0, 1) -- start empty
@@ -73,7 +74,7 @@ function ProgressBar.new(parent, Settings, theme)
 	visualCorner.CornerRadius = UDim.new(0, 6)
 	visualCorner.Parent = visual
 	local backImage = Instance.new("ImageLabel")
-	backImage.Name = "BackImage"
+	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
 	backImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	backImage.ImageTransparency = 0.5
@@ -102,7 +103,7 @@ function ProgressBar.new(parent, Settings, theme)
 	})
 	gradient.Parent = backImage
 	local stats = Instance.new("TextLabel")
-	stats.Name = "ProgressBarStats"
+	stats.Name = UUID.Static("ProgressBarStats")
 	stats.TextTruncate = Enum.TextTruncate.AtEnd
 	stats.BorderSizePixel = 0
 	stats.TextSize = 12

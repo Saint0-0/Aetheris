@@ -1,20 +1,8 @@
 --[[
 	ThemeManager  ·  Aetheris UI Library
 
-	Applies and live-switches themes across an entire window.
-
-	  GetTheme(input)          -> resolves a name/partial table into a full
-	                              theme merged over Default.
-	  ApplyTheme(window, t)    -> stamps the theme onto every UI element via
-	                              attribute/name matching, crossfading colors.
-	  UpdateTheme(window, t)   -> public entry used by Window:SetTheme.
-
-	A theme switch snapshots current colors, applies the new values instantly,
-	then tweens old -> new so it reads as a smooth crossfade. Spins are
-	restarted afterwards (Tween.RestartSpins) since the blanket CancelAll kills
-	them. Live colors are ALSO written as attributes on elements so component
-	interaction handlers read the current theme instead of a stale captured
-	table. ColorFadeTime controls the crossfade duration.
+	Resolves and applies themes, crossfading colors and restarting spins.
+	Live colors are mirrored as attributes so handlers never read stale data.
 ]]
 
 local ThemeDefinitions = require("./ThemeDefinitions")

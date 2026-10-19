@@ -16,6 +16,7 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Button = {}
 Button.__index = Button
 function Button.new(parent, Settings, theme)
@@ -42,7 +43,7 @@ function Button.new(parent, Settings, theme)
 	label.ZIndex = 2
 	-- ButtonColor frame (background glow)
 	local buttonColor = Instance.new("Frame")
-	buttonColor.Name = "ButtonColor"
+	buttonColor.Name = UUID.Static("ButtonColor")
 	buttonColor.BorderSizePixel = 0
 	buttonColor.BackgroundColor3 = (theme and theme.PrimaryColor)
 	buttonColor.BackgroundTransparency = 1
@@ -55,7 +56,7 @@ function Button.new(parent, Settings, theme)
 	colorCorner.Parent = buttonColor
 	-- Fingerprint ImageLabel
 	local fingerprint = Instance.new("ImageLabel")
-	fingerprint.Name = "Fingerprint"
+	fingerprint.Name = UUID.Static("Fingerprint")
 	fingerprint.BorderSizePixel = 0
 	fingerprint.BackgroundTransparency = 1
 	fingerprint.ImageTransparency = 0.5

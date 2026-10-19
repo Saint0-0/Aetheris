@@ -45,6 +45,7 @@ local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 
 local TextInput = {}
 TextInput.__index = TextInput
@@ -132,7 +133,7 @@ function TextInput.new(parent, Settings, theme)
 
 	-- ---- the field (the TextBox itself) -------------------------------------
 	local field = Instance.new("TextBox")
-	field.Name = "Field"
+	field.Name = UUID.Static("Field")
 	field.AnchorPoint = Vector2.new(1, 0.5)
 	field.Position = UDim2.fromScale(1, 0.5)
 	field.Size = UDim2.fromOffset(FIELD_MIN_W, FIELD_HEIGHT) -- replaced by sizeBox below
@@ -169,7 +170,7 @@ function TextInput.new(parent, Settings, theme)
 	stroke.Parent = field
 
 	local glow = Instance.new("UIShadow")
-	glow.Name = "FieldGlow"
+	glow.Name = UUID.Static("FieldGlow")
 	glow.Color = theme.AccentColor or Color3.fromRGB(108, 140, 255)
 	glow.Transparency = 1
 	glow.BlurRadius = UDim.new(0, 20)

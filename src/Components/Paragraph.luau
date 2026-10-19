@@ -15,6 +15,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Paragraph = {}
 Paragraph.__index = Paragraph
 function Paragraph.new(parent, Settings, theme)
@@ -26,7 +27,7 @@ function Paragraph.new(parent, Settings, theme)
 	local description = Settings.Description or Settings.Text or ""
 	-- Main container (matches GUI style)
 	local container = Instance.new("Frame")
-	container.Name = title .. " [Paragraph]"
+	container.Name = UUID.Generate()
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
@@ -46,7 +47,7 @@ function Paragraph.new(parent, Settings, theme)
 	stroke.Parent = container
 	-- Title label (ElementName)
 	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Name = "ElementName"
+	titleLabel.Name = UUID.Static("ElementName")
 	titleLabel.TextWrapped = true
 	titleLabel.BorderSizePixel = 0
 	titleLabel.TextSize = 15
@@ -64,7 +65,7 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.Parent = container
 	-- Description label (LabelDescription)
 	local descLabel = Instance.new("TextLabel")
-	descLabel.Name = "LabelDescription"
+	descLabel.Name = UUID.Static("LabelDescription")
 	descLabel.TextWrapped = true
 	descLabel.BorderSizePixel = 0
 	descLabel.TextSize = 14
@@ -90,7 +91,6 @@ function Paragraph.new(parent, Settings, theme)
 	-- Public API
 	self.SetTitle = function(_, newTitle)
 		titleLabel.Text = newTitle
-		container.Name = newTitle .. " [Paragraph]"
 	end
 	self.SetDescription = function(_, newDesc)
 		descLabel.Text = newDesc

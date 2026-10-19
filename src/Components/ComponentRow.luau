@@ -32,6 +32,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local ComponentRow = {}
 
@@ -53,7 +54,7 @@ function ComponentRow.new(parent, Settings)
 	else
 		row = Instance.new("Frame")
 	end
-	row.Name = Settings.RowName or name
+	row.Name = UUID.Generate()
 	row.BorderSizePixel = 0
 	row.BackgroundColor3 = Settings.BackgroundColor or Color3.fromRGB(31, 32, 34)
 	row.BackgroundTransparency = (Settings.BackgroundTransparency == nil) and 1 or Settings.BackgroundTransparency
@@ -86,7 +87,7 @@ function ComponentRow.new(parent, Settings)
 	end
 
 	local label = Instance.new("TextLabel")
-	label.Name = "ElementName"
+	label.Name = UUID.Static("ElementName")
 	label.BorderSizePixel = 0
 	label.FontFace = Constants.Font(Enum.FontWeight.Regular)
 	label.Text = name

@@ -22,6 +22,7 @@
 local Constants = require("../Constants")
 local Tween = require("./Tween")
 local ThemeManager = require("../Themes/ThemeManager")
+local UUID = require("./UUID")
 
 local TextService = game:GetService("TextService")
 
@@ -117,7 +118,7 @@ function Odometer:_reel(index)
 	local zIndex = self.parent.ZIndex + 1
 
 	local cell = Instance.new("Frame")
-	cell.Name = "Reel"
+	cell.Name = UUID.Generate()
 	cell.Size = UDim2.fromOffset(self.maxWidth, self.height)
 	cell.BackgroundTransparency = 1
 	cell.BorderSizePixel = 0
@@ -165,7 +166,7 @@ function Odometer:_static(index)
 	end
 
 	local label = Instance.new("TextLabel")
-	label.Name = "Static"
+	label.Name = UUID.Generate()
 	label.Size = UDim2.fromOffset(0, self.height)
 	label.AutomaticSize = Enum.AutomaticSize.X
 	label.BackgroundTransparency = 1

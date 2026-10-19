@@ -11,13 +11,14 @@
 local Tween = require("../../Utils/Tween")
 local Sound = require("../../Utils/Sound")
 local SettingsStore = require("./SettingsStore")
+local UUID = require("../../Utils/UUID")
 
 local UISettings = {}
 
 function UISettings.Build(window, tab)
 	local page = tab.Page
 
-	page.Name = "UISettings"
+	page.Name = UUID.Static("UISettings")
 	page.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	page.BackgroundTransparency = 1
 	page.AnchorPoint = Vector2.new(0, 0)
@@ -120,7 +121,7 @@ function UISettings.Build(window, tab)
 		Precision = 0,
 		Callback = function(value)
 			local scale = value / 100
-			local us = window.MainFrame and window.MainFrame:FindFirstChild("WindowScale")
+			local us = window.MainFrame and window.MainFrame:FindFirstChild(UUID.Static("WindowScale"))
 			if us then
 				us.Scale = scale
 			end

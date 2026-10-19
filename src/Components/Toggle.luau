@@ -1,24 +1,15 @@
 --[[
 	Toggle  ·  Aetheris UI Library
 
-	Boolean switch row. Optionally gates the change behind a confirmation
-	notification. Carries an IsOn attribute so ThemeManager can restore the
-	on/off look correctly on a theme switch (rather than inferring from
-	transparency). Thumb sheen spins only while ON.
-
-	Usage:
-		local toggle = section:Toggle({
-			Name = "Enable Feature",
-			Default = false,
-			Confirm = { Enabled = true },
-			Callback = function(state) end,
-		}, ShowNotification)
+	Boolean switch row with an optional confirmation. An IsOn attribute keeps
+	the on/off look stable across theme switches.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local Toggle = {}
 Toggle.__index = Toggle
 function Toggle.new(parent, Settings, ShowNotification, theme)
@@ -43,7 +34,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	})
 
 	local toggleInterractionHolder = Instance.new("Frame")
-	toggleInterractionHolder.Name = "InterractionHolder"
+	toggleInterractionHolder.Name = UUID.Static("InterractionHolder")
 	toggleInterractionHolder.BackgroundTransparency = 1
 	toggleInterractionHolder.AnchorPoint = Vector2.new(1, 0.5)
 	toggleInterractionHolder.Size = UDim2.new(0, 65, 1, 0)
@@ -54,7 +45,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- TRACK
 	----------------------------------------------------------------
 	local track = Instance.new("Frame")
-	track.Name = "ToggleSlidingFrame"
+	track.Name = UUID.Static("ToggleSlidingFrame")
 	track.BorderSizePixel = 0
 	track.BackgroundColor3 = theme.SecondaryColor
 	track.BackgroundTransparency = 0.9
@@ -67,7 +58,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- THUMB
 	----------------------------------------------------------------
 	local thumb = Instance.new("TextButton")
-	thumb.Name = "Toggle"
+	thumb.Name = UUID.Static("Toggle")
 	thumb.BorderSizePixel = 0
 	thumb.BackgroundColor3 = (theme and theme.PrimaryColor)
 	thumb.BackgroundTransparency = 1
@@ -106,7 +97,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- SHEEN (spinning gradient on the thumb, visible only when ON)
 	----------------------------------------------------------------
 	local sheen = Instance.new("ImageLabel")
-	sheen.Name = "BackImage"
+	sheen.Name = UUID.Static("BackImage")
 	sheen.BorderSizePixel = 0
 	sheen.BackgroundTransparency = 1
 	sheen.Image = theme.Wallpaper or "rbxassetid://11094025229"

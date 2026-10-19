@@ -9,6 +9,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 local ColorPickerPopUp = {}
 ColorPickerPopUp.__index = ColorPickerPopUp
 local function clamp(v, min, max)
@@ -25,7 +26,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- needed, so the popup is parented directly to its parent.
 	-- Popup root
 	local popup = Instance.new("CanvasGroup")
-	popup.Name = "ColorPickerPopup"
+	popup.Name = UUID.Generate()
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
@@ -51,7 +52,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	scale.Parent = popup
 	-- Header
 	local header = Instance.new("TextLabel")
-	header.Name = "Header"
+	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
 	header.TextSize = 16
 	header.TextXAlignment = Enum.TextXAlignment.Left
@@ -69,7 +70,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.Text = "Color Picker"
 	-- ColorSquare (plain button; SV square is rendered by its two gradient overlays)
 	local colorSquare = Instance.new("TextButton")
-	colorSquare.Name = "ColorSquare"
+	colorSquare.Name = UUID.Static("ColorSquare")
 	colorSquare.AutoButtonColor = false
 	colorSquare.BackgroundTransparency = 0
 	colorSquare.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -89,7 +90,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	--   white base -> saturation overlay (hue-tinted, transparent left -> opaque
 	--   right) -> value overlay (black, transparent top -> opaque bottom).
 	local satOverlay = Instance.new("Frame")
-	satOverlay.Name = "SaturationOverlay"
+	satOverlay.Name = UUID.Static("SaturationOverlay")
 	satOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	satOverlay.BorderSizePixel = 0
 	satOverlay.Size = UDim2.fromScale(1, 1)
@@ -104,7 +105,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	})
 	satGradient.Parent = satOverlay
 	local valOverlay = Instance.new("Frame")
-	valOverlay.Name = "ValueOverlay"
+	valOverlay.Name = UUID.Static("ValueOverlay")
 	valOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	valOverlay.BorderSizePixel = 0
 	valOverlay.Size = UDim2.fromScale(1, 1)
@@ -121,7 +122,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valGradient.Parent = valOverlay
 	-- Target (visual indicator + drag surface)
 	local target = Instance.new("TextButton")
-	target.Name = "Target"
+	target.Name = UUID.Static("Target")
 	target.BorderSizePixel = 0
 	target.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	target.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -141,7 +142,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	targetCorner.Parent = target
 	-- ColorValue (TextButton with gradient)
 	local colorValue = Instance.new("TextButton")
-	colorValue.Name = "ColorValue"
+	colorValue.Name = UUID.Static("ColorValue")
 	colorValue.BorderSizePixel = 0
 	colorValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorValue.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -172,7 +173,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valueShadow.Parent = colorValue
 	-- Slide (visual indicator + drag surface)
 	local slide = Instance.new("TextButton")
-	slide.Name = "Slide"
+	slide.Name = UUID.Static("Slide")
 	slide.BorderSizePixel = 0
 	slide.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	slide.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -192,7 +193,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	slideCorner.Parent = slide
 	-- Inputs frame
 	local inputsFrame = Instance.new("Frame")
-	inputsFrame.Name = "Inputs"
+	inputsFrame.Name = UUID.Static("Inputs")
 	inputsFrame.BorderSizePixel = 0
 	inputsFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	inputsFrame.AnchorPoint = Vector2.new(1, 0.5)
@@ -212,7 +213,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 
 	local function createInputRow(labelText, defaultText, layoutOrder)
 		local row = Instance.new("Frame")
-		row.Name = labelText
+		row.Name = UUID.Generate()
 		row.BorderSizePixel = 0
 		row.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 		row.BackgroundTransparency = 1
@@ -227,7 +228,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		rowLayout.FillDirection = Enum.FillDirection.Horizontal
 		rowLayout.Parent = row
 		local label = Instance.new("TextLabel")
-		label.Name = "InputName"
+		label.Name = UUID.Static("InputName")
 		label.TextTruncate = Enum.TextTruncate.AtEnd
 		label.BorderSizePixel = 0
 		label.TextSize = 13
@@ -247,7 +248,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Position = UDim2.fromScale(0, 0.5)
 		label.Parent = row
 		local inputBox = Instance.new("TextBox")
-		inputBox.Name = "InputBox"
+		inputBox.Name = UUID.Static("InputBox")
 		inputBox.TextXAlignment = Enum.TextXAlignment.Left
 		inputBox.BorderSizePixel = 0
 		inputBox.TextTransparency = 0.5
@@ -266,17 +267,17 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		inputBox.BackgroundTransparency = 1
 		inputBox.Parent = row
 		local inputCorner = Instance.new("UICorner")
-		inputCorner.Name = "InputBoxUICorner"
+		inputCorner.Name = UUID.Static("InputBoxUICorner")
 		inputCorner.CornerRadius = UDim.new(0, 4)
 		inputCorner.Parent = inputBox
 		local inputStroke = Instance.new("UIStroke")
-		inputStroke.Name = "InputBoxUIStroke"
+		inputStroke.Name = UUID.Static("InputBoxUIStroke")
 		inputStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 		inputStroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
 		inputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		inputStroke.Parent = inputBox
 		local inputPadding = Instance.new("UIPadding")
-		inputPadding.Name = "InputBoxUIPadding"
+		inputPadding.Name = UUID.Static("InputBoxUIPadding")
 		inputPadding.PaddingRight = UDim.new(0, 10)
 		inputPadding.PaddingLeft = UDim.new(0, 8)
 		inputPadding.Parent = inputBox
@@ -288,7 +289,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local hexRow, hexInput, hexStroke = createInputRow("Hex", "#FFFFFF", 4)
 	-- ColorWells
 	local colorWells = Instance.new("Frame")
-	colorWells.Name = "ColorWells"
+	colorWells.Name = UUID.Static("ColorWells")
 	colorWells.BorderSizePixel = 0
 	colorWells.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorWells.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -306,7 +307,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- the picker opened on, the new one shows the colour being picked.
 	local function createColorWell(wellParent, name, layoutOrder)
 		local well = Instance.new("Frame")
-		well.Name = name
+		well.Name = UUID.Static("ColorWell:" .. name)
 		well.BorderSizePixel = 0
 		well.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		well.BackgroundTransparency = 0
@@ -322,7 +323,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local newWell = createColorWell(colorWells, "NewColor", 0)
 	-- Interactions
 	local interactions = Instance.new("Frame")
-	interactions.Name = "Interactions"
+	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
 	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
 	interactions.BackgroundTransparency = 0.8
@@ -348,7 +349,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	interactionsPadding.PaddingRight = UDim.new(0, 10)
 	interactionsPadding.Parent = interactions
 	local confirmBtn = Instance.new("TextButton")
-	confirmBtn.Name = "Confirm"
+	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 0.2
 	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
@@ -372,7 +373,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmShadow.Transparency = 1
 	confirmShadow.Parent = confirmBtn
 	local cancelBtn = Instance.new("TextButton")
-	cancelBtn.Name = "Cancel"
+	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
 	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
@@ -507,7 +508,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			info.Input.TextColor3 = newTheme.PopupTextColor or info.Input.TextColor3
 			info.Input.BackgroundColor3 = newTheme.PopupBackgroundColor or info.Input.BackgroundColor3
 			info.Stroke.Color = newTheme.StrokeColor or info.Stroke.Color
-			local label = info.Row:FindFirstChild("InputName")
+			local label = info.Row:FindFirstChild(UUID.Static("InputName"))
 			if label then
 				label.TextColor3 = newTheme.PopupTextColor or label.TextColor3
 			end
@@ -612,7 +613,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		Tween.Play(self.ColorValue, "Fast", { BackgroundTransparency = 0 })
 		for _, info in pairs(self.Inputs) do
 			Tween.Play(info.Input, "Fast", { TextTransparency = 0.5 })
-			local label = info.Row:FindFirstChild("InputName")
+			local label = info.Row:FindFirstChild(UUID.Static("InputName"))
 			if label then
 				Tween.Play(label, "Fast", { TextTransparency = 0.5 })
 			end

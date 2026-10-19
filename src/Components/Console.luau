@@ -26,6 +26,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 
 local Console = {}
 Console.__index = Console
@@ -76,7 +77,7 @@ end
 -- A row for a line. Created once and then recycled; the pool never exceeds maxLines.
 function Console:_makeLabel()
 	local label = Instance.new("TextLabel")
-	label.Name = "Line"
+	label.Name = UUID.Generate()
 	label.Size = UDim2.fromScale(1, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.BackgroundTransparency = 1
@@ -101,7 +102,7 @@ function Console:_build()
 	local top = if self._name then titleHeight else 0
 
 	local main = Instance.new("Frame")
-	main.Name = self._name or "Console"
+	main.Name = UUID.Generate()
 	main.BorderSizePixel = 0
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
@@ -130,7 +131,7 @@ function Console:_build()
 
 	if self._name then
 		local title = Instance.new("TextLabel")
-		title.Name = "Title"
+		title.Name = UUID.Static("Title")
 		title.BorderSizePixel = 0
 		title.BackgroundTransparency = 1
 		title.Text = self._name
@@ -150,7 +151,7 @@ function Console:_build()
 	-- The inset panel the text scrolls inside. Darker than the element it sits
 	-- on, the way a terminal reads against the window around it.
 	local panel = Instance.new("Frame")
-	panel.Name = "Panel"
+	panel.Name = UUID.Static("Panel")
 	panel.AnchorPoint = Vector2.new(0.5, 1)
 	panel.Position = UDim2.new(0.5, 0, 1, -padding)
 	panel.Size = UDim2.new(1, -padding * 2, 0, self._height)
@@ -175,7 +176,7 @@ function Console:_build()
 	self._panelStroke = panelStroke
 
 	local scroll = Instance.new("ScrollingFrame")
-	scroll.Name = "Scroll"
+	scroll.Name = UUID.Static("Scroll")
 	scroll.Size = UDim2.new(1, -textPadding * 2, 1, -textPadding * 2)
 	scroll.Position = UDim2.fromScale(0.5, 0.5)
 	scroll.AnchorPoint = Vector2.new(0.5, 0.5)

@@ -1,12 +1,8 @@
 --[[
 	DropdownPopUp  ·  Aetheris UI Library
 
-	Modal popup for dropdown selection: searchable item list, select-all,
-	clear, and a max-selection cap. SetContent diffs the incoming item list
-	and only rebuilds rows when it actually changed (rows are ~10 instances
-	each). Created lazily by Components/Dropdown and cached per id by Window;
-
-theme switches drop the cache so the next open rebuilds with current colors.
+	Searchable multi-select popup with select-all and clear. Rows rebuild only
+	when the item list changes.
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -14,12 +10,10 @@ local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("../Core/SearchFilter")
 local Constants = require("../Constants")
+local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local DropdownPopUp = {}
 DropdownPopUp.__index = DropdownPopUp
-local function sanitizeName(str)
-	return str:gsub("[^%w_]", "_")
-end
 -- Compares two item lists by the fields that affect the rendered rows. Used to
 -- skip rebuilding every row when the list is unchanged (the common case: a
 -- dropdown re-sends the same items on each open).
@@ -52,7 +46,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
 	-- needed, so the popup is parented directly to its parent.
 	local popup = Instance.new("CanvasGroup")
-	popup.Name = sanitizeName(title) .. "DropdownPopup"
+	popup.Name = UUID.Generate()
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
@@ -77,7 +71,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	scale.Scale = 0.9
 	scale.Parent = popup
 	local header = Instance.new("TextLabel")
-	header.Name = "Header"
+	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
 	header.TextSize = 16
 	header.TextXAlignment = Enum.TextXAlignment.Center
@@ -93,7 +87,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	header.Parent = popup
 	header.Text = title
 	local interactions = Instance.new("Frame")
-	interactions.Name = "Interactions"
+	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
 	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
 	interactions.BackgroundTransparency = 0.8
@@ -121,7 +115,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	interactionsPadding.PaddingRight = UDim.new(0, 10)
 	interactionsPadding.Parent = interactions
 	local confirmBtn = Instance.new("TextButton")
-	confirmBtn.Name = "Confirm"
+	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 1
 	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
@@ -145,7 +139,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmShadow.Transparency = 1
 	confirmShadow.Parent = confirmBtn
 	local cancelBtn = Instance.new("TextButton")
-	cancelBtn.Name = "Cancel"
+	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 1
 	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
@@ -170,7 +164,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelShadow.Transparency = 1
 	cancelShadow.Parent = cancelBtn
 	local list = Instance.new("ScrollingFrame")
-	list.Name = "DropdownList"
+	list.Name = UUID.Static("DropdownList")
 	list.Active = true
 	list.BorderSizePixel = 0
 	list.ScrollBarImageTransparency = 0.5
@@ -193,7 +187,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	listPadding.PaddingLeft = UDim.new(0, 14)
 	listPadding.Parent = list
 	local selectedText = Instance.new("TextLabel")
-	selectedText.Name = "SelectedItemsText"
+	selectedText.Name = UUID.Static("SelectedItemsText")
 	selectedText.TextWrapped = true
 	selectedText.BorderSizePixel = 0
 	selectedText.TextSize = 13
@@ -214,7 +208,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedPadding.PaddingBottom = UDim.new(0, 15)
 	selectedPadding.Parent = selectedText
 	local selectedDivider = Instance.new("Frame")
-	selectedDivider.Name = "ComponentDivider"
+	selectedDivider.Name = UUID.Static("ComponentDivider")
 	selectedDivider.BorderSizePixel = 0
 	selectedDivider.BackgroundColor3 = (theme and theme.AccentColor)
 	selectedDivider.BackgroundTransparency = 0.9
@@ -223,7 +217,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedDivider.Position = UDim2.new(0.5, 0, 1, 14)
 	selectedDivider.Parent = selectedText
 	local searchArea = Instance.new("Frame")
-	searchArea.Name = "InteractionOrganizer"
+	searchArea.Name = UUID.Static("InteractionOrganizer")
 	searchArea.BorderSizePixel = 0
 	searchArea.BackgroundTransparency = 1
 	searchArea.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -231,7 +225,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchArea.Position = UDim2.fromScale(0.5, 0.1868)
 	searchArea.Parent = popup
 	local searchBox = Instance.new("TextBox")
-	searchBox.Name = "SearchBox"
+	searchBox.Name = UUID.Static("SearchBox")
 	searchBox.TextXAlignment = Enum.TextXAlignment.Left
 	searchBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	searchBox.BorderSizePixel = 0
@@ -249,7 +243,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- Mirrors the sidebar search bar's BottomDivider: an inset 80%-wide line
 	-- centered under the whole search area (NOT the box, which is narrower).
 	local searchDivider = Instance.new("Frame")
-	searchDivider.Name = "SearchDividerBottom"
+	searchDivider.Name = UUID.Static("SearchDividerBottom")
 	searchDivider.BorderSizePixel = 0
 	searchDivider.BackgroundColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(160, 160, 160)
 	searchDivider.BackgroundTransparency = 0.9
@@ -258,7 +252,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchDivider.Position = UDim2.new(0, 0, 1, 7)
 	searchDivider.Parent = searchArea
 	local searchIcon = Instance.new("ImageLabel")
-	searchIcon.Name = "SearchImage"
+	searchIcon.Name = UUID.Static("SearchImage")
 	searchIcon.BorderSizePixel = 0
 	searchIcon.BackgroundTransparency = 1
 	searchIcon.ImageTransparency = 0.7
@@ -269,7 +263,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchIcon.Position = UDim2.fromScale(0.01759, 0.5)
 	searchIcon.Parent = searchArea
 	local clearBtn = Instance.new("TextButton")
-	clearBtn.Name = "ClearSelection"
+	clearBtn.Name = UUID.Static("ClearSelection")
 	clearBtn.BorderSizePixel = 0
 	clearBtn.TextTransparency = 1
 	clearBtn.AutoButtonColor = false
@@ -282,7 +276,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearCorner.CornerRadius = UDim.new(0, 6)
 	clearCorner.Parent = clearBtn
 	local clearIcon = Instance.new("ImageLabel")
-	clearIcon.Name = "ButtonImage"
+	clearIcon.Name = UUID.Static("ButtonImage")
 	clearIcon.ImageTransparency = 0.2
 	clearIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	clearIcon.Position = UDim2.fromScale(0.5, 0.5)
@@ -300,7 +294,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearShadow.Transparency = 1
 	clearShadow.Parent = clearBtn
 	local selectAllBtn = Instance.new("TextButton")
-	selectAllBtn.Name = "SelectAll"
+	selectAllBtn.Name = UUID.Static("SelectAll")
 	selectAllBtn.BorderSizePixel = 0
 	selectAllBtn.TextTransparency = 1
 	selectAllBtn.AutoButtonColor = false
@@ -313,7 +307,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllCorner.CornerRadius = UDim.new(0, 6)
 	selectAllCorner.Parent = selectAllBtn
 	local selectAllIcon = Instance.new("ImageLabel")
-	selectAllIcon.Name = "ButtonImage"
+	selectAllIcon.Name = UUID.Static("ButtonImage")
 	selectAllIcon.ImageTransparency = 0.2
 	selectAllIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	selectAllIcon.Position = UDim2.fromScale(0.5, 0.5)
@@ -518,7 +512,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		itemObj.selected = selected
 		if selected then
 			me:_flashDivider()
-			itemObj.button.Name = "SelectedItem"
+			itemObj.button.Name = UUID.Generate()
 			if itemObj.button then
 				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 0.5 })
 			end
@@ -544,7 +538,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				)
 			end
 		else
-			itemObj.button.Name = "DeselectedItem"
+			itemObj.button.Name = UUID.Generate()
 			if itemObj.button then
 				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 1 })
 			end
@@ -695,7 +689,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
 			local value = itemData.value or name
 			local button = Instance.new("TextButton")
-			button.Name = "DeselectedItem"
+			button.Name = UUID.Generate()
 			button.BorderSizePixel = 0
 			button.TextTransparency = 1
 			button.AutoButtonColor = false
@@ -714,7 +708,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			-- sidebar tab SelectionStatus (OnOff tween). Color is a theme option
 			-- (SecondaryColor), matching the other selection statuses in the UI.
 			local selectionStatus = Instance.new("Frame")
-			selectionStatus.Name = "SelectionStatus"
+			selectionStatus.Name = UUID.Static("SelectionStatus")
 			selectionStatus.BorderSizePixel = 0
 			selectionStatus.BackgroundColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
 			selectionStatus.BackgroundTransparency = 1 -- hidden until selected
@@ -724,7 +718,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			selectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			selectionStatus.Parent = button
 			local itemImage = Instance.new("ImageLabel")
-			itemImage.Name = "ItemImage"
+			itemImage.Name = UUID.Static("ItemImage")
 			itemImage.ImageTransparency = 0.9
 			itemImage.AnchorPoint = Vector2.new(0.5, 0.5)
 			itemImage.Image = icon
@@ -739,7 +733,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemAspect.DominantAxis = Enum.DominantAxis.Height
 			itemAspect.Parent = itemImage
 			local itemName = Instance.new("TextLabel")
-			itemName.Name = "ItemName"
+			itemName.Name = UUID.Static("ItemName")
 			itemName.TextWrapped = true
 			itemName.BorderSizePixel = 0
 			itemName.TextSize = 14
@@ -884,8 +878,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		-- Update header (color via TextColor3, no RichText tag needed)
 		self.Header.Text = newTitle
 		self.Header.TextColor3 = newTitleColor or Color3.fromRGB(255, 255, 255)
-		-- Update popup name
-		self.Popup.Name = sanitizeName(newTitle) .. "DropdownPopup"
 		-- Only rebuild the rows when the item list actually changed. Rebuilding
 		-- destroys and recreates every row (~10 instances + 3 connections each)
 		-- and previously ran on EVERY open -- the main source of churn.

@@ -18,6 +18,7 @@ local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
 function ColorPicker.new(parent, Settings, ShowPopup, theme)
@@ -38,7 +39,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	})
 	-- HeaderBar (transparent container for display and chevron)
 	local headerBar = Instance.new("Frame")
-	headerBar.Name = "HeaderBar"
+	headerBar.Name = UUID.Static("HeaderBar")
 	headerBar.BorderSizePixel = 0
 	headerBar.BackgroundTransparency = 1
 	headerBar.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -47,7 +48,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	headerBar.Parent = row
 	-- ColorDisplay (TextButton but used as display)
 	local display = Instance.new("TextButton")
-	display.Name = "ColorDisplay"
+	display.Name = UUID.Static("ColorDisplay")
 	display.BorderSizePixel = 0
 	display.AutoButtonColor = false
 	display.BackgroundColor3 = defaultColor
@@ -70,7 +71,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	displayShadow.Parent = display
 	-- Chevron (ImageLabel)
 	local chevron = Instance.new("ImageLabel")
-	chevron.Name = "Chevron"
+	chevron.Name = UUID.Static("Chevron")
 	chevron.BorderSizePixel = 0
 	chevron.BackgroundTransparency = 1
 	chevron.ImageTransparency = 0.5

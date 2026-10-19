@@ -1,10 +1,8 @@
 --[[
 	RadioButton  ·  Aetheris UI Library
 
-	A single radio button. Create via RadioButtonGroup:RadioButton() rather
-	than directly, so the group can enforce single selection. Stores an
-	IsSelected attribute so ThemeManager restores its selected look correctly
-	on a theme switch.
+	Single radio row; create through RadioButtonGroup so selection stays unique.
+	An IsSelected attribute preserves the selected look across theme switches.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -12,6 +10,7 @@ local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local UUID = require("../Utils/UUID")
 local FallbackImage = Constants.FallbackImage
 local RadioButton = {}
 RadioButton.__index = RadioButton
@@ -32,7 +31,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	})
 	-- RadioHolderFrame
 	local holder = Instance.new("Frame")
-	holder.Name = "RadioHolderFrame"
+	holder.Name = UUID.Static("RadioHolderFrame")
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = 1
@@ -54,7 +53,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	bounceScale.Parent = holder
 	-- RadioButtonElement
 	local button = Instance.new("TextButton")
-	button.Name = "RadioButtonElement"
+	button.Name = UUID.Static("RadioButtonElement")
 	button.BorderSizePixel = 0
 	button.TextTransparency = 1
 	button.AutoButtonColor = false
@@ -69,7 +68,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	btnCorner.Parent = button
 	-- BackImage
 	local backImage = Instance.new("ImageLabel")
-	backImage.Name = "BackImage"
+	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
 	backImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	backImage.ImageTransparency = 1
@@ -99,7 +98,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	gradient.Parent = backImage
 	-- ActivatedImage
 	local activatedImage = Instance.new("ImageLabel")
-	activatedImage.Name = "ActivatedImage"
+	activatedImage.Name = UUID.Static("ActivatedImage")
 	activatedImage.ImageTransparency = 1
 	activatedImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	activatedImage.Image = "rbxassetid://8445470984"
