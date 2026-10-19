@@ -52,6 +52,11 @@ local humanoid = character:WaitForChild("Humanoid")
 -- == 1. CREATE THE MAIN WINDOW =============================================
 -- CreateWindow is the preferred entry point. Everything you see is themed by
 -- the library; the theme name below is the starting theme.
+--
+-- The aurora behind the window uses the glow texture configured in
+-- Constants.AuroraGlow (tinted per theme). Swap in your own uploaded neutral
+-- glow PNG here, or pass nil for the procedural fallback:
+-- Aetheris.SetAuroraTexture("rbxassetid://0")
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
 	-- Up to 3 tag pills under the description. A plain string uses the theme's

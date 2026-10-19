@@ -23,11 +23,13 @@
 		Aetheris.Window        - Window module (advanced use)
 		Aetheris.ThemeManager  - theme utilities (GetTheme / ApplyTheme)
 		Aetheris.ThemeDefinitions - the named theme tables
+		Aetheris.SetAuroraTexture - point the aurora at an uploaded glow texture
 		Aetheris:CreateWindow(Settings) - build a window (preferred entry)
 ]]
 
 local Window = require("./Core/Window")
 local Icons = require("./Assets/Icons")
+local Aurora = require("./Utils/Aurora")
 local ThemeManager = require("./Themes/ThemeManager")
 local ThemeDefinitions = require("./Themes/ThemeDefinitions")
 
@@ -37,6 +39,12 @@ Aetheris.Icons = Icons
 Aetheris.Window = Window
 Aetheris.ThemeManager = ThemeManager
 Aetheris.ThemeDefinitions = ThemeDefinitions
+
+-- Point the window aurora at an uploaded neutral glow texture (see
+-- Constants.AuroraGlow). Pass nil to fall back to the procedural bloom.
+function Aetheris.SetAuroraTexture(id)
+	Aurora.SetTexture(id)
+end
 
 function Aetheris:CreateWindow(Settings)
 	local options = table.clone(Settings or {})
