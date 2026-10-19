@@ -2,7 +2,9 @@
 	Stepper  ·  Aetheris UI Library
 
 	Numeric input with +/- buttons. Clamps to Min/Max, advances by Step, and
-	rounds to Precision. The text field is committed on FocusLost too.
+	rounds to Precision. The value shows on a shared chip (ValueReadout):
+	focusing its odometer swaps in a text field, and the typed number commits
+	on focus loss.
 
 	Usage:
 		local stepper = section:Stepper({
@@ -16,12 +18,10 @@
 ]]
 
 local Tween = require("../Utils/Tween")
-local Odometer = require("../Utils/Odometer")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
-local ActiveTheme = require("../Themes/ActiveTheme")
-local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ValueReadout = require("./ValueReadout")
 local UUID = require("../Utils/UUID")
 local Stepper = {}
 Stepper.__index = Stepper
@@ -45,58 +45,17 @@ function Stepper.new(parent, Settings, theme)
 		Theme = theme,
 		LabelWidth = 0.48591,
 	})
-	-- Input shell: the real editable TextBox is transparent at rest; a rolling
-	-- Odometer sits on top. Focusing swaps them so typing still works.
-	local inputBox = Instance.new("TextBox")
-	inputBox.Name = UUID.Static("StepperInputBox")
-	inputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
-	inputBox.BorderSizePixel = 0
-	inputBox.TextWrapped = false
-	inputBox.TextTransparency = 1
-	inputBox.TextSize = 13
-	inputBox.TextXAlignment = Enum.TextXAlignment.Center
-	inputBox.TextColor3 = (theme and theme.SecondaryTextColor)
-	inputBox.BackgroundColor3 = theme.InputBackgroundColor
-	inputBox.BackgroundTransparency = theme.InputBackgroundTransparency
-	inputBox:SetAttribute("IsInputBackground", true)
-	inputBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	inputBox.AnchorPoint = Vector2.new(1, 0.5)
-	inputBox.ClearTextOnFocus = false
-	inputBox.PlaceholderText = ""
-	inputBox.Size = UDim2.new(0, 64, 0.6, 0)
-	inputBox.Position = UDim2.new(1, -68, 0.5, 0)
-	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	inputBox.Text = ""
-	inputBox.ClipsDescendants = true
-	inputBox.Parent = row
-	local inputCorner = Instance.new("UICorner")
-	inputCorner.CornerRadius = UDim.new(0, 6)
-	inputCorner.Parent = inputBox
-	local inputStroke = Instance.new("UIStroke")
-	inputStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
-	inputStroke.Thickness = 0.7
-	inputStroke.Color = (theme and theme.StrokeColor)
-	inputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	inputStroke.Parent = inputBox
-
-	local valueReel = Instance.new("Frame")
-	valueReel.Name = UUID.Static("ValueReel")
-	valueReel.BackgroundTransparency = 1
-	valueReel.BorderSizePixel = 0
-	valueReel.Size = UDim2.fromScale(1, 1)
-	valueReel.ClipsDescendants = true
-	valueReel.ZIndex = 2
-	valueReel.Parent = inputBox
-
-	local odo = Odometer.new(valueReel, {
-		textSize = 13,
-		-- Taller cells so glyphs are never clipped by the reel; the reel itself
-		-- matches the text box (1,1) so the odometer reads like the input text.
-		height = 20,
-		alignment = Enum.HorizontalAlignment.Center,
-		transparency = (theme and theme.SecondaryTextTransparency) or 0.4,
-		weight = Enum.FontWeight.Medium,
-		duration = 0.28,
+	-- Value chip: odometer at rest, themed text field while focused (same
+	-- footprint as the old input shell).
+	local readout = ValueReadout.new(row, {
+		Theme = theme,
+		Size = UDim2.new(0, 64, 0.6, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -68, 0.5, 0),
+		TextSize = 13,
+		OdometerHeight = 20,
+		CornerRadius = 6,
+		ClearTextOnFocus = false,
 	})
 
 	-- Step controls: two bare icon buttons at the right edge. No background or
@@ -153,13 +112,12 @@ function Stepper.new(parent, Settings, theme)
 	-- Store references
 	self.Row = row
 	self.Label = label
-	self.InputBox = inputBox
-	self.InputStroke = inputStroke
+	self.InputBox = readout.Instance
+	self.InputStroke = readout.Stroke
 	self.StepUp = stepUp
 	self.StepDown = stepDown
 	self.Controls = controls
-	self.ValueReel = valueReel
-	self.Odometer = odo
+	self.Odometer = readout.Odometer
 	self._name = name
 	self.Min = minValue
 	self.Max = maxValue
@@ -167,17 +125,10 @@ function Stepper.new(parent, Settings, theme)
 	self.IsInteger = isInteger
 	self.Callback = callback
 	self._currentValue = math.clamp(defaultValue, minValue, maxValue)
-	-- Keep the hidden text box and the reel in sync.
+	-- Keep the hidden field text and the odometer in sync.
 	local function updateDisplay(value, up)
 		local displayValue = isInteger and math.round(value) or value
-		local text = tostring(displayValue)
-		inputBox.Text = text
-		inputBox.PlaceholderText = ""
-		if up == nil then
-			odo:snap(text)
-		else
-			odo:to(text, up)
-		end
+		readout:SetValue(tostring(displayValue), up)
 	end
 	-- Set value (with optional no callback)
 	self.SetValue = function(me, value, noCallback)
@@ -206,50 +157,11 @@ function Stepper.new(parent, Settings, theme)
 	stepDown.MouseButton1Click:Connect(function()
 		stepValue(-1)
 	end)
-	-- Parse typed values, then restore the reel when the field loses focus.
-	inputBox.FocusLost:Connect(function()
-		local num = tonumber(inputBox.Text)
-		if num then
-			self:SetValue(num, false)
-		else
-			updateDisplay(self._currentValue)
-		end
-		odo:setTransparency((ActiveTheme.theme or theme).SecondaryTextTransparency or 0.4)
-		inputBox.TextTransparency = 1
-	end)
-	-- Input box stroke brightening on hover/focus (like Keybind/TextInput)
-	local function setStrokeBright(bright)
-		if not self.InputStroke then
-			return
-		end
-		local liveTheme = ActiveTheme.theme or theme
-		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
-		local targetTrans = bright and 0.3 or restTrans
-		local targetColor = liveTheme.StrokeColor
-		Tween.Play(self.InputStroke, "Fast", {
-			Transparency = targetTrans,
-			Color = targetColor,
-		})
-		-- Keep PageFade's cached base at the RESTING transparency so a page fade
-		-- never restores a transient hover/focus brighten.
-		self.InputStroke:SetAttribute("PageFadeBase", restTrans)
+	-- Commit typed values through the same clamp/round path as the buttons;
+	-- the chip then normalises the display (e.g. "007" -> "7").
+	readout.OnCommit = function(num)
+		self:SetValue(num, false)
 	end
-	inputBox.MouseEnter:Connect(function()
-		setStrokeBright(true)
-	end)
-	inputBox.MouseLeave:Connect(function()
-		if not inputBox:IsFocused() then
-			setStrokeBright(false)
-		end
-	end)
-	inputBox.Focused:Connect(function()
-		odo:setTransparency(1)
-		inputBox.TextTransparency = (ActiveTheme.theme or theme).SecondaryTextTransparency or 0.4
-		setStrokeBright(true)
-	end)
-	inputBox.FocusLost:Connect(function()
-		setStrokeBright(false)
-	end)
 	-- Initial display
 	updateDisplay(self._currentValue)
 	-- Public API
@@ -279,38 +191,22 @@ function Stepper.new(parent, Settings, theme)
 	self.GetVisible = function(me)
 		return me.Row.Visible
 	end
-	-- Declarative theming: every themed property is a BINDING.
+	-- Declarative theming for the row's own chrome; the chip runs its own
+	-- theme pass (accent card, state alphas, odometer colours).
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
-	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindColor(inputBox, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
-	ThemeManager.BindColor(inputStroke, "Color", "StrokeColor")
-	ThemeManager.BindTransparency(inputStroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(stepUp, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
-	ThemeManager.OnThemeApplied(function(liveTheme)
-		if not inputBox:IsFocused() then
-			odo:setTransparency(liveTheme.SecondaryTextTransparency or 0.4)
-		end
-	end, valueReel)
 	self.Destroy = function(me)
-		-- Cancel any in-flight tweens on the buttons, reel, and stroke.
+		-- Cancel any in-flight tweens on the buttons, then tear the chip down.
 		Tween.CancelAll(stepUp)
 		Tween.CancelAll(stepDown)
-		Tween.CancelAll(inputStroke)
-		Tween.CancelAllUnder(valueReel)
+		readout:Destroy()
 		-- Drop all ThemeManager bindings.
 		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(inputBox)
-		ThemeManager.UnbindInstance(inputStroke)
 		ThemeManager.UnbindInstance(stepUp)
 		ThemeManager.UnbindInstance(stepDown)
 		ThemeManager.UnbindInstance(controls)
-		ThemeManager.UnbindInstance(valueReel)
-		for _, descendant in ipairs(valueReel:GetDescendants()) do
-			ThemeManager.UnbindInstance(descendant)
-		end
 		-- Destroy the root instance.
 		if me.Row and me.Row.Parent then
 			me.Row:Destroy()

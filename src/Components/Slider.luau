@@ -20,8 +20,9 @@
 		  InputEnded AND WindowFocusReleased both ending the drag.
 		· The fill follows the value with a 0.3 Quint Out tween mid-drag.
 
-	Kept from ours: the spinning gradient (Tween.StartSpin), the percentage
-	/ value readout, the reset button and the theme bindings.
+	Kept from ours: the spinning gradient (Tween.StartSpin), the shared value
+	chip (ValueReadout), the percentage readout, the reset button and the
+	theme bindings.
 
 	Usage:
 		local slider = section:Slider({
@@ -40,6 +41,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ValueReadout = require("./ValueReadout")
 local ComponentAPI = require("../Utils/ComponentAPI")
 local UUID = require("../Utils/UUID")
 
@@ -225,37 +227,16 @@ function Slider.new(parent, Settings, theme)
 	controlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	controlLayout.Parent = controlHolder
 
-	-- value readout (Rayfield's odometer host; ours is a text box)
-	local statBox = Instance.new("TextBox")
-	statBox.Name = UUID.Static("SliderStat")
-	statBox.LayoutOrder = 1
-	statBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
-	statBox.BorderSizePixel = 0
-	statBox.TextTransparency = theme.SecondaryTextTransparency
-	statBox.TextSize = 10
-	statBox.TextColor3 = theme.SecondaryTextColor
-	statBox.BackgroundColor3 = theme.InputBackgroundColor
-	statBox.FontFace = Constants.Font(Enum.FontWeight.Regular)
-	statBox.AutomaticSize = Enum.AutomaticSize.X
-	statBox.AnchorPoint = Vector2.new(1, 0)
-	statBox.TextTruncate = Enum.TextTruncate.AtEnd
-	statBox.PlaceholderText = "0"
-	statBox.Size = UDim2.fromOffset(56, 16)
-	statBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	statBox.Text = ""
-	statBox.BackgroundTransparency = theme.InputBackgroundTransparency
-	statBox.Parent = controlHolder
-	local statStroke = Instance.new("UIStroke")
-	statStroke.Transparency = theme.StrokeTransparency
-	statStroke.Color = theme.StrokeColor
-	statStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	statStroke.Parent = statBox
-	local statCorner = Instance.new("UICorner")
-	statCorner.CornerRadius = UDim.new(0, 4)
-	statCorner.Parent = statBox
-	local statConstraint = Instance.new("UISizeConstraint")
-	statConstraint.MaxSize = Vector2.new(56, 20)
-	statConstraint.Parent = statBox
+	-- value readout: shared chip (odometer at rest, text field on focus)
+	local readout = ValueReadout.new(controlHolder, {
+		Theme = theme,
+		Width = 56,
+		Height = 17,
+		TextSize = 11,
+		OdometerHeight = 16,
+		CornerRadius = 4,
+		LayoutOrder = 1,
+	})
 
 	-- percentage readout
 	local percentLabel = Instance.new("TextLabel")
@@ -341,10 +322,10 @@ function Slider.new(parent, Settings, theme)
 		local ratio = ratioFromPointer(UserInputService:GetMouseLocation().X, holder.AbsolutePosition.X, travel)
 		local value = snapTo({ min, max }, increment, min + ratio * (max - min))
 		if value ~= currentValue then
+			local up = value > currentValue
 			currentValue = value
 			renderProgress(FOLLOW_INFO)
-			statBox.Text = formatValue(value)
-			statBox.PlaceholderText = formatValue(value)
+			readout:SetValue(formatValue(value), up)
 			percentLabel.Text = math.round(ratio * 100) .. "%"
 			if Settings.Callback then
 				Settings.Callback(value)
@@ -432,26 +413,22 @@ function Slider.new(parent, Settings, theme)
 	-- ---- value setters ------------------------------------------------------
 	local function updateSlider(value, snapSmooth)
 		value = snapTo({ min, max }, increment, value)
+		local up = value >= currentValue
 		currentValue = value
 		local span = max - min
 		local ratio = (span ~= 0) and math.clamp((value - min) / span, 0, 1) or 0
 		renderProgress(snapSmooth and TWEEN_INFO or nil)
 		percentLabel.Text = math.round(ratio * 100) .. "%"
-		statBox.Text = formatValue(value)
-		statBox.PlaceholderText = formatValue(value)
+		readout:SetValue(formatValue(value), up)
 		if Settings.Callback then
 			Settings.Callback(value)
 		end
 	end
 
-	statBox.FocusLost:Connect(function()
-		local inputValue = tonumber(statBox.Text)
-		if inputValue then
-			updateSlider(inputValue, true)
-		else
-			statBox.Text = formatValue(currentValue)
-		end
-	end)
+	-- Typed values go through the same clamp/snap/format path as the drag.
+	readout.OnCommit = function(value)
+		updateSlider(value, true)
+	end
 
 	resetBtn.MouseButton1Click:Connect(function()
 		updateSlider(default, true)
@@ -536,8 +513,7 @@ function Slider.new(parent, Settings, theme)
 		ThemeManager.UnbindInstance(visual)
 		ThemeManager.UnbindInstance(resetBtn)
 		ThemeManager.UnbindInstance(percentLabel)
-		ThemeManager.UnbindInstance(statBox)
-		ThemeManager.UnbindInstance(statStroke)
+		readout:Destroy()
 		ThemeManager.UnbindInstance(holderShadow)
 		ThemeManager.UnbindInstance(thumb)
 		ThemeManager.UnbindInstance(thumbStroke)
@@ -554,12 +530,6 @@ function Slider.new(parent, Settings, theme)
 	ThemeManager.BindColor(resetBtn, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(percentLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(percentLabel, "TextTransparency", "SecondaryTextTransparency")
-	ThemeManager.BindColor(statBox, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindTransparency(statBox, "TextTransparency", "SecondaryTextTransparency")
-	ThemeManager.BindColor(statBox, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindTransparency(statBox, "BackgroundTransparency", "InputBackgroundTransparency")
-	ThemeManager.BindColor(statStroke, "Color", "StrokeColor")
-	ThemeManager.BindTransparency(statStroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
 	ThemeManager.BindColor(thumb, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(thumbStroke, "Color", "AccentColor")
