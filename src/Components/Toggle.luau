@@ -135,11 +135,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	----------------------------------------------------------------
 	-- DECLARATIVE THEME BINDINGS (no ApplyTheme body)
 	----------------------------------------------------------------
-	-- Label colour is pure theme. The thumb/track/stroke palette is state-driven:
-	-- ON uses PrimaryColor, OFF uses SecondaryColor. Instead of re-stamping on
-	-- every switch, each is a binding whose KEY is swapped by applyState via
-	-- handle:SetKey -- the theme pass then resolves the right colour for the
-	-- current state automatically. duration keeps the swap as snappy as before.
+	-- Label colour is pure theme; thumb/track/stroke are bindings whose key
+	-- applyState swaps for ON (PrimaryColor) and OFF (SecondaryColor).
 	local FAST = { duration = 0.2 }
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local thumbColorBinding =
@@ -293,16 +290,9 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	self.UpdateName = function(_self, newName)
 		label.Text = newName
 	end
-	-- The label COLOUR and the state-driven thumb/track/stroke COLOURS are
-	-- declarative bindings (see the DECLARATIVE THEME BINDINGS block above), so a
-	-- theme switch re-resolves them with no component code. But the
-	-- thumb/track/stroke/label/sheet TRANSPARENCIES are set by applyState's own
-	-- tween, OUTSIDE ApplyTheme: a theme switch runs Tween.CancelAllUnder first,
-	-- which freezes those tweens at whatever intermediate transparency they held,
-	-- so the toggle can render half-faded ("disappears"). Re-stamp the resting
-	-- state (snap, no callback) after every theme apply so the current state's
-	-- transparencies are restored -- the same pattern Button uses for its
-	-- interaction transparencies.
+	-- Colours are bindings, but the state transparencies are set by applyState's
+	-- own tweens; a theme switch cancels those tweens, so re-stamp the resting
+	-- state after every theme apply to avoid a half-faded toggle.
 	local unregisterTheme = ThemeManager.OnThemeApplied(function()
 		applyState(state, false, false)
 	end, row)

@@ -131,17 +131,10 @@ function SettingsTabGroup.new(window, theme)
 	return self
 end
 
--- Snapshot every element's base transparencies. This is only valid while
--- the page is in its NATURAL (un-faded) state, so it is captured fresh each
--- time the page is natural -- pages whose content is added after creation
--- (e.g. the Themes page) are then captured fully instead of as empty.
--- (Page transitions are handled entirely by Utils/PageFade now: one
--- CanvasGroup per settings page, faded via PageFade.Crossfade/Show/Snap. The
--- old per-element transparency cache functions were removed.)
+-- Page transitions are owned by Utils/PageFade; the old per-element
+-- transparency cache was removed.
 
--- Settings-tab backdrop spins route through the CENTRAL spin system so the
--- global Tween.SetSpinsEnabled toggle controls them. Inactive page backdrops
--- are PAUSED (angle preserved), not stopped.
+-- Pause a settings backdrop's spin so it resumes from the same angle.
 function SettingsTabGroup:_pauseSpin(gradient)
 	if not gradient then
 		return

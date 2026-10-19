@@ -7,14 +7,16 @@
 	in a plain Studio session.
 ]]
 
+local UUID = require("./UUID")
+
 local Security = {}
 
-local function randomHex()
-	return string.format("%08x%08x", math.random(0, 0x7FFFFFFF), math.random(0, 0x7FFFFFFF))
-end
-
 function Security.RandomName(prefix)
-	return string.format("%s_%s", prefix or "Aetheris", randomHex())
+	local id = UUID.Generate()
+	if prefix then
+		return string.format("%s_%s", prefix, id)
+	end
+	return id
 end
 
 function Security.ParentHidden(gui, player)

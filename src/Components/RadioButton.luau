@@ -193,11 +193,8 @@ function RadioButton.new(parent, group, Settings, theme)
 	----------------------------------------------------------------
 	-- HOVER / CLICK
 	----------------------------------------------------------------
-	-- The whole row is interactive: hovering or pressing either the holder frame
-	-- (the pill) or the inner button drives the same visuals, so a user can tap
-	-- the frame as well as the button. Mirrors Toggle's shared handleClick wired
-	-- to both `row` and `thumb`. Selection is idempotent, so the mouse-event
-	-- bubbling between holder and button can't double-apply.
+	-- Hovering or pressing either the holder frame or the inner button drives
+	-- the same visuals; selection is idempotent so event bubbling is harmless.
 	local function enterHover()
 		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
 		if self.IsSelected then

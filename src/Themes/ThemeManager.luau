@@ -37,19 +37,11 @@ function ThemeManager.Register(root, component)
 	end
 end
 
--- Color OVERRIDES. A component that gives one of its instances a custom
--- color can declare it as an override by stamping a Color3 attribute named
--- 'ThemeOverride_<Property>' on that instance. The theme system then treats
--- that property as owned by the caller: the color crossfade skips it, so a
--- custom color survives theme switches instead of every component having to
--- re-stamp it on each ApplyTheme pass.
---
+-- Caller-pinned colors: stamping ThemeOverride_<Property> makes the theme
+-- system skip that property, so custom colors survive theme switches. The two
+-- functions below are the only writers, which keeps overrideCount accurate.
 --   ThemeManager.SetColorOverride(frame, "BackgroundColor3", Color3.new(1,0,0))
 --   ThemeManager.ClearColorOverride(frame, "BackgroundColor3")
--- Count of live override attributes, so ApplyTheme can skip the
--- O(descendants x COLOR_PROPS) re-stamp sweep entirely when there are none
--- (the common case). The two functions below are the ONLY writers of the
--- ThemeOverride_* attributes, so this stays accurate.
 local overrideCount = 0
 
 function ThemeManager.SetColorOverride(instance, property, color)
@@ -85,34 +77,8 @@ end
 -- ─────────────────────────────────────────────────────────────────────────
 -- DECLARATIVE BINDINGS (the foolproof path)
 -- ─────────────────────────────────────────────────────────────────────────
--- A component declares ONCE, at construction, which theme key drives each of
--- its themed properties:
---
---   ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
---   ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
---
--- On every theme switch each binding is re-resolved (and crossfaded). Nothing
--- has to remember to re-apply: if a property is themed, it is a binding. A
--- component never defines an ApplyTheme that re-stamps colours by hand.
---
--- The handle exposes the ONE legal mutation a component may make:
---
---   handle:SetKey(themeKey)  -- swap which key drives this property, e.g.
---                            -- rest -> hover -> press. Keeps a stateful
---                            -- component declarative instead of reaching in
---                            -- and setting the colour itself.
---
--- opts (all optional):
---   transform = function(value) -> value  -- post-process the resolved value
---                                            (e.g. darken for a hover variant)
---   instant   = true                      -- snap instead of crossfading
---   duration  = number                    -- override the crossfade time
---   live      = true                      -- also stamp ThemeLive_<prop> so
---                                            interaction handlers can read it
---
--- Precedence is always:  ThemeOverride_<prop>  >  binding  >  prior value.
--- An override wins, so components that accept a caller colour via
--- SetColorOverride keep it across theme switches.
+-- Declare the driving theme key once; every switch re-resolves it. Overrides
+-- win over bindings, which win over the prior value.
 
 ThemeManager.THEME_KEYS = {
 	"WindowColor",
@@ -638,13 +604,8 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Re-stamp declared overrides. A component's own ApplyTheme re-applies
-	-- theme colors directly, which would otherwise clobber an override it
-	-- declared on one of its instances. Overrides are the caller's explicit
-	-- intent, so they always win: any instance carrying a ThemeOverride_<Prop>
-	-- attribute gets that value re-applied here, AFTER every component
-	-- ApplyTheme pass. snapshotColors/applyColorFade already skip these props,
-	-- so the re-stamped value is never faded back to a theme value.
+	-- Re-stamp caller overrides after every ApplyTheme pass so a component's own
+	-- theme colors cannot clobber a pinned custom color.
 	if overrideCount > 0 then
 		for _, d in ipairs(descendants) do
 			for _, p in ipairs(COLOR_PROPS) do
@@ -725,17 +686,10 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- PageFade decorations DEPEND on the theme system now: a theme-bound
-	-- UIStroke/UIShadow reads its resting Transparency from ThemeLive_<prop>,
-	-- which the bindings pass above just republished for the new theme. So there
-	-- is no stale per-decoration base to fight -- PageFade simply follows the
-	-- theme. InvalidateDecorationBases only re-marks layers dirty (to pick up
-	-- decorations added since the last scan); it no longer nils bases, which
-	-- would have clobbered a component's own non-theme resting base (the
-	-- radio-stroke bug).
-	-- The CancelAll pass also killed any in-flight page fade, which could leave
-	-- the active page stuck transparent. Restore both active pages to natural
-	-- after the theme (and its republished ThemeLive_ values) is settled.
+	-- Theme-bound decorations read their resting transparency from ThemeLive_,
+	-- which the bindings pass above republished, so there is no stale base to
+	-- clear -- just re-mark layers dirty and restore the active pages, since the
+	-- CancelAll pass killed any in-flight page fade.
 	if PageFade.InvalidateDecorationBases then
 		PageFade.InvalidateDecorationBases()
 	end

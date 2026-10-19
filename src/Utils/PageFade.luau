@@ -45,21 +45,9 @@ function PageFade.Snap(layer, transparency)
 	PageFade.FadeDecorations(layer, (transparency or 0) >= 0.5, true)
 end
 
--- UIStroke / UIShadow are NOT covered by CanvasGroup.GroupTransparency, so a
--- group fade leaves strokes and shadows fully visible until Visible toggles --
--- they "pop" instead of fading. Fade them explicitly in sync: snapshot each
--- decoration's base Transparency once (stored as an attribute), then tween it
--- toward hidden (1) or back to that base. Called from Snap/Show/Hide so EVERY
--- group fade in the library (window, pill, tab pages, settings pages) fades its
--- shadows and strokes with the rest of the UI. The UIStroke/UIShadow set is
--- cached per layer (see getDecorations below), so a fade never walks the full
--- page subtree -- it touches only the decorations, and only re-scans when the
--- layer's contents actually change.
--- Per-layer decoration cache. Scanning group:GetDescendants() on every fade is
--- O(subtree) and runs TWICE per crossfade; instead we scan once, keep the list
--- of UIStroke/UIShadow instances, and only re-scan when the layer's contents
--- change (DescendantAdded/DescendantRemoving set a dirty flag). This keeps the
--- decoration pass proportional to the handful of decorations, not the page size.
+-- CanvasGroup does not fade UIStroke/UIShadow, so a group fade explicitly
+-- tweens each decoration to hidden or back to its PageFadeBase. The decoration
+-- list is cached per layer and re-scanned only when the layer changes.
 local decorationCache = setmetatable({}, { __mode = "k" })
 
 local function getDecorations(group)
@@ -256,22 +244,9 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 	end
 end
 
--- Called after a theme switch. Theme-bound decorations do NOT keep a base:
--- their resting transparency is read from the theme system's
--- ThemeLive_Transparency, which applyEntry republishes on every switch, so it
--- can never go stale. A decoration's own PageFadeBase only ever holds a
--- NON-theme resting value (a fixed shadow, a component-set stroke), which does
--- not change with the theme -- so there is nothing to clear here. This just
--- re-marks each layer dirty so the next fade re-scans for decorations added
--- since the last pass.
+-- Theme-bound decorations read their resting value from ThemeLive_, so there is
+-- nothing to clear here -- just re-mark dirty so the next fade re-scans.
 function PageFade.InvalidateDecorationBases()
-	-- Theme-bound decorations no longer keep a PageFadeBase (their resting value
-	-- comes from the theme's ThemeLive_Transparency). A decoration's own
-	-- PageFadeBase is only ever a NON-theme resting value, which does not change
-	-- with the theme -- so there is nothing to invalidate. Nil-ing the bases here
-	-- would destroy a base a component just re-stamped in its own ApplyTheme
-	-- (the radio-stroke bug). Just re-mark dirty so the next fade re-scans for
-	-- decorations added since the last pass.
 	for _, entry in pairs(decorationCache) do
 		entry.dirty = true
 	end
