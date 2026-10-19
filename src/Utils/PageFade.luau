@@ -24,7 +24,7 @@ PageFade.PRESET = "Fast"
 -- here: each call is for a distinct page/tab.
 function PageFade.Layer(parent, name)
 	local cg = Instance.new("CanvasGroup")
-	cg.Name = name or UUID.Generate()
+	cg.Name = name or UUID.Generate("PageFadeLayer")
 	cg.BackgroundTransparency = 1
 	cg.BorderSizePixel = 0
 	cg.AnchorPoint = Vector2.new(0, 0)

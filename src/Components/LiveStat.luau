@@ -129,7 +129,7 @@ function LiveStat:_buildFull()
 	local theme = self._theme
 
 	local main = Instance.new("Frame")
-	main.Name = UUID.Generate()
+	main.Name = UUID.Generate("LiveStat")
 	main.Size = UDim2.new(1, 0, 0, FULL_HEIGHT)
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
@@ -254,7 +254,7 @@ function LiveStat:_buildCompact()
 	local theme = self._theme
 
 	local main = Instance.new("Frame")
-	main.Name = UUID.Generate()
+	main.Name = UUID.Generate("LiveStat")
 	main.Size = UDim2.new(1, 0, 0, COMPACT_HEIGHT)
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0

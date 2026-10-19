@@ -54,7 +54,7 @@ function ComponentRow.new(parent, Settings)
 	else
 		row = Instance.new("Frame")
 	end
-	row.Name = UUID.Generate()
+	row.Name = UUID.Generate(Settings.RowName or "ComponentRow")
 	row.BorderSizePixel = 0
 	row.BackgroundColor3 = Settings.BackgroundColor or Color3.fromRGB(31, 32, 34)
 	row.BackgroundTransparency = (Settings.BackgroundTransparency == nil) and 1 or Settings.BackgroundTransparency

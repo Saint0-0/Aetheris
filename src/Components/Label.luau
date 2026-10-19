@@ -50,7 +50,7 @@ function Label.new(parent, Settings, theme)
 	local paddingOverride = Settings.Padding
 	-- Container (matches Paragraph's style)
 	local container = Instance.new("Frame")
-	container.Name = UUID.Generate()
+	container.Name = UUID.Generate("Label")
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = showContainer and ((theme and theme.ComponentBackgroundTransparency) or 0.985)

@@ -84,7 +84,7 @@ function TabGroup:Tab(Settings)
 	-- Tab button
 	----------------------------------------------------------------
 	local Button = Instance.new("TextButton")
-	Button.Name = UUID.Generate()
+	Button.Name = UUID.Generate("Tab")
 	Button.BorderSizePixel = 0
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
@@ -180,7 +180,7 @@ function TabGroup:Tab(Settings)
 	-- tabs -- each tab gets a dedicated ContentScroller)
 	----------------------------------------------------------------
 	local ContentScroller = Instance.new("ScrollingFrame")
-	ContentScroller.Name = UUID.Generate()
+	ContentScroller.Name = UUID.Generate("TabScroller")
 	ContentScroller.BorderSizePixel = 0
 	ContentScroller.CanvasSize = UDim2.fromScale(0, 0)
 	ContentScroller.TopImage = ""
@@ -201,7 +201,7 @@ function TabGroup:Tab(Settings)
 	-- The scroller (and everything inside it) is never transparency-faded,
 	-- so component state encoded as transparency (radio selection, slider
 	-- fill, etc.) can never be stomped by a page switch. See Utils/PageFade.
-	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate())
+	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate("TabFade"))
 	FadeLayer.Visible = false
 	ContentScroller.Parent = FadeLayer
 	-- Scrollbar: only visible while scrolling

@@ -26,7 +26,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- needed, so the popup is parented directly to its parent.
 	-- Popup root
 	local popup = Instance.new("CanvasGroup")
-	popup.Name = UUID.Generate()
+	popup.Name = UUID.Generate("ColorPickerPopup")
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
@@ -213,7 +213,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 
 	local function createInputRow(labelText, defaultText, layoutOrder)
 		local row = Instance.new("Frame")
-		row.Name = UUID.Generate()
+		row.Name = UUID.Generate("ColorPickerRow")
 		row.BorderSizePixel = 0
 		row.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 		row.BackgroundTransparency = 1

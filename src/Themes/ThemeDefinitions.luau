@@ -80,6 +80,8 @@ ThemeDefinitions.Base = {
 	NotificationBackgroundColor = Color3.fromRGB(30, 41, 59),
 	NotificationBackgroundTransparency = 0.1,
 	NotificationShadowColor = Color3.fromRGB(0, 0, 0),
+	NotificationStrokeColor = Color3.fromRGB(148, 163, 184),
+	NotificationStrokeTransparency = 0.86,
 	NotificationHeaderColor = Color3.fromRGB(255, 255, 255),
 	NotificationHeaderTransparency = 0.2,
 	NotificationTextColor = Color3.fromRGB(226, 232, 240),
@@ -2611,7 +2613,14 @@ for _, t in pairs(ThemeDefinitions) do
 	if t.NotificationBackgroundColor == nil then
 		t.NotificationBackgroundColor = t.PopupBackgroundColor or t.WindowColor
 		t.NotificationBackgroundTransparency = math.clamp((t.PopupBackgroundTransparency or 0) + 0.1, 0, 1)
-		t.NotificationShadowColor = t.PopupShadowColor or Color3.fromRGB(0, 0, 0)
+		-- Shadow follows the surface: darker surfaces get a near-black drop,
+		-- lighter surfaces get a darkened version of their own fill instead of
+		-- a soot-black halo.
+		local surface = t.NotificationBackgroundColor
+		local shadowDepth = luminance(surface) < 0.4 and 0.7 or 0.42
+		t.NotificationShadowColor = surface:Lerp(Color3.fromRGB(0, 0, 0), shadowDepth)
+		t.NotificationStrokeColor = t.StrokeColor or Color3.fromRGB(148, 163, 184)
+		t.NotificationStrokeTransparency = 0.86
 		t.NotificationHeaderColor = t.TitleTextColor or t.PopupTextColor or Color3.fromRGB(255, 255, 255)
 		t.NotificationHeaderTransparency = 0.2
 		t.NotificationTextColor = t.SecondaryTextColor or t.PopupTextColor or Color3.fromRGB(226, 232, 240)

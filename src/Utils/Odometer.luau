@@ -73,7 +73,7 @@ local function digitMetrics(font, size)
 end
 
 -- parent : Frame the row lives in; the odometer lays its cells out inside it
--- opts   : { textSize, alignment (Enum.HorizontalAlignment), transparency, duration, weight }
+-- opts   : { textSize, height, alignment (Enum.HorizontalAlignment), transparency, duration, weight }
 function Odometer.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({
@@ -88,7 +88,9 @@ function Odometer.new(parent, opts)
 	}, Odometer)
 
 	self.font = Constants.Font(self.weight)
-	self.height = math.ceil(self.textSize)
+	-- A cell as tall as the font size clips ascenders/descenders; allow callers
+	-- to pass a taller cell (e.g. the Stepper, whose reel matches its text box).
+	self.height = opts.height or math.ceil(self.textSize)
 
 	local metrics = digitMetrics(self.font, self.textSize)
 	self.advance = metrics.advance
@@ -118,7 +120,7 @@ function Odometer:_reel(index)
 	local zIndex = self.parent.ZIndex + 1
 
 	local cell = Instance.new("Frame")
-	cell.Name = UUID.Generate()
+	cell.Name = UUID.Generate("OdometerCell")
 	cell.Size = UDim2.fromOffset(self.maxWidth, self.height)
 	cell.BackgroundTransparency = 1
 	cell.BorderSizePixel = 0
@@ -166,7 +168,7 @@ function Odometer:_static(index)
 	end
 
 	local label = Instance.new("TextLabel")
-	label.Name = UUID.Generate()
+	label.Name = UUID.Generate("OdometerLabel")
 	label.Size = UDim2.fromOffset(0, self.height)
 	label.AutomaticSize = Enum.AutomaticSize.X
 	label.BackgroundTransparency = 1

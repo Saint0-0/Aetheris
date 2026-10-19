@@ -60,6 +60,9 @@ function Window.new(Settings)
 
 	local player = Players.LocalPlayer
 	local secureMode = Settings.AETHERIS_SECUREMODE == true
+	-- Secure mode is the only mode that hides semantics in Explorer. In normal
+	-- mode every UUID.Static key resolves to its readable name.
+	UUID.SetSecureMode(secureMode)
 
 	-- Forward declaration so early closures (e.g. the settings gear click)
 	-- can reach the window object created near the end of this function.
@@ -245,10 +248,10 @@ function Window.new(Settings)
 	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
 	ContentBackgroundCorner.Parent = ContentBackground
 
-	-- Soft accent bloom behind the page content. It is clipped to the content
-	-- panel so it never spills into the sidebar or outside the window.
-	ContentBackground.ClipsDescendants = true
-	local aurora = Aurora.new(ContentBackground, {
+	-- Soft accent bloom behind the whole window. It is created after the content
+	-- fill so it sits above that fill but below the sidebar/content (ZIndex 1),
+	-- and clips itself to the window's rounded corners.
+	local aurora = Aurora.new(MainFrame, {
 		Theme = theme,
 		Enabled = SettingsStore.Get("AuroraEnabled") ~= false,
 	})
@@ -940,7 +943,7 @@ function Window.new(Settings)
 		local widthOffset = -(TAG_GAP * (total - 1)) / total
 
 		local pill = Instance.new("Frame")
-		pill.Name = UUID.Generate()
+		pill.Name = UUID.Generate("TagPill")
 		pill.BorderSizePixel = 0
 		-- The pill fill is caller-colored; the gradient below fades it toward
 		-- the caller's accent color.
@@ -1198,7 +1201,7 @@ function Window.new(Settings)
 	-- CanvasGroup so GroupTransparency can dim the WHOLE pill (background +
 	-- buttons + stroke) at rest in one property, and clear on hover.
 	local pill = Instance.new("CanvasGroup")
-	pill.Name = UUID.Generate()
+	pill.Name = UUID.Generate("MinimizePill")
 	pill.AutomaticSize = Enum.AutomaticSize.None
 	pill.Size = UDim2.fromOffset(56, 56)
 
@@ -1235,15 +1238,21 @@ function Window.new(Settings)
 			local cam = workspace.CurrentCamera
 			viewport = (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
 		end
+		-- Seven tabs fit without a scrollbar. Only an eighth tab turns the pill
+		-- into a scroller, so the common case stays clean on desktop and mobile.
+		local scrollable = count > 7
 		local limit = horizontal and math.max(160, viewport.X * 0.8) or math.max(160, viewport.Y * 0.6)
-		local visible = math.min(content, limit)
+		local visible = scrollable and math.min(content, limit) or content
 
 		if horizontal then
 			pill.Size = UDim2.fromOffset(visible + 16, 56)
 		else
 			pill.Size = UDim2.fromOffset(56, visible + 16)
 		end
-		if content <= visible then
+		pillScroll.ScrollingEnabled = scrollable
+		pillScroll.ScrollBarThickness = scrollable and 1 or 0
+		if not scrollable then
+			pillScroll.ScrollBarImageTransparency = 1
 			pillScroll.CanvasPosition = Vector2.new(0, 0)
 		end
 	end
@@ -1653,7 +1662,7 @@ function Window.new(Settings)
 
 	local pillScrollbarTimer
 	pillScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-		if not pill.Visible then
+		if not pill.Visible or not pillScroll.ScrollingEnabled then
 			pillScroll.ScrollBarImageTransparency = 1
 			return
 		end
@@ -1740,7 +1749,7 @@ function Window.new(Settings)
 	local function createPillButton(tab, i, t)
 		local isActive = (tab == (self.TabGroup and self.TabGroup.ActiveTab))
 		local btn = Instance.new("TextButton")
-		btn.Name = UUID.Generate()
+		btn.Name = UUID.Generate("PillTab")
 		btn.Size = UDim2.fromOffset(40, 40)
 		-- Only the ACTIVE tab shows its filled background; the rest are plain.
 		btn.BackgroundColor3 = t.ActiveTabButtonColor or t.PrimaryColor or Color3.fromRGB(99, 102, 241)

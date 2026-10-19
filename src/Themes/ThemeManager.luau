@@ -135,6 +135,8 @@ ThemeManager.THEME_KEYS = {
 	"NotificationBackgroundColor",
 	"NotificationBackgroundTransparency",
 	"NotificationShadowColor",
+	"NotificationStrokeColor",
+	"NotificationStrokeTransparency",
 	"NotificationHeaderColor",
 	"NotificationHeaderTransparency",
 	"NotificationTextColor",

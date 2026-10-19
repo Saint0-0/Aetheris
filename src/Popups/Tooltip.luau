@@ -21,7 +21,7 @@ function Tooltip.new(container, theme)
 	local self = setmetatable({}, Tooltip)
 
 	local root = Instance.new("CanvasGroup")
-	root.Name = UUID.Generate()
+	root.Name = UUID.Generate("Tooltip")
 	root.BorderSizePixel = 0
 	root.GroupTransparency = 1
 	root.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)

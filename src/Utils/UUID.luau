@@ -1,13 +1,15 @@
 --[[
 	UUID  ·  Aetheris UI Library
 
-	Deterministic UUIDs for fixed interface elements and random UUIDs for
-	per-instance elements. Static IDs stay stable across reloads so name-based
-	lookups keep working without exposing readable names in Explorer.
+	Names interface elements. Secure mode uses deterministic UUIDs for fixed
+	elements and random UUIDs for per-instance elements; normal mode keeps
+	readable semantic names so Explorer stays usable.
 ]]
 
 local UUID = {}
 local staticCache = {}
+local dynamicCounters = {}
+local secureMode = false
 
 local function hash(text, seed)
 	local value = seed
@@ -30,7 +32,18 @@ local function format(a, b, c, d)
 	)
 end
 
+function UUID.SetSecureMode(enabled)
+	secureMode = enabled == true
+end
+
+function UUID.IsSecureMode()
+	return secureMode
+end
+
 function UUID.Static(key)
+	if not secureMode then
+		return key
+	end
 	local cached = staticCache[key]
 	if cached then
 		return cached
@@ -40,7 +53,13 @@ function UUID.Static(key)
 	return id
 end
 
-function UUID.Generate()
+function UUID.Generate(prefix)
+	if not secureMode then
+		local label = prefix or "Element"
+		local count = (dynamicCounters[label] or 0) + 1
+		dynamicCounters[label] = count
+		return string.format("%s_%d", label, count)
+	end
 	local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
 	return (
 		template:gsub("[xy]", function(character)

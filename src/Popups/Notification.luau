@@ -16,6 +16,7 @@
 local Tween = require("../Utils/Tween")
 local UUID = require("../Utils/UUID")
 local ThemeManager = require("../Themes/ThemeManager")
+local Aurora = require("../Utils/Aurora")
 local FallbackImage = require("../Constants").FallbackImage
 local Icons = require("../Assets/Icons")
 local Sound = require("../Utils/Sound")
@@ -72,24 +73,6 @@ local function tweenAll(targets, value, duration)
 	end
 end
 
-local CORNER_GRADIENT_KEYS = {
-	{ 0.000, 0.0 },
-	{ 0.630, 0.4135 },
-	{ 0.751, 0.4712 },
-	{ 0.818, 0.5288 },
-	{ 0.870, 0.5962 },
-	{ 0.952, 0.7788 },
-	{ 0.998, 0.9327 },
-	{ 1.000, 1.0 },
-}
-local function cornerGradient(col)
-	local white = Color3.fromRGB(255, 255, 255)
-	local kps = {}
-	for i, k in ipairs(CORNER_GRADIENT_KEYS) do
-		kps[i] = ColorSequenceKeypoint.new(k[1], white:Lerp(col, k[2]))
-	end
-	return ColorSequence.new(kps)
-end
 local ACCENT_KEY = {
 	Alert = "NotificationAlertAccent",
 	Error = "NotificationErrorAccent",
@@ -123,10 +106,10 @@ function Notification.new(container, Settings, theme)
 
 	local accent = theme[ACCENT_KEY[ntype] or "NotificationAlertAccent"] or Color3.fromRGB(96, 165, 250)
 	local iconColor = Settings.IconColor or accent
-	local gradientColor = Settings.GradientColor or accent
+	local washColor = Settings.GradientColor or accent
 
 	local root = new("CanvasGroup", {
-		Name = UUID.Generate(),
+		Name = UUID.Generate("Toast"),
 		ZIndex = 999,
 		BorderSizePixel = 0,
 		GroupTransparency = 1,
@@ -141,37 +124,27 @@ function Notification.new(container, Settings, theme)
 	self.Root = root
 
 	new("UICorner", { Parent = root, CornerRadius = UDim.new(0, 6) })
-	new("UIShadow", { Parent = root, Color = theme.NotificationShadowColor or Color3.fromRGB(0, 0, 0) })
-
-	-- Gradient glow (behind the content)
-	local grad = new("Frame", {
-		Name = UUID.Static("GradientBackground"),
-		BorderSizePixel = 0,
-		BackgroundColor3 = gradientColor,
-		BackgroundTransparency = 0.65,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromScale(1, 1),
-		Position = UDim2.fromScale(0.5, 0.5),
-		ZIndex = 0,
+	local shadow = new("UIShadow", {
 		Parent = root,
+		Color = theme.NotificationShadowColor or Color3.fromRGB(0, 0, 0),
+		BlurRadius = UDim.new(0, 24),
+		Offset = UDim2.fromOffset(0, 6),
+		Transparency = 0.5,
 	})
-	new("UICorner", { Parent = grad, CornerRadius = UDim.new(0, 6) })
-	local gradGradient = new("UIGradient", {
-		Parent = grad,
-		Rotation = -55,
-		Color = cornerGradient(gradientColor),
-		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0.000, 1),
-			NumberSequenceKeypoint.new(0.297, 1),
-			NumberSequenceKeypoint.new(0.531, 1),
-			NumberSequenceKeypoint.new(0.712, 0.93125),
-			NumberSequenceKeypoint.new(0.825, 0.8625),
-			NumberSequenceKeypoint.new(0.881, 0.7875),
-			NumberSequenceKeypoint.new(0.921, 0.69375),
-			NumberSequenceKeypoint.new(0.952, 0.6),
-			NumberSequenceKeypoint.new(0.975, 0.5),
-			NumberSequenceKeypoint.new(1.000, 0.39375),
-		}),
+	local stroke = new("UIStroke", {
+		Parent = root,
+		Color = theme.NotificationStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255),
+		Transparency = theme.NotificationStrokeTransparency or 0.86,
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+
+	-- Aurora wash replaces the old corner gradient: two low-opacity accent
+	-- blooms clipped to the toast shape. Static, so it costs nothing at idle.
+	local wash = Aurora.Wash(root, {
+		Color = washColor,
+		CornerRadius = UDim.new(0, 6),
+		Intensity = 0.9,
 	})
 
 	-- Optional sheen background image
@@ -228,7 +201,7 @@ function Notification.new(container, Settings, theme)
 		Text = title,
 		Parent = root,
 	})
-	new("Frame", {
+	local divider = new("Frame", {
 		Name = UUID.Static("Divider"),
 		BorderSizePixel = 0,
 		BackgroundColor3 = theme.NotificationDividerColor or Color3.fromRGB(255, 255, 255),
@@ -281,6 +254,7 @@ function Notification.new(container, Settings, theme)
 
 	-- Interaction buttons (up to MAX_ACTIONS)
 	local actions = Settings.Actions or {}
+	self._actions = {}
 	if #actions > 0 then
 		local holder = new("Frame", {
 			Name = UUID.Static("InterractionHolder"),
@@ -298,12 +272,10 @@ function Notification.new(container, Settings, theme)
 			FillDirection = Enum.FillDirection.Horizontal,
 		})
 		local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
-		-- A slightly brighter variant for the hover state.
-		local hoverBg = baseBg:Lerp(Color3.fromRGB(255, 255, 255), 0.18)
 		for i = 1, math.min(#actions, MAX_ACTIONS) do
 			local action = actions[i]
 			local btn = new("TextButton", {
-				Name = UUID.Static("Interraction"),
+				Name = UUID.Generate("ToastAction"),
 				BorderSizePixel = 0,
 				AutoButtonColor = false,
 				TextSize = 12,
@@ -316,6 +288,7 @@ function Notification.new(container, Settings, theme)
 				ZIndex = 4,
 				Parent = holder,
 			})
+			btn:SetAttribute("ToastBaseBackground", baseBg)
 			new("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
 
 			-- Accent-tinted shadow (hidden at rest, blooms on hover).
@@ -326,23 +299,31 @@ function Notification.new(container, Settings, theme)
 				Parent = btn,
 			})
 
+			local function baseColor()
+				return btn:GetAttribute("ToastBaseBackground") or baseBg
+			end
+			local function hoverColor()
+				return baseColor():Lerp(Color3.fromRGB(255, 255, 255), 0.18)
+			end
 			local function tween(prop, dur)
 				Tween.Play(btn, TweenInfo.new(dur or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), prop)
 			end
 			btn.MouseEnter:Connect(function()
-				tween({ BackgroundColor3 = hoverBg })
+				btn:SetAttribute("ToastHovered", true)
+				tween({ BackgroundColor3 = hoverColor() })
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 0.4 })
 			end)
 			btn.MouseLeave:Connect(function()
-				tween({ BackgroundColor3 = baseBg })
+				btn:SetAttribute("ToastHovered", false)
+				tween({ BackgroundColor3 = baseColor() })
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 1 })
 			end)
 			-- Pressed state: darken briefly for a tactile click feel.
 			btn.MouseButton1Down:Connect(function()
-				tween({ BackgroundColor3 = baseBg:Lerp(Color3.fromRGB(0, 0, 0), 0.25) }, 0.08)
+				tween({ BackgroundColor3 = baseColor():Lerp(Color3.fromRGB(0, 0, 0), 0.25) }, 0.08)
 			end)
 			btn.MouseButton1Up:Connect(function()
-				tween({ BackgroundColor3 = hoverBg }, 0.08)
+				tween({ BackgroundColor3 = hoverColor() }, 0.08)
 			end)
 
 			btn.MouseButton1Click:Connect(function()
@@ -351,6 +332,8 @@ function Notification.new(container, Settings, theme)
 				end
 				self:Close()
 			end)
+
+			table.insert(self._actions, { button = btn, shadow = btnShadow })
 		end
 	end
 
@@ -410,13 +393,16 @@ function Notification.new(container, Settings, theme)
 	-- so ThemeManager's own pass never reaches them).
 	self._type = ntype
 	self._accent = accent
-	self._gradientColor = gradientColor
-	self._iconColor = iconColor
-	self._grad = grad
-	self._gradGradient = gradGradient
+	self._iconOverride = Settings.IconColor
+	self._washOverride = Settings.GradientColor
+	self._wash = wash
+	self._shadow = shadow
+	self._stroke = stroke
 	self._header = header
+	self._divider = divider
 	self._icon = icon
 	self._desc = desc
+	self._dismiss = dismiss
 
 	return self
 end
@@ -431,27 +417,25 @@ function Notification:ApplyTheme(themeInput)
 	end
 	local theme = ThemeManager.GetTheme(themeInput)
 	local accent = theme[ACCENT_KEY[self._type] or "NotificationAlertAccent"] or self._accent
+	self._accent = accent
+	local iconColor = self._iconOverride or accent
+	local washColor = self._washOverride or accent
 
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
+
+	self._shadow.Color = theme.NotificationShadowColor or self._shadow.Color
+	self._stroke.Color = theme.NotificationStrokeColor or theme.StrokeColor or self._stroke.Color
+	self._stroke.Transparency = theme.NotificationStrokeTransparency or self._stroke.Transparency
+	if self._wash then
+		self._wash:SetColor(washColor)
+	end
 
 	-- Wallpaper is an asset id, so it is not a color binding. Re-stamp it on
 	-- every switch so an open toast follows the live theme.
 	if self._background then
 		self._background.Image = self._backgroundOverride or theme.Wallpaper or FallbackImage
 		self._background.Visible = (self._backgroundOverride ~= nil) or theme.WallpaperEnabled ~= false
-	end
-
-	local shadow = self.Root:FindFirstChildWhichIsA("UIShadow")
-	if shadow and theme.NotificationShadowColor then
-		shadow.Color = theme.NotificationShadowColor
-	end
-
-	if self._grad then
-		self._grad.BackgroundColor3 = self._gradientColor or accent
-		if self._gradGradient then
-			self._gradGradient.Color = cornerGradient(self._gradientColor or accent)
-		end
 	end
 
 	if self._header then
@@ -461,19 +445,18 @@ function Notification:ApplyTheme(themeInput)
 		if theme.NotificationHeaderTransparency then
 			self._header.TextTransparency = theme.NotificationHeaderTransparency
 		end
-		local divider = self._header:FindFirstChild(UUID.Static("Divider"))
-		if divider then
-			if theme.NotificationDividerColor then
-				divider.BackgroundColor3 = theme.NotificationDividerColor
-			end
-			if theme.NotificationDividerTransparency then
-				divider.BackgroundTransparency = theme.NotificationDividerTransparency
-			end
+	end
+	if self._divider then
+		if theme.NotificationDividerColor then
+			self._divider.BackgroundColor3 = theme.NotificationDividerColor
+		end
+		if theme.NotificationDividerTransparency then
+			self._divider.BackgroundTransparency = theme.NotificationDividerTransparency
 		end
 	end
 
 	if self._icon then
-		self._icon.ImageColor3 = self._iconColor or accent
+		self._icon.ImageColor3 = iconColor
 	end
 
 	if self._desc then
@@ -483,17 +466,23 @@ function Notification:ApplyTheme(themeInput)
 		if theme.NotificationTextTransparency then
 			self._desc.TextTransparency = theme.NotificationTextTransparency
 		end
-		local holder = self._desc:FindFirstChild(UUID.Static("InterractionHolder"))
-		if holder then
-			local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
-			local btnText = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255)
-			for _, btn in ipairs(holder:GetChildren()) do
-				if btn:IsA("TextButton") then
-					btn.BackgroundColor3 = baseBg
-					btn.TextColor3 = btnText
-				end
-			end
-		end
+	end
+
+	local baseBg = theme.NotificationActionButtonColor or Color3.fromRGB(81, 81, 81)
+	local buttonText = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255)
+	for _, entry in ipairs(self._actions) do
+		local button = entry.button
+		button:SetAttribute("ToastBaseBackground", baseBg)
+		button.BackgroundColor3 = button:GetAttribute("ToastHovered")
+				and baseBg:Lerp(Color3.fromRGB(255, 255, 255), 0.18)
+			or baseBg
+		button.TextColor3 = buttonText
+		entry.shadow.Color = accent
+	end
+
+	self.TimerFrame.BackgroundColor3 = accent
+	if self._dismiss then
+		self._dismiss.ImageColor3 = theme.NotificationDismissColor or self._dismiss.ImageColor3
 	end
 end
 

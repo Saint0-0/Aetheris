@@ -27,7 +27,7 @@ function Paragraph.new(parent, Settings, theme)
 	local description = Settings.Description or Settings.Text or ""
 	-- Main container (matches GUI style)
 	local container = Instance.new("Frame")
-	container.Name = UUID.Generate()
+	container.Name = UUID.Generate("Paragraph")
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985

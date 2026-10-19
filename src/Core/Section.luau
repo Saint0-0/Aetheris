@@ -58,7 +58,7 @@ function Section.new(parent, Settings, theme, window)
 	end
 	-- Build the section frame
 	local frame = Instance.new("Frame")
-	frame.Name = UUID.Generate()
+	frame.Name = UUID.Generate("Section")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = theme.SectionBackgroundColor
 	frame.BackgroundTransparency = theme.SectionBackgroundTransparency

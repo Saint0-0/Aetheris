@@ -92,7 +92,7 @@ local THEME_DESCRIPTIONS = {
 
 local function makeCard(parent, name, theme, active, onActivate)
 	local card = Instance.new("TextButton")
-	card.Name = UUID.Generate()
+	card.Name = UUID.Generate("ThemeCard")
 	card.BorderSizePixel = 0
 	card.AutoButtonColor = false
 	card.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(16, 16, 17)
@@ -107,7 +107,8 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	local shadow = Instance.new("UIShadow")
 	shadow.BlurRadius = UDim.new(0, 18)
-	shadow.Transparency = active and 0.45 or 0.9
+	shadow.Transparency = active and 0.45 or 1
+	shadow.Enabled = active
 	shadow.Color = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	shadow.Parent = card
 
@@ -118,6 +119,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	stroke.Transparency = active and 0.55 or 1
+	stroke.Enabled = active
 	stroke.Thickness = 1
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = card
@@ -160,7 +162,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	}
 	for i, def in ipairs(swatchDefs) do
 		local swatch = Instance.new("Frame")
-		swatch.Name = UUID.Generate()
+		swatch.Name = UUID.Generate("ThemeSwatch")
 		swatch.LayoutOrder = i
 		swatch.Size = UDim2.fromOffset(26, 18)
 		swatch.BackgroundColor3 = def[2] or Color3.fromRGB(255, 255, 255)
@@ -170,9 +172,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 		local swCorner = Instance.new("UICorner")
 		swCorner.CornerRadius = UDim.new(0, 4)
 		swCorner.Parent = swatch
-
-		local swShadow = Instance.new("UIShadow")
-		swShadow.Parent = swatch
 
 		local swScale = Instance.new("UIScale")
 		swScale.Scale = 1
@@ -254,11 +253,35 @@ local function makeCard(parent, name, theme, active, onActivate)
 	local function hover(on)
 		hovered = on
 		Tween.Play(scale, on and "HoverIn" or "HoverOut", { Scale = on and 1.035 or 1 })
-		Tween.Play(stroke, "Fast", { Transparency = on and 0.3 or (active and 0.55 or 1) })
+		if on then
+			stroke.Enabled = true
+			Tween.Play(stroke, "Fast", { Transparency = 0.3 })
+		else
+			Tween.Play(stroke, "Fast", { Transparency = active and 0.55 or 1 })
+			if not active then
+				task.delay(0.25, function()
+					if stroke.Parent and not active and not hovered and stroke.Transparency > 0.99 then
+						stroke.Enabled = false
+					end
+				end)
+			end
+		end
 		Tween.Play(backImage, "Fast", {
 			ImageTransparency = on and (active and 0.4 or 0.6) or (active and 0.5 or 0.7),
 		})
-		Tween.Play(shadow, "Fast", { Transparency = on and 0.35 or (active and 0.45 or 0.9) })
+		if on then
+			shadow.Enabled = true
+			Tween.Play(shadow, "Fast", { Transparency = 0.35 })
+		else
+			Tween.Play(shadow, "Fast", { Transparency = active and 0.45 or 1 })
+			if not active then
+				task.delay(0.25, function()
+					if shadow.Parent and not active and not hovered and shadow.Transparency > 0.99 then
+						shadow.Enabled = false
+					end
+				end)
+			end
+		end
 		for i, def in ipairs(swatchDefs) do
 			local sw = swatches[def[1]]
 			if sw then
@@ -286,8 +309,29 @@ local function makeCard(parent, name, theme, active, onActivate)
 		apply(title, { TextTransparency = active and 0.2 or 0.5 })
 		apply(backImage, { ImageTransparency = active and 0.5 or 0.7 })
 		apply(divider, { BackgroundTransparency = active and 0.72 or 0.9 })
-		apply(stroke, { Transparency = active and 0.55 or 1 })
-		apply(shadow, { Transparency = active and 0.45 or 0.9 })
+		if instant then
+			shadow.Transparency = active and 0.45 or 1
+			shadow.Enabled = active
+			stroke.Transparency = active and 0.55 or 1
+			stroke.Enabled = active
+		else
+			shadow.Enabled = true
+			Tween.Play(shadow, "Fast", { Transparency = active and 0.45 or 1 })
+			stroke.Enabled = true
+			Tween.Play(stroke, "Fast", { Transparency = active and 0.55 or 1 })
+			if not active then
+				task.delay(0.25, function()
+					if not active and not hovered then
+						if shadow.Parent and shadow.Transparency > 0.99 then
+							shadow.Enabled = false
+						end
+						if stroke.Parent and stroke.Transparency > 0.99 then
+							stroke.Enabled = false
+						end
+					end
+				end)
+			end
+		end
 		for _, sw in pairs(swatches) do
 			apply(sw, { BackgroundTransparency = active and 0 or 0.5 })
 		end
@@ -295,7 +339,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 
 	local function setActive(isActive)
 		active = isActive
-		refresh(true)
+		refresh(false)
 		if hovered then
 			hover(true)
 		end
@@ -316,6 +360,15 @@ local function makeCard(parent, name, theme, active, onActivate)
 	card.MouseButton1Up:Connect(function()
 		Tween.Play(scale, "HoverIn", { Scale = hovered and 1.035 or 1 })
 	end)
+
+	-- ApplyTheme cancels every in-flight tween under the window, which could
+	-- freeze a mid-fade stroke/shadow. Re-stamp the resting state afterwards.
+	ThemeManager.OnThemeApplied(function()
+		refresh(true)
+		if hovered then
+			hover(true)
+		end
+	end, card)
 
 	refresh(true)
 
@@ -401,6 +454,10 @@ function Themes.Build(window, tab)
 	local holderPadding = Instance.new("UIPadding")
 	holderPadding.PaddingTop = UDim.new(0, 10)
 	holderPadding.PaddingBottom = UDim.new(0, 20)
+	-- Keep hover scale and card shadows inside the scroll frame instead of
+	-- clipping the first/last column against its edges.
+	holderPadding.PaddingLeft = UDim.new(0, 10)
+	holderPadding.PaddingRight = UDim.new(0, 10)
 	holderPadding.Parent = pageHolder
 
 	-- Grid lays the theme cards out directly on the scrolling PageHolder.

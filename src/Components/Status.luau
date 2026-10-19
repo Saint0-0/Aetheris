@@ -152,7 +152,7 @@ function Status.new(parent, Settings, theme)
 
 	local function makeLabel(parentHolder, entry)
 		local textLabel = Instance.new("TextLabel")
-		textLabel.Name = UUID.Generate()
+		textLabel.Name = UUID.Generate("StatusEntry")
 		textLabel.TextWrapped = true
 		textLabel.TextTruncate = Enum.TextTruncate.AtEnd
 		textLabel.BorderSizePixel = 0

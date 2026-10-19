@@ -64,7 +64,7 @@ function Stepper.new(parent, Settings, theme)
 	inputBox.ClearTextOnFocus = false
 	inputBox.PlaceholderText = ""
 	inputBox.Size = UDim2.new(0, 64, 0.6, 0)
-	inputBox.Position = UDim2.new(1, -36, 0.5, 0)
+	inputBox.Position = UDim2.new(1, -68, 0.5, 0)
 	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	inputBox.Text = ""
 	inputBox.ClipsDescendants = true
@@ -90,77 +90,61 @@ function Stepper.new(parent, Settings, theme)
 
 	local odo = Odometer.new(valueReel, {
 		textSize = 13,
+		-- Taller cells so glyphs are never clipped by the reel; the reel itself
+		-- matches the text box (1,1) so the odometer reads like the input text.
+		height = 20,
 		alignment = Enum.HorizontalAlignment.Center,
 		transparency = (theme and theme.SecondaryTextTransparency) or 0.4,
 		weight = Enum.FontWeight.Medium,
 		duration = 0.28,
 	})
 
-	-- Step controls: one compact two-segment pill at the right edge.
+	-- Step controls: two bare icon buttons at the right edge. No background or
+	-- stroke so the row stays clean; 28x28 targets keep mobile taps easy.
 	local controls = Instance.new("Frame")
 	controls.Name = UUID.Static("StepControls")
 	controls.AnchorPoint = Vector2.new(1, 0.5)
 	controls.Position = UDim2.fromScale(1, 0.5)
-	controls.Size = UDim2.fromOffset(24, 32)
-	controls.BackgroundColor3 = theme.InputBackgroundColor
-	controls.BackgroundTransparency = math.min(0.4, (theme.InputBackgroundTransparency or 0.15) + 0.2)
+	controls.Size = UDim2.fromOffset(60, 28)
+	controls.BackgroundTransparency = 1
 	controls.BorderSizePixel = 0
 	controls.Parent = row
-	local controlsCorner = Instance.new("UICorner")
-	controlsCorner.CornerRadius = UDim.new(0, 6)
-	controlsCorner.Parent = controls
-	local controlsStroke = Instance.new("UIStroke")
-	controlsStroke.Color = theme.StrokeColor
-	controlsStroke.Transparency = 0.9
-	controlsStroke.Thickness = 0.7
-	controlsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	controlsStroke.Parent = controls
-	local controlsPad = Instance.new("UIPadding")
-	controlsPad.PaddingTop = UDim.new(0, 2)
-	controlsPad.PaddingBottom = UDim.new(0, 2)
-	controlsPad.PaddingLeft = UDim.new(0, 2)
-	controlsPad.PaddingRight = UDim.new(0, 2)
-	controlsPad.Parent = controls
 	local controlsLayout = Instance.new("UIListLayout")
-	controlsLayout.FillDirection = Enum.FillDirection.Vertical
+	controlsLayout.FillDirection = Enum.FillDirection.Horizontal
 	controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	controlsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	controlsLayout.Padding = UDim.new(0, 1)
+	controlsLayout.Padding = UDim.new(0, 4)
 	controlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	controlsLayout.Parent = controls
 
 	local function makeStepButton(icon, order)
 		local btn = Instance.new("ImageButton")
-		btn.Name = UUID.Generate()
+		btn.Name = UUID.Generate("StepButton")
 		btn.BorderSizePixel = 0
 		btn.AutoButtonColor = false
 		btn.Image = Icons[icon]
 		btn.ImageColor3 = theme.AccentColor
-		btn.ImageTransparency = 0.1
-		btn.BackgroundColor3 = theme.AccentColor
-		btn.BackgroundTransparency = 0.82
+		btn.ImageTransparency = 0.15
+		btn.BackgroundTransparency = 1
 		btn.LayoutOrder = order
-		btn.Size = UDim2.new(1, 0, 0, 13)
+		btn.Size = UDim2.fromOffset(28, 28)
 		btn.Parent = controls
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 4)
-		corner.Parent = btn
 		local scale = Instance.new("UIScale")
 		scale.Scale = 1
 		scale.Parent = btn
 		btn.MouseEnter:Connect(function()
-			Tween.Play(btn, "Fast", { BackgroundTransparency = 0.62, ImageTransparency = 0 })
-			Tween.Play(scale, "HoverIn", { Scale = 1.06 })
+			Tween.Play(btn, "Fast", { ImageTransparency = 0 })
+			Tween.Play(scale, "HoverIn", { Scale = 1.08 })
 		end)
 		btn.MouseLeave:Connect(function()
-			Tween.Play(btn, "Fast", { BackgroundTransparency = 0.82, ImageTransparency = 0.1 })
+			Tween.Play(btn, "Fast", { ImageTransparency = 0.15 })
 			Tween.Play(scale, "HoverOut", { Scale = 1 })
 		end)
 		btn.MouseButton1Down:Connect(function()
-			Tween.Play(scale, "Fast", { Scale = 0.92 })
+			Tween.Play(scale, "Fast", { Scale = 0.9 })
 		end)
 		btn.MouseButton1Up:Connect(function()
-			Tween.Play(scale, "HoverIn", { Scale = 1.06 })
+			Tween.Play(scale, "HoverIn", { Scale = 1.08 })
 		end)
 		return btn
 	end
@@ -304,11 +288,7 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindColor(inputStroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(inputStroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(stepUp, "ImageColor3", "AccentColor")
-	ThemeManager.BindColor(stepUp, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
-	ThemeManager.BindColor(stepDown, "BackgroundColor3", "AccentColor")
-	ThemeManager.BindColor(controls, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindColor(controlsStroke, "Color", "StrokeColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		if not inputBox:IsFocused() then
 			odo:setTransparency(liveTheme.SecondaryTextTransparency or 0.4)
@@ -327,7 +307,6 @@ function Stepper.new(parent, Settings, theme)
 		ThemeManager.UnbindInstance(stepUp)
 		ThemeManager.UnbindInstance(stepDown)
 		ThemeManager.UnbindInstance(controls)
-		ThemeManager.UnbindInstance(controlsStroke)
 		ThemeManager.UnbindInstance(valueReel)
 		for _, descendant in ipairs(valueReel:GetDescendants()) do
 			ThemeManager.UnbindInstance(descendant)

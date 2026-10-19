@@ -46,7 +46,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
 	-- needed, so the popup is parented directly to its parent.
 	local popup = Instance.new("CanvasGroup")
-	popup.Name = UUID.Generate()
+	popup.Name = UUID.Generate("DropdownPopup")
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
@@ -512,7 +512,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		itemObj.selected = selected
 		if selected then
 			me:_flashDivider()
-			itemObj.button.Name = UUID.Generate()
+			itemObj.button.Name = UUID.Generate("DropdownItem")
 			if itemObj.button then
 				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 0.5 })
 			end
@@ -538,7 +538,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				)
 			end
 		else
-			itemObj.button.Name = UUID.Generate()
+			itemObj.button.Name = UUID.Generate("DropdownItem")
 			if itemObj.button then
 				Tween.Play(itemObj.button, "Fast", { BackgroundTransparency = 1 })
 			end
@@ -689,7 +689,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
 			local value = itemData.value or name
 			local button = Instance.new("TextButton")
-			button.Name = UUID.Generate()
+			button.Name = UUID.Generate("DropdownSearch")
 			button.BorderSizePixel = 0
 			button.TextTransparency = 1
 			button.AutoButtonColor = false

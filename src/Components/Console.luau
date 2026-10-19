@@ -77,7 +77,7 @@ end
 -- A row for a line. Created once and then recycled; the pool never exceeds maxLines.
 function Console:_makeLabel()
 	local label = Instance.new("TextLabel")
-	label.Name = UUID.Generate()
+	label.Name = UUID.Generate("ConsoleLine")
 	label.Size = UDim2.fromScale(1, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.BackgroundTransparency = 1
@@ -102,7 +102,7 @@ function Console:_build()
 	local top = if self._name then titleHeight else 0
 
 	local main = Instance.new("Frame")
-	main.Name = UUID.Generate()
+	main.Name = UUID.Generate("Console")
 	main.BorderSizePixel = 0
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
