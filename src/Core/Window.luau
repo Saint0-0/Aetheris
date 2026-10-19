@@ -250,10 +250,12 @@ function Window.new(Settings)
 
 	-- Soft accent bloom behind the whole window. It is created after the content
 	-- fill so it sits above that fill but below the sidebar/content (ZIndex 1),
-	-- and clips itself to the window's rounded corners.
+	-- and clips itself to the window's rounded corners. Transparency comes from
+	-- the UI Settings page (Aurora Transparency slider).
 	local aurora = Aurora.new(MainFrame, {
 		Theme = theme,
 		Enabled = SettingsStore.Get("AuroraEnabled") ~= false,
+		Transparency = SettingsStore.Get("AuroraTransparency"),
 	})
 
 	----------------------------------------------------------------

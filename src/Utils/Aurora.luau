@@ -4,9 +4,10 @@
 	Soft accent bloom behind the window. Prefers a single uploaded glow
 	texture (Constants.AuroraGlow or Aurora.SetTexture), which makes every
 	bloom one tinted ImageLabel; without a texture it falls back to layered
-	circles that fake a radial falloff. Animated blooms drift on long
-	TweenService loops, and the static Wash variant is used inside
-	notifications.
+	circles that fake a radial falloff. Blooms drift on long TweenService
+	loops and the static Wash variant is used inside notifications.
+	Disabling the aurora tears its instances and tweens down completely;
+	re-enabling rebuilds them.
 ]]
 
 local Tween = require("./Tween")
@@ -27,10 +28,10 @@ local LAYERS = {
 	{ scale = 0.34, transparency = 0.95 },
 }
 
--- Texture path: the glow image already bakes the falloff, so a bloom is a
--- single ImageLabel whose core alpha is GLOW_ALPHA * intensity. This is the
--- one knob for how strong the textured bloom reads.
-local GLOW_ALPHA = 0.13
+-- Default ImageTransparency for textured blooms, used until the settings
+-- slider stores its own value. The baked radial falloff and the blob sizes
+-- carry the depth, so every glow image shares this transparency.
+local GLOW_TRANSPARENCY = 0.5
 
 -- Runtime override set through Aurora.SetTexture; nil falls back to
 -- Constants.AuroraGlow.
@@ -114,22 +115,27 @@ local function makeGlow(parent, texture, color, x, y, width, height, transparenc
 end
 
 -- A bloom is one textured ImageLabel when a glow texture is configured, and a
--- stack of circles otherwise. Pieces come back as { inst, prop } so callers
--- can recolor without knowing which path built them.
-local function makeBloom(parent, texture, color, x, y, width, height, intensity, colorKey)
+-- stack of circles otherwise. `transparency` (nil = GLOW_TRANSPARENCY)
+-- overrides the image transparency and rescales the circle stack's alpha, so
+-- the settings slider drives both paths. Pieces come back as { inst, prop }
+-- so callers can recolor without knowing which path built them.
+local function makeBloom(parent, texture, color, x, y, width, height, intensity, colorKey, transparency)
+	local t = transparency or GLOW_TRANSPARENCY
 	if texture then
-		local glow = makeGlow(parent, texture, color, x, y, width, height, 1 - GLOW_ALPHA * intensity, colorKey)
-		return { { inst = glow, prop = "ImageColor3" } }
+		local glow = makeGlow(parent, texture, color, x, y, width, height, t, colorKey)
+		return { { inst = glow, prop = "ImageColor3", image = true } }
 	end
 
+	local scale = (1 - t) / math.max(1 - GLOW_TRANSPARENCY, 1e-3)
 	local pieces = {}
 	for _, layer in ipairs(LAYERS) do
-		local transparency = 1 - (1 - layer.transparency) * intensity
-		local circle = makeCircle(parent, color, x, y, width * layer.scale, height * layer.scale, transparency)
+		local weight = (1 - layer.transparency) * intensity
+		local alpha = math.clamp(weight * scale, 0, 1)
+		local circle = makeCircle(parent, color, x, y, width * layer.scale, height * layer.scale, 1 - alpha)
 		if colorKey then
 			ThemeManager.BindColor(circle, "BackgroundColor3", colorKey)
 		end
-		table.insert(pieces, { inst = circle, prop = "BackgroundColor3" })
+		table.insert(pieces, { inst = circle, prop = "BackgroundColor3", weight = weight })
 	end
 	return pieces
 end
@@ -207,7 +213,7 @@ local BLOBS = {
 	},
 }
 
-local function makeBlob(root, theme, def, texture)
+local function makeBlob(root, theme, def, texture, transparency)
 	local color = theme[def.colorKey] or theme.AccentColor or Color3.fromRGB(122, 156, 210)
 
 	-- The holder carries the drift/scale tweens; the bloom inside is either a
@@ -222,10 +228,9 @@ local function makeBlob(root, theme, def, texture)
 	holder.ZIndex = 0
 	holder.Parent = root
 
-	makeBloom(holder, texture, color, 0.5, 0.5, 1, 1, def.intensity, def.colorKey)
-
 	return {
 		holder = holder,
+		pieces = makeBloom(holder, texture, color, 0.5, 0.5, 1, 1, def.intensity, def.colorKey, transparency),
 		x = def.x,
 		y = def.y,
 		toX = def.toX,
@@ -241,15 +246,30 @@ end
 function Aurora.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({}, Aurora)
-	self._enabled = opts.Enabled ~= false
+	self._parent = parent
+	self._opts = opts
 	self._animated = opts.Animated ~= false
 	self._theme = ThemeManager.GetTheme(opts.Theme)
+	self._blobs = {}
 
-	self.Root = makeRoot(parent, opts)
+	local transparency = tonumber(opts.Transparency)
+	self._transparency = math.clamp(transparency or GLOW_TRANSPARENCY, 0, 1)
+
+	self._enabled = false
+	if opts.Enabled ~= false then
+		self:SetEnabled(true)
+	end
+	return self
+end
+
+-- Build every instance for the enabled state. Runs once on creation and again
+-- each time the aurora is re-enabled after a teardown.
+function Aurora:_build()
+	self.Root = makeRoot(self._parent, self._opts)
 	local texture = Aurora.GetTexture()
 	self._blobs = {}
 	for _, def in ipairs(BLOBS) do
-		table.insert(self._blobs, makeBlob(self.Root, self._theme, def, texture))
+		table.insert(self._blobs, makeBlob(self.Root, self._theme, def, texture, self._transparency))
 	end
 
 	self._unbind = ThemeManager.OnThemeApplied(function(theme)
@@ -260,11 +280,24 @@ function Aurora.new(parent, opts)
 		end
 	end, self.Root)
 
-	self.Root.Visible = self._enabled
-	if self._enabled and self._animated then
+	if self._animated then
 		self:_play()
 	end
-	return self
+end
+
+-- Full teardown: cancel every drift tween, drop the theme callback and destroy
+-- the instances, so an "off" aurora costs nothing at all.
+function Aurora:_teardown()
+	self:_stop()
+	self._blobs = {}
+	if self._unbind then
+		self._unbind()
+		self._unbind = nil
+	end
+	if self.Root then
+		self.Root:Destroy()
+		self.Root = nil
+	end
 end
 
 function Aurora:_stop()
@@ -290,13 +323,44 @@ function Aurora:_play()
 	end
 end
 
+-- Off destroys the blobs and their drift tweens; on rebuilds them and
+-- restarts the tweens.
 function Aurora:SetEnabled(on)
-	self._enabled = on ~= false
-	self.Root.Visible = self._enabled
-	if self._enabled and self._animated then
-		self:_play()
+	if self._destroyed then
+		return
+	end
+	on = on ~= false
+	if on == self._enabled then
+		return
+	end
+	self._enabled = on
+	if on then
+		-- Refresh the starting colors in case the theme switched while torn
+		-- down; the BindColor bindings snap to the active theme on build anyway.
+		self._theme = ThemeManager.GetTheme(self._opts.Theme)
+		self:_build()
 	else
-		self:_stop()
+		self:_teardown()
+	end
+end
+
+-- Live-update the transparency of every bloom image (and the alpha of the
+-- circle fallback) without rebuilding anything.
+function Aurora:SetTransparency(value)
+	local t = tonumber(value)
+	if t == nil then
+		return
+	end
+	self._transparency = math.clamp(t, 0, 1)
+	local scale = (1 - self._transparency) / math.max(1 - GLOW_TRANSPARENCY, 1e-3)
+	for _, blob in ipairs(self._blobs) do
+		for _, piece in ipairs(blob.pieces) do
+			if piece.image then
+				piece.inst.ImageTransparency = self._transparency
+			else
+				piece.inst.BackgroundTransparency = 1 - math.clamp(piece.weight * scale, 0, 1)
+			end
+		end
 	end
 end
 
@@ -305,15 +369,12 @@ function Aurora:SetTheme(theme)
 end
 
 function Aurora:Destroy()
-	self:_stop()
-	if self._unbind then
-		self._unbind()
-		self._unbind = nil
+	if self._destroyed then
+		return
 	end
-	if self.Root then
-		self.Root:Destroy()
-		self.Root = nil
-	end
+	self._destroyed = true
+	self._enabled = false
+	self:_teardown()
 end
 
 return Aurora

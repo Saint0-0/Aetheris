@@ -131,10 +131,28 @@ function UISettings.Build(window, tab)
 	visualsSection:Toggle({
 		Name = "Aurora Background",
 		Default = SettingsStore.Get("AuroraEnabled") ~= false,
+		-- Off tears the aurora's instances and drift tweens down completely;
+		-- on rebuilds them and restarts the tweens.
 		Callback = function(state)
 			SettingsStore.Set("AuroraEnabled", state)
 			if window.Aurora then
 				window.Aurora:SetEnabled(state)
+			end
+		end,
+	})
+	-- Transparency of the aurora glow images: 0 = solid accent, 100 = gone.
+	-- Applies live and is remembered across sessions.
+	visualsSection:Slider({
+		Name = "Aurora Transparency",
+		Min = 10,
+		Max = 95,
+		Default = math.floor((SettingsStore.Get("AuroraTransparency") or 0.5) * 100 + 0.5),
+		Precision = 0,
+		Callback = function(value)
+			local transparency = value / 100
+			SettingsStore.Set("AuroraTransparency", transparency)
+			if window.Aurora then
+				window.Aurora:SetTransparency(transparency)
 			end
 		end,
 	})
