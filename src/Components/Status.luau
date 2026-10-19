@@ -52,19 +52,26 @@ local function colorToString(color)
 		return "#FFFFFF" -- fallback white
 	end
 end
+
+-- Copy the triplets so callers can keep reusing their own table.
+local function copyEntries(source)
+	local copy = {}
+	for i = 1, math.min(#source, Status.MAX_ENTRIES) do
+		local entry = source[i]
+		if type(entry) == "table" then
+			copy[i] = { entry[1], entry[2], entry[3] }
+		end
+	end
+	return copy
+end
+
 function Status.new(parent, Settings, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Status)
 	self._theme = theme
 	local name = Settings.Name or "Status"
-	local entries = Settings.Entries or {}
-	-- Trim entries to max 8
-	if #entries > Status.MAX_ENTRIES then
-		for i = Status.MAX_ENTRIES + 1, #entries do
-			table.remove(entries, i)
-		end
-	end
+	local entries = copyEntries(Settings.Entries or {})
 	-- Main container
 	local frame = Instance.new("Frame")
 	frame.Name = "Status"
@@ -131,12 +138,18 @@ function Status.new(parent, Settings, theme)
 	local padding = Instance.new("UIPadding")
 	padding.PaddingBottom = UDim.new(0, 15)
 	padding.Parent = holder
-	-- Create status entries
-	local statusLabels = {}
-	for _, entry in ipairs(entries) do
-		local title = entry[1] or ""
-		local description = entry[2] or ""
-		local color = entry[3]
+	-- Reusable label factory: initial build and SetEntries share it so both
+	-- paths pick up the same rich-text + theme bindings.
+	local function applyEntryText(textLabel, entry)
+		textLabel.Text = string.format(
+			'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
+			entry[1] or "",
+			colorToString(entry[3]),
+			entry[2] or ""
+		)
+	end
+
+	local function makeLabel(parentHolder, entry)
 		local textLabel = Instance.new("TextLabel")
 		textLabel.Name = "StatusText"
 		textLabel.TextWrapped = true
@@ -153,18 +166,22 @@ function Status.new(parent, Settings, theme)
 		textLabel.Size = UDim2.new(1, 0, 0, 20)
 		textLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		textLabel.Position = UDim2.new(0, 0, -0.4, 8)
-		textLabel.Parent = holder
+		textLabel.Parent = parentHolder
 		ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
 		ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
-		-- Build rich text
-		local colorString = colorToString(color)
-		textLabel.Text = string.format(
-			'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
-			title,
-			colorString,
-			description
-		)
+		applyEntryText(textLabel, entry)
+		return textLabel
+	end
+
+	local statusLabels = {}
+	local entryByKey = {}
+	for _, entry in ipairs(entries) do
+		local textLabel = makeLabel(holder, entry)
 		table.insert(statusLabels, textLabel)
+		local key = tostring(entry[1] or "")
+		if key ~= "" then
+			entryByKey[key] = { label = textLabel, entry = entry }
+		end
 	end
 	self.Frame = frame
 	self.Label = label
@@ -172,67 +189,85 @@ function Status.new(parent, Settings, theme)
 	self.StatusLabels = statusLabels
 	self.Entries = entries
 	-- Public API
-	self.UpdateName = function(newName)
+	self._name = name
+	self.SetName = function(me, newName)
+		me._name = newName
 		label.Text = newName
 	end
-	self.SetEntries = function(newEntries)
-		-- Clear existing status labels
+	self.UpdateName = self.SetName
+	self.SetEntries = function(me, newEntries)
 		for _, lbl in ipairs(statusLabels) do
+			ThemeManager.UnbindInstance(lbl)
 			lbl:Destroy()
 		end
 		statusLabels = {}
-		-- Trim to max
-		if #newEntries > Status.MAX_ENTRIES then
-			for i = Status.MAX_ENTRIES + 1, #newEntries do
-				table.remove(newEntries, i)
+		entryByKey = {}
+		local copy = copyEntries(newEntries or {})
+		me.Entries = copy
+		for _, entry in ipairs(copy) do
+			local textLabel = makeLabel(me.Holder, entry)
+			table.insert(statusLabels, textLabel)
+			local key = tostring(entry[1] or "")
+			if key ~= "" then
+				entryByKey[key] = { label = textLabel, entry = entry }
 			end
 		end
-		self.Entries = newEntries
-		-- Rebuild
-		for _, entry in ipairs(newEntries) do
-			local title = entry[1] or ""
-			local description = entry[2] or ""
-			local color = entry[3]
-			local textLabel = Instance.new("TextLabel")
-			textLabel.Name = "StatusText"
-			textLabel.TextWrapped = true
-			textLabel.TextTruncate = Enum.TextTruncate.AtEnd
-			textLabel.BorderSizePixel = 0
-			textLabel.TextSize = 13
-			textLabel.TextXAlignment = Enum.TextXAlignment.Left
-			textLabel.TextTransparency = 0.45
-			textLabel.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-			textLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
-			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-			textLabel.BackgroundTransparency = 1
-			textLabel.RichText = true
-			textLabel.Size = UDim2.new(1, 0, 0, 20)
-			textLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-			textLabel.Position = UDim2.new(0, 0, -0.4, 8)
-			textLabel.Parent = self.Holder
-			ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
-			ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
-			local colorString = colorToString(color)
-			textLabel.Text = string.format(
-				'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
-				title,
-				colorString,
-				description
-			)
-			table.insert(statusLabels, textLabel)
-		end
-		self.StatusLabels = statusLabels
+		me.StatusLabels = statusLabels
+		return me
 	end
-	-- Uniform component API (p2-4).
-	self.SetVisibility = function(me, visible)
-		if me.Holder then
-			me.Holder.Visible = visible
+	self.SetEntry = function(me, key, text, color)
+		key = tostring(key)
+		local record = entryByKey[key]
+		if record then
+			record.entry[2] = text
+			if color ~= nil then
+				record.entry[3] = color
+			end
+			applyEntryText(record.label, record.entry)
+			return record.label
 		end
+		if #me.Entries >= Status.MAX_ENTRIES then
+			return nil
+		end
+		local entry = { key, text or "", color }
+		table.insert(me.Entries, entry)
+		local textLabel = makeLabel(me.Holder, entry)
+		table.insert(statusLabels, textLabel)
+		entryByKey[key] = { label = textLabel, entry = entry }
+		me.StatusLabels = statusLabels
+		return textLabel
+	end
+	self.SetText = function(me, key, text)
+		return me:SetEntry(key, text)
+	end
+	self.GetEntry = function(_, key)
+		local record = entryByKey[tostring(key)]
+		return record and record.entry[2] or nil
+	end
+	self.GetEntries = function(me)
+		return copyEntries(me.Entries)
+	end
+	self.SetVisible = function(me, visible)
+		me.Frame.Visible = visible
+	end
+	self.SetVisibility = self.SetVisible
+	self.GetVisible = function(me)
+		return me.Frame.Visible
 	end
 	self.Destroy = function(me)
-		if me.Holder and me.Holder.Parent then
-			me.Holder:Destroy()
+		for _, lbl in ipairs(statusLabels) do
+			ThemeManager.UnbindInstance(lbl)
 		end
+		if me.Frame then
+			for _, descendant in ipairs(me.Frame:GetDescendants()) do
+				ThemeManager.UnbindInstance(descendant)
+			end
+			ThemeManager.UnbindInstance(me.Frame)
+			me.Frame:Destroy()
+			me.Frame = nil
+		end
+		statusLabels = {}
+		entryByKey = {}
 	end
 	return self
 end

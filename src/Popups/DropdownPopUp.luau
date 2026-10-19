@@ -51,9 +51,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	-- is created when the popup is shown and disconnected when it is hidden (see
 	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
 	-- needed, so the popup is parented directly to its parent.
-	local popup = Instance.new("Frame")
+	local popup = Instance.new("CanvasGroup")
 	popup.Name = sanitizeName(title) .. "DropdownPopup"
 	popup.BorderSizePixel = 0
+	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
 	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -924,6 +925,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 		-- Ensure the popup is visible immediately
 		self.Popup.Visible = true
+		self.Popup.GroupTransparency = 1
 		-- Arm the click-outside listener for as long as the popup is open.
 		self:_connectOutsideClick()
 		-- Reset item visuals
@@ -1013,7 +1015,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.Popup.Visible = true
 		-- Fade in
 		if self.Popup then
-			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07 })
+			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07, GroupTransparency = 0 })
 		end
 		if self.Shadow then
 			Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
@@ -1180,7 +1182,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
 		end
 		if self.Popup then
-			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 1 })
+			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 1, GroupTransparency = 1 })
 		end
 		if self.Interactions then
 			Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 1 })
@@ -1251,6 +1253,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if not me.Popup then
 			return
 		end
+		me.Popup.GroupTransparency = 1
 		me.Popup.Visible = false
 		me.IsOpen = false
 		me:_disconnectOutsideClick()

@@ -15,6 +15,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Button = {}
 Button.__index = Button
 function Button.new(parent, Settings, theme)
@@ -143,7 +144,7 @@ function Button.new(parent, Settings, theme)
 	end
 	row.MouseButton1Click:Connect(performClick)
 	-- Public API
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end
 	self.Click = function()
@@ -189,6 +190,7 @@ function Button.new(parent, Settings, theme)
 		end
 	end
 
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return Button

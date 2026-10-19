@@ -17,6 +17,7 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
 function ColorPicker.new(parent, Settings, ShowPopup, theme)
@@ -183,6 +184,15 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
 	-- Initialize display
 	updateDisplay(defaultColor)
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		OnName = function(me, newName)
+			label.Text = newName
+			me._popupId = newName .. "ColorPicker"
+		end,
+	})
 	return self
 end
 return ColorPicker

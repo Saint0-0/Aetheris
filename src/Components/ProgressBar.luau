@@ -18,6 +18,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local FallbackImage = Constants.FallbackImage
 local ProgressBar = {}
 ProgressBar.__index = ProgressBar
@@ -186,22 +187,22 @@ function ProgressBar.new(parent, Settings, theme)
 	self.GetValue = function()
 		return self._currentValue
 	end
-	self.SetMin = function(newMin)
+	self.SetMin = function(_, newMin)
 		self.MinValue = newMin
 		self:SetValue(self._currentValue, true)
 	end
-	self.SetMax = function(newMax)
+	self.SetMax = function(_, newMax)
 		self.MaxValue = newMax
 		self:SetValue(self._currentValue, true)
 	end
-	self.SetColor = function(newColor)
+	self.SetColor = function(_, newColor)
 		self.Color = newColor
 		ThemeManager.SetColorOverride(self.Visual, "BackgroundColor3", newColor)
 	end
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		self.Label.Text = newName
 	end
-	self.EnableSpinning = function(enabled)
+	self.EnableSpinning = function(_, enabled)
 		if enabled then
 			startSpin()
 		else
@@ -239,6 +240,7 @@ function ProgressBar.new(parent, Settings, theme)
 			row:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return ProgressBar

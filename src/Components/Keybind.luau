@@ -25,6 +25,7 @@ local ActiveTheme = require("../Themes/ActiveTheme")
 local KeybindDispatcher = require("../Utils/KeybindDispatcher")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Keybind = {}
 Keybind.__index = Keybind
 
@@ -307,13 +308,13 @@ function Keybind.new(parent, Settings, theme)
 	self.GetBind = function()
 		return currentKey
 	end
-	self.SetBind = function(key)
+	self.SetBind = function(_, key)
 		setKey(key)
 	end
-	self.SetVisibility = function(visible)
+	self.SetVisibility = function(_, visible)
 		row.Visible = visible
 	end
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end
 	-- Cleanup: when this row is removed (e.g. the whole window is destroyed),
@@ -343,6 +344,7 @@ function Keybind.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return Keybind

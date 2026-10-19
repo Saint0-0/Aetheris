@@ -23,6 +23,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Divider = {}
 Divider.__index = Divider
 function Divider.new(parent, Settings, theme)
@@ -95,6 +96,7 @@ function Divider.new(parent, Settings, theme)
 			holder:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = holder, Name = Settings.Name })
 	return self
 end
 return Divider

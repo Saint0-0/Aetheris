@@ -58,9 +58,10 @@ function UINotification.new(parent, Settings)
 	----------------------------------------------------------------
 	-- POPUP
 	----------------------------------------------------------------
-	local popup = Instance.new("Frame")
+	local popup = Instance.new("CanvasGroup")
 	popup.Name = "NotificationPopup"
 	popup.BorderSizePixel = 0
+	popup.GroupTransparency = 1
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
 	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -393,11 +394,13 @@ function UINotification:Open()
 	self.ConfirmBtn.TextTransparency = 1
 	self.CancelBtn.TextTransparency = 1
 	self.Popup.Visible = true
+	self.Popup.GroupTransparency = 1
 	-- Arm the click-outside listener for as long as the popup is open.
 	self:_connectOutsideClick()
 	-- Fade in popup background
 	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 0.07,
+		GroupTransparency = 0,
 	})
 	-- Fade in shadow
 	Tween.Play(self.Shadow, "Fast", {
@@ -472,6 +475,7 @@ function UINotification:Close()
 	-- Fade out popup background
 	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 1,
+		GroupTransparency = 1,
 	})
 	task.delay(0.35, function()
 		if not self.IsOpen then

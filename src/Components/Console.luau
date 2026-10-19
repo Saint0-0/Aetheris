@@ -370,6 +370,30 @@ function Console:ApplyTheme(newTheme)
 	self._panelStroke.Transparency = 0.9
 end
 
+function Console:SetName(newName)
+	self._name = newName
+	if self._title then
+		self._title.Text = newName
+		self._title.Visible = newName ~= nil and newName ~= ""
+	end
+end
+
+function Console:UpdateName(newName)
+	self:SetName(newName)
+end
+
+function Console:SetVisible(visible)
+	if self._main then
+		self._main.Visible = visible
+	end
+end
+
+Console.SetVisibility = Console.SetVisible
+
+function Console:GetVisible()
+	return self._main ~= nil and self._main.Visible or false
+end
+
 function Console:Destroy()
 	if self._canvasConn then
 		self._canvasConn:Disconnect()

@@ -16,6 +16,7 @@
 ]]
 
 local Tween = require("../Utils/Tween")
+local Odometer = require("../Utils/Odometer")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
@@ -43,14 +44,16 @@ function Stepper.new(parent, Settings, theme)
 		Theme = theme,
 		LabelWidth = 0.48591,
 	})
-	-- StepperInputBox
+	-- Input shell: the real editable TextBox is transparent at rest; a rolling
+	-- Odometer sits on top. Focusing swaps them so typing still works.
 	local inputBox = Instance.new("TextBox")
 	inputBox.Name = "StepperInputBox"
 	inputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	inputBox.BorderSizePixel = 0
-	inputBox.TextWrapped = true
-	inputBox.TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.4
+	inputBox.TextWrapped = false
+	inputBox.TextTransparency = 1
 	inputBox.TextSize = 13
+	inputBox.TextXAlignment = Enum.TextXAlignment.Center
 	inputBox.TextColor3 = (theme and theme.SecondaryTextColor)
 	inputBox.BackgroundColor3 = theme.InputBackgroundColor
 	inputBox.BackgroundTransparency = theme.InputBackgroundTransparency
@@ -58,12 +61,12 @@ function Stepper.new(parent, Settings, theme)
 	inputBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	inputBox.AnchorPoint = Vector2.new(1, 0.5)
 	inputBox.ClearTextOnFocus = false
-	inputBox.PlaceholderText = tostring(defaultValue)
-	inputBox.Size = UDim2.new(0, 60, 0.6, 0)
-	inputBox.AutomaticSize = Enum.AutomaticSize.X
-	inputBox.Position = UDim2.new(1, -30, 0.5, 0)
+	inputBox.PlaceholderText = ""
+	inputBox.Size = UDim2.new(0, 64, 0.6, 0)
+	inputBox.Position = UDim2.new(1, -36, 0.5, 0)
 	inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	inputBox.Text = ""
+	inputBox.ClipsDescendants = true
 	inputBox.Parent = row
 	local inputCorner = Instance.new("UICorner")
 	inputCorner.CornerRadius = UDim.new(0, 6)
@@ -74,54 +77,94 @@ function Stepper.new(parent, Settings, theme)
 	inputStroke.Color = (theme and theme.StrokeColor)
 	inputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	inputStroke.Parent = inputBox
-	-- StepUp button
-	local stepUp = Instance.new("ImageButton")
-	stepUp.Name = "StepUp"
-	stepUp.BorderSizePixel = 0
-	stepUp.ImageTransparency = 0.6
-	stepUp.BackgroundTransparency = 1
-	stepUp.BackgroundColor3 = (theme and theme.AccentColor)
-	stepUp.AnchorPoint = Vector2.new(1, 0.5)
-	stepUp.Image = Icons["chevron-up"]
-	stepUp.ImageColor3 = (theme and theme.AccentColor)
-	stepUp.Size = UDim2.fromOffset(15, 15)
-	stepUp.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	stepUp.Position = UDim2.fromScale(1, 0.28)
-	stepUp.Parent = row
-	local upAspect = Instance.new("UIAspectRatioConstraint")
-	upAspect.Parent = stepUp
-	local upCorner = Instance.new("UICorner")
-	upCorner.CornerRadius = UDim.new(0, 4)
-	upCorner.Parent = stepUp
-	local upStroke = Instance.new("UIStroke")
-	upStroke.Transparency = 0.95
-	upStroke.Color = theme.StrokeColor
-	upStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	upStroke.Parent = stepUp
-	-- StepDown button
-	local stepDown = Instance.new("ImageButton")
-	stepDown.Name = "StepDown"
-	stepDown.BorderSizePixel = 0
-	stepDown.ImageTransparency = 0.6
-	stepDown.BackgroundTransparency = 1
-	stepDown.BackgroundColor3 = (theme and theme.AccentColor)
-	stepDown.AnchorPoint = Vector2.new(1, 0.5)
-	stepDown.Image = Icons["chevron-down"]
-	stepDown.ImageColor3 = (theme and theme.AccentColor)
-	stepDown.Size = UDim2.fromOffset(15, 15)
-	stepDown.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	stepDown.Position = UDim2.fromScale(1, 0.7)
-	stepDown.Parent = row
-	local downAspect = Instance.new("UIAspectRatioConstraint")
-	downAspect.Parent = stepDown
-	local downCorner = Instance.new("UICorner")
-	downCorner.CornerRadius = UDim.new(0, 4)
-	downCorner.Parent = stepDown
-	local downStroke = Instance.new("UIStroke")
-	downStroke.Transparency = 0.95
-	downStroke.Color = theme.StrokeColor
-	downStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	downStroke.Parent = stepDown
+
+	local valueReel = Instance.new("Frame")
+	valueReel.Name = "ValueReel"
+	valueReel.BackgroundTransparency = 1
+	valueReel.BorderSizePixel = 0
+	valueReel.Size = UDim2.fromScale(1, 1)
+	valueReel.ClipsDescendants = true
+	valueReel.ZIndex = 2
+	valueReel.Parent = inputBox
+
+	local odo = Odometer.new(valueReel, {
+		textSize = 13,
+		alignment = Enum.HorizontalAlignment.Center,
+		transparency = (theme and theme.SecondaryTextTransparency) or 0.4,
+		weight = Enum.FontWeight.Medium,
+		duration = 0.28,
+	})
+
+	-- Step controls: one compact two-segment pill at the right edge.
+	local controls = Instance.new("Frame")
+	controls.Name = "StepControls"
+	controls.AnchorPoint = Vector2.new(1, 0.5)
+	controls.Position = UDim2.fromScale(1, 0.5)
+	controls.Size = UDim2.fromOffset(24, 32)
+	controls.BackgroundColor3 = theme.InputBackgroundColor
+	controls.BackgroundTransparency = math.min(0.4, (theme.InputBackgroundTransparency or 0.15) + 0.2)
+	controls.BorderSizePixel = 0
+	controls.Parent = row
+	local controlsCorner = Instance.new("UICorner")
+	controlsCorner.CornerRadius = UDim.new(0, 6)
+	controlsCorner.Parent = controls
+	local controlsStroke = Instance.new("UIStroke")
+	controlsStroke.Color = theme.StrokeColor
+	controlsStroke.Transparency = 0.9
+	controlsStroke.Thickness = 0.7
+	controlsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	controlsStroke.Parent = controls
+	local controlsPad = Instance.new("UIPadding")
+	controlsPad.PaddingTop = UDim.new(0, 2)
+	controlsPad.PaddingBottom = UDim.new(0, 2)
+	controlsPad.PaddingLeft = UDim.new(0, 2)
+	controlsPad.PaddingRight = UDim.new(0, 2)
+	controlsPad.Parent = controls
+	local controlsLayout = Instance.new("UIListLayout")
+	controlsLayout.FillDirection = Enum.FillDirection.Vertical
+	controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	controlsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	controlsLayout.Padding = UDim.new(0, 1)
+	controlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	controlsLayout.Parent = controls
+
+	local function makeStepButton(buttonName, icon, order)
+		local btn = Instance.new("ImageButton")
+		btn.Name = buttonName
+		btn.BorderSizePixel = 0
+		btn.AutoButtonColor = false
+		btn.Image = Icons[icon]
+		btn.ImageColor3 = theme.AccentColor
+		btn.ImageTransparency = 0.1
+		btn.BackgroundColor3 = theme.AccentColor
+		btn.BackgroundTransparency = 0.82
+		btn.LayoutOrder = order
+		btn.Size = UDim2.new(1, 0, 0, 13)
+		btn.Parent = controls
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = btn
+		local scale = Instance.new("UIScale")
+		scale.Scale = 1
+		scale.Parent = btn
+		btn.MouseEnter:Connect(function()
+			Tween.Play(btn, "Fast", { BackgroundTransparency = 0.62, ImageTransparency = 0 })
+			Tween.Play(scale, "HoverIn", { Scale = 1.06 })
+		end)
+		btn.MouseLeave:Connect(function()
+			Tween.Play(btn, "Fast", { BackgroundTransparency = 0.82, ImageTransparency = 0.1 })
+			Tween.Play(scale, "HoverOut", { Scale = 1 })
+		end)
+		btn.MouseButton1Down:Connect(function()
+			Tween.Play(scale, "Fast", { Scale = 0.92 })
+		end)
+		btn.MouseButton1Up:Connect(function()
+			Tween.Play(scale, "HoverIn", { Scale = 1.06 })
+		end)
+		return btn
+	end
+	local stepUp = makeStepButton("StepUp", "chevron-up", 1)
+	local stepDown = makeStepButton("StepDown", "chevron-down", 2)
 	-- Store references
 	self.Row = row
 	self.Label = label
@@ -129,17 +172,27 @@ function Stepper.new(parent, Settings, theme)
 	self.InputStroke = inputStroke
 	self.StepUp = stepUp
 	self.StepDown = stepDown
+	self.Controls = controls
+	self.ValueReel = valueReel
+	self.Odometer = odo
+	self._name = name
 	self.Min = minValue
 	self.Max = maxValue
 	self.Step = step
 	self.IsInteger = isInteger
 	self.Callback = callback
 	self._currentValue = math.clamp(defaultValue, minValue, maxValue)
-	-- Helper to update input box display
-	local function updateDisplay(value)
+	-- Keep the hidden text box and the reel in sync.
+	local function updateDisplay(value, up)
 		local displayValue = isInteger and math.round(value) or value
-		inputBox.Text = tostring(displayValue)
-		inputBox.PlaceholderText = tostring(displayValue)
+		local text = tostring(displayValue)
+		inputBox.Text = text
+		inputBox.PlaceholderText = ""
+		if up == nil then
+			odo:snap(text)
+		else
+			odo:to(text, up)
+		end
 	end
 	-- Set value (with optional no callback)
 	self.SetValue = function(me, value, noCallback)
@@ -152,7 +205,7 @@ function Stepper.new(parent, Settings, theme)
 			return
 		end
 		me._currentValue = clamped
-		updateDisplay(clamped)
+		updateDisplay(clamped, clamped > oldValue)
 		if not noCallback then
 			me.Callback(clamped)
 		end
@@ -162,30 +215,22 @@ function Stepper.new(parent, Settings, theme)
 		local newValue = self._currentValue + delta * self.Step
 		self:SetValue(newValue, false)
 	end
-	-- Button click handlers
-	local function flashButton(btn)
-		Tween.CancelAll(btn)
-		Tween.Play(btn, "Fast", { BackgroundTransparency = 0 })
-		task.wait(0.2)
-		Tween.Play(btn, "Fast", { BackgroundTransparency = 1 })
-	end
 	stepUp.MouseButton1Click:Connect(function()
 		stepValue(1)
-		flashButton(stepUp)
 	end)
 	stepDown.MouseButton1Click:Connect(function()
 		stepValue(-1)
-		flashButton(stepDown)
 	end)
-	-- Input box focus lost: parse and set value
+	-- Parse typed values, then restore the reel when the field loses focus.
 	inputBox.FocusLost:Connect(function()
-		local inputText = inputBox.Text
-		local num = tonumber(inputText)
+		local num = tonumber(inputBox.Text)
 		if num then
 			self:SetValue(num, false)
 		else
 			updateDisplay(self._currentValue)
 		end
+		odo:setTransparency((ActiveTheme.theme or theme).SecondaryTextTransparency or 0.4)
+		inputBox.TextTransparency = 1
 	end)
 	-- Input box stroke brightening on hover/focus (like Keybind/TextInput)
 	local function setStrokeBright(bright)
@@ -213,53 +258,46 @@ function Stepper.new(parent, Settings, theme)
 		end
 	end)
 	inputBox.Focused:Connect(function()
+		odo:setTransparency(1)
+		inputBox.TextTransparency = (ActiveTheme.theme or theme).SecondaryTextTransparency or 0.4
 		setStrokeBright(true)
 	end)
 	inputBox.FocusLost:Connect(function()
 		setStrokeBright(false)
 	end)
-	-- Hover effects on buttons: brighten image transparency
-	local function onButtonHover(button, bright)
-		local targetTrans = bright and 0.3 or 0.6
-		Tween.Play(button, "Fast", { ImageTransparency = targetTrans })
-	end
-	stepUp.MouseEnter:Connect(function()
-		onButtonHover(stepUp, true)
-	end)
-	stepUp.MouseLeave:Connect(function()
-		onButtonHover(stepUp, false)
-	end)
-	stepDown.MouseEnter:Connect(function()
-		onButtonHover(stepDown, true)
-	end)
-	stepDown.MouseLeave:Connect(function()
-		onButtonHover(stepDown, false)
-	end)
 	-- Initial display
 	updateDisplay(self._currentValue)
 	-- Public API
-	self.GetValue = function()
-		return self._currentValue
+	self.GetValue = function(me)
+		return me._currentValue
 	end
-	self.SetMin = function(newMin)
-		self.Min = newMin
-		self:SetValue(self._currentValue, true)
+	self.SetMin = function(me, newMin)
+		me.Min = newMin
+		me:SetValue(me._currentValue, true)
 	end
-	self.SetMax = function(newMax)
-		self.Max = newMax
-		self:SetValue(self._currentValue, true)
+	self.SetMax = function(me, newMax)
+		me.Max = newMax
+		me:SetValue(me._currentValue, true)
 	end
-	self.SetStep = function(newStep)
-		self.Step = newStep
+	self.SetStep = function(me, newStep)
+		me.Step = newStep
 	end
-	self.UpdateName = function(newName)
+	self.SetName = function(me, newName)
+		me._name = newName
 		label.Text = newName
+	end
+	self.UpdateName = self.SetName
+	self.SetVisible = function(me, visible)
+		me.Row.Visible = visible
+	end
+	self.SetVisibility = self.SetVisible
+	self.GetVisible = function(me)
+		return me.Row.Visible
 	end
 	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindTransparency(inputBox, "TextTransparency", "SecondaryTextTransparency")
 	ThemeManager.BindColor(inputBox, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(inputStroke, "Color", "StrokeColor")
@@ -268,28 +306,34 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindColor(stepUp, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "BackgroundColor3", "AccentColor")
-	ThemeManager.BindColor(upStroke, "Color", "StrokeColor")
-	ThemeManager.BindColor(downStroke, "Color", "StrokeColor")
-	-- Uniform component API (p2-4).
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
-	self.Destroy = function(_self)
-		-- Cancel any in-flight tweens on the buttons and stroke.
+	ThemeManager.BindColor(controls, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindColor(controlsStroke, "Color", "StrokeColor")
+	ThemeManager.OnThemeApplied(function(liveTheme)
+		if not inputBox:IsFocused() then
+			odo:setTransparency(liveTheme.SecondaryTextTransparency or 0.4)
+		end
+	end, valueReel)
+	self.Destroy = function(me)
+		-- Cancel any in-flight tweens on the buttons, reel, and stroke.
 		Tween.CancelAll(stepUp)
 		Tween.CancelAll(stepDown)
 		Tween.CancelAll(inputStroke)
+		Tween.CancelAllUnder(valueReel)
 		-- Drop all ThemeManager bindings.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(inputBox)
 		ThemeManager.UnbindInstance(inputStroke)
 		ThemeManager.UnbindInstance(stepUp)
 		ThemeManager.UnbindInstance(stepDown)
-		ThemeManager.UnbindInstance(upStroke)
-		ThemeManager.UnbindInstance(downStroke)
+		ThemeManager.UnbindInstance(controls)
+		ThemeManager.UnbindInstance(controlsStroke)
+		ThemeManager.UnbindInstance(valueReel)
+		for _, descendant in ipairs(valueReel:GetDescendants()) do
+			ThemeManager.UnbindInstance(descendant)
+		end
 		-- Destroy the root instance.
-		if row and row.Parent then
-			row:Destroy()
+		if me.Row and me.Row.Parent then
+			me.Row:Destroy()
 		end
 	end
 	return self

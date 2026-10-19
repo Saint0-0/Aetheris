@@ -18,6 +18,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Toggle = {}
 Toggle.__index = Toggle
 function Toggle.new(parent, Settings, ShowNotification, theme)
@@ -338,6 +339,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			row:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return Toggle

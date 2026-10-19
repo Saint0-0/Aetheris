@@ -127,6 +127,16 @@ function UISettings.Build(window, tab)
 			SettingsStore.Set("UIScale", scale)
 		end,
 	})
+	visualsSection:Toggle({
+		Name = "Aurora Background",
+		Default = SettingsStore.Get("AuroraEnabled") ~= false,
+		Callback = function(state)
+			SettingsStore.Set("AuroraEnabled", state)
+			if window.Aurora then
+				window.Aurora:SetEnabled(state)
+			end
+		end,
+	})
 	visualsSection:Slider({
 		Name = "UI Volume",
 		Min = 0,

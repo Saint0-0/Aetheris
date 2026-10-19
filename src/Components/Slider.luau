@@ -40,6 +40,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 
 local Slider = {}
 Slider.__index = Slider
@@ -508,19 +509,19 @@ function Slider.new(parent, Settings, theme)
 	updateVisibility()
 
 	-- ---- public API ---------------------------------------------------------
-	self.UpdateValue = function(newValue)
+	self.UpdateValue = function(_, newValue)
 		updateSlider(newValue, true)
 	end
 	self.GetValue = function()
 		return currentValue
 	end
-	self.SetVisibility = function(visible)
+	self.SetVisibility = function(_, visible)
 		row.Visible = visible
 	end
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end
-	self.EnableSpinning = function(enabled)
+	self.EnableSpinning = function(_, enabled)
 		if enabled then
 			startSpin()
 		else
@@ -584,6 +585,7 @@ function Slider.new(parent, Settings, theme)
 	end
 
 	ThemeManager.Register(row, self)
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 

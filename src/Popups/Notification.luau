@@ -39,21 +39,11 @@ local function new(className, props)
 	return inst
 end
 
--- Snapshot every transparency in the notification so it can be faded as a
--- whole (set all to 1 = invisible, tween back to base = visible).
+-- Snapshot the decorations that CanvasGroup transparency does NOT cover
+-- (UIStroke/UIShadow), so they can fade alongside the group.
 local function captureFade(root)
 	local targets = {}
 	local function scan(inst)
-		if inst:IsA("GuiObject") then
-			for _, p in ipairs({ "BackgroundTransparency", "TextTransparency", "ImageTransparency" }) do
-				local ok, v = pcall(function()
-					return inst[p]
-				end)
-				if ok and type(v) == "number" then
-					table.insert(targets, { inst, p, v })
-				end
-			end
-		end
 		if inst:IsA("UIStroke") or inst:IsA("UIShadow") then
 			table.insert(targets, { inst, "Transparency", inst.Transparency })
 		end
@@ -134,10 +124,11 @@ function Notification.new(container, Settings, theme)
 	local iconColor = Settings.IconColor or accent
 	local gradientColor = Settings.GradientColor or accent
 
-	local root = new("Frame", {
+	local root = new("CanvasGroup", {
 		Name = ntype .. "Notification",
 		ZIndex = 999,
 		BorderSizePixel = 0,
+		GroupTransparency = 1,
 		BackgroundColor3 = theme.NotificationBackgroundColor or Color3.fromRGB(16, 16, 17),
 		BackgroundTransparency = theme.NotificationBackgroundTransparency or 0.1,
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -200,6 +191,8 @@ function Notification.new(container, Settings, theme)
 			Parent = root,
 		})
 		new("UICorner", { Parent = bg, CornerRadius = UDim.new(0, 6) })
+		self._background = bg
+		self._backgroundOverride = Settings.BackgroundImage
 		new("UIGradient", {
 			Parent = bg,
 			Rotation = 180,
@@ -441,6 +434,13 @@ function Notification:ApplyTheme(themeInput)
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
 
+	-- Wallpaper is an asset id, so it is not a color binding. Re-stamp it on
+	-- every switch so an open toast follows the live theme.
+	if self._background then
+		self._background.Image = self._backgroundOverride or theme.Wallpaper or FallbackImage
+		self._background.Visible = (self._backgroundOverride ~= nil) or theme.WallpaperEnabled ~= false
+	end
+
 	local shadow = self.Root:FindFirstChildWhichIsA("UIShadow")
 	if shadow and theme.NotificationShadowColor then
 		shadow.Color = theme.NotificationShadowColor
@@ -512,6 +512,12 @@ function Notification:Show()
 	Sound.Play("Notification")
 	setAll(self._fadeTargets, 1)
 	self.Root.Visible = true
+	self.Root.GroupTransparency = 1
+	Tween.Play(
+		self.Root,
+		TweenInfo.new(FADE_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ GroupTransparency = 0 }
+	)
 	tweenAll(self._fadeTargets, nil, FADE_IN)
 	self:_startTimer()
 	self._dismissTask = task.delay(self.Duration, function()
@@ -538,6 +544,11 @@ function Notification:Close()
 		self._dismissTask = nil
 	end
 	tweenAll(self._fadeTargets, 1, FADE_OUT)
+	Tween.Play(
+		self.Root,
+		TweenInfo.new(FADE_OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ GroupTransparency = 1 }
+	)
 	task.delay(FADE_OUT, function()
 		if self.Root then
 			self.Root:Destroy()

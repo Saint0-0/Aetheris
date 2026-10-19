@@ -107,7 +107,21 @@ local function makeCard(parent, name, theme, active, onActivate)
 	corner.Parent = card
 
 	local shadow = Instance.new("UIShadow")
+	shadow.BlurRadius = UDim.new(0, 18)
+	shadow.Transparency = active and 0.45 or 0.9
+	shadow.Color = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	shadow.Parent = card
+
+	local scale = Instance.new("UIScale")
+	scale.Scale = 1
+	scale.Parent = card
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
+	stroke.Transparency = active and 0.55 or 1
+	stroke.Thickness = 1
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = card
 
 	-- Vertical divider reflects TertiaryColor (used for scrollbars etc.)
 	local divider = Instance.new("Frame")
@@ -138,6 +152,7 @@ local function makeCard(parent, name, theme, active, onActivate)
 	colorGrid.Parent = colorHolder
 
 	local swatches = {}
+	local swatchScales = {}
 	local swatchDefs = {
 		{ "PrimaryColor", theme.PrimaryColor },
 		{ "SecondaryColor", theme.SecondaryColor },
@@ -160,7 +175,12 @@ local function makeCard(parent, name, theme, active, onActivate)
 		local swShadow = Instance.new("UIShadow")
 		swShadow.Parent = swatch
 
+		local swScale = Instance.new("UIScale")
+		swScale.Scale = 1
+		swScale.Parent = swatch
+
 		swatches[def[1]] = swatch
+		swatchScales[def[1]] = swScale
 	end
 
 	-- Wallpaper backdrop
@@ -230,9 +250,75 @@ local function makeCard(parent, name, theme, active, onActivate)
 	description.Text = THEME_DESCRIPTIONS[name] or "A cool theme"
 	description.Parent = card
 
+	local hovered = false
+
+	local function hover(on)
+		hovered = on
+		Tween.Play(scale, on and "HoverIn" or "HoverOut", { Scale = on and 1.035 or 1 })
+		Tween.Play(stroke, "Fast", { Transparency = on and 0.3 or (active and 0.55 or 1) })
+		Tween.Play(backImage, "Fast", {
+			ImageTransparency = on and (active and 0.4 or 0.6) or (active and 0.5 or 0.7),
+		})
+		Tween.Play(shadow, "Fast", { Transparency = on and 0.35 or (active and 0.45 or 0.9) })
+		for i, def in ipairs(swatchDefs) do
+			local sw = swatches[def[1]]
+			if sw then
+				Tween.Play(sw, TweenInfo.new(0.18 + i * 0.015, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundTransparency = on and 0.15 or (active and 0 or 0.5),
+				})
+			end
+			local swScale = swatchScales[def[1]]
+			if swScale then
+				Tween.Play(swScale, "HoverIn", { Scale = on and 1.12 or 1 })
+			end
+		end
+	end
+
+	local function refresh(instant)
+		local function apply(inst, props)
+			if instant then
+				for prop, value in pairs(props) do
+					inst[prop] = value
+				end
+			else
+				Tween.Play(inst, "Fast", props)
+			end
+		end
+		apply(title, { TextTransparency = active and 0.2 or 0.5 })
+		apply(backImage, { ImageTransparency = active and 0.5 or 0.7 })
+		apply(divider, { BackgroundTransparency = active and 0.72 or 0.9 })
+		apply(stroke, { Transparency = active and 0.55 or 1 })
+		apply(shadow, { Transparency = active and 0.45 or 0.9 })
+		for _, sw in pairs(swatches) do
+			apply(sw, { BackgroundTransparency = active and 0 or 0.5 })
+		end
+	end
+
+	local function setActive(isActive)
+		active = isActive
+		refresh(true)
+		if hovered then
+			hover(true)
+		end
+	end
+
 	card.MouseButton1Click:Connect(function()
 		onActivate(name)
 	end)
+	card.MouseEnter:Connect(function()
+		hover(true)
+	end)
+	card.MouseLeave:Connect(function()
+		hover(false)
+	end)
+	card.MouseButton1Down:Connect(function()
+		Tween.Play(scale, "Fast", { Scale = 0.97 })
+	end)
+	card.MouseButton1Up:Connect(function()
+		Tween.Play(scale, "HoverIn", { Scale = hovered and 1.035 or 1 })
+	end)
+
+	refresh(true)
 
 	return {
 		card = card,
@@ -240,6 +326,10 @@ local function makeCard(parent, name, theme, active, onActivate)
 		backImage = backImage,
 		divider = divider,
 		swatches = swatches,
+		stroke = stroke,
+		shadow = shadow,
+		scale = scale,
+		setActive = setActive,
 	}
 end
 
@@ -369,13 +459,7 @@ function Themes.Build(window, tab)
 		end
 		tab._activeThemeName = newName
 		for name, state in pairs(tab._themeCards) do
-			local active = (name == newName)
-			state.title.TextTransparency = active and 0.2 or 0.5
-			state.backImage.ImageTransparency = active and 0.5 or 0.7
-			state.divider.BackgroundTransparency = active and 0.72 or 0.9
-			for _, sw in pairs(state.swatches) do
-				sw.BackgroundTransparency = active and 0 or 0.5
-			end
+			state.setActive(name == newName)
 		end
 		currentText.Text = "<b>Current theme:</b> " .. newName
 		window:SetTheme(newName)

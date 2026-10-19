@@ -15,6 +15,7 @@
 
 local VideoFade = require("../Utils/VideoFade")
 local ThemeManager = require("../Themes/ThemeManager")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Video = {}
 Video.__index = Video
 function Video.new(parent, Settings, theme)
@@ -73,7 +74,7 @@ function Video.new(parent, Settings, theme)
 	self.Frame = frame
 	self.VideoFrame = videoFrame
 	-- Public API
-	self.SetVideo = function(newVideoId)
+	self.SetVideo = function(_, newVideoId)
 		videoFrame.Video = newVideoId
 		videoFrame:Play()
 	end
@@ -86,14 +87,14 @@ function Video.new(parent, Settings, theme)
 	self.Stop = function()
 		videoFrame:Stop()
 	end
-	self.SetLoop = function(loopState)
+	self.SetLoop = function(_, loopState)
 		videoFrame.Looped = loopState
 	end
-	self.SetHeight = function(newHeight)
+	self.SetHeight = function(_, newHeight)
 		frame.Size = UDim2.new(1, 0, 0, newHeight)
 	end
 	-- Fade the video in (0) or out (1) via its gradient.
-	self.SetFade = function(value, duration)
+	self.SetFade = function(_, value, duration)
 		VideoFade.fade(fadeGradient, value, duration)
 	end
 	-- Declarative theming: the themed properties are BINDINGS -- no ApplyTheme
@@ -111,6 +112,7 @@ function Video.new(parent, Settings, theme)
 			frame:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = frame, Name = Settings.Name })
 	return self
 end
 return Video

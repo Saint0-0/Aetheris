@@ -11,6 +11,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local FallbackImage = Constants.FallbackImage
 local RadioButton = {}
 RadioButton.__index = RadioButton
@@ -361,6 +362,7 @@ function RadioButton.new(parent, group, Settings, theme)
 			row:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return RadioButton

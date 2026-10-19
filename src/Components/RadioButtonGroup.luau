@@ -51,4 +51,30 @@ end
 function RadioButtonGroup:GetSelected()
 	return self.Selected
 end
+
+function RadioButtonGroup:SetVisible(visible)
+	for _, button in ipairs(self.Buttons) do
+		if button.SetVisible then
+			button:SetVisible(visible)
+		end
+	end
+end
+
+RadioButtonGroup.SetVisibility = RadioButtonGroup.SetVisible
+
+function RadioButtonGroup:GetVisible()
+	local first = self.Buttons[1]
+	return first ~= nil and first:GetVisible() or false
+end
+
+function RadioButtonGroup:Destroy()
+	for _, button in ipairs(self.Buttons) do
+		if button.Destroy then
+			button:Destroy()
+		end
+	end
+	self.Buttons = {}
+	self.Selected = nil
+end
+
 return RadioButtonGroup

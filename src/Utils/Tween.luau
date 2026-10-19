@@ -46,6 +46,8 @@ TweenUtil.Presets = {
 	FadeOut = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 	Minimize = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	MinimizeSnappy = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	WindowToggle = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	WindowToggleSnappy = TweenInfo.new(0.12, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 }
 
 -- activeTweens[instance][propertyKey] = handle

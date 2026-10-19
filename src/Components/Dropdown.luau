@@ -22,6 +22,7 @@
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Dropdown = {}
 Dropdown.__index = Dropdown
 local _counter = 0
@@ -127,14 +128,14 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		openPopup()
 	end)
 	-- Public API
-	self.SetItems = function(newItems)
+	self.SetItems = function(_, newItems)
 		items = newItems
 		selectedItems = {}
 	end
 	self.GetSelected = function()
 		return selectedItems
 	end
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end
 	self.OpenPopup = openPopup
@@ -168,6 +169,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			row:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	return self
 end
 return Dropdown

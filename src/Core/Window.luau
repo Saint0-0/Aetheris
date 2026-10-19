@@ -25,6 +25,7 @@ local Players = game:GetService("Players")
 local Tween = require("../Utils/Tween")
 local PageFade = require("../Utils/PageFade")
 local Sound = require("../Utils/Sound")
+local Aurora = require("../Utils/Aurora")
 local Icons = require("../Assets/Icons")
 local TabGroup = require("./TabGroup")
 local UINotification = require("../Popups/UINotification")
@@ -260,6 +261,14 @@ function Window.new(Settings)
 	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
 	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
 	ContentBackgroundCorner.Parent = ContentBackground
+
+	-- Soft accent bloom behind the page content. It is clipped to the content
+	-- panel so it never spills into the sidebar or outside the window.
+	ContentBackground.ClipsDescendants = true
+	local aurora = Aurora.new(ContentBackground, {
+		Theme = theme,
+		Enabled = SettingsStore.Get("AuroraEnabled") ~= false,
+	})
 
 	----------------------------------------------------------------
 	-- Window controls (Close / Maximize / Minimize)
@@ -1101,6 +1110,7 @@ function Window.new(Settings)
 	self.AnimationStyle = animationStyle
 	self.DragStyle = dragStyle
 	self.MainFrameShadow = MainFrameShadow
+	self.Aurora = aurora
 
 	-- Store the resolved theme BEFORE any settings pages/scripts build,
 	-- so components created there use the correct theme instead of Default.
@@ -1221,7 +1231,7 @@ function Window.new(Settings)
 	self.Tooltip = tooltip
 
 	local function minimizePreset()
-		return animationStyle == "Snappy" and "MinimizeSnappy" or "Minimize"
+		return animationStyle == "Snappy" and "WindowToggleSnappy" or "WindowToggle"
 	end
 
 	----------------------------------------------------------------
@@ -1231,10 +1241,11 @@ function Window.new(Settings)
 	-- buttons + stroke) at rest in one property, and clear on hover.
 	local pill = Instance.new("CanvasGroup")
 	pill.Name = "MinimizePill"
-	pill.AutomaticSize = Enum.AutomaticSize.Y
-	pill.Size = UDim2.fromOffset(56, 0)
+	pill.AutomaticSize = Enum.AutomaticSize.None
+	pill.Size = UDim2.fromOffset(56, 56)
 
 	local pillLayout -- forward decl: the UIListLayout is created further down
+	local pillScroll -- forward decl: the scrolling strip inside the pill
 
 	-- Pill position + tooltip side are data-driven from SettingsStore.PillPosition
 	-- ("right" | "left" | "top" | "bottom"). The tooltip opens AWAY from the
@@ -1249,6 +1260,36 @@ function Window.new(Settings)
 		local s = SettingsStore.Get("PillPosition")
 		return PILL_SIDES[s] and s or "right"
 	end
+
+	-- Size the pill to its buttons, capped to a safe slice of the viewport so a
+	-- long tab list scrolls instead of running off-screen.
+	local function updatePillSize()
+		if not (pillScroll and pillLayout) then
+			return
+		end
+		local side = currentPillSide()
+		local horizontal = (side == "top" or side == "bottom")
+		local count = (self.TabGroup and #self.TabGroup.Tabs) or 0
+		local content = count > 0 and (count * 40 + (count - 1) * 8) or 40
+
+		local viewport = ScreenGui.AbsoluteSize
+		if viewport.X <= 0 or viewport.Y <= 0 then
+			local cam = workspace.CurrentCamera
+			viewport = (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
+		end
+		local limit = horizontal and math.max(160, viewport.X * 0.8) or math.max(160, viewport.Y * 0.6)
+		local visible = math.min(content, limit)
+
+		if horizontal then
+			pill.Size = UDim2.fromOffset(visible + 16, 56)
+		else
+			pill.Size = UDim2.fromOffset(56, visible + 16)
+		end
+		if content <= visible then
+			pillScroll.CanvasPosition = Vector2.new(0, 0)
+		end
+	end
+
 	local function applyPillPosition()
 		local side = currentPillSide()
 		local def = PILL_SIDES[side]
@@ -1260,8 +1301,11 @@ function Window.new(Settings)
 		if pillLayout then
 			pillLayout.FillDirection = horizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical
 		end
-		pill.AutomaticSize = horizontal and Enum.AutomaticSize.X or Enum.AutomaticSize.Y
-		pill.Size = horizontal and UDim2.fromOffset(0, 56) or UDim2.fromOffset(56, 0)
+		if pillScroll then
+			pillScroll.ScrollingDirection = horizontal and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
+			pillScroll.AutomaticCanvasSize = horizontal and Enum.AutomaticSize.X or Enum.AutomaticSize.Y
+		end
+		updatePillSize()
 	end
 	local function pillTooltipSide()
 		return PILL_SIDES[currentPillSide()].tip
@@ -1590,13 +1634,15 @@ function Window.new(Settings)
 	pillCorner.Parent = pill
 	local pillStroke = Instance.new("UIStroke")
 	pillStroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	pillStroke.Transparency = 0.985
+	pillStroke.Transparency = theme.StrokeTransparency or 0.93
 	pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	pillStroke:SetAttribute("PageFadeBase", pillStroke.Transparency)
 	pillStroke.Parent = pill
 	local pillShadow = Instance.new("UIShadow")
 	pillShadow.Color = theme.PopupShadowColor or Color3.fromRGB(0, 0, 0)
 	pillShadow.BlurRadius = UDim.new(0, 16)
 	pillShadow.Transparency = 1 -- rest: invisible; only shows on hover (0.5)
+	pillShadow:SetAttribute("PageFadeBase", 1)
 	pillShadow.Parent = pill
 	local pillScale = Instance.new("UIScale")
 	pillScale.Scale = 1
@@ -1610,29 +1656,77 @@ function Window.new(Settings)
 	local PILL_HOVER_GROUP = 0
 	local PILL_REST_SCALE = 0.85
 	local PILL_HOVER_SCALE = 1
+	local pillHovered = false
 	pill.GroupTransparency = PILL_REST_GROUP
+
+	-- The shadow is a decoration, so CanvasGroup transparency does not cover it.
+	-- Keep it fully hidden at rest and only lift it while the pill is hovered.
+	local function applyPillShadow()
+		pillShadow.Transparency = (pillHovered and pill.Visible) and 0.5 or 1
+	end
+
 	pill.MouseEnter:Connect(function()
+		pillHovered = true
 		Tween.Play(pill, "Fast", { GroupTransparency = PILL_HOVER_GROUP })
 		Tween.Play(pillScale, "HoverIn", { Scale = PILL_HOVER_SCALE })
-		Tween.Play(pillShadow, "Fast", { Transparency = 0.5 })
+		applyPillShadow()
 	end)
 	pill.MouseLeave:Connect(function()
+		pillHovered = false
 		Tween.Play(pill, "Fast", { GroupTransparency = PILL_REST_GROUP })
 		Tween.Play(pillScale, "HoverOut", { Scale = PILL_REST_SCALE })
-		Tween.Play(pillShadow, "Fast", { Transparency = 1 })
+		applyPillShadow()
 	end)
+
+	-- Buttons live inside a scrolling strip so a long tab list cannot run
+	-- off-screen. The scrollbar mirrors the sidebar/tab one: 1px, tertiary,
+	-- hidden until the user scrolls, then fades back out after 1.5s.
+	pillScroll = Instance.new("ScrollingFrame")
+	pillScroll.Name = "MinimizePillScroll"
+	pillScroll.Active = true
+	pillScroll.BackgroundTransparency = 1
+	pillScroll.BorderSizePixel = 0
+	pillScroll.ClipsDescendants = true
+	pillScroll.ScrollBarThickness = 1
+	pillScroll.ScrollBarImageColor3 = theme.TertiaryColor or Color3.fromRGB(120, 132, 150)
+	pillScroll.ScrollBarImageTransparency = 1
+	pillScroll.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
+	pillScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+	pillScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	pillScroll.CanvasSize = UDim2.fromScale(0, 0)
+	pillScroll.Size = UDim2.new(1, -8, 1, -8)
+	pillScroll.Position = UDim2.fromOffset(4, 4)
+	pillScroll.Parent = pill
+
+	local pillScrollbarTimer
+	pillScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		if not pill.Visible then
+			pillScroll.ScrollBarImageTransparency = 1
+			return
+		end
+		Tween.Play(pillScroll, "Fast", { ScrollBarImageTransparency = 0.5 })
+		if pillScrollbarTimer then
+			task.cancel(pillScrollbarTimer)
+		end
+		pillScrollbarTimer = task.delay(1.5, function()
+			Tween.Play(pillScroll, "Fast", { ScrollBarImageTransparency = 1 })
+			pillScrollbarTimer = nil
+		end)
+	end)
+
 	local pillPad = Instance.new("UIPadding")
-	pillPad.PaddingTop = UDim.new(0, 8)
-	pillPad.PaddingBottom = UDim.new(0, 8)
-	pillPad.PaddingLeft = UDim.new(0, 8)
-	pillPad.PaddingRight = UDim.new(0, 8)
-	pillPad.Parent = pill
+	pillPad.PaddingTop = UDim.new(0, 4)
+	pillPad.PaddingBottom = UDim.new(0, 4)
+	pillPad.PaddingLeft = UDim.new(0, 4)
+	pillPad.PaddingRight = UDim.new(0, 4)
+	pillPad.Parent = pillScroll
 	pillLayout = Instance.new("UIListLayout")
 	pillLayout.Padding = UDim.new(0, 8)
 	pillLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	pillLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	pillLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	pillLayout.Parent = pill
-	applyPillPosition() -- now that pillLayout exists, apply the saved side
+	pillLayout.Parent = pillScroll
+	applyPillPosition() -- now that the scroller/layout exist, apply the saved side
 
 	local minimizeWindow
 	local restoreWindow
@@ -1647,9 +1741,13 @@ function Window.new(Settings)
 		pill.BackgroundTransparency = 0.05
 		pill.GroupTransparency = PILL_REST_GROUP
 		pillStroke.Color = t.StrokeColor or Color3.fromRGB(255, 255, 255)
-		pillStroke.Transparency = 0.985
+		pillStroke.Transparency = t.StrokeTransparency or 0.93
+		pillStroke:SetAttribute("PageFadeBase", pillStroke.Transparency)
 		pillShadow.Color = t.PopupShadowColor or Color3.fromRGB(0, 0, 0)
-		pillShadow.Transparency = 1 -- rest: hidden; hover sets 0.5
+		applyPillShadow()
+		if pillScroll then
+			pillScroll.ScrollBarImageColor3 = t.TertiaryColor or Color3.fromRGB(120, 132, 150)
+		end
 	end
 
 	-- Restyle ONE existing pill button to match its tab's current active state.
@@ -1698,7 +1796,7 @@ function Window.new(Settings)
 		btn.Text = ""
 		btn.LayoutOrder = i
 		btn.ZIndex = 1501
-		btn.Parent = pill
+		btn.Parent = pillScroll
 		local c = Instance.new("UICorner")
 		c.CornerRadius = UDim.new(1, 0)
 		c.Parent = btn
@@ -1812,6 +1910,7 @@ function Window.new(Settings)
 				stylePillButton(btn, tab, t, tab == self.TabGroup.ActiveTab)
 			end
 		end
+		updatePillSize()
 	end
 
 	-- Exposed so Window:Tab and ApplyTheme keep the pill in sync.
@@ -1861,6 +1960,7 @@ function Window.new(Settings)
 		-- window; no per-descendant snapshot, so nothing inside is touched.
 		PageFade.Hide(MainFrame, false, function()
 			MainFrame.Visible = false
+			pillHovered = false
 			pill.Visible = true
 			pill.BackgroundTransparency = 0.05
 			pill.GroupTransparency = 1
@@ -1873,6 +1973,7 @@ function Window.new(Settings)
 			Tween.Play(pill, "Fast", { GroupTransparency = PILL_REST_GROUP })
 			PageFade.FadeDecorations(pill, false, false)
 			Tween.Play(pillScale, "HoverIn", { Scale = PILL_REST_SCALE })
+			applyPillShadow()
 			minimizeState = "hidden"
 		end)
 	end
@@ -1898,14 +1999,20 @@ function Window.new(Settings)
 		end)
 		-- Fade the pill out in parallel, then hide it. The pill is its own
 		-- CanvasGroup, so this is a single GroupTransparency tween.
+		pillHovered = false
+		applyPillShadow()
 		PageFade.Hide(pill, false, function()
 			pill.Visible = false
 			pillScale.Scale = 1
+			pillHovered = false
+			applyPillShadow()
 		end)
 		Tween.Play(pillScale, "Fast", { Scale = 0.85 })
 		task.delay(0.3, function()
 			pill.Visible = false
 			pillScale.Scale = 1
+			pillHovered = false
+			applyPillShadow()
 		end)
 	end
 
@@ -1970,7 +2077,7 @@ function Window.new(Settings)
 		else
 			preMaxSize = MainFrame.Size
 			preMaxPosition = MainFrame.Position
-			Tween.Play(MainFrame, "Fast", {
+			Tween.Play(MainFrame, minimizePreset(), {
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0, 0),
 			})
@@ -2014,10 +2121,19 @@ function Window.new(Settings)
 			task.cancel(tabListScrollbarTimer)
 			tabListScrollbarTimer = nil
 		end
+		if pillScrollbarTimer then
+			task.cancel(pillScrollbarTimer)
+			pillScrollbarTimer = nil
+		end
 
 		-- One sparse sweep over the active-tween registry (O(active tweens))
 		-- instead of a per-descendant hash probe (O(tree)).
 		Tween.CancelAllUnder(ScreenGui)
+
+		if self.Aurora then
+			self.Aurora:Destroy()
+			self.Aurora = nil
+		end
 
 		if self._notification then
 			self._notification:Destroy()

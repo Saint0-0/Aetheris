@@ -44,6 +44,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
+local ComponentAPI = require("../Utils/ComponentAPI")
 
 local TextInput = {}
 TextInput.__index = TextInput
@@ -333,7 +334,7 @@ function TextInput.new(parent, Settings, theme)
 	self.GetText = function()
 		return field.Text
 	end
-	self.SetText = function(newText, silent)
+	self.SetText = function(_, newText, silent)
 		newText = tostring(newText or "")
 		default = newText
 		field.Text = newText
@@ -341,11 +342,11 @@ function TextInput.new(parent, Settings, theme)
 			flash()
 		end
 	end
-	self.UpdateName = function(newName)
+	self.UpdateName = function(_, newName)
 		label.Text = newName
 		sizeBox(false)
 	end
-	self.SetPlaceholder = function(newPlaceholder)
+	self.SetPlaceholder = function(_, newPlaceholder)
 		placeholder = newPlaceholder
 		field.PlaceholderText = newPlaceholder
 		sizeBox(true)
@@ -397,6 +398,15 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end
 
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		OnName = function(_, newName)
+			label.Text = newName
+			sizeBox(false)
+		end,
+	})
 	return self
 end
 

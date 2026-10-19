@@ -19,9 +19,10 @@ function Tooltip.new(container, theme)
 	theme = ThemeManager.GetTheme(theme)
 	local self = setmetatable({}, Tooltip)
 
-	local root = Instance.new("Frame")
+	local root = Instance.new("CanvasGroup")
 	root.Name = "Tooltip"
 	root.BorderSizePixel = 0
+	root.GroupTransparency = 1
 	root.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
 	root.BackgroundTransparency = 1
 	root.AutomaticSize = Enum.AutomaticSize.XY
@@ -130,9 +131,10 @@ function Tooltip:ShowAt(anchor, text, side, gap)
 	self.Root.AnchorPoint = anchorPt
 	self.Root.Position = pos
 	self.Root.Visible = true
+	self.Root.GroupTransparency = 1
 	self._shown = true
 	local info = TweenInfo.new(FADE)
-	Tween.Play(self.Root, info, { BackgroundTransparency = self._surface or 0.05 })
+	Tween.Play(self.Root, info, { BackgroundTransparency = self._surface or 0.05, GroupTransparency = 0 })
 	Tween.Play(self.Label, info, { TextTransparency = self._theme and (self._theme.PopupTextTransparency or 0) or 0 })
 	if self._stroke then
 		Tween.Play(self._stroke, info, { Transparency = 0.85 })
@@ -148,7 +150,7 @@ function Tooltip:Hide()
 	end
 	self._shown = false
 	local info = TweenInfo.new(FADE)
-	Tween.Play(self.Root, info, { BackgroundTransparency = 1 })
+	Tween.Play(self.Root, info, { BackgroundTransparency = 1, GroupTransparency = 1 })
 	Tween.Play(self.Label, info, { TextTransparency = 1 })
 	if self._stroke then
 		Tween.Play(self._stroke, info, { Transparency = 1 })

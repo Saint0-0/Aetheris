@@ -520,6 +520,29 @@ function LiveStat:Get()
 	return self._value
 end
 
+function LiveStat:SetName(newName)
+	self._name = newName
+	if self._title then
+		self._title.Text = newName
+	end
+end
+
+function LiveStat:UpdateName(newName)
+	self:SetName(newName)
+end
+
+function LiveStat:SetVisible(visible)
+	if self._main then
+		self._main.Visible = visible
+	end
+end
+
+LiveStat.SetVisibility = LiveStat.SetVisible
+
+function LiveStat:GetVisible()
+	return self._main ~= nil and self._main.Visible or false
+end
+
 function LiveStat:Destroy()
 	self:_stopSpin()
 	if self._main then

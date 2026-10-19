@@ -14,6 +14,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Paragraph = {}
 Paragraph.__index = Paragraph
 function Paragraph.new(parent, Settings, theme)
@@ -87,11 +88,11 @@ function Paragraph.new(parent, Settings, theme)
 	self.TitleLabel = titleLabel
 	self.DescLabel = descLabel
 	-- Public API
-	self.SetTitle = function(newTitle)
+	self.SetTitle = function(_, newTitle)
 		titleLabel.Text = newTitle
 		container.Name = newTitle .. " [Paragraph]"
 	end
-	self.SetDescription = function(newDesc)
+	self.SetDescription = function(_, newDesc)
 		descLabel.Text = newDesc
 	end
 	-- Declarative theming: every themed property is a BINDING. A theme switch
@@ -113,6 +114,7 @@ function Paragraph.new(parent, Settings, theme)
 			container:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = container, Label = titleLabel, Name = title })
 	return self
 end
 return Paragraph

@@ -17,6 +17,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Label = {}
 Label.__index = Label
 -- Map string to Enum.FontWeight
@@ -51,8 +52,7 @@ function Label.new(parent, Settings, theme)
 	container.Name = text .. " [Label]"
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor)
-	container.BackgroundTransparency = showContainer
-			and ((theme and theme.ComponentBackgroundTransparency) or 0.985)
+	container.BackgroundTransparency = showContainer and ((theme and theme.ComponentBackgroundTransparency) or 0.985)
 		or 1
 	container.AutomaticSize = Enum.AutomaticSize.Y
 	container.Size = UDim2.fromScale(1, 0)
@@ -144,10 +144,10 @@ function Label.new(parent, Settings, theme)
 		textTransBinding:SetEnabled(false)
 	end
 	-- Public API
-	self.SetText = function(newText)
+	self.SetText = function(_, newText)
 		label.Text = newText
 	end
-	self.SetTextTransparency = function(transparency)
+	self.SetTextTransparency = function(_, transparency)
 		self._hasCustomTextTransparency = (transparency ~= nil)
 		if transparency ~= nil then
 			textTransBinding:SetEnabled(false)
@@ -156,12 +156,12 @@ function Label.new(parent, Settings, theme)
 			textTransBinding:SetEnabled(true)
 		end
 	end
-	self.SetFontWeight = function(weight)
+	self.SetFontWeight = function(_, weight)
 		local newWeight = getFontWeight(weight)
 		self._fontWeight = newWeight
 		label.FontFace = Constants.Font(newWeight)
 	end
-	self.SetShowContainer = function(show)
+	self.SetShowContainer = function(_, show)
 		self._showContainer = show
 		if show then
 			container:SetAttribute("ThemeOverride_BackgroundTransparency", nil)
@@ -172,7 +172,7 @@ function Label.new(parent, Settings, theme)
 			container.BackgroundTransparency = 1
 		end
 	end
-	self.SetShowStroke = function(show)
+	self.SetShowStroke = function(_, show)
 		self._showStroke = show
 		if show then
 			stroke:SetAttribute("ThemeOverride_Transparency", nil)
@@ -197,6 +197,7 @@ function Label.new(parent, Settings, theme)
 			container:Destroy()
 		end
 	end
+	ComponentAPI.Apply(self, { Root = container, Label = label, Name = Settings.Text })
 	-- No ApplyTheme / Register: all themed properties are bindings above.
 	return self
 end
