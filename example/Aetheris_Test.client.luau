@@ -16,6 +16,9 @@
     Components : Toggle, Slider, Keybind, TextInput, Stepper, RadioButtonGroup
                  (+ RadioButton), Dropdown, ColorPicker, Status, ProgressBar,
                  Button, Label, Paragraph, Divider, Video
+    Security   : AETHERIS_SECUREMODE (gethui/CoreGui parenting + UUID rename)
+    API        : SetName/UpdateName, SetVisible/SetVisibility/GetVisible,
+                 Destroy, and Status:SetText/SetEntry/SetEntries
 
   How to run
   ----------
@@ -77,10 +80,11 @@ local window = Aetheris:CreateWindow({
 			AccentColor = Color3.fromRGB(149, 255, 188),
 		},
 	},
-	Theme = "Default", -- any name from ThemeDefinitions
+	Theme = "Umbral", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
 	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
 	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl", -- press to minimize / restore the window
+	AETHERIS_SECUREMODE = false, -- true parents via gethui/CoreGui and renames to a UUID
 	SettingsPages = { -- extra pages shown in the Settings tab
 		{
 			Name = "Keybinds",
@@ -255,6 +259,69 @@ actionSection:Button({
 })
 
 -- =========================================================================
+--  3a. SECURE MODE / COMPONENT API
+-- =========================================================================
+-- AETHERIS_SECUREMODE (set above) defaults to false. When true the window is
+-- parented through gethui -> CoreGui -> PlayerGui when the executor exposes
+-- them, and the ScreenGui is renamed to a random UUID instead of "Aetheris".
+--
+-- Every component shares the same public surface:
+--   SetName / UpdateName        - change the displayed label
+--   SetVisible / SetVisibility  - show or hide the component's root
+--   GetVisible                  - current visibility
+--   Destroy                     - tear the component down
+-- Status also exposes per-entry updates: SetText / SetEntry / SetEntries.
+local apiSection = homeTab:Section({ Name = "Secure Mode / API", Side = "Right" })
+
+local apiLabel = apiSection:Label({
+	Text = "API target - drive me with the buttons",
+	ShowContainer = false,
+	ShowStroke = false,
+})
+
+local apiStatus = apiSection:Status({
+	Name = "Live status",
+	Entries = {
+		{ "info", "Ready", "green" },
+	},
+})
+
+apiSection:Button({
+	Name = "Rename (SetName)",
+	Callback = function()
+		apiLabel:SetName("SetName @ " .. os.date("%H:%M:%S"))
+	end,
+})
+
+apiSection:Button({
+	Name = "Rename (UpdateName alias)",
+	Callback = function()
+		apiLabel:UpdateName("UpdateName @ " .. os.date("%H:%M:%S"))
+	end,
+})
+
+apiSection:Button({
+	Name = "Hide / Show (SetVisible)",
+	Callback = function()
+		apiLabel:SetVisible(not apiLabel:GetVisible())
+	end,
+})
+
+apiSection:Button({
+	Name = "Update status (Status:SetText)",
+	Callback = function()
+		apiStatus:SetText("info", 'Updated <font color="green">live</font>')
+	end,
+})
+
+apiSection:Button({
+	Name = "Destroy label (Destroy)",
+	Callback = function()
+		apiLabel:Destroy()
+	end,
+})
+
+-- =========================================================================
 --  3b. STATS TAB  -  LiveStat readouts (left) + the buttons that drive them (right)
 -- =========================================================================
 -- LiveStat shows ONE number the consumer drives via :Set(number). Two shapes:
@@ -335,7 +402,7 @@ switchSection:Toggle({
 	Confirm = {
 		Enabled = true,
 		Title = "Are you sure?",
-		Description = 'This may cause <font color="rgb(255,0,0)">performance issues</font>. Continue?',
+		Description = 'This may cause <font color="#FF5555">performance issues</font>. Continue?',
 		TitleColor = Color3.fromRGB(255, 100, 100),
 		ConfirmText = "Yes, enable it",
 		CancelText = "No, cancel",
@@ -359,8 +426,9 @@ valueSection:Slider({
 	end,
 })
 
--- Stepper: +/- numeric field. Integer=true forces whole numbers, Step sets the
--- increment per click.
+-- Stepper: an odometer value reel with +/- step buttons. Click the field to
+-- type a value directly; Integer forces whole numbers and Step is the click
+-- increment.
 valueSection:Stepper({
 	Name = "Ammo Count",
 	Min = 0,
@@ -612,34 +680,22 @@ settingsSection:Paragraph({
 })
 
 local themeSection = settingsTab:Section({ Name = "Theme Switcher", Side = "Right" })
+-- Build the roster from the live ThemeDefinitions so the dropdown can never go
+-- stale: "Base" is the merge fallback, not a selectable theme.
 local themeItems = {}
-for _, name in ipairs(Aetheris.ThemeManager.ThemeOrder or {}) do
-	table.insert(themeItems, { name = name, value = name })
-end
--- Fallback: if ThemeOrder isn't exposed, list the ones we know are safe.
-if #themeItems == 0 then
-	for _, name in ipairs({
-		"Default",
-		"Black",
-		"Light",
-		"Midnight",
-		"Graphite",
-		"Ocean",
-		"Nord",
-		"Forest",
-		"Glass",
-		"Azure",
-		"Fjord",
-		"Summit",
-	}) do
+for name in pairs(Aetheris.ThemeDefinitions) do
+	if name ~= "Base" then
 		table.insert(themeItems, { name = name, value = name })
 	end
 end
+table.sort(themeItems, function(a, b)
+	return a.name < b.name
+end)
 
 themeSection:Dropdown({
 	Name = "Theme",
 	Items = themeItems,
-	Default = { "Default" },
+	Default = { window._themeName or "Umbral" },
 	MaxItemsChoosable = 1,
 	Placeholder = "Select theme...",
 	Callback = function(selected)
@@ -709,10 +765,13 @@ consoleControls:Button({
 -- =========================================================================
 --  9. STARTUP LOG
 -- =========================================================================
-print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Settings")
+print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Stats, Settings")
 print("[Aetheris Demo] Active tab:", window.TabGroup.ActiveTab.Name)
 print(
-	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video."
+	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console."
+)
+print(
+	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName/UpdateName, SetVisible/SetVisibility/GetVisible, Destroy, Status:SetText."
 )
 
 -- =========================================================================
