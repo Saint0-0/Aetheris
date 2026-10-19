@@ -6,7 +6,6 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
-local Aurora = require("../Utils/Aurora")
 local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
@@ -76,23 +75,6 @@ function UINotification.new(parent, Settings)
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = popup
-	----------------------------------------------------------------
-	-- STROKE
-	----------------------------------------------------------------
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = (theme and (theme.NotificationStrokeColor or theme.StrokeColor)) or Color3.fromRGB(148, 163, 184)
-	stroke.Transparency = 1
-	stroke.Thickness = 1
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = popup
-	----------------------------------------------------------------
-	-- AURORA WASH
-	----------------------------------------------------------------
-	local wash = Aurora.Wash(popup, {
-		Color = (theme and theme.AccentColor) or Color3.fromRGB(122, 156, 210),
-		CornerRadius = UDim.new(0, 6),
-		Intensity = 0.55,
-	})
 	----------------------------------------------------------------
 	-- SIZE CONSTRAINT
 	----------------------------------------------------------------
@@ -248,9 +230,6 @@ function UINotification.new(parent, Settings)
 	----------------------------------------------------------------
 	self.Popup = popup
 	self.Shadow = shadow
-	self.Stroke = stroke
-	self._strokeRest = (theme and theme.NotificationStrokeTransparency) or 0.86
-	self._wash = wash
 	self._popupTransparency = (theme and theme.PopupBackgroundTransparency) or 0.07
 	self.ConfirmShadow = confirmShadow
 	self.CancelShadow = cancelShadow
@@ -398,7 +377,6 @@ function UINotification:Open()
 	self.Interactions.BackgroundTransparency = 1
 	self.ConfirmBtn.TextTransparency = 1
 	self.CancelBtn.TextTransparency = 1
-	self.Stroke.Transparency = 1
 	self.Popup.Visible = true
 	self.Popup.GroupTransparency = 1
 	-- Arm the click-outside listener for as long as the popup is open.
@@ -408,12 +386,9 @@ function UINotification:Open()
 		BackgroundTransparency = self._popupTransparency,
 		GroupTransparency = 0,
 	})
-	-- Fade in shadow and border
+	-- Fade in shadow
 	Tween.Play(self.Shadow, "Fast", {
 		Transparency = 0.5,
-	})
-	Tween.Play(self.Stroke, "Fast", {
-		Transparency = self._strokeRest,
 	})
 	-- Fade in internal elements
 	Tween.Play(self.Header, "Fast", {
@@ -466,9 +441,6 @@ function UINotification:Close()
 	})
 	-- Fade out popup shadow
 	Tween.Play(self.Shadow, "Fast", {
-		Transparency = 1,
-	})
-	Tween.Play(self.Stroke, "Fast", {
 		Transparency = 1,
 	})
 
@@ -571,14 +543,6 @@ function UINotification:ApplyTheme(themeInput)
 		self.Popup.BackgroundTransparency = self._popupTransparency
 	end
 	self.Shadow.Color = t.NotificationShadowColor or t.PopupShadowColor or self.Shadow.Color
-	self.Stroke.Color = t.NotificationStrokeColor or t.StrokeColor or self.Stroke.Color
-	self._strokeRest = t.NotificationStrokeTransparency or 0.86
-	if self.IsOpen then
-		self.Stroke.Transparency = self._strokeRest
-	end
-	if self._wash then
-		self._wash:SetColor(t.AccentColor or Color3.fromRGB(122, 156, 210))
-	end
 	self.Header.TextColor3 = t.PopupTextColor
 	self.Header.TextTransparency = t.PopupTextTransparency or 0.4
 	if not self._customTitleColor then

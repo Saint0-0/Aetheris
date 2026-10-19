@@ -147,10 +147,13 @@ function Aurora.Wash(parent, opts)
 	local texture = Aurora.GetTexture()
 	local color = opts.Color or Color3.fromRGB(122, 156, 210)
 	local intensity = opts.Intensity or 1
+	-- Keep every bloom inside the parent's bottom edge (y + size / 2 <= 1):
+	-- blooms count toward an AutomaticSize parent's content, so an overhanging
+	-- one would stretch the parent taller on every layout pass.
 	local blobs = opts.Blobs
 		or {
 			{ x = 0.02, y = 0.18, size = 0.95, intensity = 1 },
-			{ x = 1.0, y = 0.94, size = 0.8, intensity = 0.8 },
+			{ x = 1.0, y = 0.79, size = 0.4, intensity = 0.8 },
 		}
 	local pieces = {}
 	for _, blob in ipairs(blobs) do
