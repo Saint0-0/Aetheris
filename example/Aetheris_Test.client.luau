@@ -687,6 +687,42 @@ mediaSection:Paragraph({
 	Description = "The Video component wraps a VideoFrame with the library's stroke, rounding and shadow styling, all theme-aware.",
 })
 
+-- Viewport: renders a live character clone beside four info rows. Framing
+-- picks the camera crop; the buttons exercise the public API.
+local viewportDemo = mediaSection:Viewport({
+	Player = Players.LocalPlayer,
+	Rotate = true,
+	Framing = "UpperBody",
+	Height = 170,
+})
+
+local framingModes = { "Full", "UpperBody", "Torso", "Head" }
+local framingIndex = 2
+
+mediaSection:Button({
+	Name = "Cycle framing",
+	Callback = function()
+		framingIndex = framingIndex % #framingModes + 1
+		viewportDemo:SetFraming(framingModes[framingIndex])
+	end,
+})
+
+local orbitOn = true
+mediaSection:Button({
+	Name = "Toggle rotation",
+	Callback = function()
+		orbitOn = not orbitOn
+		viewportDemo:SetRotate(orbitOn)
+	end,
+})
+
+mediaSection:Button({
+	Name = "Re-bind player (SetPlayer)",
+	Callback = function()
+		viewportDemo:SetPlayer(Players.LocalPlayer)
+	end,
+})
+
 -- =========================================================================
 --  8. SETTINGS TAB  -  live theme switcher
 -- =========================================================================

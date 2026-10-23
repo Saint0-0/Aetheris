@@ -17,6 +17,7 @@ local Divider = require("../Components/Divider")
 local TextInput = require("../Components/TextInput")
 local RadioButtonGroup = require("../Components/RadioButtonGroup")
 local Video = require("../Components/Video")
+local Viewport = require("../Components/Viewport")
 local Status = require("../Components/Status")
 local Dropdown = require("../Components/Dropdown")
 local ProgressBar = require("../Components/ProgressBar")
@@ -179,6 +180,9 @@ function Section:RadioButtonGroup()
 end
 function Section:Video(Settings)
 	return Video.new(self.Frame, Settings, self._theme)
+end
+function Section:Viewport(Settings)
+	return Viewport.new(self.Frame, Settings, self._theme)
 end
 function Section:Status(Settings)
 	return Status.new(self.Frame, Settings, self._theme)
