@@ -17,15 +17,20 @@ local UUID = require("../Utils/UUID")
 local ValueReadout = {}
 ValueReadout.__index = ValueReadout
 
--- Accent-stroke alphas per interaction state; the resting value doubles as the
--- PageFade base so a page fade can never restore a transient hover brighten.
-local REST_STROKE = 0.65
+-- Stroke alphas per interaction state, matching Keybind/TextInput: rest is
+-- theme.StrokeTransparency (0.95) in theme.StrokeColor, hover brightens to
+-- 0.45 and focus to 0.3. The resting value doubles as the PageFade base so a
+-- page fade can never restore a transient hover brighten.
+local DEFAULT_REST_STROKE = 0.95
 local HOVER_STROKE = 0.45
 local FOCUS_STROKE = 0.3
 
--- lighten toward white by `t` (the LiveStat accent-stroke recipe)
-local function lighten(c, t)
-	return Color3.new(c.R + (1 - c.R) * t, c.G + (1 - c.G) * t, c.B + (1 - c.B) * t)
+-- The stroke family shared with Keybind/TextInput.
+local STROKE_THICKNESS = 0.7
+local STROKE_COLOR = Color3.fromRGB(80, 80, 80)
+
+local function restStrokeAlpha(live)
+	return live.StrokeTransparency or DEFAULT_REST_STROKE
 end
 
 -- opts: Theme, Size or Width/Height, Position, AnchorPoint, LayoutOrder,
@@ -124,13 +129,13 @@ function ValueReadout.new(parent, opts)
 	self.Odometer = odo
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = lighten(theme.AccentColor or Color3.fromRGB(96, 165, 250), 0.22)
-	stroke.Transparency = REST_STROKE
-	stroke.Thickness = 1
+	stroke.Color = theme.StrokeColor or STROKE_COLOR
+	stroke.Transparency = restStrokeAlpha(theme)
+	stroke.Thickness = STROKE_THICKNESS
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = box
 	-- Page fades restore the RESTING alpha, never a hover/focus brighten.
-	stroke:SetAttribute("PageFadeBase", REST_STROKE)
+	stroke:SetAttribute("PageFadeBase", restStrokeAlpha(theme))
 	self.Stroke = stroke
 
 	local focused = false
@@ -141,9 +146,8 @@ function ValueReadout.new(parent, opts)
 	-- odometer and the typed text never overlap; card, field and stroke fade.
 	local function sync(animate)
 		local live = ActiveTheme.theme or theme
-		local accent = live.AccentColor or Color3.fromRGB(96, 165, 250)
-		local strokeColor = focused and (live.StrokeColor or Color3.fromRGB(80, 80, 80)) or lighten(accent, 0.22)
-		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or REST_STROKE)
+		local strokeColor = live.StrokeColor or STROKE_COLOR
+		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or restStrokeAlpha(live))
 		local chipAlpha = focused and 1 or 0
 		local boxAlpha = focused and (live.InputBackgroundTransparency or 0.5) or 1
 		local textAlpha = focused and (live.SecondaryTextTransparency or 0.4) or 1
@@ -227,8 +231,8 @@ function ValueReadout.new(parent, opts)
 		end
 	end
 
-	-- Declarative colours; the accent-derived stroke and the state alphas are
-	-- not theme keys, so they are re-stamped on every theme apply instead
+	-- Declarative colours; the stroke's live colour, its state alphas and the
+	-- page-fade base are re-stamped on every theme apply instead
 	-- (owner = box auto-unregisters the callback on destroy).
 	ThemeManager.BindColor(box, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindColor(box, "TextColor3", "SecondaryTextColor")
@@ -236,6 +240,8 @@ function ValueReadout.new(parent, opts)
 	ThemeManager.BindColor(sheen, "BackgroundColor3", "AccentColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		theme = liveTheme or theme
+		-- Keep the page-fade base in step with the live resting alpha.
+		stroke:SetAttribute("PageFadeBase", restStrokeAlpha(theme))
 		sync(true)
 	end, box)
 

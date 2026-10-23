@@ -51,6 +51,13 @@ local THEME_ORDER = {
 	"Frost",
 	"Amber",
 	"Rosa",
+	"Gruvbox",
+	"Graphite",
+	"Crimson",
+	"Umber",
+	"Mint",
+	"Lilac",
+	"Linen",
 }
 
 -- Card-sized descriptions; keep them short enough not to wrap.
@@ -77,7 +84,7 @@ local THEME_DESCRIPTIONS = {
 	Twilight = "Periwinkle haze",
 	Nebula = "Magenta nebula",
 	Monterey = "Pacific blue",
-	Sonoma = "Warm sand",
+	Sonoma = "Sea glass",
 	Ventura = "Amethyst fog",
 	Vermilion = "Scarlet dusk",
 	Grove = "Deep forest",
@@ -86,8 +93,16 @@ local THEME_DESCRIPTIONS = {
 	Blossom = "Pink bloom",
 	Petal = "Rose petal",
 	Frost = "Frosted white",
-	Amber = "Warm gold",
+	Amber = "Porcelain pop",
 	Rosa = "Dusty rose",
+	-- Added (2026-10): each fills a gap the original roster had no answer for.
+	Gruvbox = "Warm retro",
+	Graphite = "Pure neutral",
+	Crimson = "Deep red",
+	Umber = "Warm bronze",
+	Mint = "Light mint",
+	Lilac = "Pale violet",
+	Linen = "Warm grey",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)

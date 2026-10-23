@@ -54,7 +54,7 @@ TextInput.__index = TextInput
 local FIELD_HEIGHT = 29
 local FIELD_MIN_W = 40 -- floor width; the default still hugs the placeholder
 local FIELD_MAX_W = 220 -- absolute ceiling regardless of row width
-local TEXT_SIZE = 9
+local TEXT_SIZE = 11
 local PAD_X = 15 -- clearance each side of the text (centred)
 local LABEL_GAP = 20 -- px the field always keeps clear before the label
 
@@ -189,18 +189,32 @@ function TextInput.new(parent, Settings, theme)
 		return ActiveTheme.theme or theme
 	end
 
+	local hovered = false
+
 	local function restFieldTransparency()
 		local t = activeTheme()
 		return (t and t.InputBackgroundTransparency) or REST_FIELD_TRANSPARENCY
 	end
 
-	-- Same resting stroke transparency as RadioButton (theme.StrokeTransparency
-	-- or 0.4), so the two components read as one family.
-	-- Same resting stroke transparency as Keybind (theme.StrokeTransparency or
-	-- 0.95), so the two components read as one family.
+	-- Rest: the theme's StrokeTransparency -- the same base as Keybind, so the
+	-- two components read as one family.
 	local function restStrokeTransparency()
 		local t = activeTheme()
 		return (t and t.StrokeTransparency) or 0.95
+	end
+
+	-- Keybind's bright stroke: while hovered or focused the stroke is the LIVE
+	-- theme StrokeColor at 0.3, tweened the same way.
+	local function brightStroke(bright)
+		local t = activeTheme()
+		local rest = (t and t.StrokeTransparency) or 0.95
+		Tween.Play(stroke, FOCUS_INFO, {
+			Transparency = bright and 0.3 or rest,
+			Color = (t and t.StrokeColor) or Color3.fromRGB(80, 80, 80),
+		})
+		-- Keep PageFade's cached base at REST so a page fade never restores a
+		-- transient brighten.
+		stroke:SetAttribute("PageFadeBase", rest)
 	end
 
 	local function maxWidth()
@@ -229,12 +243,8 @@ function TextInput.new(parent, Settings, theme)
 		Tween.Play(field, FOCUS_INFO, {
 			TextTransparency = lookFocused and 0 or REST_TEXT_TRANSPARENCY,
 		})
-		-- Match Keybind: the focused stroke brightens to 0.3, unfocused returns to
-		-- the resting theme transparency.
-		Tween.Play(stroke, FOCUS_INFO, {
-			Transparency = lookFocused and 0.3 or restStrokeTransparency(),
-		})
-		stroke:SetAttribute("PageFadeBase", restStrokeTransparency())
+		-- Match Keybind: bright while focused or hovered, resting otherwise.
+		brightStroke(lookFocused or hovered)
 	end
 
 	local flashToken = 0
@@ -252,11 +262,9 @@ function TextInput.new(parent, Settings, theme)
 			if not field.Parent then
 				return
 			end
-			local settled = activeTheme()
-			Tween.Play(stroke, SETTLE_INFO, {
-				Color = settled.StrokeColor or Color3.fromRGB(80, 80, 80),
-				Transparency = restStrokeTransparency(),
-			})
+			-- Settle to the Keybind bright stroke if the field is still being
+			-- used (refocused during the flash), otherwise back to rest.
+			brightStroke(field:IsFocused() or hovered)
 			Tween.Play(glow, SETTLE_INFO, { Transparency = 1 })
 		end)
 	end
@@ -312,14 +320,16 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- Hover: brighten the stroke to Keybind's 0.3 and restore on leave, but only
-	-- if the field is not focused (focus owns the bright state while active).
+	-- Hover: the same bright stroke as Keybind (live StrokeColor at 0.3), but
+	-- only while unfocused -- focus owns the bright state while it is active.
 	field.MouseEnter:Connect(function()
-		Tween.Play(stroke, "HoverIn", { Transparency = 0.3 })
+		hovered = true
+		brightStroke(true)
 	end)
 	field.MouseLeave:Connect(function()
+		hovered = false
 		if not field:IsFocused() then
-			Tween.Play(stroke, "HoverOut", { Transparency = restStrokeTransparency() })
+			brightStroke(false)
 		end
 	end)
 

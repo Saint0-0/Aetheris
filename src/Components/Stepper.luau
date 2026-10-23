@@ -107,8 +107,8 @@ function Stepper.new(parent, Settings, theme)
 		end)
 		return btn
 	end
-	local stepUp = makeStepButton("chevron-up", 1)
-	local stepDown = makeStepButton("chevron-down", 2)
+	local stepUp = makeStepButton("arrow-up-1-0", 1)
+	local stepDown = makeStepButton("arrow-down-0-1", 2)
 	-- Store references
 	self.Row = row
 	self.Label = label
