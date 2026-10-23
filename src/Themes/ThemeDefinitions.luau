@@ -100,50 +100,49 @@ ThemeDefinitions.Base = {
 	WallpaperEnabled = true,
 }
 
--- Umbral: flagship dark. Cool blue-grey near-black, deeply frosted sidebar,
--- a faint content tint, and a muted steel-blue accent. This is the launch
--- default and the reference point for every other dark theme.
+-- Umbral: true navy. Near-black blue chrome with a saturated steel-blue
+-- accent, the darkest and most saturated blue in the roster.
 ThemeDefinitions.Umbral = {
 	-- Window
-	WindowColor = Color3.fromRGB(14, 16, 22),
+	WindowColor = Color3.fromRGB(13, 15, 21),
 	WindowTransparency = 0.15,
-	ContentBackgroundColor = Color3.fromRGB(16, 19, 26),
+	ContentBackgroundColor = Color3.fromRGB(15, 17, 24),
 	ContentBackgroundTransparency = 0.1,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(19, 23, 31),
+	SidebarColor = Color3.fromRGB(19, 22, 31),
 	SidebarTransparency = 0.72,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(28, 33, 44),
+	InputBackgroundColor = Color3.fromRGB(26, 30, 42),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(92, 124, 176),
-	SecondaryColor = Color3.fromRGB(58, 72, 96),
-	TertiaryColor = Color3.fromRGB(120, 132, 150),
-	Undercolor = Color3.fromRGB(34, 40, 52),
-	AccentColor = Color3.fromRGB(122, 156, 210),
+	PrimaryColor = Color3.fromRGB(76, 110, 180),
+	SecondaryColor = Color3.fromRGB(48, 66, 104),
+	TertiaryColor = Color3.fromRGB(126, 142, 172),
+	Undercolor = Color3.fromRGB(30, 36, 50),
+	AccentColor = Color3.fromRGB(118, 152, 214),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(238, 242, 248),
+	PrimaryTextColor = Color3.fromRGB(236, 241, 250),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(178, 188, 202),
+	SecondaryTextColor = Color3.fromRGB(174, 186, 206),
 	SecondaryTextTransparency = 0.4,
 	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(178, 188, 202),
-	InactiveTabIconColor = Color3.fromRGB(178, 188, 202),
+	InactiveTabTextColor = Color3.fromRGB(174, 186, 206),
+	InactiveTabIconColor = Color3.fromRGB(174, 186, 206),
 	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
 	ActiveTabIconColor = Color3.fromRGB(255, 255, 255),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(255, 255, 255),
+	ActiveTabButtonColor = Color3.fromRGB(214, 228, 248),
 	ActiveTabButtonTransparency = 0.99,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -155,15 +154,15 @@ ThemeDefinitions.Umbral = {
 	SectionStrokeTransparency = 0.98,
 	SectionDividerColor = Color3.fromRGB(255, 255, 255),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(28, 33, 44),
+	SearchBarBackgroundColor = Color3.fromRGB(26, 30, 42),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(18, 22, 30),
+	PopupBackgroundColor = Color3.fromRGB(17, 19, 27),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(44, 51, 65),
+	PopupNeutralColor = Color3.fromRGB(40, 47, 63),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(240, 244, 250),
+	PopupTextColor = Color3.fromRGB(238, 243, 252),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -171,49 +170,49 @@ ThemeDefinitions.Umbral = {
 	WallpaperEnabled = true,
 }
 
--- Ember: warm dark. Charcoal-brown surfaces lit by a burnt-orange accent,
--- frosted sidebar over an opaque content area.
+-- Ember: cool slate with vivid lava. Slate-blue-black chrome makes the
+-- molten orange accent pop like lava falls against a night cliff.
 ThemeDefinitions.Ember = {
 	-- Window
-	WindowColor = Color3.fromRGB(18, 14, 12),
+	WindowColor = Color3.fromRGB(15, 17, 23),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(20, 15, 13),
+	ContentBackgroundColor = Color3.fromRGB(17, 19, 25),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(24, 18, 15),
+	SidebarColor = Color3.fromRGB(21, 24, 32),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(34, 25, 21),
+	InputBackgroundColor = Color3.fromRGB(30, 34, 44),
 	InputBackgroundTransparency = 0.1,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(196, 92, 30),
-	SecondaryColor = Color3.fromRGB(122, 62, 34),
-	TertiaryColor = Color3.fromRGB(170, 120, 96),
-	Undercolor = Color3.fromRGB(42, 30, 25),
-	AccentColor = Color3.fromRGB(214, 104, 40),
+	PrimaryColor = Color3.fromRGB(255, 96, 36),
+	SecondaryColor = Color3.fromRGB(122, 58, 34),
+	TertiaryColor = Color3.fromRGB(142, 154, 176),
+	Undercolor = Color3.fromRGB(38, 44, 58),
+	AccentColor = Color3.fromRGB(255, 146, 64),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(244, 238, 233),
+	PrimaryTextColor = Color3.fromRGB(240, 243, 248),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(198, 180, 168),
+	SecondaryTextColor = Color3.fromRGB(176, 186, 204),
 	SecondaryTextTransparency = 0.4,
 	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(198, 180, 168),
-	InactiveTabIconColor = Color3.fromRGB(198, 180, 168),
+	InactiveTabTextColor = Color3.fromRGB(176, 186, 204),
+	InactiveTabIconColor = Color3.fromRGB(176, 186, 204),
 	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
-	ActiveTabIconColor = Color3.fromRGB(255, 236, 224),
+	ActiveTabIconColor = Color3.fromRGB(255, 255, 255),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(214, 104, 40),
+	ActiveTabButtonColor = Color3.fromRGB(255, 146, 64),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -223,17 +222,17 @@ ThemeDefinitions.Ember = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(255, 255, 255),
+	SectionDividerColor = Color3.fromRGB(142, 154, 176),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(34, 25, 21),
+	SearchBarBackgroundColor = Color3.fromRGB(30, 34, 44),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(22, 16, 13),
+	PopupBackgroundColor = Color3.fromRGB(19, 22, 28),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(52, 38, 31),
+	PopupNeutralColor = Color3.fromRGB(44, 52, 68),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(246, 240, 235),
+	PopupTextColor = Color3.fromRGB(242, 245, 250),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -311,49 +310,49 @@ ThemeDefinitions.Vesper = {
 	WallpaperEnabled = true,
 }
 
--- Duskfall: plum and amber dusk. Warm plum-dark chrome, translucent content
--- over the wallpaper, solid sidebar, orange accent.
+-- Duskfall: coral-red sky with a gold sun over plum hills. Plum-dark chrome,
+-- a plum-berry primary drawn from the hills, and a warm gold sun accent.
 ThemeDefinitions.Duskfall = {
 	-- Window
-	WindowColor = Color3.fromRGB(26, 18, 26),
+	WindowColor = Color3.fromRGB(24, 17, 24),
 	WindowTransparency = 0.28,
-	ContentBackgroundColor = Color3.fromRGB(30, 20, 30),
+	ContentBackgroundColor = Color3.fromRGB(28, 20, 28),
 	ContentBackgroundTransparency = 0.42,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(32, 22, 32),
+	SidebarColor = Color3.fromRGB(30, 21, 30),
 	SidebarTransparency = 0,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(44, 30, 44),
+	InputBackgroundColor = Color3.fromRGB(42, 29, 42),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(214, 122, 54),
-	SecondaryColor = Color3.fromRGB(122, 74, 110),
-	TertiaryColor = Color3.fromRGB(180, 140, 150),
-	Undercolor = Color3.fromRGB(52, 36, 50),
-	AccentColor = Color3.fromRGB(232, 140, 70),
+	PrimaryColor = Color3.fromRGB(190, 80, 128),
+	SecondaryColor = Color3.fromRGB(126, 74, 110),
+	TertiaryColor = Color3.fromRGB(188, 144, 152),
+	Undercolor = Color3.fromRGB(48, 32, 46),
+	AccentColor = Color3.fromRGB(246, 178, 60),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(246, 238, 240),
+	PrimaryTextColor = Color3.fromRGB(250, 242, 234),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(204, 184, 196),
+	SecondaryTextColor = Color3.fromRGB(214, 192, 184),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(204, 184, 196),
-	InactiveTabIconColor = Color3.fromRGB(204, 184, 196),
-	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
-	ActiveTabIconColor = Color3.fromRGB(255, 236, 222),
+	TitleTextColor = Color3.fromRGB(255, 250, 242),
+	InactiveTabTextColor = Color3.fromRGB(214, 192, 184),
+	InactiveTabIconColor = Color3.fromRGB(214, 192, 184),
+	ActiveTabTextColor = Color3.fromRGB(255, 250, 242),
+	ActiveTabIconColor = Color3.fromRGB(255, 238, 214),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(232, 140, 70),
+	ActiveTabButtonColor = Color3.fromRGB(246, 178, 60),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -365,15 +364,15 @@ ThemeDefinitions.Duskfall = {
 	SectionStrokeTransparency = 0.98,
 	SectionDividerColor = Color3.fromRGB(255, 255, 255),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(44, 30, 44),
+	SearchBarBackgroundColor = Color3.fromRGB(42, 29, 42),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(30, 20, 30),
+	PopupBackgroundColor = Color3.fromRGB(28, 20, 28),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(62, 44, 60),
+	PopupNeutralColor = Color3.fromRGB(58, 40, 56),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(246, 238, 242),
+	PopupTextColor = Color3.fromRGB(250, 242, 238),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -381,49 +380,49 @@ ThemeDefinitions.Duskfall = {
 	WallpaperEnabled = true,
 }
 
--- Canopy: forest green. Deep mossy-dark chrome, translucent content over the
--- wallpaper, solid sidebar, emerald-lime accent.
+-- Canopy: pale mint mist over piny woods; a dark theme carrying a light-value
+-- mint-green lane. Forest-dark chrome with sage-green secondaries.
 ThemeDefinitions.Canopy = {
 	-- Window
-	WindowColor = Color3.fromRGB(14, 22, 18),
+	WindowColor = Color3.fromRGB(14, 21, 18),
 	WindowTransparency = 0.28,
-	ContentBackgroundColor = Color3.fromRGB(16, 26, 21),
+	ContentBackgroundColor = Color3.fromRGB(17, 26, 21),
 	ContentBackgroundTransparency = 0.42,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(18, 30, 24),
+	SidebarColor = Color3.fromRGB(19, 30, 24),
 	SidebarTransparency = 0,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(26, 40, 32),
+	InputBackgroundColor = Color3.fromRGB(26, 41, 32),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(52, 168, 104),
-	SecondaryColor = Color3.fromRGB(38, 92, 62),
-	TertiaryColor = Color3.fromRGB(120, 168, 140),
-	Undercolor = Color3.fromRGB(30, 46, 38),
-	AccentColor = Color3.fromRGB(132, 204, 92),
+	PrimaryColor = Color3.fromRGB(96, 214, 156),
+	SecondaryColor = Color3.fromRGB(54, 106, 84),
+	TertiaryColor = Color3.fromRGB(140, 190, 164),
+	Undercolor = Color3.fromRGB(28, 46, 37),
+	AccentColor = Color3.fromRGB(150, 230, 190),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(236, 244, 238),
+	PrimaryTextColor = Color3.fromRGB(238, 247, 241),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(176, 200, 186),
+	SecondaryTextColor = Color3.fromRGB(184, 208, 194),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(176, 200, 186),
-	InactiveTabIconColor = Color3.fromRGB(176, 200, 186),
-	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
-	ActiveTabIconColor = Color3.fromRGB(230, 248, 232),
+	TitleTextColor = Color3.fromRGB(250, 255, 252),
+	InactiveTabTextColor = Color3.fromRGB(184, 208, 194),
+	InactiveTabIconColor = Color3.fromRGB(184, 208, 194),
+	ActiveTabTextColor = Color3.fromRGB(250, 255, 252),
+	ActiveTabIconColor = Color3.fromRGB(234, 252, 240),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(132, 204, 92),
+	ActiveTabButtonColor = Color3.fromRGB(150, 230, 190),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -435,15 +434,15 @@ ThemeDefinitions.Canopy = {
 	SectionStrokeTransparency = 0.98,
 	SectionDividerColor = Color3.fromRGB(255, 255, 255),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(26, 40, 32),
+	SearchBarBackgroundColor = Color3.fromRGB(26, 41, 32),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(16, 26, 21),
+	PopupBackgroundColor = Color3.fromRGB(17, 26, 21),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(40, 58, 48),
+	PopupNeutralColor = Color3.fromRGB(42, 60, 50),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(238, 246, 240),
+	PopupTextColor = Color3.fromRGB(240, 249, 243),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -451,49 +450,49 @@ ThemeDefinitions.Canopy = {
 	WallpaperEnabled = true,
 }
 
--- Tidewater: coastal blue. Deep teal-dark chrome, translucent content over the
--- wallpaper, solid sidebar, cyan accent.
+-- Tidewater: dark teal lake with mountain reflection. Desaturated teal chrome
+-- with a cool mint-teal accent, deliberately kept away from bright cyan.
 ThemeDefinitions.Tidewater = {
 	-- Window
-	WindowColor = Color3.fromRGB(12, 22, 28),
+	WindowColor = Color3.fromRGB(13, 21, 23),
 	WindowTransparency = 0.28,
-	ContentBackgroundColor = Color3.fromRGB(14, 26, 33),
+	ContentBackgroundColor = Color3.fromRGB(16, 26, 27),
 	ContentBackgroundTransparency = 0.42,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(16, 30, 38),
+	SidebarColor = Color3.fromRGB(18, 31, 30),
 	SidebarTransparency = 0,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(24, 42, 52),
+	InputBackgroundColor = Color3.fromRGB(24, 41, 40),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(34, 170, 200),
-	SecondaryColor = Color3.fromRGB(30, 90, 110),
-	TertiaryColor = Color3.fromRGB(110, 168, 186),
-	Undercolor = Color3.fromRGB(28, 48, 58),
-	AccentColor = Color3.fromRGB(84, 214, 234),
+	PrimaryColor = Color3.fromRGB(40, 162, 152),
+	SecondaryColor = Color3.fromRGB(36, 94, 92),
+	TertiaryColor = Color3.fromRGB(126, 176, 174),
+	Undercolor = Color3.fromRGB(26, 45, 44),
+	AccentColor = Color3.fromRGB(92, 208, 192),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(234, 244, 248),
+	PrimaryTextColor = Color3.fromRGB(236, 246, 244),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(172, 198, 208),
+	SecondaryTextColor = Color3.fromRGB(176, 200, 200),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(172, 198, 208),
-	InactiveTabIconColor = Color3.fromRGB(172, 198, 208),
-	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
-	ActiveTabIconColor = Color3.fromRGB(226, 248, 252),
+	TitleTextColor = Color3.fromRGB(250, 255, 254),
+	InactiveTabTextColor = Color3.fromRGB(176, 200, 200),
+	InactiveTabIconColor = Color3.fromRGB(176, 200, 200),
+	ActiveTabTextColor = Color3.fromRGB(250, 255, 254),
+	ActiveTabIconColor = Color3.fromRGB(228, 250, 246),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(84, 214, 234),
+	ActiveTabButtonColor = Color3.fromRGB(92, 208, 192),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -505,15 +504,15 @@ ThemeDefinitions.Tidewater = {
 	SectionStrokeTransparency = 0.98,
 	SectionDividerColor = Color3.fromRGB(255, 255, 255),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(24, 42, 52),
+	SearchBarBackgroundColor = Color3.fromRGB(24, 41, 40),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(14, 26, 33),
+	PopupBackgroundColor = Color3.fromRGB(16, 26, 27),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(36, 58, 70),
+	PopupNeutralColor = Color3.fromRGB(34, 56, 54),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(236, 246, 250),
+	PopupTextColor = Color3.fromRGB(238, 248, 246),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -521,49 +520,49 @@ ThemeDefinitions.Tidewater = {
 	WallpaperEnabled = true,
 }
 
--- Nocturne: vivid night. Indigo-dark chrome, frosted sidebar over opaque
--- content, magenta-indigo accent.
+-- Nocturne: black forest under a magenta-purple aurora. Near-black violet
+-- chrome with a deep purple-magenta primary, hue leaning toward 300.
 ThemeDefinitions.Nocturne = {
 	-- Window
-	WindowColor = Color3.fromRGB(16, 14, 26),
+	WindowColor = Color3.fromRGB(15, 13, 22),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(18, 16, 30),
+	ContentBackgroundColor = Color3.fromRGB(17, 15, 26),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(24, 20, 40),
+	SidebarColor = Color3.fromRGB(23, 19, 35),
 	SidebarTransparency = 0.68,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(32, 27, 52),
+	InputBackgroundColor = Color3.fromRGB(29, 25, 44),
 	InputBackgroundTransparency = 0.1,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(190, 72, 200),
-	SecondaryColor = Color3.fromRGB(88, 62, 158),
-	TertiaryColor = Color3.fromRGB(160, 130, 190),
-	Undercolor = Color3.fromRGB(40, 34, 62),
-	AccentColor = Color3.fromRGB(224, 108, 220),
+	PrimaryColor = Color3.fromRGB(214, 64, 196),
+	SecondaryColor = Color3.fromRGB(106, 74, 126),
+	TertiaryColor = Color3.fromRGB(172, 152, 186),
+	Undercolor = Color3.fromRGB(36, 30, 52),
+	AccentColor = Color3.fromRGB(244, 116, 220),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(240, 236, 248),
+	PrimaryTextColor = Color3.fromRGB(242, 238, 246),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(190, 180, 208),
+	SecondaryTextColor = Color3.fromRGB(194, 186, 206),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(255, 255, 255),
-	InactiveTabTextColor = Color3.fromRGB(190, 180, 208),
-	InactiveTabIconColor = Color3.fromRGB(190, 180, 208),
-	ActiveTabTextColor = Color3.fromRGB(255, 255, 255),
-	ActiveTabIconColor = Color3.fromRGB(255, 236, 252),
+	TitleTextColor = Color3.fromRGB(252, 250, 255),
+	InactiveTabTextColor = Color3.fromRGB(194, 186, 206),
+	InactiveTabIconColor = Color3.fromRGB(194, 186, 206),
+	ActiveTabTextColor = Color3.fromRGB(252, 250, 255),
+	ActiveTabIconColor = Color3.fromRGB(255, 232, 250),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(224, 108, 220),
+	ActiveTabButtonColor = Color3.fromRGB(244, 116, 220),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -575,15 +574,15 @@ ThemeDefinitions.Nocturne = {
 	SectionStrokeTransparency = 0.98,
 	SectionDividerColor = Color3.fromRGB(255, 255, 255),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(32, 27, 52),
+	SearchBarBackgroundColor = Color3.fromRGB(29, 25, 44),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(20, 17, 34),
+	PopupBackgroundColor = Color3.fromRGB(17, 15, 26),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(48, 40, 72),
+	PopupNeutralColor = Color3.fromRGB(44, 36, 64),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(242, 238, 250),
+	PopupTextColor = Color3.fromRGB(244, 240, 250),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -591,49 +590,49 @@ ThemeDefinitions.Nocturne = {
 	WallpaperEnabled = true,
 }
 
--- Solace: soft ice-blue light. Near-white chrome, frosted light sidebar over
--- opaque content, cool ice-blue accent.
+-- Solace: white-blue winter forest. The softest, palest ice-blue light theme:
+-- near-white chrome, gentlest saturation, cool slate-blue text.
 ThemeDefinitions.Solace = {
 	-- Window
-	WindowColor = Color3.fromRGB(244, 247, 251),
+	WindowColor = Color3.fromRGB(245, 248, 252),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(250, 251, 253),
+	ContentBackgroundColor = Color3.fromRGB(250, 252, 253),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(120, 140, 160),
+	MainframeShadowColor = Color3.fromRGB(122, 142, 164),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(228, 236, 245),
+	SidebarColor = Color3.fromRGB(226, 237, 248),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(233, 239, 246),
+	InputBackgroundColor = Color3.fromRGB(231, 239, 248),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(150, 168, 188),
-	StrokeColor = Color3.fromRGB(120, 140, 165),
+	ComponentShadowColor = Color3.fromRGB(148, 168, 192),
+	StrokeColor = Color3.fromRGB(122, 142, 170),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(70, 140, 210),
-	SecondaryColor = Color3.fromRGB(180, 200, 220),
-	TertiaryColor = Color3.fromRGB(150, 168, 188),
-	Undercolor = Color3.fromRGB(214, 226, 238),
-	AccentColor = Color3.fromRGB(56, 130, 205),
+	PrimaryColor = Color3.fromRGB(96, 152, 210),
+	SecondaryColor = Color3.fromRGB(184, 204, 226),
+	TertiaryColor = Color3.fromRGB(150, 170, 196),
+	Undercolor = Color3.fromRGB(216, 228, 242),
+	AccentColor = Color3.fromRGB(62, 138, 208),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(28, 40, 56),
+	PrimaryTextColor = Color3.fromRGB(26, 40, 60),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(90, 106, 126),
+	SecondaryTextColor = Color3.fromRGB(88, 108, 132),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(18, 28, 42),
-	InactiveTabTextColor = Color3.fromRGB(96, 114, 136),
-	InactiveTabIconColor = Color3.fromRGB(96, 114, 136),
-	ActiveTabTextColor = Color3.fromRGB(20, 34, 52),
-	ActiveTabIconColor = Color3.fromRGB(20, 34, 52),
+	TitleTextColor = Color3.fromRGB(16, 28, 48),
+	InactiveTabTextColor = Color3.fromRGB(88, 108, 132),
+	InactiveTabIconColor = Color3.fromRGB(88, 108, 132),
+	ActiveTabTextColor = Color3.fromRGB(20, 34, 56),
+	ActiveTabIconColor = Color3.fromRGB(20, 34, 56),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(70, 140, 210),
+	ActiveTabButtonColor = Color3.fromRGB(62, 138, 208),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -643,17 +642,17 @@ ThemeDefinitions.Solace = {
 	SectionBackgroundTransparency = 0.4,
 	SectionStrokeColor = Color3.fromRGB(120, 140, 165),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(170, 186, 204),
+	SectionDividerColor = Color3.fromRGB(174, 190, 212),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(233, 239, 246),
+	SearchBarBackgroundColor = Color3.fromRGB(231, 239, 248),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(252, 253, 255),
+	PopupBackgroundColor = Color3.fromRGB(250, 252, 253),
 	PopupBackgroundTransparency = 0,
-	PopupNeutralColor = Color3.fromRGB(228, 236, 245),
-	PopupShadowColor = Color3.fromRGB(120, 140, 160),
-	PopupTextColor = Color3.fromRGB(28, 40, 56),
+	PopupNeutralColor = Color3.fromRGB(226, 237, 248),
+	PopupShadowColor = Color3.fromRGB(122, 142, 164),
+	PopupTextColor = Color3.fromRGB(26, 40, 60),
 	PopupTextTransparency = 0,
 
 	-- Wallpaper
@@ -661,8 +660,8 @@ ThemeDefinitions.Solace = {
 	WallpaperEnabled = true,
 }
 
--- Cielo: clean daylight. Bright white chrome, frosted sidebar over opaque
--- content, saturated cobalt-blue accent.
+-- Cielo: sky cobalt with a coral spark. Pale blue-white chrome over a bright
+-- cobalt primary, with a warm coral accent drawn from the red wave in its wallpaper.
 ThemeDefinitions.Cielo = {
 	-- Window
 	WindowColor = Color3.fromRGB(246, 248, 252),
@@ -683,11 +682,11 @@ ThemeDefinitions.Cielo = {
 	ComponentShadowColor = Color3.fromRGB(140, 158, 188),
 	StrokeColor = Color3.fromRGB(110, 130, 170),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(24, 82, 200),
+	PrimaryColor = Color3.fromRGB(24, 86, 208),
 	SecondaryColor = Color3.fromRGB(178, 194, 222),
 	TertiaryColor = Color3.fromRGB(140, 158, 188),
 	Undercolor = Color3.fromRGB(210, 222, 240),
-	AccentColor = Color3.fromRGB(28, 96, 224),
+	AccentColor = Color3.fromRGB(244, 104, 74),
 
 	-- Text
 	PrimaryTextColor = Color3.fromRGB(22, 32, 52),
@@ -703,7 +702,7 @@ ThemeDefinitions.Cielo = {
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(28, 96, 224),
+	ActiveTabButtonColor = Color3.fromRGB(244, 104, 74),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -801,49 +800,49 @@ ThemeDefinitions.Honey = {
 	WallpaperEnabled = true,
 }
 
--- Dawn: soft rose-peach morning. Warm blush-white chrome, frosted sidebar
--- over opaque content, gentle coral accent.
+-- Dawn: warm orchid silk. Pink-cast white chrome with an orchid-violet primary
+-- and a soft rose accent, the warm violet answer to Lilac's cool periwinkle.
 ThemeDefinitions.Dawn = {
 	-- Window
-	WindowColor = Color3.fromRGB(250, 244, 244),
+	WindowColor = Color3.fromRGB(250, 245, 246),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(253, 249, 248),
+	ContentBackgroundColor = Color3.fromRGB(253, 250, 251),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(160, 120, 120),
+	MainframeShadowColor = Color3.fromRGB(150, 120, 165),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(244, 228, 226),
+	SidebarColor = Color3.fromRGB(240, 228, 244),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(244, 232, 230),
+	InputBackgroundColor = Color3.fromRGB(240, 232, 242),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(180, 140, 138),
-	StrokeColor = Color3.fromRGB(160, 120, 120),
+	ComponentShadowColor = Color3.fromRGB(176, 140, 182),
+	StrokeColor = Color3.fromRGB(150, 120, 165),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(214, 122, 128),
-	SecondaryColor = Color3.fromRGB(226, 200, 198),
-	TertiaryColor = Color3.fromRGB(190, 156, 156),
-	Undercolor = Color3.fromRGB(236, 214, 212),
-	AccentColor = Color3.fromRGB(236, 146, 140),
+	PrimaryColor = Color3.fromRGB(166, 110, 210),
+	SecondaryColor = Color3.fromRGB(220, 204, 230),
+	TertiaryColor = Color3.fromRGB(178, 152, 184),
+	Undercolor = Color3.fromRGB(234, 222, 240),
+	AccentColor = Color3.fromRGB(236, 148, 152),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(56, 36, 40),
+	PrimaryTextColor = Color3.fromRGB(52, 36, 54),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(124, 94, 96),
+	SecondaryTextColor = Color3.fromRGB(118, 94, 124),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(46, 28, 32),
-	InactiveTabTextColor = Color3.fromRGB(128, 98, 100),
-	InactiveTabIconColor = Color3.fromRGB(128, 98, 100),
-	ActiveTabTextColor = Color3.fromRGB(48, 30, 34),
-	ActiveTabIconColor = Color3.fromRGB(48, 30, 34),
+	TitleTextColor = Color3.fromRGB(44, 28, 46),
+	InactiveTabTextColor = Color3.fromRGB(122, 98, 128),
+	InactiveTabIconColor = Color3.fromRGB(122, 98, 128),
+	ActiveTabTextColor = Color3.fromRGB(46, 30, 48),
+	ActiveTabIconColor = Color3.fromRGB(46, 30, 48),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(236, 146, 140),
+	ActiveTabButtonColor = Color3.fromRGB(236, 148, 152),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -851,19 +850,19 @@ ThemeDefinitions.Dawn = {
 	-- Section
 	SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
 	SectionBackgroundTransparency = 0.4,
-	SectionStrokeColor = Color3.fromRGB(160, 120, 120),
+	SectionStrokeColor = Color3.fromRGB(150, 120, 165),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(206, 178, 178),
+	SectionDividerColor = Color3.fromRGB(200, 178, 208),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(244, 232, 230),
+	SearchBarBackgroundColor = Color3.fromRGB(240, 232, 242),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(253, 249, 248),
+	PopupBackgroundColor = Color3.fromRGB(253, 250, 251),
 	PopupBackgroundTransparency = 0,
-	PopupNeutralColor = Color3.fromRGB(244, 228, 226),
-	PopupShadowColor = Color3.fromRGB(160, 120, 120),
-	PopupTextColor = Color3.fromRGB(56, 36, 40),
+	PopupNeutralColor = Color3.fromRGB(240, 228, 244),
+	PopupShadowColor = Color3.fromRGB(150, 120, 165),
+	PopupTextColor = Color3.fromRGB(52, 36, 54),
 	PopupTextTransparency = 0,
 
 	-- Wallpaper
@@ -871,49 +870,49 @@ ThemeDefinitions.Dawn = {
 	WallpaperEnabled = true,
 }
 
--- Alpine: crisp mountain daylight. Clean white chrome, translucent content
--- over the wallpaper, solid sidebar, bright sky-blue accent.
+-- Alpine: slate-teal mountain mist. Cool slate-white chrome with a grey-cyan
+-- cast throughout and a slate-teal accent, away from the pure-blue lane.
 ThemeDefinitions.Alpine = {
 	-- Window
-	WindowColor = Color3.fromRGB(242, 246, 251),
+	WindowColor = Color3.fromRGB(242, 247, 247),
 	WindowTransparency = 0.28,
-	ContentBackgroundColor = Color3.fromRGB(246, 250, 254),
+	ContentBackgroundColor = Color3.fromRGB(246, 250, 250),
 	ContentBackgroundTransparency = 0.42,
-	MainframeShadowColor = Color3.fromRGB(120, 140, 170),
+	MainframeShadowColor = Color3.fromRGB(120, 144, 156),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(226, 234, 244),
+	SidebarColor = Color3.fromRGB(226, 238, 237),
 	SidebarTransparency = 0,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(230, 238, 248),
+	InputBackgroundColor = Color3.fromRGB(228, 239, 239),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(140, 160, 190),
-	StrokeColor = Color3.fromRGB(120, 140, 170),
+	ComponentShadowColor = Color3.fromRGB(140, 162, 176),
+	StrokeColor = Color3.fromRGB(118, 144, 158),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(42, 130, 210),
-	SecondaryColor = Color3.fromRGB(180, 198, 220),
-	TertiaryColor = Color3.fromRGB(140, 162, 190),
-	Undercolor = Color3.fromRGB(212, 226, 240),
-	AccentColor = Color3.fromRGB(60, 154, 232),
+	PrimaryColor = Color3.fromRGB(54, 140, 164),
+	SecondaryColor = Color3.fromRGB(180, 200, 206),
+	TertiaryColor = Color3.fromRGB(142, 166, 174),
+	Undercolor = Color3.fromRGB(212, 228, 230),
+	AccentColor = Color3.fromRGB(72, 166, 188),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(24, 38, 58),
+	PrimaryTextColor = Color3.fromRGB(22, 38, 42),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(84, 104, 130),
+	SecondaryTextColor = Color3.fromRGB(82, 104, 110),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(16, 28, 46),
-	InactiveTabTextColor = Color3.fromRGB(90, 110, 138),
-	InactiveTabIconColor = Color3.fromRGB(90, 110, 138),
-	ActiveTabTextColor = Color3.fromRGB(18, 32, 52),
-	ActiveTabIconColor = Color3.fromRGB(18, 32, 52),
+	TitleTextColor = Color3.fromRGB(14, 28, 32),
+	InactiveTabTextColor = Color3.fromRGB(82, 104, 110),
+	InactiveTabIconColor = Color3.fromRGB(82, 104, 110),
+	ActiveTabTextColor = Color3.fromRGB(16, 32, 38),
+	ActiveTabIconColor = Color3.fromRGB(16, 32, 38),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(60, 154, 232),
+	ActiveTabButtonColor = Color3.fromRGB(72, 166, 188),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -923,17 +922,17 @@ ThemeDefinitions.Alpine = {
 	SectionBackgroundTransparency = 0.4,
 	SectionStrokeColor = Color3.fromRGB(120, 140, 170),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(168, 184, 206),
+	SectionDividerColor = Color3.fromRGB(168, 186, 192),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(230, 238, 248),
+	SearchBarBackgroundColor = Color3.fromRGB(228, 239, 239),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(246, 250, 254),
+	PopupBackgroundColor = Color3.fromRGB(246, 250, 250),
 	PopupBackgroundTransparency = 0,
-	PopupNeutralColor = Color3.fromRGB(226, 234, 244),
-	PopupShadowColor = Color3.fromRGB(120, 140, 170),
-	PopupTextColor = Color3.fromRGB(24, 38, 58),
+	PopupNeutralColor = Color3.fromRGB(226, 238, 237),
+	PopupShadowColor = Color3.fromRGB(120, 144, 156),
+	PopupTextColor = Color3.fromRGB(22, 38, 42),
 	PopupTextTransparency = 0,
 
 	-- Wallpaper
@@ -1081,49 +1080,49 @@ ThemeDefinitions.Sakura = {
 	WallpaperEnabled = true,
 }
 
--- Blush: deep rose minimal. Warm off-white chrome, frosted sidebar over
--- opaque content, deep rose accent.
+-- Blush: fuchsia-magenta bloom. Pale pink-white chrome with a crimson-fuchsia
+-- primary and a bright fuchsia accent, deeper and bluer than Nebula's pink.
 ThemeDefinitions.Blush = {
 	-- Window
-	WindowColor = Color3.fromRGB(252, 246, 248),
+	WindowColor = Color3.fromRGB(252, 245, 248),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(254, 250, 251),
+	ContentBackgroundColor = Color3.fromRGB(254, 249, 251),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(180, 140, 155),
+	MainframeShadowColor = Color3.fromRGB(185, 120, 160),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(246, 230, 236),
+	SidebarColor = Color3.fromRGB(246, 228, 238),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(246, 234, 240),
+	InputBackgroundColor = Color3.fromRGB(246, 232, 240),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(190, 152, 168),
-	StrokeColor = Color3.fromRGB(180, 140, 155),
+	ComponentShadowColor = Color3.fromRGB(195, 130, 170),
+	StrokeColor = Color3.fromRGB(185, 120, 160),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(196, 54, 96),
-	SecondaryColor = Color3.fromRGB(228, 200, 214),
-	TertiaryColor = Color3.fromRGB(190, 156, 172),
-	Undercolor = Color3.fromRGB(236, 216, 226),
-	AccentColor = Color3.fromRGB(212, 74, 116),
+	PrimaryColor = Color3.fromRGB(206, 52, 132),
+	SecondaryColor = Color3.fromRGB(232, 196, 218),
+	TertiaryColor = Color3.fromRGB(195, 140, 175),
+	Undercolor = Color3.fromRGB(238, 212, 228),
+	AccentColor = Color3.fromRGB(232, 88, 158),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(56, 30, 40),
+	PrimaryTextColor = Color3.fromRGB(56, 28, 42),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(124, 88, 102),
+	SecondaryTextColor = Color3.fromRGB(126, 86, 108),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(44, 24, 34),
-	InactiveTabTextColor = Color3.fromRGB(130, 94, 108),
-	InactiveTabIconColor = Color3.fromRGB(130, 94, 108),
-	ActiveTabTextColor = Color3.fromRGB(48, 26, 36),
-	ActiveTabIconColor = Color3.fromRGB(48, 26, 36),
+	TitleTextColor = Color3.fromRGB(44, 22, 36),
+	InactiveTabTextColor = Color3.fromRGB(130, 92, 114),
+	InactiveTabIconColor = Color3.fromRGB(130, 92, 114),
+	ActiveTabTextColor = Color3.fromRGB(48, 24, 38),
+	ActiveTabIconColor = Color3.fromRGB(48, 24, 38),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(212, 74, 116),
+	ActiveTabButtonColor = Color3.fromRGB(232, 88, 158),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1131,19 +1130,19 @@ ThemeDefinitions.Blush = {
 	-- Section
 	SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
 	SectionBackgroundTransparency = 0.4,
-	SectionStrokeColor = Color3.fromRGB(180, 140, 155),
+	SectionStrokeColor = Color3.fromRGB(185, 120, 160),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(214, 184, 196),
+	SectionDividerColor = Color3.fromRGB(216, 178, 202),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(246, 234, 240),
+	SearchBarBackgroundColor = Color3.fromRGB(246, 232, 240),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(254, 250, 251),
+	PopupBackgroundColor = Color3.fromRGB(254, 249, 251),
 	PopupBackgroundTransparency = 0,
-	PopupNeutralColor = Color3.fromRGB(246, 230, 236),
-	PopupShadowColor = Color3.fromRGB(180, 140, 155),
-	PopupTextColor = Color3.fromRGB(56, 30, 40),
+	PopupNeutralColor = Color3.fromRGB(246, 228, 238),
+	PopupShadowColor = Color3.fromRGB(185, 120, 160),
+	PopupTextColor = Color3.fromRGB(56, 28, 42),
 	PopupTextTransparency = 0,
 
 	-- Wallpaper
@@ -1151,48 +1150,49 @@ ThemeDefinitions.Blush = {
 	WallpaperEnabled = true,
 }
 
--- Cinder: Vivid fire. Near-black chrome with a bright molten-orange accent.
+-- Cinder: ash and muted ember. Warm-black ash chrome with a dim, desaturated
+-- ember accent, the quiet and darker cousin of Ember.
 ThemeDefinitions.Cinder = {
 	-- Window
-	WindowColor = Color3.fromRGB(20, 13, 10),
+	WindowColor = Color3.fromRGB(17, 16, 17),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(22, 15, 12),
+	ContentBackgroundColor = Color3.fromRGB(19, 18, 19),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(28, 18, 14),
+	SidebarColor = Color3.fromRGB(24, 22, 23),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(28, 18, 14),
+	InputBackgroundColor = Color3.fromRGB(31, 28, 29),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(236, 110, 40),
-	SecondaryColor = Color3.fromRGB(150, 70, 30),
-	TertiaryColor = Color3.fromRGB(190, 130, 100),
-	Undercolor = Color3.fromRGB(44, 28, 22),
-	AccentColor = Color3.fromRGB(255, 145, 65),
+	PrimaryColor = Color3.fromRGB(190, 86, 54),
+	SecondaryColor = Color3.fromRGB(102, 90, 84),
+	TertiaryColor = Color3.fromRGB(166, 150, 144),
+	Undercolor = Color3.fromRGB(44, 38, 36),
+	AccentColor = Color3.fromRGB(218, 116, 74),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(246, 238, 232),
+	PrimaryTextColor = Color3.fromRGB(242, 237, 234),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(200, 178, 164),
+	SecondaryTextColor = Color3.fromRGB(190, 176, 170),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(246, 238, 232),
-	InactiveTabTextColor = Color3.fromRGB(200, 178, 164),
-	InactiveTabIconColor = Color3.fromRGB(200, 178, 164),
-	ActiveTabTextColor = Color3.fromRGB(246, 238, 232),
-	ActiveTabIconColor = Color3.fromRGB(246, 238, 232),
+	TitleTextColor = Color3.fromRGB(242, 237, 234),
+	InactiveTabTextColor = Color3.fromRGB(190, 176, 170),
+	InactiveTabIconColor = Color3.fromRGB(190, 176, 170),
+	ActiveTabTextColor = Color3.fromRGB(242, 237, 234),
+	ActiveTabIconColor = Color3.fromRGB(242, 237, 234),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(255, 145, 65),
+	ActiveTabButtonColor = Color3.fromRGB(218, 116, 74),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1202,17 +1202,17 @@ ThemeDefinitions.Cinder = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(190, 130, 100),
+	SectionDividerColor = Color3.fromRGB(166, 150, 144),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(28, 18, 14),
+	SearchBarBackgroundColor = Color3.fromRGB(31, 28, 29),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(22, 15, 12),
+	PopupBackgroundColor = Color3.fromRGB(21, 20, 21),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(44, 28, 22),
+	PopupNeutralColor = Color3.fromRGB(44, 38, 36),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(246, 238, 232),
+	PopupTextColor = Color3.fromRGB(242, 237, 234),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1220,48 +1220,49 @@ ThemeDefinitions.Cinder = {
 	WallpaperEnabled = true,
 }
 
--- Mauve: Soft violet. Muted lavender accent over deep plum-grey chrome.
+-- Mauve: dusky purple castle under a pink moon. The desaturated violet lane:
+-- warm-grey plum chrome, dusty low-saturation plum accent, warm off-white text.
 ThemeDefinitions.Mauve = {
 	-- Window
-	WindowColor = Color3.fromRGB(22, 18, 30),
+	WindowColor = Color3.fromRGB(22, 18, 28),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(26, 21, 34),
+	ContentBackgroundColor = Color3.fromRGB(26, 22, 33),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(30, 24, 40),
+	SidebarColor = Color3.fromRGB(30, 24, 37),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(30, 24, 40),
+	InputBackgroundColor = Color3.fromRGB(30, 24, 37),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(150, 110, 190),
-	SecondaryColor = Color3.fromRGB(95, 70, 125),
-	TertiaryColor = Color3.fromRGB(160, 140, 185),
-	Undercolor = Color3.fromRGB(46, 38, 60),
-	AccentColor = Color3.fromRGB(180, 140, 220),
+	PrimaryColor = Color3.fromRGB(146, 108, 164),
+	SecondaryColor = Color3.fromRGB(96, 76, 114),
+	TertiaryColor = Color3.fromRGB(168, 150, 182),
+	Undercolor = Color3.fromRGB(44, 37, 56),
+	AccentColor = Color3.fromRGB(178, 142, 196),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(242, 238, 250),
+	PrimaryTextColor = Color3.fromRGB(246, 241, 242),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(190, 182, 208),
+	SecondaryTextColor = Color3.fromRGB(198, 188, 201),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(242, 238, 250),
-	InactiveTabTextColor = Color3.fromRGB(190, 182, 208),
-	InactiveTabIconColor = Color3.fromRGB(190, 182, 208),
-	ActiveTabTextColor = Color3.fromRGB(242, 238, 250),
-	ActiveTabIconColor = Color3.fromRGB(242, 238, 250),
+	TitleTextColor = Color3.fromRGB(246, 241, 242),
+	InactiveTabTextColor = Color3.fromRGB(198, 188, 201),
+	InactiveTabIconColor = Color3.fromRGB(198, 188, 201),
+	ActiveTabTextColor = Color3.fromRGB(246, 241, 242),
+	ActiveTabIconColor = Color3.fromRGB(246, 241, 242),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(180, 140, 220),
+	ActiveTabButtonColor = Color3.fromRGB(178, 142, 196),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1271,17 +1272,17 @@ ThemeDefinitions.Mauve = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(160, 140, 185),
+	SectionDividerColor = Color3.fromRGB(168, 150, 182),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(30, 24, 40),
+	SearchBarBackgroundColor = Color3.fromRGB(30, 24, 37),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(26, 21, 34),
+	PopupBackgroundColor = Color3.fromRGB(26, 22, 33),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(46, 38, 60),
+	PopupNeutralColor = Color3.fromRGB(44, 37, 56),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(242, 238, 250),
+	PopupTextColor = Color3.fromRGB(246, 241, 242),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1289,48 +1290,49 @@ ThemeDefinitions.Mauve = {
 	WallpaperEnabled = true,
 }
 
--- Iris: Deep purple. Saturated indigo-violet accent, moody and rich.
+-- Iris: purple cloud sea under a field of stars. Classic mid violet: deeper
+-- and less bright than Vesper, bluer than Mauve's plum, on black-violet chrome.
 ThemeDefinitions.Iris = {
 	-- Window
-	WindowColor = Color3.fromRGB(18, 16, 34),
+	WindowColor = Color3.fromRGB(18, 16, 33),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(22, 19, 40),
+	ContentBackgroundColor = Color3.fromRGB(22, 19, 39),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(26, 22, 46),
+	SidebarColor = Color3.fromRGB(26, 22, 45),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(26, 22, 46),
+	InputBackgroundColor = Color3.fromRGB(26, 22, 45),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(120, 95, 200),
-	SecondaryColor = Color3.fromRGB(75, 60, 135),
-	TertiaryColor = Color3.fromRGB(145, 130, 195),
-	Undercolor = Color3.fromRGB(40, 34, 66),
-	AccentColor = Color3.fromRGB(155, 130, 235),
+	PrimaryColor = Color3.fromRGB(92, 74, 206),
+	SecondaryColor = Color3.fromRGB(82, 68, 140),
+	TertiaryColor = Color3.fromRGB(140, 126, 202),
+	Undercolor = Color3.fromRGB(40, 34, 64),
+	AccentColor = Color3.fromRGB(140, 118, 236),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(240, 238, 252),
+	PrimaryTextColor = Color3.fromRGB(240, 238, 253),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(186, 180, 214),
+	SecondaryTextColor = Color3.fromRGB(184, 180, 218),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(240, 238, 252),
-	InactiveTabTextColor = Color3.fromRGB(186, 180, 214),
-	InactiveTabIconColor = Color3.fromRGB(186, 180, 214),
-	ActiveTabTextColor = Color3.fromRGB(240, 238, 252),
-	ActiveTabIconColor = Color3.fromRGB(240, 238, 252),
+	TitleTextColor = Color3.fromRGB(240, 238, 253),
+	InactiveTabTextColor = Color3.fromRGB(184, 180, 218),
+	InactiveTabIconColor = Color3.fromRGB(184, 180, 218),
+	ActiveTabTextColor = Color3.fromRGB(240, 238, 253),
+	ActiveTabIconColor = Color3.fromRGB(240, 238, 253),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(155, 130, 235),
+	ActiveTabButtonColor = Color3.fromRGB(140, 118, 236),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1340,17 +1342,17 @@ ThemeDefinitions.Iris = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(145, 130, 195),
+	SectionDividerColor = Color3.fromRGB(140, 126, 202),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(26, 22, 46),
+	SearchBarBackgroundColor = Color3.fromRGB(26, 22, 45),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(22, 19, 40),
+	PopupBackgroundColor = Color3.fromRGB(22, 19, 39),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(40, 34, 66),
+	PopupNeutralColor = Color3.fromRGB(40, 34, 64),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(240, 238, 252),
+	PopupTextColor = Color3.fromRGB(240, 238, 253),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1358,48 +1360,49 @@ ThemeDefinitions.Iris = {
 	WallpaperEnabled = true,
 }
 
--- Sundown: Warm dusk. Amber-rose sunset glow on dark warm chrome.
+-- Sundown: charcoal with a coral-red glow. Warm charcoal surfaces and a
+-- coral accent, the last light band under black mountains.
 ThemeDefinitions.Sundown = {
 	-- Window
-	WindowColor = Color3.fromRGB(28, 18, 20),
+	WindowColor = Color3.fromRGB(22, 16, 18),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(32, 21, 23),
+	ContentBackgroundColor = Color3.fromRGB(25, 18, 20),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(36, 24, 26),
+	SidebarColor = Color3.fromRGB(30, 22, 24),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(36, 24, 26),
+	InputBackgroundColor = Color3.fromRGB(36, 26, 28),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(220, 110, 80),
-	SecondaryColor = Color3.fromRGB(140, 72, 66),
-	TertiaryColor = Color3.fromRGB(190, 140, 135),
-	Undercolor = Color3.fromRGB(52, 34, 36),
-	AccentColor = Color3.fromRGB(245, 140, 105),
+	PrimaryColor = Color3.fromRGB(236, 96, 74),
+	SecondaryColor = Color3.fromRGB(134, 66, 58),
+	TertiaryColor = Color3.fromRGB(188, 150, 146),
+	Undercolor = Color3.fromRGB(48, 33, 36),
+	AccentColor = Color3.fromRGB(250, 136, 110),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(248, 238, 236),
+	PrimaryTextColor = Color3.fromRGB(248, 240, 238),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(206, 182, 180),
+	SecondaryTextColor = Color3.fromRGB(202, 180, 176),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(248, 238, 236),
-	InactiveTabTextColor = Color3.fromRGB(206, 182, 180),
-	InactiveTabIconColor = Color3.fromRGB(206, 182, 180),
-	ActiveTabTextColor = Color3.fromRGB(248, 238, 236),
-	ActiveTabIconColor = Color3.fromRGB(248, 238, 236),
+	TitleTextColor = Color3.fromRGB(248, 240, 238),
+	InactiveTabTextColor = Color3.fromRGB(202, 180, 176),
+	InactiveTabIconColor = Color3.fromRGB(202, 180, 176),
+	ActiveTabTextColor = Color3.fromRGB(248, 240, 238),
+	ActiveTabIconColor = Color3.fromRGB(248, 240, 238),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(245, 140, 105),
+	ActiveTabButtonColor = Color3.fromRGB(250, 136, 110),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1409,17 +1412,17 @@ ThemeDefinitions.Sundown = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(190, 140, 135),
+	SectionDividerColor = Color3.fromRGB(188, 150, 146),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(36, 24, 26),
+	SearchBarBackgroundColor = Color3.fromRGB(36, 26, 28),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(32, 21, 23),
+	PopupBackgroundColor = Color3.fromRGB(26, 19, 21),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(52, 34, 36),
+	PopupNeutralColor = Color3.fromRGB(48, 34, 37),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(248, 238, 236),
+	PopupTextColor = Color3.fromRGB(248, 240, 238),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1427,48 +1430,49 @@ ThemeDefinitions.Sundown = {
 	WallpaperEnabled = true,
 }
 
--- Twilight: Cool dusk. Blue-violet accent, calm and deep.
+-- Twilight: navy sky with rose-pink glow clouds. The roster's only dark theme
+-- with a rose-pink primary, resting on deep navy chrome outside the purples.
 ThemeDefinitions.Twilight = {
 	-- Window
-	WindowColor = Color3.fromRGB(20, 20, 32),
+	WindowColor = Color3.fromRGB(16, 18, 32),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(24, 24, 38),
+	ContentBackgroundColor = Color3.fromRGB(18, 20, 36),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(28, 28, 44),
+	SidebarColor = Color3.fromRGB(24, 26, 44),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(28, 28, 44),
+	InputBackgroundColor = Color3.fromRGB(26, 30, 48),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(120, 120, 210),
-	SecondaryColor = Color3.fromRGB(80, 80, 145),
-	TertiaryColor = Color3.fromRGB(150, 150, 200),
-	Undercolor = Color3.fromRGB(42, 42, 64),
-	AccentColor = Color3.fromRGB(155, 155, 240),
+	PrimaryColor = Color3.fromRGB(244, 128, 146),
+	SecondaryColor = Color3.fromRGB(68, 84, 130),
+	TertiaryColor = Color3.fromRGB(150, 166, 206),
+	Undercolor = Color3.fromRGB(34, 40, 66),
+	AccentColor = Color3.fromRGB(255, 150, 170),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(238, 240, 250),
+	PrimaryTextColor = Color3.fromRGB(240, 244, 252),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(184, 188, 210),
+	SecondaryTextColor = Color3.fromRGB(184, 196, 216),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(238, 240, 250),
-	InactiveTabTextColor = Color3.fromRGB(184, 188, 210),
-	InactiveTabIconColor = Color3.fromRGB(184, 188, 210),
-	ActiveTabTextColor = Color3.fromRGB(238, 240, 250),
-	ActiveTabIconColor = Color3.fromRGB(238, 240, 250),
+	TitleTextColor = Color3.fromRGB(248, 250, 255),
+	InactiveTabTextColor = Color3.fromRGB(184, 196, 216),
+	InactiveTabIconColor = Color3.fromRGB(184, 196, 216),
+	ActiveTabTextColor = Color3.fromRGB(248, 250, 255),
+	ActiveTabIconColor = Color3.fromRGB(255, 238, 244),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(155, 155, 240),
+	ActiveTabButtonColor = Color3.fromRGB(255, 150, 170),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1478,17 +1482,17 @@ ThemeDefinitions.Twilight = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(150, 150, 200),
+	SectionDividerColor = Color3.fromRGB(150, 166, 206),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(28, 28, 44),
+	SearchBarBackgroundColor = Color3.fromRGB(26, 30, 48),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(24, 24, 38),
+	PopupBackgroundColor = Color3.fromRGB(18, 20, 36),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(42, 42, 64),
+	PopupNeutralColor = Color3.fromRGB(38, 44, 68),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(238, 240, 250),
+	PopupTextColor = Color3.fromRGB(240, 244, 252),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1496,12 +1500,13 @@ ThemeDefinitions.Twilight = {
 	WallpaperEnabled = true,
 }
 
--- Nebula: Aurora glow. Magenta accent with a cool cyan secondary.
+-- Nebula: pink-magenta aurora over dark pines, violet-blue at the top. A
+-- pink-magenta primary paired with the periwinkle blue accent on black-plum chrome.
 ThemeDefinitions.Nebula = {
 	-- Window
-	WindowColor = Color3.fromRGB(16, 14, 26),
+	WindowColor = Color3.fromRGB(17, 14, 26),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(20, 17, 32),
+	ContentBackgroundColor = Color3.fromRGB(21, 18, 31),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
@@ -1517,27 +1522,27 @@ ThemeDefinitions.Nebula = {
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(190, 90, 210),
-	SecondaryColor = Color3.fromRGB(120, 60, 140),
-	TertiaryColor = Color3.fromRGB(170, 140, 200),
-	Undercolor = Color3.fromRGB(38, 30, 58),
-	AccentColor = Color3.fromRGB(140, 180, 240),
+	PrimaryColor = Color3.fromRGB(242, 88, 158),
+	SecondaryColor = Color3.fromRGB(148, 74, 118),
+	TertiaryColor = Color3.fromRGB(204, 162, 196),
+	Undercolor = Color3.fromRGB(39, 30, 50),
+	AccentColor = Color3.fromRGB(148, 182, 242),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(242, 236, 252),
+	PrimaryTextColor = Color3.fromRGB(242, 237, 252),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(192, 180, 214),
+	SecondaryTextColor = Color3.fromRGB(212, 186, 209),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(242, 236, 252),
-	InactiveTabTextColor = Color3.fromRGB(192, 180, 214),
-	InactiveTabIconColor = Color3.fromRGB(192, 180, 214),
-	ActiveTabTextColor = Color3.fromRGB(242, 236, 252),
-	ActiveTabIconColor = Color3.fromRGB(242, 236, 252),
+	TitleTextColor = Color3.fromRGB(242, 237, 252),
+	InactiveTabTextColor = Color3.fromRGB(212, 186, 209),
+	InactiveTabIconColor = Color3.fromRGB(212, 186, 209),
+	ActiveTabTextColor = Color3.fromRGB(242, 237, 252),
+	ActiveTabIconColor = Color3.fromRGB(242, 237, 252),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(140, 180, 240),
+	ActiveTabButtonColor = Color3.fromRGB(148, 182, 242),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1547,17 +1552,17 @@ ThemeDefinitions.Nebula = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(170, 140, 200),
+	SectionDividerColor = Color3.fromRGB(204, 162, 196),
 	SectionDividerTransparency = 0.9,
 	SearchBarBackgroundColor = Color3.fromRGB(24, 20, 38),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(20, 17, 32),
+	PopupBackgroundColor = Color3.fromRGB(21, 18, 31),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(38, 30, 58),
+	PopupNeutralColor = Color3.fromRGB(39, 30, 50),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(242, 236, 252),
+	PopupTextColor = Color3.fromRGB(242, 237, 252),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1565,48 +1570,49 @@ ThemeDefinitions.Nebula = {
 	WallpaperEnabled = true,
 }
 
--- Monterey: Classic dark. Balanced steel-blue accent, restrained.
+-- Monterey: blue-grey neutral. Charcoal with a faint blue cast and a
+-- desaturated slate-blue accent, between Base's grey and Umbral's navy.
 ThemeDefinitions.Monterey = {
 	-- Window
-	WindowColor = Color3.fromRGB(18, 18, 22),
+	WindowColor = Color3.fromRGB(17, 19, 24),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(22, 22, 27),
+	ContentBackgroundColor = Color3.fromRGB(20, 23, 29),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(26, 26, 32),
+	SidebarColor = Color3.fromRGB(24, 27, 34),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(26, 26, 32),
+	InputBackgroundColor = Color3.fromRGB(30, 34, 42),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(90, 120, 200),
-	SecondaryColor = Color3.fromRGB(58, 78, 130),
-	TertiaryColor = Color3.fromRGB(130, 145, 180),
-	Undercolor = Color3.fromRGB(40, 44, 58),
-	AccentColor = Color3.fromRGB(125, 155, 230),
+	PrimaryColor = Color3.fromRGB(96, 120, 164),
+	SecondaryColor = Color3.fromRGB(58, 72, 98),
+	TertiaryColor = Color3.fromRGB(134, 148, 172),
+	Undercolor = Color3.fromRGB(38, 44, 56),
+	AccentColor = Color3.fromRGB(138, 158, 196),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(238, 240, 246),
+	PrimaryTextColor = Color3.fromRGB(240, 243, 249),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(180, 186, 200),
+	SecondaryTextColor = Color3.fromRGB(176, 186, 204),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(238, 240, 246),
-	InactiveTabTextColor = Color3.fromRGB(180, 186, 200),
-	InactiveTabIconColor = Color3.fromRGB(180, 186, 200),
-	ActiveTabTextColor = Color3.fromRGB(238, 240, 246),
-	ActiveTabIconColor = Color3.fromRGB(238, 240, 246),
+	TitleTextColor = Color3.fromRGB(240, 243, 249),
+	InactiveTabTextColor = Color3.fromRGB(176, 186, 204),
+	InactiveTabIconColor = Color3.fromRGB(176, 186, 204),
+	ActiveTabTextColor = Color3.fromRGB(240, 243, 249),
+	ActiveTabIconColor = Color3.fromRGB(240, 243, 249),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(125, 155, 230),
+	ActiveTabButtonColor = Color3.fromRGB(138, 158, 196),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1616,17 +1622,17 @@ ThemeDefinitions.Monterey = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(130, 145, 180),
+	SectionDividerColor = Color3.fromRGB(134, 148, 172),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(26, 26, 32),
+	SearchBarBackgroundColor = Color3.fromRGB(30, 34, 42),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(22, 22, 27),
+	PopupBackgroundColor = Color3.fromRGB(21, 24, 30),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(40, 44, 58),
+	PopupNeutralColor = Color3.fromRGB(40, 46, 60),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(238, 240, 246),
+	PopupTextColor = Color3.fromRGB(240, 243, 249),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1705,48 +1711,49 @@ ThemeDefinitions.Sonoma = {
 	WallpaperEnabled = true,
 }
 
--- Ventura: Deep dusk. Soft violet-blue, low contrast, easy on the eye.
+-- Ventura: burnt orange silk. Warm dark chrome with a burnt-orange accent
+-- drawn from the smooth silk waves of its wallpaper.
 ThemeDefinitions.Ventura = {
 	-- Window
-	WindowColor = Color3.fromRGB(18, 16, 24),
+	WindowColor = Color3.fromRGB(20, 17, 16),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(22, 20, 29),
+	ContentBackgroundColor = Color3.fromRGB(23, 20, 19),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(26, 24, 34),
+	SidebarColor = Color3.fromRGB(28, 24, 22),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(26, 24, 34),
+	InputBackgroundColor = Color3.fromRGB(36, 31, 29),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(130, 110, 190),
-	SecondaryColor = Color3.fromRGB(82, 70, 125),
-	TertiaryColor = Color3.fromRGB(150, 140, 180),
-	Undercolor = Color3.fromRGB(42, 38, 56),
-	AccentColor = Color3.fromRGB(165, 145, 225),
+	PrimaryColor = Color3.fromRGB(230, 124, 48),
+	SecondaryColor = Color3.fromRGB(124, 90, 64),
+	TertiaryColor = Color3.fromRGB(180, 158, 142),
+	Undercolor = Color3.fromRGB(46, 38, 34),
+	AccentColor = Color3.fromRGB(244, 158, 78),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(240, 238, 248),
+	PrimaryTextColor = Color3.fromRGB(246, 240, 236),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(188, 184, 206),
+	SecondaryTextColor = Color3.fromRGB(198, 182, 170),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(240, 238, 248),
-	InactiveTabTextColor = Color3.fromRGB(188, 184, 206),
-	InactiveTabIconColor = Color3.fromRGB(188, 184, 206),
-	ActiveTabTextColor = Color3.fromRGB(240, 238, 248),
-	ActiveTabIconColor = Color3.fromRGB(240, 238, 248),
+	TitleTextColor = Color3.fromRGB(246, 240, 236),
+	InactiveTabTextColor = Color3.fromRGB(198, 182, 170),
+	InactiveTabIconColor = Color3.fromRGB(198, 182, 170),
+	ActiveTabTextColor = Color3.fromRGB(246, 240, 236),
+	ActiveTabIconColor = Color3.fromRGB(246, 240, 236),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(165, 145, 225),
+	ActiveTabButtonColor = Color3.fromRGB(244, 158, 78),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1756,17 +1763,17 @@ ThemeDefinitions.Ventura = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(150, 140, 180),
+	SectionDividerColor = Color3.fromRGB(180, 158, 142),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(26, 24, 34),
+	SearchBarBackgroundColor = Color3.fromRGB(36, 31, 29),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(22, 20, 29),
+	PopupBackgroundColor = Color3.fromRGB(24, 21, 20),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(42, 38, 56),
+	PopupNeutralColor = Color3.fromRGB(46, 40, 36),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(240, 238, 248),
+	PopupTextColor = Color3.fromRGB(246, 240, 236),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1774,48 +1781,49 @@ ThemeDefinitions.Ventura = {
 	WallpaperEnabled = true,
 }
 
--- Vermilion: Scarlet dusk. Bold red-orange accent with plum shadows.
+-- Vermilion: orange-leaning red. Warm black chrome with a vermilion accent,
+-- red kept with green above blue so it never drifts toward crimson.
 ThemeDefinitions.Vermilion = {
 	-- Window
-	WindowColor = Color3.fromRGB(28, 16, 20),
+	WindowColor = Color3.fromRGB(26, 15, 17),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(32, 19, 24),
+	ContentBackgroundColor = Color3.fromRGB(29, 17, 19),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(38, 22, 28),
+	SidebarColor = Color3.fromRGB(35, 21, 23),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(38, 22, 28),
+	InputBackgroundColor = Color3.fromRGB(41, 25, 27),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(226, 90, 60),
-	SecondaryColor = Color3.fromRGB(140, 58, 48),
-	TertiaryColor = Color3.fromRGB(195, 135, 125),
-	Undercolor = Color3.fromRGB(54, 32, 36),
-	AccentColor = Color3.fromRGB(248, 120, 80),
+	PrimaryColor = Color3.fromRGB(232, 52, 46),
+	SecondaryColor = Color3.fromRGB(138, 52, 44),
+	TertiaryColor = Color3.fromRGB(196, 140, 132),
+	Undercolor = Color3.fromRGB(52, 32, 34),
+	AccentColor = Color3.fromRGB(252, 102, 78),
 
 	-- Text
 	PrimaryTextColor = Color3.fromRGB(248, 238, 236),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(208, 180, 178),
+	SecondaryTextColor = Color3.fromRGB(208, 178, 174),
 	SecondaryTextTransparency = 0.4,
 	TitleTextColor = Color3.fromRGB(248, 238, 236),
-	InactiveTabTextColor = Color3.fromRGB(208, 180, 178),
-	InactiveTabIconColor = Color3.fromRGB(208, 180, 178),
+	InactiveTabTextColor = Color3.fromRGB(208, 178, 174),
+	InactiveTabIconColor = Color3.fromRGB(208, 178, 174),
 	ActiveTabTextColor = Color3.fromRGB(248, 238, 236),
 	ActiveTabIconColor = Color3.fromRGB(248, 238, 236),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(248, 120, 80),
+	ActiveTabButtonColor = Color3.fromRGB(252, 102, 78),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1825,15 +1833,15 @@ ThemeDefinitions.Vermilion = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(195, 135, 125),
+	SectionDividerColor = Color3.fromRGB(196, 140, 132),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(38, 22, 28),
+	SearchBarBackgroundColor = Color3.fromRGB(41, 25, 27),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(32, 19, 24),
+	PopupBackgroundColor = Color3.fromRGB(30, 18, 20),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(54, 32, 36),
+	PopupNeutralColor = Color3.fromRGB(52, 33, 35),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
 	PopupTextColor = Color3.fromRGB(248, 238, 236),
 	PopupTextTransparency = 0.2,
@@ -1843,48 +1851,49 @@ ThemeDefinitions.Vermilion = {
 	WallpaperEnabled = true,
 }
 
--- Grove: Deep forest. Emerald accent, darker and denser than Canopy.
+-- Grove: deep pine forest under a chartreuse sky. Near-black pine chrome with
+-- a deep pine primary and a punchy yellow-green chartreuse accent.
 ThemeDefinitions.Grove = {
 	-- Window
-	WindowColor = Color3.fromRGB(14, 24, 18),
+	WindowColor = Color3.fromRGB(13, 22, 17),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(17, 28, 22),
+	ContentBackgroundColor = Color3.fromRGB(15, 26, 20),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(20, 34, 26),
+	SidebarColor = Color3.fromRGB(18, 32, 24),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(20, 34, 26),
+	InputBackgroundColor = Color3.fromRGB(22, 37, 28),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(60, 150, 90),
-	SecondaryColor = Color3.fromRGB(38, 95, 58),
-	TertiaryColor = Color3.fromRGB(120, 170, 140),
-	Undercolor = Color3.fromRGB(30, 50, 40),
-	AccentColor = Color3.fromRGB(110, 195, 120),
+	PrimaryColor = Color3.fromRGB(42, 150, 86),
+	SecondaryColor = Color3.fromRGB(36, 94, 58),
+	TertiaryColor = Color3.fromRGB(116, 166, 128),
+	Undercolor = Color3.fromRGB(32, 50, 38),
+	AccentColor = Color3.fromRGB(190, 226, 96),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(236, 246, 240),
+	PrimaryTextColor = Color3.fromRGB(238, 247, 240),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(178, 204, 190),
+	SecondaryTextColor = Color3.fromRGB(180, 206, 184),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(236, 246, 240),
-	InactiveTabTextColor = Color3.fromRGB(178, 204, 190),
-	InactiveTabIconColor = Color3.fromRGB(178, 204, 190),
-	ActiveTabTextColor = Color3.fromRGB(236, 246, 240),
-	ActiveTabIconColor = Color3.fromRGB(236, 246, 240),
+	TitleTextColor = Color3.fromRGB(240, 250, 244),
+	InactiveTabTextColor = Color3.fromRGB(180, 206, 184),
+	InactiveTabIconColor = Color3.fromRGB(180, 206, 184),
+	ActiveTabTextColor = Color3.fromRGB(240, 250, 244),
+	ActiveTabIconColor = Color3.fromRGB(242, 250, 216),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(110, 195, 120),
+	ActiveTabButtonColor = Color3.fromRGB(190, 226, 96),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1894,17 +1903,17 @@ ThemeDefinitions.Grove = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(120, 170, 140),
+	SectionDividerColor = Color3.fromRGB(116, 166, 128),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(20, 34, 26),
+	SearchBarBackgroundColor = Color3.fromRGB(22, 37, 28),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(17, 28, 22),
+	PopupBackgroundColor = Color3.fromRGB(15, 26, 20),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(30, 50, 40),
+	PopupNeutralColor = Color3.fromRGB(32, 50, 38),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(236, 246, 240),
+	PopupTextColor = Color3.fromRGB(238, 248, 242),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1912,48 +1921,49 @@ ThemeDefinitions.Grove = {
 	WallpaperEnabled = true,
 }
 
--- Prism: Vivid blue. Bright saturated azure, crisp and clean.
+-- Prism: deep indigo-violet silk waves. Electric indigo-blue chrome, the
+-- roster's most blue-leaning violet: B highest and R held close to G.
 ThemeDefinitions.Prism = {
 	-- Window
-	WindowColor = Color3.fromRGB(16, 18, 28),
+	WindowColor = Color3.fromRGB(16, 17, 30),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(20, 22, 34),
+	ContentBackgroundColor = Color3.fromRGB(20, 21, 36),
 	ContentBackgroundTransparency = 0,
 	MainframeShadowColor = Color3.fromRGB(0, 0, 0),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(24, 28, 42),
+	SidebarColor = Color3.fromRGB(24, 26, 44),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.97,
-	InputBackgroundColor = Color3.fromRGB(24, 28, 42),
+	InputBackgroundColor = Color3.fromRGB(26, 28, 48),
 	InputBackgroundTransparency = 0.15,
 	ComponentShadowColor = Color3.fromRGB(0, 0, 0),
 	StrokeColor = Color3.fromRGB(255, 255, 255),
 	StrokeTransparency = 0.93,
-	PrimaryColor = Color3.fromRGB(100, 140, 230),
-	SecondaryColor = Color3.fromRGB(65, 90, 150),
-	TertiaryColor = Color3.fromRGB(135, 155, 205),
-	Undercolor = Color3.fromRGB(38, 44, 66),
-	AccentColor = Color3.fromRGB(145, 185, 250),
+	PrimaryColor = Color3.fromRGB(92, 84, 242),
+	SecondaryColor = Color3.fromRGB(64, 76, 152),
+	TertiaryColor = Color3.fromRGB(138, 150, 212),
+	Undercolor = Color3.fromRGB(34, 36, 64),
+	AccentColor = Color3.fromRGB(158, 150, 252),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(240, 243, 252),
+	PrimaryTextColor = Color3.fromRGB(240, 242, 254),
 	PrimaryTextTransparency = 0.1,
-	SecondaryTextColor = Color3.fromRGB(184, 192, 214),
+	SecondaryTextColor = Color3.fromRGB(184, 190, 224),
 	SecondaryTextTransparency = 0.4,
-	TitleTextColor = Color3.fromRGB(240, 243, 252),
-	InactiveTabTextColor = Color3.fromRGB(184, 192, 214),
-	InactiveTabIconColor = Color3.fromRGB(184, 192, 214),
-	ActiveTabTextColor = Color3.fromRGB(240, 243, 252),
-	ActiveTabIconColor = Color3.fromRGB(240, 243, 252),
+	TitleTextColor = Color3.fromRGB(242, 244, 255),
+	InactiveTabTextColor = Color3.fromRGB(184, 190, 224),
+	InactiveTabIconColor = Color3.fromRGB(184, 190, 224),
+	ActiveTabTextColor = Color3.fromRGB(242, 244, 255),
+	ActiveTabIconColor = Color3.fromRGB(230, 232, 255),
 	ActiveTabTextTransparency = 0.2,
 	InactiveTabTextTransparency = 0.5,
 	ActiveTabIconTransparency = 0.2,
 	InactiveTabIconTransparency = 0.5,
-	ActiveTabButtonColor = Color3.fromRGB(145, 185, 250),
+	ActiveTabButtonColor = Color3.fromRGB(158, 150, 252),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -1963,17 +1973,17 @@ ThemeDefinitions.Prism = {
 	SectionBackgroundTransparency = 0.975,
 	SectionStrokeColor = Color3.fromRGB(255, 255, 255),
 	SectionStrokeTransparency = 0.98,
-	SectionDividerColor = Color3.fromRGB(135, 155, 205),
+	SectionDividerColor = Color3.fromRGB(138, 150, 212),
 	SectionDividerTransparency = 0.9,
-	SearchBarBackgroundColor = Color3.fromRGB(24, 28, 42),
+	SearchBarBackgroundColor = Color3.fromRGB(26, 28, 48),
 	SearchBarBackgroundTransparency = 0.5,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(20, 22, 34),
+	PopupBackgroundColor = Color3.fromRGB(20, 21, 36),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(38, 44, 66),
+	PopupNeutralColor = Color3.fromRGB(36, 38, 66),
 	PopupShadowColor = Color3.fromRGB(0, 0, 0),
-	PopupTextColor = Color3.fromRGB(240, 243, 252),
+	PopupTextColor = Color3.fromRGB(242, 244, 255),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -1981,48 +1991,49 @@ ThemeDefinitions.Prism = {
 	WallpaperEnabled = true,
 }
 
--- Sage: Soft green. Airy sage-grey chrome with a muted leaf accent.
+-- Sage: misty white-and-teal forest. The pale grey-teal lane: the most teal of
+-- the greens (hue ~168, desaturated), cool white chrome, slate-teal text.
 ThemeDefinitions.Sage = {
 	-- Window
-	WindowColor = Color3.fromRGB(244, 248, 242),
+	WindowColor = Color3.fromRGB(244, 248, 246),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(248, 251, 246),
+	ContentBackgroundColor = Color3.fromRGB(247, 251, 249),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(150, 175, 158),
+	MainframeShadowColor = Color3.fromRGB(144, 174, 168),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(232, 240, 230),
+	SidebarColor = Color3.fromRGB(230, 240, 237),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(232, 240, 230),
+	InputBackgroundColor = Color3.fromRGB(229, 239, 237),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(150, 175, 158),
-	StrokeColor = Color3.fromRGB(120, 150, 130),
+	ComponentShadowColor = Color3.fromRGB(144, 174, 168),
+	StrokeColor = Color3.fromRGB(112, 152, 146),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(78, 140, 92),
-	SecondaryColor = Color3.fromRGB(150, 190, 160),
-	TertiaryColor = Color3.fromRGB(150, 180, 160),
-	Undercolor = Color3.fromRGB(214, 230, 218),
-	AccentColor = Color3.fromRGB(110, 175, 120),
+	PrimaryColor = Color3.fromRGB(74, 148, 132),
+	SecondaryColor = Color3.fromRGB(148, 192, 184),
+	TertiaryColor = Color3.fromRGB(152, 186, 178),
+	Undercolor = Color3.fromRGB(212, 230, 226),
+	AccentColor = Color3.fromRGB(110, 182, 166),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(30, 48, 36),
+	PrimaryTextColor = Color3.fromRGB(22, 46, 45),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(96, 124, 106),
+	SecondaryTextColor = Color3.fromRGB(84, 120, 118),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(30, 48, 36),
-	InactiveTabTextColor = Color3.fromRGB(96, 124, 106),
-	InactiveTabIconColor = Color3.fromRGB(96, 124, 106),
-	ActiveTabTextColor = Color3.fromRGB(30, 48, 36),
-	ActiveTabIconColor = Color3.fromRGB(30, 48, 36),
+	TitleTextColor = Color3.fromRGB(22, 46, 45),
+	InactiveTabTextColor = Color3.fromRGB(84, 120, 118),
+	InactiveTabIconColor = Color3.fromRGB(84, 120, 118),
+	ActiveTabTextColor = Color3.fromRGB(22, 46, 45),
+	ActiveTabIconColor = Color3.fromRGB(22, 46, 45),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(110, 175, 120),
+	ActiveTabButtonColor = Color3.fromRGB(110, 182, 166),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -2032,17 +2043,17 @@ ThemeDefinitions.Sage = {
 	SectionBackgroundTransparency = 0.4,
 	SectionStrokeColor = Color3.fromRGB(120, 150, 130),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(150, 180, 160),
+	SectionDividerColor = Color3.fromRGB(152, 186, 178),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(232, 240, 230),
+	SearchBarBackgroundColor = Color3.fromRGB(229, 239, 237),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(248, 251, 246),
+	PopupBackgroundColor = Color3.fromRGB(247, 251, 249),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(214, 230, 218),
-	PopupShadowColor = Color3.fromRGB(150, 175, 158),
-	PopupTextColor = Color3.fromRGB(30, 48, 36),
+	PopupNeutralColor = Color3.fromRGB(212, 230, 226),
+	PopupShadowColor = Color3.fromRGB(144, 174, 168),
+	PopupTextColor = Color3.fromRGB(22, 46, 45),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -2050,48 +2061,49 @@ ThemeDefinitions.Sage = {
 	WallpaperEnabled = true,
 }
 
--- Blossom: Pink bloom. Bright coral-pink accent on soft rose white.
+-- Blossom: airy blossom pink, tuned to the name since its wallpaper is broken.
+-- Blush-white chrome with the gentlest pink primary and a pale petal accent.
 ThemeDefinitions.Blossom = {
 	-- Window
-	WindowColor = Color3.fromRGB(252, 244, 246),
+	WindowColor = Color3.fromRGB(252, 245, 246),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(254, 248, 250),
+	ContentBackgroundColor = Color3.fromRGB(254, 249, 250),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(200, 160, 178),
+	MainframeShadowColor = Color3.fromRGB(208, 168, 180),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(246, 232, 238),
+	SidebarColor = Color3.fromRGB(248, 234, 240),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(246, 232, 238),
+	InputBackgroundColor = Color3.fromRGB(248, 236, 240),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(200, 160, 178),
-	StrokeColor = Color3.fromRGB(200, 160, 178),
+	ComponentShadowColor = Color3.fromRGB(208, 168, 180),
+	StrokeColor = Color3.fromRGB(208, 168, 180),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(216, 110, 150),
-	SecondaryColor = Color3.fromRGB(238, 200, 215),
-	TertiaryColor = Color3.fromRGB(210, 170, 188),
-	Undercolor = Color3.fromRGB(244, 222, 232),
-	AccentColor = Color3.fromRGB(236, 140, 175),
+	PrimaryColor = Color3.fromRGB(230, 130, 166),
+	SecondaryColor = Color3.fromRGB(242, 210, 224),
+	TertiaryColor = Color3.fromRGB(216, 180, 196),
+	Undercolor = Color3.fromRGB(246, 228, 236),
+	AccentColor = Color3.fromRGB(244, 164, 192),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(60, 30, 42),
+	PrimaryTextColor = Color3.fromRGB(62, 34, 46),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(130, 92, 110),
+	SecondaryTextColor = Color3.fromRGB(134, 98, 114),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(60, 30, 42),
-	InactiveTabTextColor = Color3.fromRGB(130, 92, 110),
-	InactiveTabIconColor = Color3.fromRGB(130, 92, 110),
-	ActiveTabTextColor = Color3.fromRGB(60, 30, 42),
-	ActiveTabIconColor = Color3.fromRGB(60, 30, 42),
+	TitleTextColor = Color3.fromRGB(62, 34, 46),
+	InactiveTabTextColor = Color3.fromRGB(134, 98, 114),
+	InactiveTabIconColor = Color3.fromRGB(134, 98, 114),
+	ActiveTabTextColor = Color3.fromRGB(62, 34, 46),
+	ActiveTabIconColor = Color3.fromRGB(62, 34, 46),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(236, 140, 175),
+	ActiveTabButtonColor = Color3.fromRGB(244, 164, 192),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -2099,19 +2111,19 @@ ThemeDefinitions.Blossom = {
 	-- Section
 	SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
 	SectionBackgroundTransparency = 0.4,
-	SectionStrokeColor = Color3.fromRGB(200, 160, 178),
+	SectionStrokeColor = Color3.fromRGB(208, 168, 180),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(210, 170, 188),
+	SectionDividerColor = Color3.fromRGB(216, 180, 196),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(246, 232, 238),
+	SearchBarBackgroundColor = Color3.fromRGB(248, 236, 240),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(254, 248, 250),
+	PopupBackgroundColor = Color3.fromRGB(254, 249, 250),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(244, 222, 232),
-	PopupShadowColor = Color3.fromRGB(200, 160, 178),
-	PopupTextColor = Color3.fromRGB(60, 30, 42),
+	PopupNeutralColor = Color3.fromRGB(246, 228, 236),
+	PopupShadowColor = Color3.fromRGB(208, 168, 180),
+	PopupTextColor = Color3.fromRGB(62, 34, 46),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -2119,48 +2131,49 @@ ThemeDefinitions.Blossom = {
 	WallpaperEnabled = true,
 }
 
--- Petal: Rose petal. Deeper dusty pink, gentler than Peony.
+-- Petal: salmon-rose warmth. Warm cream chrome with a deep salmon primary and
+-- a warm coral accent, the orange-leaning pink of the roster.
 ThemeDefinitions.Petal = {
 	-- Window
-	WindowColor = Color3.fromRGB(250, 240, 244),
+	WindowColor = Color3.fromRGB(251, 243, 241),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(252, 245, 248),
+	ContentBackgroundColor = Color3.fromRGB(253, 248, 246),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(198, 155, 175),
+	MainframeShadowColor = Color3.fromRGB(200, 150, 140),
 
 	-- Sidebar
-	SidebarColor = Color3.fromRGB(244, 226, 234),
+	SidebarColor = Color3.fromRGB(246, 228, 224),
 	SidebarTransparency = 0.62,
 
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(244, 226, 234),
+	InputBackgroundColor = Color3.fromRGB(246, 232, 228),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(198, 155, 175),
-	StrokeColor = Color3.fromRGB(196, 152, 172),
+	ComponentShadowColor = Color3.fromRGB(205, 158, 148),
+	StrokeColor = Color3.fromRGB(200, 150, 140),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(200, 85, 130),
-	SecondaryColor = Color3.fromRGB(232, 190, 208),
-	TertiaryColor = Color3.fromRGB(204, 160, 180),
-	Undercolor = Color3.fromRGB(240, 214, 226),
-	AccentColor = Color3.fromRGB(226, 115, 158),
+	PrimaryColor = Color3.fromRGB(236, 116, 92),
+	SecondaryColor = Color3.fromRGB(238, 206, 198),
+	TertiaryColor = Color3.fromRGB(208, 162, 152),
+	Undercolor = Color3.fromRGB(244, 222, 214),
+	AccentColor = Color3.fromRGB(244, 142, 134),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(58, 28, 40),
+	PrimaryTextColor = Color3.fromRGB(60, 34, 32),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(128, 88, 106),
+	SecondaryTextColor = Color3.fromRGB(130, 94, 86),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(58, 28, 40),
-	InactiveTabTextColor = Color3.fromRGB(128, 88, 106),
-	InactiveTabIconColor = Color3.fromRGB(128, 88, 106),
-	ActiveTabTextColor = Color3.fromRGB(58, 28, 40),
-	ActiveTabIconColor = Color3.fromRGB(58, 28, 40),
+	TitleTextColor = Color3.fromRGB(60, 34, 32),
+	InactiveTabTextColor = Color3.fromRGB(130, 94, 86),
+	InactiveTabIconColor = Color3.fromRGB(130, 94, 86),
+	ActiveTabTextColor = Color3.fromRGB(60, 34, 32),
+	ActiveTabIconColor = Color3.fromRGB(60, 34, 32),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(226, 115, 158),
+	ActiveTabButtonColor = Color3.fromRGB(244, 142, 134),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -2168,19 +2181,19 @@ ThemeDefinitions.Petal = {
 	-- Section
 	SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
 	SectionBackgroundTransparency = 0.4,
-	SectionStrokeColor = Color3.fromRGB(196, 152, 172),
+	SectionStrokeColor = Color3.fromRGB(200, 150, 140),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(204, 160, 180),
+	SectionDividerColor = Color3.fromRGB(214, 172, 162),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(244, 226, 234),
+	SearchBarBackgroundColor = Color3.fromRGB(246, 232, 228),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(252, 245, 248),
+	PopupBackgroundColor = Color3.fromRGB(253, 248, 246),
 	PopupBackgroundTransparency = 0.05,
-	PopupNeutralColor = Color3.fromRGB(240, 214, 226),
-	PopupShadowColor = Color3.fromRGB(198, 155, 175),
-	PopupTextColor = Color3.fromRGB(58, 28, 40),
+	PopupNeutralColor = Color3.fromRGB(244, 222, 214),
+	PopupShadowColor = Color3.fromRGB(200, 150, 140),
+	PopupTextColor = Color3.fromRGB(60, 34, 32),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
@@ -2188,7 +2201,8 @@ ThemeDefinitions.Petal = {
 	WallpaperEnabled = true,
 }
 
--- Frost: Cool white. Crisp icy blue-grey, brighter than Solace.
+-- Frost: icy blue-white above a vivid red wave. Pale ice chrome with a cool
+-- icy-cyan primary; the vivid red accent stays on highlight keys, not the whole theme.
 ThemeDefinitions.Frost = {
 	-- Window
 	WindowColor = Color3.fromRGB(244, 247, 251),
@@ -2209,11 +2223,11 @@ ThemeDefinitions.Frost = {
 	ComponentShadowColor = Color3.fromRGB(160, 180, 200),
 	StrokeColor = Color3.fromRGB(150, 172, 198),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(90, 130, 190),
+	PrimaryColor = Color3.fromRGB(80, 168, 204),
 	SecondaryColor = Color3.fromRGB(190, 206, 228),
-	TertiaryColor = Color3.fromRGB(160, 180, 205),
+	TertiaryColor = Color3.fromRGB(210, 150, 144),
 	Undercolor = Color3.fromRGB(220, 230, 242),
-	AccentColor = Color3.fromRGB(130, 170, 220),
+	AccentColor = Color3.fromRGB(236, 64, 60),
 
 	-- Text
 	PrimaryTextColor = Color3.fromRGB(28, 40, 58),
@@ -2229,7 +2243,7 @@ ThemeDefinitions.Frost = {
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(130, 170, 220),
+	ActiveTabButtonColor = Color3.fromRGB(236, 64, 60),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -2329,14 +2343,15 @@ ThemeDefinitions.Amber = {
 	WallpaperEnabled = true,
 }
 
--- Rosa: Dusty rose. Muted pink-grey, subtler than Blush.
+-- Rosa: pastel pink peaks over periwinkle shadow. Pale pink chrome with a
+-- pastel-pink primary and the periwinkle accent from its snow-peak wallpaper.
 ThemeDefinitions.Rosa = {
 	-- Window
-	WindowColor = Color3.fromRGB(252, 242, 246),
+	WindowColor = Color3.fromRGB(252, 243, 246),
 	WindowTransparency = 0.22,
-	ContentBackgroundColor = Color3.fromRGB(254, 246, 250),
+	ContentBackgroundColor = Color3.fromRGB(254, 247, 250),
 	ContentBackgroundTransparency = 0,
-	MainframeShadowColor = Color3.fromRGB(200, 158, 178),
+	MainframeShadowColor = Color3.fromRGB(195, 155, 180),
 
 	-- Sidebar
 	SidebarColor = Color3.fromRGB(246, 228, 238),
@@ -2345,32 +2360,32 @@ ThemeDefinitions.Rosa = {
 	-- Components
 	ComponentBackgroundColor = Color3.fromRGB(255, 255, 255),
 	ComponentBackgroundTransparency = 0.1,
-	InputBackgroundColor = Color3.fromRGB(246, 228, 238),
+	InputBackgroundColor = Color3.fromRGB(246, 230, 238),
 	InputBackgroundTransparency = 0,
-	ComponentShadowColor = Color3.fromRGB(200, 158, 178),
-	StrokeColor = Color3.fromRGB(198, 158, 176),
+	ComponentShadowColor = Color3.fromRGB(202, 162, 182),
+	StrokeColor = Color3.fromRGB(195, 155, 180),
 	StrokeTransparency = 0.82,
-	PrimaryColor = Color3.fromRGB(200, 100, 140),
-	SecondaryColor = Color3.fromRGB(236, 196, 214),
-	TertiaryColor = Color3.fromRGB(208, 166, 186),
+	PrimaryColor = Color3.fromRGB(232, 124, 156),
+	SecondaryColor = Color3.fromRGB(238, 198, 216),
+	TertiaryColor = Color3.fromRGB(200, 164, 186),
 	Undercolor = Color3.fromRGB(242, 220, 232),
-	AccentColor = Color3.fromRGB(228, 135, 170),
+	AccentColor = Color3.fromRGB(128, 142, 222),
 
 	-- Text
-	PrimaryTextColor = Color3.fromRGB(58, 30, 42),
+	PrimaryTextColor = Color3.fromRGB(56, 30, 46),
 	PrimaryTextTransparency = 0,
-	SecondaryTextColor = Color3.fromRGB(128, 90, 108),
+	SecondaryTextColor = Color3.fromRGB(124, 90, 118),
 	SecondaryTextTransparency = 0.15,
-	TitleTextColor = Color3.fromRGB(58, 30, 42),
-	InactiveTabTextColor = Color3.fromRGB(128, 90, 108),
-	InactiveTabIconColor = Color3.fromRGB(128, 90, 108),
-	ActiveTabTextColor = Color3.fromRGB(58, 30, 42),
-	ActiveTabIconColor = Color3.fromRGB(58, 30, 42),
+	TitleTextColor = Color3.fromRGB(56, 30, 46),
+	InactiveTabTextColor = Color3.fromRGB(124, 90, 118),
+	InactiveTabIconColor = Color3.fromRGB(124, 90, 118),
+	ActiveTabTextColor = Color3.fromRGB(56, 30, 46),
+	ActiveTabIconColor = Color3.fromRGB(56, 30, 46),
 	ActiveTabTextTransparency = 0,
 	InactiveTabTextTransparency = 0.3,
 	ActiveTabIconTransparency = 0,
 	InactiveTabIconTransparency = 0.3,
-	ActiveTabButtonColor = Color3.fromRGB(228, 135, 170),
+	ActiveTabButtonColor = Color3.fromRGB(128, 142, 222),
 	ActiveTabButtonTransparency = 0.85,
 	InactiveTabButtonColor = Color3.fromRGB(255, 255, 255),
 	InactiveTabButtonTransparency = 1,
@@ -2378,19 +2393,19 @@ ThemeDefinitions.Rosa = {
 	-- Section
 	SectionBackgroundColor = Color3.fromRGB(255, 255, 255),
 	SectionBackgroundTransparency = 0.4,
-	SectionStrokeColor = Color3.fromRGB(198, 158, 176),
+	SectionStrokeColor = Color3.fromRGB(195, 155, 180),
 	SectionStrokeTransparency = 0.85,
-	SectionDividerColor = Color3.fromRGB(208, 166, 186),
+	SectionDividerColor = Color3.fromRGB(206, 168, 196),
 	SectionDividerTransparency = 0.5,
-	SearchBarBackgroundColor = Color3.fromRGB(246, 228, 238),
+	SearchBarBackgroundColor = Color3.fromRGB(246, 230, 238),
 	SearchBarBackgroundTransparency = 0,
 
 	-- Popups
-	PopupBackgroundColor = Color3.fromRGB(254, 246, 250),
+	PopupBackgroundColor = Color3.fromRGB(254, 247, 250),
 	PopupBackgroundTransparency = 0.05,
 	PopupNeutralColor = Color3.fromRGB(242, 220, 232),
-	PopupShadowColor = Color3.fromRGB(200, 158, 178),
-	PopupTextColor = Color3.fromRGB(58, 30, 42),
+	PopupShadowColor = Color3.fromRGB(195, 155, 180),
+	PopupTextColor = Color3.fromRGB(56, 30, 46),
 	PopupTextTransparency = 0.2,
 
 	-- Wallpaper
