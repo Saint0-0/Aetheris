@@ -3233,4 +3233,23 @@ for name, def in pairs(ThemeDefinitions) do
 	end
 end
 
+-- Component containers (paragraph, dropdown, color picker, status, button and
+-- label rows) previously shared one flat white fill in every theme. Give each
+-- theme its own wash instead: white leaned toward its accent, so dark themes
+-- read as a subtle raised card (a faint tinted lift over the section surface)
+-- and light themes as a near-opaque tinted well. The accent infusion is what
+-- makes the fill differ per theme without ever clashing -- it derives from the
+-- same accent the rest of the theme uses.
+local COMPONENT_WASH_TINT_DARK = 0.18
+local COMPONENT_WASH_TINT_LIGHT = 0.12
+local WHITE = Color3.fromRGB(255, 255, 255)
+for _, def in pairs(ThemeDefinitions) do
+	local accent = def.AccentColor or def.PrimaryColor or Color3.fromRGB(108, 140, 255)
+	local surface = def.WindowColor or Color3.fromRGB(24, 24, 27)
+	local dark = luminance(surface) < 0.4
+	def.ComponentBackgroundColor =
+		blendColor(WHITE, accent, dark and COMPONENT_WASH_TINT_DARK or COMPONENT_WASH_TINT_LIGHT)
+	def.ComponentBackgroundTransparency = dark and 0.9 or 0.06
+end
+
 return ThemeDefinitions

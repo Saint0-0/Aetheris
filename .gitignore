@@ -36,6 +36,9 @@ Thumbs.db
 # Local commit-message scratch file
 .commitmsg.tmp
 
+# Local working plan (review copy, not committed)
+/plan.md
+
 # Wallpaper scratch / derived artifacts
 assets/wallpapers/*.zip
 assets/wallpapers/_backup_pre_upscale/

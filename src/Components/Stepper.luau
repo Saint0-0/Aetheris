@@ -49,9 +49,9 @@ function Stepper.new(parent, Settings, theme)
 	-- footprint as the old input shell).
 	local readout = ValueReadout.new(row, {
 		Theme = theme,
-		Size = UDim2.new(0, 64, 0.6, 0),
+		Size = UDim2.new(0, 50, 0.6, 0),
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -68, 0.5, 0),
+		Position = UDim2.new(1, -50, 0.5, 0),
 		TextSize = 13,
 		OdometerHeight = 20,
 		CornerRadius = 6,
@@ -59,12 +59,13 @@ function Stepper.new(parent, Settings, theme)
 	})
 
 	-- Step controls: two bare icon buttons at the right edge. No background or
-	-- stroke so the row stays clean; 28x28 targets keep mobile taps easy.
+	-- stroke so the row stays clean; 20x20 targets with a 6px readout gap keep
+	-- the cluster compact while staying tappable.
 	local controls = Instance.new("Frame")
 	controls.Name = UUID.Static("StepControls")
 	controls.AnchorPoint = Vector2.new(1, 0.5)
 	controls.Position = UDim2.fromScale(1, 0.5)
-	controls.Size = UDim2.fromOffset(60, 28)
+	controls.Size = UDim2.fromOffset(44, 20)
 	controls.BackgroundTransparency = 1
 	controls.BorderSizePixel = 0
 	controls.Parent = row
@@ -86,7 +87,7 @@ function Stepper.new(parent, Settings, theme)
 		btn.ImageTransparency = 0.15
 		btn.BackgroundTransparency = 1
 		btn.LayoutOrder = order
-		btn.Size = UDim2.fromOffset(28, 28)
+		btn.Size = UDim2.fromOffset(20, 20)
 		btn.Parent = controls
 		local scale = Instance.new("UIScale")
 		scale.Scale = 1

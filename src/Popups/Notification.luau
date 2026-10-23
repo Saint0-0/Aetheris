@@ -108,6 +108,10 @@ function Notification.new(container, Settings, theme)
 	local iconColor = Settings.IconColor or accent
 	local washColor = Settings.GradientColor or accent
 
+	-- AutomaticSize.Y hugs the content: a nonzero base height would be pinned
+	-- by the wash's scale(1,1) frame below, so short toasts stay bulky. X stays
+	-- fixed; the wash and background resolve their scale sizes against the
+	-- converged height each layout pass.
 	local root = new("CanvasGroup", {
 		Name = UUID.Generate("Toast"),
 		ZIndex = 999,
@@ -116,7 +120,7 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = theme.NotificationBackgroundColor or Color3.fromRGB(16, 16, 17),
 		BackgroundTransparency = theme.NotificationBackgroundTransparency or 0.1,
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Size = UDim2.fromOffset(233, ntype == "Variable" and 118 or 92),
+		Size = UDim2.fromOffset(233, 0),
 		BorderColor3 = Color3.fromRGB(41, 41, 41),
 		LayoutOrder = 2,
 		Parent = container,
@@ -124,17 +128,21 @@ function Notification.new(container, Settings, theme)
 	self.Root = root
 
 	new("UICorner", { Parent = root, CornerRadius = UDim.new(0, 6) })
+	-- Card-style chrome: accent-tinted stroke + shadow like the theme cards'
+	-- makeCard (stroke 0.55 there), but the stroke sits slightly more
+	-- transparent here so stacked toasts don't read as heavy. Theme keys still
+	-- override both.
 	local shadow = new("UIShadow", {
 		Parent = root,
-		Color = theme.NotificationShadowColor or Color3.fromRGB(0, 0, 0),
-		BlurRadius = UDim.new(0, 24),
+		Color = theme.NotificationShadowColor or accent,
+		BlurRadius = UDim.new(0, 18),
 		Offset = UDim2.fromOffset(0, 6),
-		Transparency = 0.5,
+		Transparency = theme.NotificationShadowTransparency or 0.45,
 	})
 	local stroke = new("UIStroke", {
 		Parent = root,
-		Color = theme.NotificationStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		Transparency = theme.NotificationStrokeTransparency or 0.86,
+		Color = theme.NotificationStrokeColor or accent,
+		Transparency = theme.NotificationStrokeTransparency or 0.65,
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
@@ -227,6 +235,32 @@ function Notification.new(container, Settings, theme)
 	})
 	new("UIAspectRatioConstraint", { Parent = icon, DominantAxis = Enum.DominantAxis.Height })
 
+	-- Body column: the description and the optional action row stack in flow
+	-- (UIListLayout) inside one auto-sizing frame. Positioning the action row
+	-- by scale inside an auto-sizing parent used to diverge -- each pass grew
+	-- the parent, which pushed the row further down -- so neither child may be
+	-- scale-positioned here.
+	local body = new("Frame", {
+		Name = UUID.Static("Body"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(0.68, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Position = UDim2.fromOffset(42, 40),
+		ZIndex = 2,
+		Parent = root,
+	})
+	new("UIListLayout", {
+		Parent = body,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+	new("UIPadding", {
+		Parent = body,
+		PaddingTop = (ntype == "Variable") and UDim.new(0, 5) or UDim.new(0, 0),
+		PaddingBottom = UDim.new(0, 15),
+	})
+
 	-- Description
 	local desc = new("TextLabel", {
 		Name = UUID.Static("Description"),
@@ -239,17 +273,12 @@ function Notification.new(container, Settings, theme)
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
 		TextColor3 = theme.NotificationTextColor or Color3.fromRGB(255, 255, 255),
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
-		Size = UDim2.fromScale(0.68, 0),
+		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.fromOffset(42, 40),
+		LayoutOrder = 1,
 		ZIndex = 2,
 		Text = description,
-		Parent = root,
-	})
-	new("UIPadding", {
-		Parent = desc,
-		PaddingTop = (ntype == "Variable") and UDim.new(0, 5) or UDim.new(0, 0),
-		PaddingBottom = UDim.new(0, (ntype == "Variable") and 45 or 15),
+		Parent = body,
 	})
 
 	-- Interaction buttons (up to MAX_ACTIONS)
@@ -261,9 +290,9 @@ function Notification.new(container, Settings, theme)
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 30),
-			Position = UDim2.fromScale(0, 1.25),
+			LayoutOrder = 2,
 			ZIndex = 3,
-			Parent = desc,
+			Parent = body,
 		})
 		new("UIListLayout", {
 			Parent = holder,
@@ -424,9 +453,13 @@ function Notification:ApplyTheme(themeInput)
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
 
-	self._shadow.Color = theme.NotificationShadowColor or self._shadow.Color
-	self._stroke.Color = theme.NotificationStrokeColor or theme.StrokeColor or self._stroke.Color
-	self._stroke.Transparency = theme.NotificationStrokeTransparency or self._stroke.Transparency
+	-- Accent-tinted, card-style chrome; theme keys override the tint.
+	self._shadow.Color = theme.NotificationShadowColor or accent
+	if theme.NotificationShadowTransparency then
+		self._shadow.Transparency = theme.NotificationShadowTransparency
+	end
+	self._stroke.Color = theme.NotificationStrokeColor or accent
+	self._stroke.Transparency = theme.NotificationStrokeTransparency or 0.65
 	if self._wash then
 		self._wash:SetColor(washColor)
 	end

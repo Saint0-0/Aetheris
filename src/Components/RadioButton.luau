@@ -29,12 +29,14 @@ function RadioButton.new(parent, group, Settings, theme)
 		Theme = theme,
 		LabelWidth = 0.48591,
 	})
-	-- RadioHolderFrame
+	-- RadioHolderFrame: unactivated pill carries the same InputBackground tint
+	-- as Keybind/TextInput; the selected button paints opaque over it.
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("RadioHolderFrame")
 	holder.BorderSizePixel = 0
-	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	holder.BackgroundTransparency = 1
+	holder.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+	holder.BackgroundTransparency = theme.InputBackgroundTransparency or 1
+	holder:SetAttribute("IsInputBackground", true)
 	holder.AnchorPoint = Vector2.new(1, 0.5)
 	holder.Size = UDim2.fromOffset(45, 29)
 	holder.Position = UDim2.fromScale(1, 0.5)
@@ -299,6 +301,8 @@ function RadioButton.new(parent, group, Settings, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(button, "BackgroundColor3", "PrimaryColor")
+	ThemeManager.BindColor(holder, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindTransparency(holder, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(holderStroke, "Color", "StrokeColor")
 	-- SELECTION-driven stroke transparency, now a STATE binding: Selected is a
 	-- LITERAL 1 (stroke hidden), Unselected reads the theme's StrokeTransparency.
@@ -351,6 +355,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		-- Drop all ThemeManager bindings and unregister the component.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(button)
+		ThemeManager.UnbindInstance(holder)
 		ThemeManager.UnbindInstance(holderStroke)
 		ThemeManager.Unregister(row)
 		-- Destroy the root instance.

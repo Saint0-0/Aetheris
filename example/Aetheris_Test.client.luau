@@ -320,6 +320,18 @@ apiSection:Button({
 })
 
 apiSection:Button({
+	Name = "Update entry + colour (Status:SetEntry)",
+	Callback = function()
+		local flipping = apiStatus:GetEntry("info") ~= nil and apiStatus:GetEntry("info"):find("nominal") ~= nil
+		if flipping then
+			apiStatus:SetEntry("info", "CPU usage high", "orange")
+		else
+			apiStatus:SetEntry("info", "All systems nominal", "green")
+		end
+	end,
+})
+
+apiSection:Button({
 	Name = "Destroy label (Destroy)",
 	Callback = function()
 		apiLabel:Destroy()

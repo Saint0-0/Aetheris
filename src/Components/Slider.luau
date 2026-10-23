@@ -123,8 +123,9 @@ function Slider.new(parent, Settings, theme)
 		RowName = name .. "Slider",
 		Theme = theme,
 		Height = 52,
-		LabelWidth = 0.59985,
-		LabelHeight = 0.31745,
+		LabelWidth = 0.5,
+		LabelHeight = 0.4,
+		LabelTextSize = 12,
 		LabelPosition = UDim2.fromScale(0, 0.05),
 		LabelAnchorPoint = Vector2.new(0, 0),
 	})
@@ -230,7 +231,7 @@ function Slider.new(parent, Settings, theme)
 	-- value readout: shared chip (odometer at rest, text field on focus)
 	local readout = ValueReadout.new(controlHolder, {
 		Theme = theme,
-		Width = 56,
+		Width = 45,
 		Height = 17,
 		TextSize = 11,
 		OdometerHeight = 16,

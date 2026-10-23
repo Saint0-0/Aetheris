@@ -15,6 +15,13 @@
 				{ "custom", "Custom colour", Color3.fromRGB(255, 200, 100) },
 			},
 		})
+
+	Per-entry API (entries are keyed by their first field):
+		status:SetEntry("cpu", "CPU normal", "green")  -- update text + colour
+		status:SetEntry("newKey", "Fresh line")        -- appends (up to MAX)
+		status:SetText("cpu", "Still fine")            -- text only, keeps colour
+		status:GetEntry("cpu")                         -- current text or nil
+		status:SetEntries({ ... })                     -- replace all entries
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
