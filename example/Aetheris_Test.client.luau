@@ -796,3 +796,22 @@ print(
 -- =========================================================================
 -- task.wait(10)
 -- window:Destroy()
+
+-- =========================================================================
+-- 11. ONDESTROY HOOK — script-side cleanup when the UI closes
+-- =========================================================================
+-- Stands in for a real loop (autofarm, autosell, ...): the loop would keep
+-- running after the window is gone unless something stops it. Close the window
+-- (or uncomment the auto-destroy above) to watch it cancel with a final print.
+local demoLoopStart = os.clock()
+local demoLoopThread = task.spawn(function()
+	while true do
+		task.wait(1)
+		print(string.format("[Aetheris Demo] demo loop alive (%.0fs)", os.clock() - demoLoopStart))
+	end
+end)
+
+window:OnDestroy(function()
+	task.cancel(demoLoopThread)
+	print(string.format("[Aetheris Demo] OnDestroy: demo loop cancelled after %.1fs", os.clock() - demoLoopStart))
+end)

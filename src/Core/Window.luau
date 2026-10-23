@@ -2360,6 +2360,21 @@ function Window:SetTheme(themeInput)
 	end
 end
 
+-- Register cleanup that runs when the UI closes or is destroyed (close button,
+-- confirm dialog or Window:Destroy). Use it to disconnect script-side loops and
+-- connections that would otherwise outlive the UI, e.g. an autofarm loop:
+--     window:OnDestroy(function() loop:Disconnect() end)
+-- Several callbacks may be registered; each is pcall-guarded so one bad hook
+-- cannot block teardown.
+function Window:OnDestroy(callback)
+	if type(callback) ~= "function" then
+		warn("[Aetheris] Window:OnDestroy expects a function")
+		return
+	end
+	self._destroyCallbacks = self._destroyCallbacks or {}
+	table.insert(self._destroyCallbacks, callback)
+end
+
 function Window:Destroy()
 	-- Re-entrancy guard: doClose funnels here now, and a confirm dialog or a
 	-- second close must not double-play the sound or double-destroy the tree.
@@ -2375,6 +2390,22 @@ function Window:Destroy()
 
 	if self._teardown then
 		self._teardown()
+	end
+
+	-- User teardown hooks (Window:OnDestroy): kill script-side loops, threads or
+	-- connections that would outlive the UI (e.g. an autofarm loop). Internal
+	-- listeners are already dead but the instance tree still exists, so hooks
+	-- may safely touch it. Each hook is pcall-guarded so one bad callback cannot
+	-- strand the rest or block the close animation.
+	if self._destroyCallbacks then
+		for _, callback in ipairs(self._destroyCallbacks) do
+			local ok, err = pcall(callback)
+			if not ok then
+				warn("[Aetheris] OnDestroy callback errored: " .. tostring(err))
+			end
+		end
+		table.clear(self._destroyCallbacks)
+		self._destroyCallbacks = nil
 	end
 
 	-- Fade the WHOLE window out. MainFrame is a CanvasGroup, so a single
