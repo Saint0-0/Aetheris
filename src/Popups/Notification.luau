@@ -79,6 +79,15 @@ local ACCENT_KEY = {
 	Variable = "NotificationVariableAccent",
 }
 
+-- Per-type fallbacks: even if a theme is missing its Notification*Accent keys
+-- the rim still colour-matches the toast (alert = orange, error = red,
+-- variable = green) instead of every flavour sharing one colour.
+local FALLBACK_ACCENT = {
+	Alert = Color3.fromRGB(249, 115, 22),
+	Error = Color3.fromRGB(226, 42, 42),
+	Variable = Color3.fromRGB(74, 200, 120),
+}
+
 local DEFAULT_TITLE = {
 	Alert = "Alert",
 	Error = "Error",
@@ -104,7 +113,7 @@ function Notification.new(container, Settings, theme)
 	local description = Settings.Description or ""
 	self.Duration = Settings.Duration or 5
 
-	local accent = theme[ACCENT_KEY[ntype] or "NotificationAlertAccent"] or Color3.fromRGB(96, 165, 250)
+	local accent = theme[ACCENT_KEY[ntype]] or FALLBACK_ACCENT[ntype] or FALLBACK_ACCENT.Alert
 	local iconColor = Settings.IconColor or accent
 	local washColor = Settings.GradientColor or accent
 
@@ -127,21 +136,26 @@ function Notification.new(container, Settings, theme)
 	})
 	self.Root = root
 
+	-- NOTE: root deliberately has NO UIPadding -- it would inset the scale(1,1)
+	-- wash/background and float the bottom timer bar. The row below uses
+	-- absolute offsets instead (14 left, 30 right gutter for the dismiss).
+
 	new("UICorner", { Parent = root, CornerRadius = UDim.new(0, 6) })
-	-- Card-style chrome: accent-tinted stroke + shadow like the theme cards'
-	-- makeCard (stroke 0.55 there), but the stroke sits slightly more
-	-- transparent here so stacked toasts don't read as heavy. Theme keys still
-	-- override both.
+	-- Card-style chrome, colour-matched to the flavour: the stroke AND shadow
+	-- take the per-type accent (alert = orange rim, error = red, variable =
+	-- theme-derived). Theme keys only tune transparency now -- their neutral
+	-- colours used to win over the accent and flattened every toast to one
+	-- look. Stroke sits a touch more transparent than the theme cards' 0.55.
 	local shadow = new("UIShadow", {
 		Parent = root,
-		Color = theme.NotificationShadowColor or accent,
+		Color = accent,
 		BlurRadius = UDim.new(0, 18),
 		Offset = UDim2.fromOffset(0, 6),
 		Transparency = theme.NotificationShadowTransparency or 0.45,
 	})
 	local stroke = new("UIStroke", {
 		Parent = root,
-		Color = theme.NotificationStrokeColor or accent,
+		Color = accent,
 		Transparency = theme.NotificationStrokeTransparency or 0.65,
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -191,7 +205,66 @@ function Notification.new(container, Settings, theme)
 		})
 	end
 
-	-- Header + divider
+	-- Row: icon beside a single in-flow text column. Every child uses offset
+	-- sizes and UIListLayouts -- nothing is scale-positioned -- so the root's
+	-- AutomaticSize.Y converges deterministically: a one-line alert is ~65px
+	-- tall and growth is linear with the description. (The old layout pinned
+	-- the header/divider/icon at absolute offsets and stacked a 40px top
+	-- offset on top, which is what made every toast long.) Absolute insets:
+	-- 14px left margin, 30px right gutter for the dismiss button.
+	local row = new("Frame", {
+		Name = UUID.Static("Row"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -44, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Position = UDim2.fromOffset(14, 12),
+		ZIndex = 2,
+		Parent = root,
+	})
+	new("UIListLayout", {
+		Parent = row,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		FillDirection = Enum.FillDirection.Horizontal,
+	})
+	-- Bottom band: included in row's AutomaticSize.Y (unlike root UIPadding,
+	-- which would break the wash), so the timer bar at the card's bottom edge
+	-- never overlaps the description.
+	new("UIPadding", { Parent = row, PaddingBottom = UDim.new(0, 12) })
+
+	-- Icon (full image from the Icons module; no rect offset/size)
+	local icon = new("ImageLabel", {
+		Name = UUID.Static("Icon"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		ImageColor3 = iconColor,
+		Size = UDim2.fromOffset(22, 22),
+		LayoutOrder = 1,
+		ZIndex = 2,
+		Image = Settings.Icon or DEFAULT_ICON[ntype] or DEFAULT_ICON.Alert,
+		Parent = row,
+	})
+	new("UIAspectRatioConstraint", { Parent = icon, DominantAxis = Enum.DominantAxis.Height })
+
+	local col = new("Frame", {
+		Name = UUID.Static("Column"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		-- Icon (22) + gap (10); the dismiss button sits outside the row at the
+		-- card edge, so no extra reserve is needed here.
+		Size = UDim2.new(1, -32, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 2,
+		ZIndex = 2,
+		Parent = row,
+	})
+	new("UIListLayout", {
+		Parent = col,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+
 	local header = new("TextLabel", {
 		Name = UUID.Static("Header"),
 		BorderSizePixel = 0,
@@ -201,13 +274,12 @@ function Notification.new(container, Settings, theme)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTransparency = theme.NotificationHeaderTransparency or 0.3,
 		TextColor3 = theme.NotificationHeaderColor or Color3.fromRGB(255, 255, 255),
-		AutomaticSize = Enum.AutomaticSize.X,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
-		Size = UDim2.fromOffset(0, 14),
-		Position = UDim2.fromOffset(42, 11),
+		Size = UDim2.new(1, 0, 0, 16),
+		LayoutOrder = 1,
 		ZIndex = 2,
 		Text = title,
-		Parent = root,
+		Parent = col,
 	})
 	local divider = new("Frame", {
 		Name = UUID.Static("Divider"),
@@ -215,50 +287,9 @@ function Notification.new(container, Settings, theme)
 		BackgroundColor3 = theme.NotificationDividerColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.NotificationDividerTransparency or 0.7,
 		Size = UDim2.new(0.7, 0, 0, 1),
-		Position = UDim2.fromOffset(0, 22),
+		LayoutOrder = 2,
 		ZIndex = 3,
-		Parent = header,
-	})
-
-	-- Icon (full image from the Icons module; no rect offset/size)
-	local icon = new("ImageLabel", {
-		Name = UUID.Static("Icon"),
-		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
-		ImageColor3 = iconColor,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Image = Settings.Icon or DEFAULT_ICON[ntype] or DEFAULT_ICON.Alert,
-		Size = UDim2.fromOffset(22, 22),
-		Position = UDim2.fromOffset(21, 24),
-		ZIndex = 2,
-		Parent = root,
-	})
-	new("UIAspectRatioConstraint", { Parent = icon, DominantAxis = Enum.DominantAxis.Height })
-
-	-- Body column: the description and the optional action row stack in flow
-	-- (UIListLayout) inside one auto-sizing frame. Positioning the action row
-	-- by scale inside an auto-sizing parent used to diverge -- each pass grew
-	-- the parent, which pushed the row further down -- so neither child may be
-	-- scale-positioned here.
-	local body = new("Frame", {
-		Name = UUID.Static("Body"),
-		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(0.68, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.fromOffset(42, 40),
-		ZIndex = 2,
-		Parent = root,
-	})
-	new("UIListLayout", {
-		Parent = body,
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
-	new("UIPadding", {
-		Parent = body,
-		PaddingTop = (ntype == "Variable") and UDim.new(0, 5) or UDim.new(0, 0),
-		PaddingBottom = UDim.new(0, 15),
+		Parent = col,
 	})
 
 	-- Description
@@ -269,16 +300,16 @@ function Notification.new(container, Settings, theme)
 		TextWrapped = true,
 		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Top,
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
 		TextColor3 = theme.NotificationTextColor or Color3.fromRGB(255, 255, 255),
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		LayoutOrder = 1,
+		LayoutOrder = 3,
 		ZIndex = 2,
 		Text = description,
-		Parent = body,
+		Parent = col,
 	})
 
 	-- Interaction buttons (up to MAX_ACTIONS)
@@ -289,10 +320,10 @@ function Notification.new(container, Settings, theme)
 			Name = UUID.Static("InterractionHolder"),
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 30),
-			LayoutOrder = 2,
+			Size = UDim2.new(1, 0, 0, 20),
+			LayoutOrder = 4,
 			ZIndex = 3,
-			Parent = body,
+			Parent = col,
 		})
 		new("UIListLayout", {
 			Parent = holder,
@@ -375,7 +406,8 @@ function Notification.new(container, Settings, theme)
 		Image = CLOSE_ICON,
 		ImageColor3 = theme.NotificationDismissColor or Color3.fromRGB(255, 255, 255),
 		Size = UDim2.fromOffset(16, 16),
-		Position = UDim2.fromScale(0.888, 0.13),
+		AnchorPoint = Vector2.new(1, 0), -- right-pinned: hover growth extends into the gutter, not past the card edge
+		Position = UDim2.new(1, -7, 0, 11), -- 30px gutter right of the row, aligned with the header line
 		ZIndex = 3,
 		Parent = root,
 	})
@@ -445,7 +477,7 @@ function Notification:ApplyTheme(themeInput)
 		return
 	end
 	local theme = ThemeManager.GetTheme(themeInput)
-	local accent = theme[ACCENT_KEY[self._type] or "NotificationAlertAccent"] or self._accent
+	local accent = theme[ACCENT_KEY[self._type]] or FALLBACK_ACCENT[self._type] or self._accent
 	self._accent = accent
 	local iconColor = self._iconOverride or accent
 	local washColor = self._washOverride or accent
@@ -453,12 +485,15 @@ function Notification:ApplyTheme(themeInput)
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
 
-	-- Accent-tinted, card-style chrome; theme keys override the tint.
-	self._shadow.Color = theme.NotificationShadowColor or accent
+	-- Colour-matched card chrome: rim and glow follow the flavour accent, so
+	-- alerts glow amber, errors red, toasts green. Theme keys only tune
+	-- transparency now -- their neutral colours used to win the `or` and
+	-- flattened every flavour to one look.
+	self._shadow.Color = accent
 	if theme.NotificationShadowTransparency then
 		self._shadow.Transparency = theme.NotificationShadowTransparency
 	end
-	self._stroke.Color = theme.NotificationStrokeColor or accent
+	self._stroke.Color = accent
 	self._stroke.Transparency = theme.NotificationStrokeTransparency or 0.65
 	if self._wash then
 		self._wash:SetColor(washColor)

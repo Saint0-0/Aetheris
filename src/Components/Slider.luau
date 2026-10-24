@@ -125,7 +125,7 @@ function Slider.new(parent, Settings, theme)
 		Height = 52,
 		LabelWidth = 0.5,
 		LabelHeight = 0.4,
-		LabelTextSize = 12,
+		LabelTextSize = 14,
 		LabelPosition = UDim2.fromScale(0, 0.05),
 		LabelAnchorPoint = Vector2.new(0, 0),
 	})

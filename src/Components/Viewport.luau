@@ -82,7 +82,10 @@ function Viewport.new(parent, Settings, theme)
 	stroke.Parent = frame
 
 	-- Viewport square on the left; the input-well tint keeps it recessed and
-	-- themed like a Keybind/TextInput field.
+	-- themed like a Keybind/TextInput field. `side` is recomputed by relayout:
+	-- the square yields width to the info column on narrow cards so the labels
+	-- never clip (a height-sized square used to squeeze them past the window
+	-- edge).
 	local side = height - 16
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
@@ -129,7 +132,6 @@ function Viewport.new(parent, Settings, theme)
 		row.Size = UDim2.new(1, 0, 0, 32)
 		row.LayoutOrder = index
 		row.Parent = infoColumn
-
 		local caption = Instance.new("TextLabel")
 		caption.Name = UUID.Static("Caption")
 		caption.BackgroundTransparency = 1
@@ -159,6 +161,25 @@ function Viewport.new(parent, Settings, theme)
 		value.Parent = row
 		valueLabels[index] = value
 	end
+
+	-- Responsive split: the square is height-driven but never eats more than
+	-- ~45% of the card's width, so the info column always keeps a readable
+	-- minimum. Re-runs on resize; AbsoluteSize is 0 before the first layout
+	-- pass, so the property connection picks it up when the section lays out.
+	local function relayout()
+		local available = frame.AbsoluteSize.X
+		if available <= 0 then
+			return
+		end
+		local maxWidth = math.floor(available * 0.45)
+		local budget = math.max(available - 132 - 28, 0) -- keep ~132px for labels
+		side = math.clamp(height - 16, 64, math.min(maxWidth, budget))
+		viewport.Size = UDim2.fromOffset(side, side)
+		infoColumn.Position = UDim2.new(0, side + 20, 0.5, 0)
+		infoColumn.Size = UDim2.new(1, -(side + 28), 1, -16)
+	end
+	relayout()
+	frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayout)
 
 	----------------------------------------------------------------
 	-- Character binding + camera
@@ -291,11 +312,9 @@ function Viewport.new(parent, Settings, theme)
 		end
 	end
 	self.SetHeight = function(_, newHeight)
+		height = newHeight
 		frame.Size = UDim2.new(1, 0, 0, newHeight)
-		local newSide = newHeight - 16
-		viewport.Size = UDim2.fromOffset(newSide, newSide)
-		infoColumn.Position = UDim2.new(0, newSide + 20, 0.5, 0)
-		infoColumn.Size = UDim2.new(1, -(newSide + 28), 1, -16)
+		relayout()
 	end
 	-- Custom teardown: the orbit connection and the player respawn listener
 	-- outlive the instance tree unless disconnected here.
