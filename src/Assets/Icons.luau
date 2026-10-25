@@ -1617,7 +1617,7 @@ return {
 	["wallet-cards"] = "rbxassetid://129728715308337",
 	["wallet-minimal"] = "rbxassetid://137800448816116",
 	["wallet"] = "rbxassetid://132331555762628",
-	["Wallpaper"] = "rbxassetid://74682121235494",
+	["wallpaper"] = "rbxassetid://74682121235494",
 	["wand-sparkles"] = "rbxassetid://82546429942392",
 	["wand"] = "rbxassetid://114580617777835",
 	["warehouse"] = "rbxassetid://78388887451080",

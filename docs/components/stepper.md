@@ -34,3 +34,7 @@ section:Stepper({
 | `:SetValue(number)` | Set the value programmatically. |
 | `:GetValue()` | Returns the current value. |
 | `:SetVisibility(bool)` | Show or hide the component. |
+
+## Notes
+
+While its page is off screen the whole control (value chip, odometer digits, step buttons) fades to transparent, then tweens back when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).

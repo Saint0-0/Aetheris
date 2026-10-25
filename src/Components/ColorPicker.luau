@@ -37,11 +37,11 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		Theme = theme,
 		Clickable = true,
 		LabelWidth = 0.486,
-		BackgroundColor = (theme and theme.ComponentBackgroundColor),
-		BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985,
+		BackgroundColor = Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = 1,
 		CornerRadius = 6,
-		Stroke = true,
-		ComponentContainer = true,
+		Stroke = false,
+		ComponentContainer = false,
 	})
 	-- HeaderBar (transparent container for display and chevron)
 	local headerBar = Instance.new("Frame")
@@ -189,8 +189,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
-	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
-	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	-- Initialize display
 	updateDisplay(defaultColor)
 	ComponentAPI.Apply(self, {

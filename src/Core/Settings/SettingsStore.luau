@@ -35,6 +35,8 @@ SettingsStore.Defaults = {
 	Volume = 1,
 	PillPosition = "right", -- minimize pill: "right" | "left" | "top" | "bottom"
 	CompactMode = "auto", -- "auto" (by width) | "always" | "never"
+	PageAnimations = true, -- toggle/slider/stepper focus animations on page switch
+	Font = nil, -- nil = built-in Aetheris font (see Constants.FontChoices)
 }
 
 SettingsStore.Data = {}
@@ -44,6 +46,12 @@ end
 
 -- Executor file API (present in most executors, absent in Studio/vanilla).
 local hasFileAPI = (type(writefile) == "function" and type(readfile) == "function")
+
+-- A Lua table can't hold a nil value, so keys whose default is "unset"
+-- (Theme / MinimizeKey / Font) don't appear in Defaults and would be dropped
+-- by the load filter below. List them so they still round-trip through the
+-- saved JSON file.
+SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font" }
 
 function SettingsStore.Load()
 	if not hasFileAPI then
@@ -64,9 +72,16 @@ function SettingsStore.Load()
 			decoded = result
 		end
 		if decoded then
+			local allowed = {}
 			for k in pairs(SettingsStore.Defaults) do
-				if decoded[k] ~= nil then
-					SettingsStore.Data[k] = decoded[k]
+				allowed[k] = true
+			end
+			for _, k in ipairs(SettingsStore.NilDefaultKeys) do
+				allowed[k] = true
+			end
+			for k, v in pairs(decoded) do
+				if allowed[k] and v ~= nil then
+					SettingsStore.Data[k] = v
 				end
 			end
 		end

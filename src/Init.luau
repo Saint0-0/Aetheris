@@ -52,4 +52,8 @@ function Aetheris:CreateWindow(Settings)
 	return Window.new(options)
 end
 
+-- Let Window:RequestReload rebuild through this facade without a back-require
+-- (Window -> Init -> Window would be a module cycle the bundler rejects).
+Window.SetFacade(Aetheris)
+
 return Aetheris

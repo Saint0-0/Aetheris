@@ -9,6 +9,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local PageAwareness = require("../Utils/PageAwareness")
 local UUID = require("../Utils/UUID")
 local Toggle = {}
 Toggle.__index = Toggle
@@ -205,6 +206,28 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		end
 	end
 	----------------------------------------------------------------
+	-- PAGE FOCUS DIM (visual-only; does NOT change `state`)
+	----------------------------------------------------------------
+	-- Off-page, the control collapses to a zeroed look (thumb parked at off,
+	-- chrome faded) so returning to the page can tween it back to its real
+	-- value via applyState(state). `state` is untouched, so GetState() and the
+	-- saved setting are unaffected by the animation.
+	local dimmed = false
+	local function setDimmed(on)
+		dimmed = on
+		if on then
+			Tween.Play(thumb, "Fast", { Position = offPos, BackgroundTransparency = 1 })
+			Tween.Play(stroke, "Fast", { Transparency = 1 })
+			Tween.Play(track, "Fast", { BackgroundTransparency = 1 })
+			Tween.Play(sheen, "Fast", { ImageTransparency = 1 })
+			-- Park the sheen spin while dimmed (composes with the ON/OFF gate).
+			Tween.SetSpinWanted(sheenGradient, false)
+		else
+			-- Restore: recompute the real look from `state`, animating back.
+			applyState(state, true, false)
+		end
+	end
+	----------------------------------------------------------------
 	-- HANDLE CLICK
 	----------------------------------------------------------------
 	local function handleClick()
@@ -295,7 +318,24 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- state after every theme apply to avoid a half-faded toggle.
 	local unregisterTheme = ThemeManager.OnThemeApplied(function()
 		applyState(state, false, false)
+		-- A theme switch re-stamps the real look; if we're currently dimmed
+		-- off-page, re-collapse so the switch doesn't pop it back to full.
+		if dimmed then
+			setDimmed(true)
+		end
 	end, row)
+
+	-- Page awareness: collapse off-page, tween back to `state` on focus. Gated
+	-- by the UI Settings "Page Animations" toggle; OnActive always restores.
+	PageAwareness.Register(row, {
+		Gate = "PageAnimations",
+		OnInactive = function()
+			setDimmed(true)
+		end,
+		OnActive = function()
+			setDimmed(false)
+		end,
+	})
 
 	self.Destroy = function(_self)
 		if unregisterTheme then

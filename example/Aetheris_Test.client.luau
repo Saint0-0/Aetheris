@@ -18,7 +18,7 @@
                  Button, Label, Paragraph, Divider, Video
     Security   : AETHERIS_SECUREMODE (gethui/CoreGui parenting + UUID rename)
     API        : SetName/UpdateName, SetVisible/SetVisibility/GetVisible,
-                 Destroy, and Status:SetText/SetEntry/SetEntries
+                 Destroy, and Status:AddEntry/SetEntry/SetEntries
 
   How to run
   ----------
@@ -275,7 +275,7 @@ actionSection:Button({
 --   SetVisible / SetVisibility  - show or hide the component's root
 --   GetVisible                  - current visibility
 --   Destroy                     - tear the component down
--- Status also exposes per-entry updates: SetText / SetEntry / SetEntries.
+-- Status also exposes per-entry updates: AddEntry / SetEntry / SetEntries.
 local apiSection = homeTab:Section({ Name = "Secure Mode / API", Side = "Right" })
 
 local apiLabel = apiSection:Label({
@@ -313,9 +313,9 @@ apiSection:Button({
 })
 
 apiSection:Button({
-	Name = "Update status (Status:SetText)",
+	Name = "Append entry (Status:AddEntry)",
 	Callback = function()
-		apiStatus:SetText("info", 'Updated <font color="green">live</font>')
+		apiStatus:AddEntry("info", "Hi again @ " .. os.date("%H:%M:%S"), "green")
 	end,
 })
 
@@ -824,7 +824,7 @@ print(
 	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console."
 )
 print(
-	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName/UpdateName, SetVisible/SetVisibility/GetVisible, Destroy, Status:SetText."
+	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName/UpdateName, SetVisible/SetVisibility/GetVisible, Destroy, Status:AddEntry."
 )
 
 -- =========================================================================

@@ -147,6 +147,9 @@ function Aurora.Wash(parent, opts)
 	local texture = Aurora.GetTexture()
 	local color = opts.Color or Color3.fromRGB(122, 156, 210)
 	local intensity = opts.Intensity or 1
+	-- Optional theme key: when set, every bloom binds to it (ThemeManager) so
+	-- the wash repaints live on a theme switch without a manual SetColor.
+	local colorKey = opts.ColorKey
 	-- Keep every bloom inside the parent's bottom edge (y + size / 2 <= 1):
 	-- blooms count toward an AutomaticSize parent's content, so an overhanging
 	-- one would stretch the parent taller on every layout pass.
@@ -158,7 +161,7 @@ function Aurora.Wash(parent, opts)
 	local pieces = {}
 	for _, blob in ipairs(blobs) do
 		local power = intensity * (blob.intensity or 1)
-		for _, piece in ipairs(makeBloom(root, texture, color, blob.x, blob.y, blob.size, blob.size, power)) do
+		for _, piece in ipairs(makeBloom(root, texture, color, blob.x, blob.y, blob.size, blob.size, power, colorKey)) do
 			table.insert(pieces, piece)
 		end
 	end
@@ -242,7 +245,6 @@ local function makeBlob(root, theme, def, texture, transparency)
 		toSize = def.toSize,
 		duration = def.duration,
 		handle = nil,
-		flip = false,
 	}
 end
 
@@ -314,10 +316,20 @@ end
 
 function Aurora:_play()
 	for _, blob in ipairs(self._blobs) do
-		local targetX = blob.flip and blob.x or blob.toX
-		local targetY = blob.flip and blob.y or blob.toY
-		local targetSize = blob.flip and blob.size or blob.toSize
-		blob.flip = not blob.flip
+		-- Pick the target by DISTANCE from the holder's CURRENT position, not a
+		-- flip flag. A theme re-apply calls _stop();_play() while the holder may
+		-- still be at its start point; a flip-based target could resolve back to
+		-- that same point, collapsing the pendulum range to ~0 and freezing the
+		-- aurora for a whole cycle. The farther end always wins, so the blob
+		-- always travels its full range.
+		local pos = blob.holder.Position
+		local px, py = pos.X.Scale, pos.Y.Scale
+		local dStart = (px - blob.x) ^ 2 + (py - blob.y) ^ 2
+		local dEnd = (px - blob.toX) ^ 2 + (py - blob.toY) ^ 2
+		local toEnd = dEnd >= dStart
+		local targetX = toEnd and blob.toX or blob.x
+		local targetY = toEnd and blob.toY or blob.y
+		local targetSize = toEnd and blob.toSize or blob.size
 		local info = TweenInfo.new(blob.duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 		blob.handle = Tween.Play(blob.holder, info, {
 			Position = UDim2.fromScale(targetX, targetY),

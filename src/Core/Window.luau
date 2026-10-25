@@ -24,6 +24,7 @@ local SearchFilter = require("./SearchFilter")
 local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
+local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -52,6 +53,10 @@ function Window.new(Settings)
 	end
 	Sound.SetVolume(SettingsStore.Get("Volume"))
 	Tween.SpinsEnabled = SettingsStore.Get("SpinsEnabled")
+	-- Apply the saved font family BEFORE anything builds, so every component
+	-- created below picks it up through Constants.Font(). Live swaps later go
+	-- through Window:SetFont.
+	Constants.SetFontAsset(SettingsStore.Get("Font"))
 
 	-- Resolve theme early so UI creation uses actual theme table
 	local resolvedTheme = ThemeManager.GetTheme(Settings.Theme)
@@ -693,6 +698,8 @@ function Window.new(Settings)
 				self.SettingsTabGroup:RefreshTitle()
 			end
 		end
+		-- Opening/closing the settings overlay swaps which page is active.
+		PageAwareness.Refresh()
 	end)
 
 	local NameContainer = Instance.new("Frame")
@@ -1078,6 +1085,10 @@ function Window.new(Settings)
 	-- Store the resolved theme BEFORE any settings pages/scripts build,
 	-- so components created there use the correct theme instead of Default.
 	self._theme = theme
+
+	-- Snapshot the CreateWindow settings so RequestReload can rebuild an
+	-- identical window after a teardown.
+	self._reloadSettings = Settings
 
 	-- Store the original theme name (when a named theme was passed) so the
 	-- Themes settings page can mark the correct card as active on first build.
@@ -1598,9 +1609,13 @@ function Window.new(Settings)
 	pillCorner.Parent = pill
 	local pillStroke = Instance.new("UIStroke")
 	pillStroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	pillStroke.Transparency = theme.StrokeTransparency or 0.93
+	-- Rest: fully transparent; the stroke only appears on hover (like the
+	-- shadow). PageFadeBase = 1 so a page/window fade restores the HIDDEN rest
+	-- state, and we deliberately don't BindTransparency (which would stamp
+	-- ThemeLive_Transparency and fight the hover gate).
+	pillStroke.Transparency = 1
 	pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	pillStroke:SetAttribute("PageFadeBase", pillStroke.Transparency)
+	pillStroke:SetAttribute("PageFadeBase", 1)
 	pillStroke.Parent = pill
 	local pillShadow = Instance.new("UIShadow")
 	pillShadow.Color = theme.PopupShadowColor or Color3.fromRGB(0, 0, 0)
@@ -1629,17 +1644,27 @@ function Window.new(Settings)
 		pillShadow.Transparency = (pillHovered and pill.Visible) and 0.5 or 1
 	end
 
+	-- Same idea for the stroke: a CanvasGroup fade doesn't cover UIStroke, so
+	-- gate it to hover. Rest is fully transparent; hover shows it in the live
+	-- theme's stroke transparency (color is a BindColor, so it stays themed).
+	local function applyPillStroke()
+		local live = self._theme or theme
+		pillStroke.Transparency = (pillHovered and pill.Visible) and (live.StrokeTransparency or 0.93) or 1
+	end
+
 	pill.MouseEnter:Connect(function()
 		pillHovered = true
 		Tween.Play(pill, "Fast", { GroupTransparency = PILL_HOVER_GROUP })
 		Tween.Play(pillScale, "HoverIn", { Scale = PILL_HOVER_SCALE })
 		applyPillShadow()
+		applyPillStroke()
 	end)
 	pill.MouseLeave:Connect(function()
 		pillHovered = false
 		Tween.Play(pill, "Fast", { GroupTransparency = PILL_REST_GROUP })
 		Tween.Play(pillScale, "HoverOut", { Scale = PILL_REST_SCALE })
 		applyPillShadow()
+		applyPillStroke()
 	end)
 
 	-- Buttons live inside a scrolling strip so a long tab list cannot run
@@ -1705,8 +1730,9 @@ function Window.new(Settings)
 		pill.BackgroundTransparency = 0.05
 		pill.GroupTransparency = PILL_REST_GROUP
 		pillStroke.Color = t.StrokeColor or Color3.fromRGB(255, 255, 255)
-		pillStroke.Transparency = t.StrokeTransparency or 0.93
-		pillStroke:SetAttribute("PageFadeBase", pillStroke.Transparency)
+		-- Transparency is hover-gated (applyPillStroke), never stamped here, so
+		-- a theme switch can't leave a visible stroke at rest.
+		applyPillStroke()
 		pillShadow.Color = t.PopupShadowColor or Color3.fromRGB(0, 0, 0)
 		applyPillShadow()
 		if pillScroll then
@@ -1892,6 +1918,8 @@ function Window.new(Settings)
 			return
 		end
 		minimizeState = "minimizing"
+		self._minimized = true
+		PageAwareness.Refresh()
 		Sound.Play("UIClose")
 		self._windowFaded = true
 		-- Fade the sidebar tab scrollbar out instead of letting it snap away
@@ -1938,6 +1966,7 @@ function Window.new(Settings)
 			PageFade.FadeDecorations(pill, false, false)
 			Tween.Play(pillScale, "HoverIn", { Scale = PILL_REST_SCALE })
 			applyPillShadow()
+			applyPillStroke()
 			minimizeState = "hidden"
 		end)
 	end
@@ -1947,6 +1976,8 @@ function Window.new(Settings)
 			return
 		end
 		minimizeState = "restoring"
+		self._minimized = false
+		PageAwareness.Refresh()
 		Sound.Play("UIOpen")
 		tooltip:Hide()
 		-- Show + fade the window in immediately, in parallel with the pill fading
@@ -1965,11 +1996,13 @@ function Window.new(Settings)
 		-- CanvasGroup, so this is a single GroupTransparency tween.
 		pillHovered = false
 		applyPillShadow()
+		applyPillStroke()
 		PageFade.Hide(pill, false, function()
 			pill.Visible = false
 			pillScale.Scale = 1
 			pillHovered = false
 			applyPillShadow()
+			applyPillStroke()
 		end)
 		Tween.Play(pillScale, "Fast", { Scale = 0.85 })
 		task.delay(0.3, function()
@@ -1977,6 +2010,7 @@ function Window.new(Settings)
 			pillScale.Scale = 1
 			pillHovered = false
 			applyPillShadow()
+			applyPillStroke()
 		end)
 	end
 
@@ -2076,6 +2110,10 @@ function Window.new(Settings)
 		end
 		clockStopped = true
 
+		-- Stop tracking page state; component registrations are cleared here and
+		-- their own Destroying handlers become harmless no-ops.
+		PageAwareness.Detach()
+
 		-- Persist any debounced settings change before the window goes away.
 		SettingsStore.Flush()
 
@@ -2145,6 +2183,9 @@ function Window.new(Settings)
 
 	self.TabGroup = TabGroup.new(self, theme)
 	self.SettingsTabGroup = SettingsTabGroup.new(self, theme)
+	-- Page-awareness needs the window + tab groups before any settings-page or
+	-- section component registers, so attach here (components register lazily).
+	PageAwareness.Attach(self)
 
 	-- Build default settings pages (Themes + UI Settings) first.
 	SettingsSystem.BuildDefaultPages(self)
@@ -2358,6 +2399,62 @@ function Window:SetTheme(themeInput)
 			end
 		end
 	end
+end
+
+-- Swap the UI font family live. Re-Font.new's every FontFace in the tree whose
+-- family matches the current one, then persists the choice (nil = built-in).
+function Window:SetFont(asset)
+	local oldAsset = Constants.FontAsset
+	local newAsset = Constants.SetFontAsset(asset)
+	SettingsStore.Set("Font", asset)
+	if newAsset == oldAsset then
+		return
+	end
+	local base = self.Base
+	if not base then
+		return
+	end
+	for _, d in ipairs(base:GetDescendants()) do
+		if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+			local ff = d.FontFace
+			if ff and ff.Family == oldAsset then
+				d.FontFace = Font.new(newAsset, ff.Weight, ff.Style)
+			end
+		end
+	end
+end
+
+-- Init registers itself here (Init already requires Window, so a back-require
+-- would be a module cycle — and the bundler rejects that). RequestReload uses
+-- this table to rebuild instead of re-requiring the facade.
+local facadeModule = nil
+function Window.SetFacade(mod)
+	facadeModule = mod
+end
+
+-- Rebuild the window from scratch with the same CreateWindow settings. Guarded
+-- so repeated clicks can't stack rebuilds; degrades to a toast if the facade
+-- never registered (checked BEFORE teardown, while the window is alive).
+function Window:RequestReload()
+	if self._reloading or self._destroyed then
+		return
+	end
+	local Init = facadeModule
+	if type(Init) ~= "table" or type(Init.CreateWindow) ~= "function" then
+		self:Alert({
+			Title = "Reload unavailable",
+			Description = "The Aetheris facade is not registered, so the UI cannot rebuild itself.",
+		})
+		return
+	end
+	self._reloading = true
+	local settings = table.clone(self._reloadSettings or {})
+	-- Destroy() fades out and tears down (it blocks until the fade completes),
+	-- so rebuild only once the old window is fully gone.
+	task.spawn(function()
+		self:Destroy()
+		Init:CreateWindow(settings)
+	end)
 end
 
 -- Register cleanup that runs when the UI closes or is destroyed (close button,

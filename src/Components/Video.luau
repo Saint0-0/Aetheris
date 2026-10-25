@@ -10,12 +10,14 @@
 			VideoId = "rbxassetid://123456789",
 			Loop = true,        -- default true
 			Height = 100,       -- offset pixels, default 100
+			Volume = 0.5,       -- 0..1, default 1
 		})
 ]]
 
 local VideoFade = require("../Utils/VideoFade")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local PageAwareness = require("../Utils/PageAwareness")
 local UUID = require("../Utils/UUID")
 local Video = {}
 Video.__index = Video
@@ -71,22 +73,38 @@ function Video.new(parent, Settings, theme)
 	-- Load video
 	videoFrame.Video = videoId
 	videoFrame.Looped = loop
+	-- Volume: Settings.Volume in 0..1 (default 1). nil is treated as 1.
+	videoFrame.Volume = (Settings.Volume ~= nil) and Settings.Volume or 1
 	videoFrame:Play()
 	self.Frame = frame
 	self.VideoFrame = videoFrame
+	-- Whether the user/creator intends this video to be playing. Page switches
+	-- pause off-page and resume on-page ONLY if this is true, so an explicit
+	-- Pause() is never overridden when the page comes back.
+	self._wantPlay = true
 	-- Public API
 	self.SetVideo = function(_, newVideoId)
 		videoFrame.Video = newVideoId
+		self._wantPlay = true
 		videoFrame:Play()
 	end
 	self.Play = function()
+		self._wantPlay = true
 		videoFrame:Play()
 	end
 	self.Pause = function()
+		self._wantPlay = false
 		videoFrame:Pause()
 	end
 	self.Stop = function()
+		self._wantPlay = false
 		videoFrame:Stop()
+	end
+	self.SetVolume = function(_, volume)
+		videoFrame.Volume = volume
+	end
+	self.GetVolume = function()
+		return videoFrame.Volume
 	end
 	self.SetLoop = function(_, loopState)
 		videoFrame.Looped = loopState
@@ -107,6 +125,26 @@ function Video.new(parent, Settings, theme)
 	-- Uniform component API (p2-4): visibility toggle + teardown.
 	self.SetVisibility = function(_self, visible)
 		frame.Visible = visible
+	end
+	-- Page awareness: pause the moment the page is switched away, resume when it
+	-- returns -- but only if the video still intends to play. No Gate: pausing
+	-- off-page is always on (it saves decode/battery while invisible).
+	PageAwareness.Register(frame, {
+		OnInactive = function()
+			if self._wantPlay then
+				videoFrame:Pause()
+			end
+		end,
+		OnActive = function()
+			if self._wantPlay then
+				videoFrame:Play()
+			end
+		end,
+	})
+	-- Register doesn't fire handlers, so an off-page video built on an inactive
+	-- tab would keep playing. Sync it to its real page state once.
+	if not PageAwareness.IsActive(frame) and self._wantPlay then
+		videoFrame:Pause()
 	end
 	self.Destroy = function(_self)
 		if frame and frame.Parent then

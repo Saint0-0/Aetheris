@@ -140,6 +140,10 @@ function ValueReadout.new(parent, opts)
 
 	local focused = false
 	local hovered = false
+	-- Page-focus dim: while off-page the chip, sheen and odometer glyphs are
+	-- forced fully transparent regardless of focus/hover, so the value reads as
+	-- zeroed until the page is focused again.
+	local dimmed = false
 	self._text = ""
 
 	-- Re-stamp the current interaction state. Glyph transparencies snap so the
@@ -148,12 +152,12 @@ function ValueReadout.new(parent, opts)
 		local live = ActiveTheme.theme or theme
 		local strokeColor = live.StrokeColor or STROKE_COLOR
 		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or restStrokeAlpha(live))
-		local chipAlpha = focused and 1 or 0
+		local chipAlpha = (focused or dimmed) and 1 or 0
 		local boxAlpha = focused and (live.InputBackgroundTransparency or 0.5) or 1
 		local textAlpha = focused and (live.SecondaryTextTransparency or 0.4) or 1
 
 		box.TextTransparency = textAlpha
-		odo:setTransparency(focused and 1 or 0)
+		odo:setTransparency((focused or dimmed) and 1 or 0)
 		if animate then
 			Tween.Play(chip, "Fast", { BackgroundTransparency = chipAlpha })
 			Tween.Play(sheen, "Fast", { BackgroundTransparency = chipAlpha })
@@ -214,6 +218,17 @@ function ValueReadout.new(parent, opts)
 
 	self.GetText = function(me)
 		return me._text
+	end
+
+	-- Dim (off-page) or restore the readout. Fully transparent while dimmed
+	-- (chip, sheen and odometer glyphs); restoring re-syncs to the live state.
+	self.SetDimmed = function(_, on)
+		local target = on == true
+		if target == dimmed then
+			return
+		end
+		dimmed = target
+		sync(true)
 	end
 
 	self.Destroy = function()

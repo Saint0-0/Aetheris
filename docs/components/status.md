@@ -16,4 +16,13 @@ section:Status({
 
 ## Entry format
 
-Each entry is `{ kind, text, colour }` where colour is a named colour (`"green"`, `"orange"`, `"red"`) or a `Color3`.
+Each entry is `{ kind, text, colour }` where colour is a named colour (`"green"`, `"orange"`, `"red"`) or a `Color3`. An empty `kind` renders the text without the `kind:` prefix.
+
+## API
+
+| Method | Description |
+| --- | --- |
+| `:SetEntry(key, text, colour?)` | Update an existing entry, or append it when the key is new. |
+| `:AddEntry(key, text, colour?)` | Always append a new line (empty `key` = unkeyed); returns `nil` past the 8-entry cap. |
+| `:GetEntry(key)` | Current text for `key`, or `nil`. |
+| `:SetEntries(entries)` | Replace all entries. |

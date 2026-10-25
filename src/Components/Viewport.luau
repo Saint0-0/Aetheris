@@ -22,6 +22,7 @@ local RunService = game:GetService("RunService")
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -59,6 +60,9 @@ function Viewport.new(parent, Settings, theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Viewport)
 	self._theme = theme
+	-- Page-awareness flag: the orbit RenderStepped early-returns while the
+	-- component's page is not on screen (cheaper than connect/disconnect).
+	self._pageActive = true
 	local height = Settings.Height or 160
 	local framing = FRAMING[Settings.Framing] and Settings.Framing or "Full"
 	local rotating = Settings.Rotate ~= false
@@ -86,7 +90,6 @@ function Viewport.new(parent, Settings, theme)
 	-- the square yields width to the info column on narrow cards so the labels
 	-- never clip (a height-sized square used to squeeze them past the window
 	-- edge).
-	local side = height - 16
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
 	viewport.BorderSizePixel = 0
@@ -94,12 +97,17 @@ function Viewport.new(parent, Settings, theme)
 	viewport.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
 	viewport.AnchorPoint = Vector2.new(0, 0.5)
 	viewport.Position = UDim2.new(0, 8, 0.5, 0)
-	viewport.Size = UDim2.fromOffset(side, side)
+	-- X/Y are a fixed fraction of the card (see UISizeConstraint below).
+	viewport.Size = UDim2.fromScale(0.55, 0.9)
 	viewport.Ambient = Color3.fromRGB(126, 126, 134)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-1, -1.2, -0.8).Unit
 	viewport.Parent = frame
 	newCorner(viewport, 4)
+
+	local viewportConstraint = Instance.new("UISizeConstraint")
+	viewportConstraint.MaxSize = Vector2.new(150, math.huge)
+	viewportConstraint.Parent = viewport
 
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 60
@@ -114,13 +122,14 @@ function Viewport.new(parent, Settings, theme)
 	infoColumn.Name = UUID.Static("InfoColumn")
 	infoColumn.BorderSizePixel = 0
 	infoColumn.BackgroundTransparency = 1
-	infoColumn.AnchorPoint = Vector2.new(0, 0.5)
-	infoColumn.Position = UDim2.new(0, side + 20, 0.5, 0)
-	infoColumn.Size = UDim2.new(1, -(side + 28), 1, -16)
+	infoColumn.AnchorPoint = Vector2.new(1, 0.5)
+	infoColumn.Position = UDim2.new(1, -8, 0.5, 0)
+	infoColumn.Size = UDim2.new(0, 100, 0.9, 0)
 	infoColumn.Parent = frame
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 2)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.Parent = infoColumn
 
 	local valueLabels = {}
@@ -141,7 +150,7 @@ function Viewport.new(parent, Settings, theme)
 		caption.Size = UDim2.new(1, 0, 0, 12)
 		caption.FontFace = Constants.Font(Enum.FontWeight.Bold)
 		caption.TextSize = 10
-		caption.TextXAlignment = Enum.TextXAlignment.Left
+		caption.TextXAlignment = Enum.TextXAlignment.Right
 		caption.Text = spec.caption
 		ThemeManager.BindColor(caption, "TextColor3", "TertiaryColor")
 		caption.Parent = row
@@ -155,31 +164,12 @@ function Viewport.new(parent, Settings, theme)
 		value.Size = UDim2.new(1, 0, 0, 17)
 		value.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		value.TextSize = 13
-		value.TextXAlignment = Enum.TextXAlignment.Left
+		value.TextXAlignment = Enum.TextXAlignment.Right
 		value.TextTruncate = Enum.TextTruncate.AtEnd
 		value.Text = ""
 		value.Parent = row
 		valueLabels[index] = value
 	end
-
-	-- Responsive split: the square is height-driven but never eats more than
-	-- ~45% of the card's width, so the info column always keeps a readable
-	-- minimum. Re-runs on resize; AbsoluteSize is 0 before the first layout
-	-- pass, so the property connection picks it up when the section lays out.
-	local function relayout()
-		local available = frame.AbsoluteSize.X
-		if available <= 0 then
-			return
-		end
-		local maxWidth = math.floor(available * 0.45)
-		local budget = math.max(available - 132 - 28, 0) -- keep ~132px for labels
-		side = math.clamp(height - 16, 64, math.min(maxWidth, budget))
-		viewport.Size = UDim2.fromOffset(side, side)
-		infoColumn.Position = UDim2.new(0, side + 20, 0.5, 0)
-		infoColumn.Size = UDim2.new(1, -(side + 28), 1, -16)
-	end
-	relayout()
-	frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayout)
 
 	----------------------------------------------------------------
 	-- Character binding + camera
@@ -276,6 +266,9 @@ function Viewport.new(parent, Settings, theme)
 	-- Orbit: one RenderStepped connection; static views keep yaw fixed.
 	if rotating then
 		renderConn = RunService.RenderStepped:Connect(function(deltaTime)
+			if not self._pageActive then
+				return
+			end
 			if not frame.Visible then
 				return
 			end
@@ -294,6 +287,9 @@ function Viewport.new(parent, Settings, theme)
 		rotating = enabled == true
 		if rotating and not renderConn then
 			renderConn = RunService.RenderStepped:Connect(function(deltaTime)
+				if not self._pageActive then
+					return
+				end
 				if not frame.Visible then
 					return
 				end
@@ -311,13 +307,21 @@ function Viewport.new(parent, Settings, theme)
 			applyCamera()
 		end
 	end
-	self.SetHeight = function(_, newHeight)
-		height = newHeight
-		frame.Size = UDim2.new(1, 0, 0, newHeight)
-		relayout()
-	end
 	-- Custom teardown: the orbit connection and the player respawn listener
 	-- outlive the instance tree unless disconnected here.
+	-- Page awareness: pause the orbit while the page is off screen (always on,
+	-- no Gate -- it saves per-frame camera math on a hidden view).
+	PageAwareness.Register(frame, {
+		OnInactive = function()
+			self._pageActive = false
+		end,
+		OnActive = function()
+			self._pageActive = true
+		end,
+	})
+	if not PageAwareness.IsActive(frame) then
+		self._pageActive = false
+	end
 	self.Destroy = function(_self)
 		if renderConn then
 			renderConn:Disconnect()

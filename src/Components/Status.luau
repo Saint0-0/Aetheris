@@ -19,7 +19,8 @@
 	Per-entry API (entries are keyed by their first field):
 		status:SetEntry("cpu", "CPU normal", "green")  -- update text + colour
 		status:SetEntry("newKey", "Fresh line")        -- appends (up to MAX)
-		status:SetText("cpu", "Still fine")            -- text only, keeps colour
+		status:AddEntry("event", "New line")           -- always appends (up to MAX)
+		status:AddEntry("", "Unkeyed line")            -- no "key:" prefix
 		status:GetEntry("cpu")                         -- current text or nil
 		status:SetEntries({ ... })                     -- replace all entries
 ]]
@@ -115,7 +116,8 @@ function Status.new(parent, Settings, theme)
 	label.TextColor3 = (theme and theme.PrimaryTextColor)
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.new(0.90908, 0, 0, 20)
-	label.Position = UDim2.new(0.043, 0, 0, 8)
+	label.Position = UDim2.fromOffset(11, 18)
+	label.AnchorPoint = Vector2.new(0, 0.5)
 	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	label.Text = name
 	label.Parent = frame
@@ -135,7 +137,7 @@ function Status.new(parent, Settings, theme)
 	holder.BackgroundTransparency = 1
 	holder.AutomaticSize = Enum.AutomaticSize.Y
 	holder.Size = UDim2.fromScale(0.90756, 0)
-	holder.Position = UDim2.new(0.043, 0, 0, 38)
+	holder.Position = UDim2.fromOffset(11, 38)
 	holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	holder.Parent = frame
 	-- Layout
@@ -147,14 +149,20 @@ function Status.new(parent, Settings, theme)
 	padding.PaddingBottom = UDim.new(0, 15)
 	padding.Parent = holder
 	-- Reusable label factory: initial build and SetEntries share it so both
-	-- paths pick up the same rich-text + theme bindings.
+	-- paths pick up the same rich-text + theme bindings. An empty key renders
+	-- just the coloured text (no dangling "key:" prefix).
 	local function applyEntryText(textLabel, entry)
-		textLabel.Text = string.format(
-			'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
-			entry[1] or "",
-			colorToString(entry[3]),
-			entry[2] or ""
-		)
+		local key = entry[1]
+		if key and key ~= "" then
+			textLabel.Text = string.format(
+				'<font weight="SemiBold">%s: </font><font color="%s">%s</font>',
+				key,
+				colorToString(entry[3]),
+				entry[2] or ""
+			)
+		else
+			textLabel.Text = string.format('<font color="%s">%s</font>', colorToString(entry[3]), entry[2] or "")
+		end
 	end
 
 	local function makeLabel(parentHolder, entry)
@@ -173,7 +181,7 @@ function Status.new(parent, Settings, theme)
 		textLabel.RichText = true
 		textLabel.Size = UDim2.new(1, 0, 0, 20)
 		textLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-		textLabel.Position = UDim2.new(0, 0, -0.4, 8)
+		textLabel.Position = UDim2.fromOffset(11, 0)
 		textLabel.Parent = parentHolder
 		ThemeManager.BindColor(textLabel, "TextColor3", "SecondaryTextColor")
 		ThemeManager.BindTransparency(textLabel, "TextTransparency", "SecondaryTextTransparency")
@@ -245,8 +253,22 @@ function Status.new(parent, Settings, theme)
 		me.StatusLabels = statusLabels
 		return textLabel
 	end
-	self.SetText = function(me, key, text)
-		return me:SetEntry(key, text)
+	-- Append-only: never updates an existing line, unlike SetEntry. key = ""
+	-- (or nil) for an unkeyed line; returns nil once MAX_ENTRIES is reached.
+	self.AddEntry = function(me, key, text, color)
+		key = tostring(key or "")
+		if #me.Entries >= Status.MAX_ENTRIES then
+			return nil
+		end
+		local entry = { key, text or "", color }
+		table.insert(me.Entries, entry)
+		local textLabel = makeLabel(me.Holder, entry)
+		table.insert(statusLabels, textLabel)
+		if key ~= "" then
+			entryByKey[key] = { label = textLabel, entry = entry }
+		end
+		me.StatusLabels = statusLabels
+		return textLabel
 	end
 	self.GetEntry = function(_, key)
 		local record = entryByKey[tostring(key)]

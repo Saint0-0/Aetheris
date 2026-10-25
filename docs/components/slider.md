@@ -32,3 +32,7 @@ section:Slider({
 | `:SetValue(number)` | Set the value programmatically. |
 | `:GetValue()` | Returns the current value. |
 | `:SetVisibility(bool)` | Show or hide the component. |
+
+## Notes
+
+While its page is off screen the slider collapses to zero fill, then tweens back to its value when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).

@@ -34,6 +34,13 @@ Odometer.__index = Odometer
 -- glyph) so it can travel down without running past index 0.
 local STRIP_LENGTH = 20
 
+-- Extra cell width beyond the digit's measured advance. GetTextBoundsAsync
+-- returns layout bounds, but the rendered glyph (antialiasing / side bearings)
+-- can overshoot by ~1px; with ClipsDescendants the cell would shave that edge
+-- off (the clipped trailing "0"). Widening the cell gives each glyph a hair of
+-- horizontal breathing room so nothing is cut.
+local CELL_PAD = 2
+
 -- Digit advances are the same for every odometer of a given font+size, but
 -- GetTextBoundsAsync yields, so measure the ten digits once per (font, size,
 -- style) and cache. Later odometers reuse the result.
@@ -121,7 +128,7 @@ function Odometer:_reel(index)
 
 	local cell = Instance.new("Frame")
 	cell.Name = UUID.Generate("OdometerCell")
-	cell.Size = UDim2.fromOffset(self.maxWidth, self.height)
+	cell.Size = UDim2.fromOffset(self.maxWidth + CELL_PAD, self.height)
 	cell.BackgroundTransparency = 1
 	cell.BorderSizePixel = 0
 	cell.ClipsDescendants = true
@@ -189,7 +196,7 @@ end
 function Odometer:_reelSnap(reel, digit)
 	Tween.CancelAll(reel.strip)
 	Tween.CancelAll(reel.cell)
-	reel.cell.Size = UDim2.fromOffset(self.advance[digit], self.height)
+	reel.cell.Size = UDim2.fromOffset(self.advance[digit] + CELL_PAD, self.height)
 	reel.strip.Position = UDim2.new(0.5, 0, 0, -digit * self.height)
 	reel.digit = digit
 	reel.target = digit
@@ -221,7 +228,7 @@ function Odometer:_reelRoll(reel, digit, up)
 	-- Roll the strip vertically and reflow the cell to the new digit's width together.
 	local info = TweenInfo.new(self.duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	Tween.Play(reel.strip, info, { Position = UDim2.new(0.5, 0, 0, -targetIndex * self.height) })
-	Tween.Play(reel.cell, info, { Size = UDim2.fromOffset(self.advance[digit], self.height) })
+	Tween.Play(reel.cell, info, { Size = UDim2.fromOffset(self.advance[digit] + CELL_PAD, self.height) })
 	reel.digit = digit
 end
 

@@ -10,6 +10,7 @@ local Section = require("../Section")
 local FallbackImage = require("../../Constants").FallbackImage
 local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
+local PageAwareness = require("../../Utils/PageAwareness")
 local Constants = require("../../Constants")
 local UUID = require("../../Utils/UUID")
 
@@ -403,6 +404,9 @@ function SettingsTabGroup:SetActiveTab(tab)
 		return
 	end
 	self.ActiveTab = tab
+	-- Which settings page is active is now decided; fire page-awareness
+	-- handlers immediately (SettingsPages.Visible was set before this call).
+	PageAwareness.Refresh()
 	self:RefreshTitle()
 
 	-- A page switch dismisses any open popup, same as the main TabGroup.

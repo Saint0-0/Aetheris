@@ -43,6 +43,7 @@ local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ValueReadout = require("./ValueReadout")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local PageAwareness = require("../Utils/PageAwareness")
 local UUID = require("../Utils/UUID")
 
 local Slider = {}
@@ -285,14 +286,17 @@ function Slider.new(parent, Settings, theme)
 
 	-- ---- rendering ----------------------------------------------------------
 	-- The fill carries the pill, so a single Size write moves both. `info`
-	-- chooses the tween (follow mid-drag, set on programmatic changes).
+	-- chooses the tween (follow mid-drag, set on programmatic changes). Runs
+	-- through the Tween registry so a page-focus collapse and a value change
+	-- replace each other instead of racing on Size.
 	local function renderProgress(info)
 		local span = max - min
 		local ratio = (span ~= 0) and math.clamp((currentValue - min) / span, 0, 1) or 0
 		local size = fillSize(ratio)
 		if info then
-			TweenService:Create(visual, info, { Size = size }):Play()
+			Tween.Play(visual, info, { Size = size })
 		else
+			Tween.CancelAll(visual)
 			visual.Size = size
 		end
 	end
@@ -486,6 +490,20 @@ function Slider.new(parent, Settings, theme)
 	-- ---- init ---------------------------------------------------------------
 	updateSlider(currentValue, false)
 	updateVisibility()
+
+	-- ---- page focus --------------------------------------------------------
+	-- Off-page the fill collapses to zero (carrying the pill with it); on focus
+	-- it tweens back to the current value. Gated by the "Page Animations"
+	-- setting. Restore re-renders from currentValue so it always returns true.
+	PageAwareness.Register(row, {
+		Gate = "PageAnimations",
+		OnInactive = function()
+			Tween.Play(visual, "Fast", { Size = fillSize(0) })
+		end,
+		OnActive = function()
+			renderProgress(TWEEN_INFO)
+		end,
+	})
 
 	-- ---- public API ---------------------------------------------------------
 	self.UpdateValue = function(_, newValue)

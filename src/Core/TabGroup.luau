@@ -11,6 +11,7 @@ local FallbackImage = require("../Constants").FallbackImage
 local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("./SearchFilter")
 local PageFade = require("../Utils/PageFade")
+local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 local TabGroup = {}
@@ -319,6 +320,10 @@ function TabGroup:Tab(Settings)
 		self.Window.SettingsPages.Visible = false
 		self.Window.TabContent.Visible = true
 		self:SetActiveTab(tab)
+		-- The active page changed (settings -> content, or a new tab). Refresh
+		-- AFTER SetActiveTab so the early "same tab" return still picks up the
+		-- SettingsPages flip above.
+		PageAwareness.Refresh()
 	end)
 	table.insert(self.Tabs, tab)
 	-- A tab created while the window is already compact must not start out in
@@ -457,6 +462,10 @@ function TabGroup:SetActiveTab(tab)
 		return
 	end
 	self.ActiveTab = tab
+	-- The active page identity is now decided (SettingsPages.Visible was set by
+	-- every caller before this point). Fire page-awareness handlers immediately;
+	-- the crossfade below is purely visual and doesn't change which page is active.
+	PageAwareness.Refresh()
 
 	-- A page switch dismisses any open popup (dropdown / color picker /
 	-- notification) so it can never linger over the newly shown page.

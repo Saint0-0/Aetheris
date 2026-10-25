@@ -48,3 +48,7 @@ The second argument to `section:Toggle` is the notification function used to ren
 | `:GetState()` | Returns the current state. |
 | `:SetVisibility(bool)` | Show or hide the component. |
 | `:UpdateName(string)` | Change the label. |
+
+## Notes
+
+While its page is off screen the switch fades to zero and its thumb parks at the off position, then tweens back when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).

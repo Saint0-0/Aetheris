@@ -22,6 +22,7 @@ local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
 local ValueReadout = require("./ValueReadout")
+local PageAwareness = require("../Utils/PageAwareness")
 local UUID = require("../Utils/UUID")
 local Stepper = {}
 Stepper.__index = Stepper
@@ -198,6 +199,23 @@ function Stepper.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(stepUp, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
+
+	-- Page focus: off-page the readout goes fully transparent and the step icons
+	-- fade out; on focus they return. Gated by the "Page Animations" setting.
+	PageAwareness.Register(row, {
+		Gate = "PageAnimations",
+		OnInactive = function()
+			readout:SetDimmed(true)
+			Tween.Play(stepUp, "Fast", { ImageTransparency = 1 })
+			Tween.Play(stepDown, "Fast", { ImageTransparency = 1 })
+		end,
+		OnActive = function()
+			readout:SetDimmed(false)
+			Tween.Play(stepUp, "Fast", { ImageTransparency = 0.15 })
+			Tween.Play(stepDown, "Fast", { ImageTransparency = 0.15 })
+		end,
+	})
+
 	self.Destroy = function(me)
 		-- Cancel any in-flight tweens on the buttons, then tear the chip down.
 		Tween.CancelAll(stepUp)

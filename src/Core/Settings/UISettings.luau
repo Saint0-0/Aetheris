@@ -1,16 +1,17 @@
 --[[
 	UISettings  ·  Aetheris UI Library
 
-	Builds the "UI Settings" page. The page is ONE vertical column of named
-	Sections -- Section draws its own title, so there are no hand-built section
-	labels or separators here; the section system owns that structure. Every
-	control is created through the Section component factories.
+	Builds the "UI Settings" page as one vertical column of named Sections
+	(Interface, Behaviour, Visuals, Minimize Pill, Actions); every control is
+	created through the Section component factories.
 	UISettings.Build(window, tab) is called by Settings/Init.BuildDefaultPages.
 ]]
 
 local Tween = require("../../Utils/Tween")
 local Sound = require("../../Utils/Sound")
 local SettingsStore = require("./SettingsStore")
+local PageAwareness = require("../../Utils/PageAwareness")
+local Constants = require("../../Constants")
 local UUID = require("../../Utils/UUID")
 
 local UISettings = {}
@@ -32,50 +33,61 @@ function UISettings.Build(window, tab)
 	-- Single-column scroller; tab:Section() stacks every section into it.
 	tab:Scroller()
 
-	-- == Input ==============================================================
-	local inputSection = tab:Section({ Name = "Input" })
-	inputSection:Keybind({
-		Name = "Minimize UI",
-		Default = window._minimizeKey,
-		Callback = function()
-			if window.ToggleMinimize then
-				window.ToggleMinimize()
+	-- == Interface ==========================================================
+	local interfaceSection = tab:Section({ Name = "Interface" })
+	interfaceSection:Slider({
+		Name = "UI Scale",
+		Min = 80,
+		Max = 125,
+		Default = math.floor((SettingsStore.Get("UIScale") or 1) * 100 + 0.5),
+		Precision = 0,
+		Callback = function(value)
+			local scale = value / 100
+			local us = window.MainFrame and window.MainFrame:FindFirstChild(UUID.Static("WindowScale"))
+			if us then
+				us.Scale = scale
 			end
+			SettingsStore.Set("UIScale", scale)
 		end,
-		-- Persist a rebind: update the live window key AND save it so it survives
-		-- across sessions (Window reads SettingsStore 'MinimizeKey' on CreateWindow).
-		OnRebind = function(key)
-			if key and key ~= "" then
-				window._minimizeKey = key
-				SettingsStore.Set("MinimizeKey", key)
+	})
+
+	-- Font dropdown. Choices come from Constants.FontChoices (built-in Aetheris
+	-- first, then Roblox's bundled families); picking the first entry resets to
+	-- the built-in font, so it persists as nil instead of a raw asset id.
+	local fontChoices = Constants.FontChoices
+	local fontItems = {}
+	local storedFont = SettingsStore.Get("Font") or fontChoices[1].Value
+	local fontDefault = { fontChoices[1].Value }
+	for _, choice in ipairs(fontChoices) do
+		table.insert(fontItems, { name = choice.Name, value = choice.Value })
+		if choice.Value == storedFont then
+			fontDefault = { choice.Value }
+		end
+	end
+	interfaceSection:Dropdown({
+		Name = "Font",
+		Items = fontItems,
+		Default = fontDefault,
+		MaxItemsChoosable = 1,
+		Callback = function(selected)
+			local pick = selected[1]
+			local value = (pick and pick.value) or nil
+			-- First entry = built-in font: store nil so it stays "unset".
+			if value == fontChoices[1].Value then
+				value = nil
+			end
+			if window.SetFont then
+				window:SetFont(value)
 			end
 		end,
 	})
 
-	-- == Minimize Pill ======================================================
-	local pillSection = tab:Section({ Name = "Minimize Pill" })
-	local currentPill = SettingsStore.Get("PillPosition") or "right"
-	local pillGroup = pillSection:RadioButtonGroup()
-	for _, pos in ipairs({ "right", "left", "top", "bottom" }) do
-		pillGroup:RadioButton({
-			Name = pos:sub(1, 1):upper() .. pos:sub(2),
-			Default = (pos == currentPill),
-			Callback = function()
-				if window.SetPillPosition then
-					window:SetPillPosition(pos)
-				end
-			end,
-		})
-	end
-
-	-- == Compact Mode =======================================================
-	local compactSection = tab:Section({ Name = "Compact Mode" })
 	local currentCompact = SettingsStore.Get("CompactMode") or "auto"
 	-- Guard a stale/invalid stored value so one option is always selected.
 	if currentCompact ~= "auto" and currentCompact ~= "always" and currentCompact ~= "never" then
 		currentCompact = "auto"
 	end
-	local compactGroup = compactSection:RadioButtonGroup()
+	local compactGroup = interfaceSection:RadioButtonGroup()
 	for _, opt in ipairs({
 		{ key = "auto", label = "Auto" },
 		{ key = "always", label = "Always" },
@@ -104,30 +116,42 @@ function UISettings.Build(window, tab)
 		end,
 	})
 	behaviourSection:Toggle({
+		Name = "Page Animations",
+		Default = SettingsStore.Get("PageAnimations") ~= false,
+		Callback = function(state)
+			SettingsStore.Set("PageAnimations", state)
+			-- No page transition happens on this click, so Refresh() wouldn't
+			-- fire; re-apply the gate to dim or restore off-page controls now.
+			PageAwareness.ReapplyGates()
+		end,
+	})
+	behaviourSection:Toggle({
 		Name = "Confirm On Close",
 		Default = SettingsStore.Get("ConfirmClose"),
 		Callback = function(state)
 			SettingsStore.Set("ConfirmClose", state)
 		end,
 	})
+	behaviourSection:Keybind({
+		Name = "Minimize UI",
+		Default = window._minimizeKey,
+		Callback = function()
+			if window.ToggleMinimize then
+				window.ToggleMinimize()
+			end
+		end,
+		-- Persist a rebind: update the live window key AND save it so it survives
+		-- across sessions (Window reads SettingsStore 'MinimizeKey' on CreateWindow).
+		OnRebind = function(key)
+			if key and key ~= "" then
+				window._minimizeKey = key
+				SettingsStore.Set("MinimizeKey", key)
+			end
+		end,
+	})
 
 	-- == Visuals ============================================================
 	local visualsSection = tab:Section({ Name = "Visuals" })
-	visualsSection:Slider({
-		Name = "UI Scale",
-		Min = 80,
-		Max = 125,
-		Default = math.floor((SettingsStore.Get("UIScale") or 1) * 100 + 0.5),
-		Precision = 0,
-		Callback = function(value)
-			local scale = value / 100
-			local us = window.MainFrame and window.MainFrame:FindFirstChild(UUID.Static("WindowScale"))
-			if us then
-				us.Scale = scale
-			end
-			SettingsStore.Set("UIScale", scale)
-		end,
-	})
 	visualsSection:Toggle({
 		Name = "Aurora Background",
 		Default = SettingsStore.Get("AuroraEnabled") ~= false,
@@ -169,8 +193,32 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
+	-- == Minimize Pill ======================================================
+	local pillSection = tab:Section({ Name = "Minimize Pill" })
+	local currentPill = SettingsStore.Get("PillPosition") or "right"
+	local pillGroup = pillSection:RadioButtonGroup()
+	for _, pos in ipairs({ "right", "left", "top", "bottom" }) do
+		pillGroup:RadioButton({
+			Name = pos:sub(1, 1):upper() .. pos:sub(2),
+			Default = (pos == currentPill),
+			Callback = function()
+				if window.SetPillPosition then
+					window:SetPillPosition(pos)
+				end
+			end,
+		})
+	end
+
 	-- == Actions ============================================================
 	local actionsSection = tab:Section({ Name = "Actions" })
+	actionsSection:Button({
+		Name = "Reload UI",
+		Callback = function()
+			if window.RequestReload then
+				window:RequestReload()
+			end
+		end,
+	})
 	actionsSection:Button({
 		Name = "Reset Layout",
 		Callback = function()
