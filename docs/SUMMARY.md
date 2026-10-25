@@ -23,6 +23,7 @@
 * [Paragraph](components/paragraph.md)
 * [Divider](components/divider.md)
 * [Video](components/video.md)
+* [CodeView](components/code-view.md)
 
 ## Popups & Notifications
 

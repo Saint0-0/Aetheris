@@ -73,7 +73,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.BackgroundTransparency = 1
 	dropdownImage.ImageTransparency = 0.5
 	dropdownImage.AnchorPoint = Vector2.new(1, 0.5)
-	dropdownImage.Image = Icons["chevron-down"] or "rbxassetid://134243273101015"
+	dropdownImage.Image = Icons["list-tree"]
 	dropdownImage.ImageColor3 = (theme and theme.AccentColor)
 	dropdownImage.Size = UDim2.fromOffset(14, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)

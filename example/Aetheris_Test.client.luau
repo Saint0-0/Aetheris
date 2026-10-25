@@ -15,7 +15,8 @@
     Layout     : Tabs, Left/Right Sections
     Components : Toggle, Slider, Keybind, TextInput, Stepper, RadioButtonGroup
                  (+ RadioButton), Dropdown, ColorPicker, Status, ProgressBar,
-                 Button, Label, Paragraph, Divider, Video
+                 Button, Label, Paragraph, Divider, Video, LiveStat, Console,
+                 CodeView
     Security   : AETHERIS_SECUREMODE (gethui/CoreGui parenting + UUID rename)
     API        : SetName/UpdateName, SetVisible/SetVisibility/GetVisible,
                  Destroy, and Status:AddEntry/SetEntry/SetEntries
@@ -816,12 +817,82 @@ consoleControls:Button({
 })
 
 -- =========================================================================
+--  8c. CODE VIEW  -  syntax-highlighted block, line numbers, optional editing
+-- =========================================================================
+-- View mode renders theme-tinted RichText (one row per line, numbers inline);
+-- clicking swaps in a multiline TextBox when Editable, and the text is
+-- re-highlighted on blur. The Copy button calls OnCopy with the content —
+-- wire setclipboard there in an executor.
+local codeSection = settingsTab:Section({ Name = "CodeView", Side = "Left" })
+
+local demoCode = codeSection:CodeView({
+	Name = "Highlighted (view only)",
+	Height = 190,
+	Language = "lua",
+	Text = [==[local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Tracks the local player's respawn and re-applies their loadout.
+local function onCharacter(character: Model)
+	local humanoid = character:WaitForChild("Humanoid")
+	humanoid.WalkSpeed = 16
+	print(`spawned: {character.Name}`)
+end
+
+local player = Players.LocalPlayer
+if player then
+	player.CharacterAdded:Connect(onCharacter)
+end]==],
+	OnCopy = function(content)
+		-- Executor-only hooks go here (setclipboard(content)); print stands in.
+		print("[Aetheris Demo] copy requested,", #content, "bytes")
+	end,
+})
+
+local codeControls = settingsTab:Section({ Name = "CodeView Editable", Side = "Right" })
+
+local demoCodeEdit = codeControls:CodeView({
+	Name = "Click the code to edit",
+	Height = 190,
+	Language = "javascript",
+	Editable = true,
+	Text = [==[// Debounce a resize handler.
+const debounce = (fn, ms = 150) => {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+};
+
+window.addEventListener("resize", debounce(() => {
+  console.log("resized", window.innerWidth);
+}));]==],
+})
+
+codeControls:Button({
+	Name = "Replace text (SetText)",
+	Callback = function()
+		demoCodeEdit:SetText(`// Replaced at ${os.date("%H:%M:%S")}\nprint("edit me");`)
+	end,
+})
+
+codeControls:Button({
+	Name = "Swap language (SetLanguage)",
+	Callback = function()
+		local nextLang = if demoCodeEdit:GetContent():find("local") then "javascript" else "lua"
+		demoCodeEdit:SetLanguage(nextLang)
+		print("[Aetheris Demo] language ->", nextLang)
+	end,
+})
+
+-- =========================================================================
 --  9. STARTUP LOG
 -- =========================================================================
 print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Stats, Settings")
 print("[Aetheris Demo] Active tab:", window.TabGroup.ActiveTab.Name)
 print(
-	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console."
+	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console, CodeView."
 )
 print(
 	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName/UpdateName, SetVisible/SetVisibility/GetVisible, Destroy, Status:AddEntry."

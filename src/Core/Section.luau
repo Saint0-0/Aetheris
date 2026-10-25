@@ -28,6 +28,7 @@ local Paragraph = require("../Components/Paragraph")
 local ColorPicker = require("../Components/ColorPicker")
 local LiveStat = require("../Components/LiveStat")
 local Console = require("../Components/Console")
+local CodeView = require("../Components/CodeView")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
@@ -199,6 +200,9 @@ function Section:LiveStat(Settings)
 end
 function Section:Console(Settings)
 	return Console.new(self.Frame, Settings, self._theme)
+end
+function Section:CodeView(Settings)
+	return CodeView.new(self.Frame, Settings, self._theme)
 end
 function Section:Stepper(Settings)
 	return Stepper.new(self.Frame, Settings, self._theme)
