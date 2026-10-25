@@ -393,8 +393,11 @@ function Notification.new(container, Settings, theme)
 			btn:SetAttribute("ToastBaseBackground", baseBg)
 			new("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
 
-			-- Bounce scale, mirroring the Button component: hover pops, press
-			-- depresses. Sits on the button so it scales about its centre.
+			-- Button-component motion, 1:1: hover grows 1.02 (HoverIn), press
+			-- dips 0.97 (Fast), click washes a PrimaryColor overlay in over
+			-- 0.12s and back out over 0.5s — exactly Button's performClick.
+			-- No hover/press background tint (Button has none) and the accent
+			-- UIShadow bloom is deliberately left as-is.
 			local btnScale = new("UIScale", { Parent = btn, Scale = 1 })
 
 			-- Accent-tinted shadow (hidden at rest, blooms on hover).
@@ -405,45 +408,60 @@ function Notification.new(container, Settings, theme)
 				Parent = btn,
 			})
 
-			local function baseColor()
-				return btn:GetAttribute("ToastBaseBackground") or baseBg
-			end
-			local function hoverColor()
-				return baseColor():Lerp(Color3.fromRGB(255, 255, 255), 0.18)
-			end
-			local function tween(prop, dur)
-				Tween.Play(btn, TweenInfo.new(dur or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), prop)
-			end
+			local btnFlash = new("Frame", {
+				Name = UUID.Static("ToastActionFlash"),
+				BorderSizePixel = 0,
+				BackgroundColor3 = theme.PrimaryColor or accent,
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Parent = btn,
+			})
+			new("UICorner", { Parent = btnFlash, CornerRadius = UDim.new(0, 4) })
+
+			local isHovered = false
 			btn.MouseEnter:Connect(function()
+				isHovered = true
 				btn:SetAttribute("ToastHovered", true)
-				tween({ BackgroundColor3 = hoverColor() })
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 0.4 })
-				Tween.Play(btnScale, "HoverIn", { Scale = 1.08 })
+				Tween.Play(btnScale, "HoverIn", { Scale = 1.02 })
 			end)
 			btn.MouseLeave:Connect(function()
+				isHovered = false
 				btn:SetAttribute("ToastHovered", false)
-				tween({ BackgroundColor3 = baseColor() })
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 1 })
 				Tween.Play(btnScale, "HoverOut", { Scale = 1 })
 			end)
-			-- Pressed state: darken briefly for a tactile click feel.
 			btn.MouseButton1Down:Connect(function()
-				tween({ BackgroundColor3 = baseColor():Lerp(Color3.fromRGB(0, 0, 0), 0.25) }, 0.08)
-				Tween.Play(btnScale, "Fast", { Scale = 0.9 })
+				Tween.Play(btnScale, "Fast", { Scale = 0.97 })
 			end)
 			btn.MouseButton1Up:Connect(function()
-				tween({ BackgroundColor3 = hoverColor() }, 0.08)
-				Tween.Play(btnScale, "HoverIn", { Scale = 1.08 })
+				Tween.Play(btnScale, "HoverIn", { Scale = isHovered and 1.02 or 1 })
 			end)
 
 			btn.MouseButton1Click:Connect(function()
+				-- Button's click flash: overlay in over 0.12s, out over 0.5s.
+				-- Rapid clicks restart it instead of locking (Button does the
+				-- same via CancelAll).
+				Tween.CancelAll(btnFlash)
+				Tween.Play(btnFlash, "Click", { BackgroundTransparency = 0.15 })
+				task.delay(0.12, function()
+					if not btnFlash.Parent then
+						return
+					end
+					Tween.Play(btnFlash, "Release", { BackgroundTransparency = 1 })
+				end)
+				-- Callback fires immediately (Button never blocks behaviour);
+				-- the toast exits just after the flash-in lands. Close is
+				-- guarded by _closing, so the timer race is harmless.
 				if action.Callback then
 					action.Callback(self)
 				end
-				self:Close()
+				task.delay(0.15, function()
+					self:Close()
+				end)
 			end)
 
-			table.insert(self._actions, { button = btn, shadow = btnShadow })
+			table.insert(self._actions, { button = btn, shadow = btnShadow, flash = btnFlash })
 		end
 	end
 
@@ -591,10 +609,13 @@ function Notification:ApplyTheme(themeInput)
 	for _, entry in ipairs(self._actions) do
 		local button = entry.button
 		button:SetAttribute("ToastBaseBackground", baseBg)
-		button.BackgroundColor3 = button:GetAttribute("ToastHovered")
-				and baseBg:Lerp(Color3.fromRGB(255, 255, 255), 0.18)
-			or baseBg
+		-- No hover tint any more (Button-style); bg stays at its base.
+		button.BackgroundColor3 = baseBg
 		button.TextColor3 = buttonText
+		if entry.flash then
+			entry.flash.BackgroundColor3 = theme.PrimaryColor or accent
+			entry.flash.BackgroundTransparency = 1
+		end
 		entry.shadow.Color = accent
 	end
 

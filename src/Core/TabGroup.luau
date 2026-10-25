@@ -459,6 +459,14 @@ end
 function TabGroup:SetActiveTab(tab)
 	local previous = self.ActiveTab
 	if previous == tab then
+		-- Re-selecting the tab that's already active (clicking the current
+		-- sidebar tab to leave the settings overlay, or its minimize-pill
+		-- twin) still has to restore the page title: settings overwrites it
+		-- with "Settings | ..." and nothing else rewrites it on this path.
+		local title = self.Window and self.Window.PageTitle
+		if title then
+			title.Text = self:_titleText(tab)
+		end
 		return
 	end
 	self.ActiveTab = tab
@@ -543,6 +551,16 @@ end
 -- the PageTitle base weight is Regular.
 function TabGroup:_titleText(tab)
 	return '<font weight="500">' .. tab.Name .. "</font>"
+end
+
+-- Rewrite the window title to the active sidebar tab's name. The settings
+-- overlay owns the title while open and must hand it back on close (closing
+-- goes through the gear button, not SetActiveTab).
+function TabGroup:SyncTitle()
+	local w = self.Window
+	if w and w.PageTitle and self.ActiveTab then
+		w.PageTitle.Text = self:_titleText(self.ActiveTab)
+	end
 end
 
 -- Component-owned theming. Called by ThemeManager via the component registry.

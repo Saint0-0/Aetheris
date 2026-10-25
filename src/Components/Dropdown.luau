@@ -136,6 +136,42 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	self.GetSelected = function()
 		return selectedItems
 	end
+	-- Replace the item list. Selections whose values vanish are dropped when
+	-- keepSelection is set; otherwise the selection clears (same as SetItems).
+	self.SetValues = function(_, newItems, keepSelection)
+		items = type(newItems) == "table" and newItems or {}
+		if not keepSelection then
+			selectedItems = {}
+			return
+		end
+		local valid = {}
+		for _, sel in ipairs(selectedItems) do
+			for _, item in ipairs(items) do
+				if item.value == sel.value then
+					table.insert(valid, { name = item.name, value = item.value })
+					break
+				end
+			end
+		end
+		selectedItems = valid
+	end
+	-- Set the selection by value (single value or array of values). Silent
+	-- skips the callback - used by config load, where the value comes from disk.
+	self.SetValue = function(_, value, silent)
+		local wanted = type(value) == "table" and value or { value }
+		selectedItems = {}
+		for _, item in ipairs(items) do
+			for _, w in ipairs(wanted) do
+				if item.value == w then
+					table.insert(selectedItems, { name = item.name, value = item.value })
+					break
+				end
+			end
+		end
+		if not silent and callback then
+			callback(selectedItems)
+		end
+	end
 	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end

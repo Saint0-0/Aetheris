@@ -495,10 +495,16 @@ function Slider.new(parent, Settings, theme)
 	-- Off-page the fill collapses to zero (carrying the pill with it); on focus
 	-- it tweens back to the current value. Gated by the "Page Animations"
 	-- setting. Restore re-renders from currentValue so it always returns true.
+	-- `instant` = registration priming: snap the collapse so the deferred
+	-- restore tweens from zero instead of chasing a half-finished tween.
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
-		OnInactive = function()
-			Tween.Play(visual, "Fast", { Size = fillSize(0) })
+		OnInactive = function(instant)
+			if instant then
+				visual.Size = fillSize(0)
+			else
+				Tween.Play(visual, "Fast", { Size = fillSize(0) })
+			end
 		end,
 		OnActive = function()
 			renderProgress(TWEEN_INFO)

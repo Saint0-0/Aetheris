@@ -202,12 +202,18 @@ function Stepper.new(parent, Settings, theme)
 
 	-- Page focus: off-page the readout goes fully transparent and the step icons
 	-- fade out; on focus they return. Gated by the "Page Animations" setting.
+	-- `instant` = registration priming (snap so the first restore can tween).
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
-		OnInactive = function()
-			readout:SetDimmed(true)
-			Tween.Play(stepUp, "Fast", { ImageTransparency = 1 })
-			Tween.Play(stepDown, "Fast", { ImageTransparency = 1 })
+		OnInactive = function(instant)
+			readout:SetDimmed(true, instant)
+			if instant then
+				stepUp.ImageTransparency = 1
+				stepDown.ImageTransparency = 1
+			else
+				Tween.Play(stepUp, "Fast", { ImageTransparency = 1 })
+				Tween.Play(stepDown, "Fast", { ImageTransparency = 1 })
+			end
 		end,
 		OnActive = function()
 			readout:SetDimmed(false)

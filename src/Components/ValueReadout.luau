@@ -222,13 +222,15 @@ function ValueReadout.new(parent, opts)
 
 	-- Dim (off-page) or restore the readout. Fully transparent while dimmed
 	-- (chip, sheen and odometer glyphs); restoring re-syncs to the live state.
-	self.SetDimmed = function(_, on)
+	-- `instant` skips the tween (registration priming: snap so the first
+	-- restore has distance to cover).
+	self.SetDimmed = function(_, on, instant)
 		local target = on == true
 		if target == dimmed then
 			return
 		end
 		dimmed = target
-		sync(true)
+		sync(instant ~= true)
 	end
 
 	self.Destroy = function()

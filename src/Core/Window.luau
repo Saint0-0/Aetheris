@@ -24,7 +24,9 @@ local SearchFilter = require("./SearchFilter")
 local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
+local ConfigManager = require("./Settings/ConfigManager")
 local PageAwareness = require("../Utils/PageAwareness")
+local TextRoll = require("../Utils/TextRoll")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -691,6 +693,10 @@ function Window.new(Settings)
 		if SettingsPages.Visible then
 			SettingsPages.Visible = false
 			TabContent.Visible = true
+			-- Hand the title back to whatever sidebar tab was underneath.
+			if self.TabGroup then
+				self.TabGroup:SyncTitle()
+			end
 		else
 			TabContent.Visible = false
 			SettingsPages.Visible = true
@@ -757,14 +763,25 @@ function Window.new(Settings)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
 
-	-- Clicking the display name toggles masking of both the display name and username.
+	-- Clicking the display name toggles masking of both the display name and
+	-- username, rolling each changed glyph (Utils/TextRoll). The
+	-- Mask Display Name setting decides what state a new window starts in.
 	local originalDisplayName = DisplayName.Text
 	local originalUsername = Username.Text
-	local masked = false
+	local function maskOf(text)
+		return string.rep("*", utf8.len(text) or #text)
+	end
+	local displayNameRoll = TextRoll.new(DisplayName)
+	local usernameRoll = TextRoll.new(Username)
+	local masked = SettingsStore.Get("MaskDisplayName") == true
+	local function applyMask(instant)
+		displayNameRoll:SetText(if masked then maskOf(originalDisplayName) else originalDisplayName, instant)
+		usernameRoll:SetText(if masked then maskOf(originalUsername) else originalUsername, instant)
+	end
+	applyMask(true)
 	DisplayName.MouseButton1Click:Connect(function()
 		masked = not masked
-		DisplayName.Text = masked and "********" or originalDisplayName
-		Username.Text = masked and "********" or originalUsername
+		applyMask(false)
 	end)
 
 	local TimeLabel = Instance.new("TextLabel")
@@ -1085,10 +1102,6 @@ function Window.new(Settings)
 	-- Store the resolved theme BEFORE any settings pages/scripts build,
 	-- so components created there use the correct theme instead of Default.
 	self._theme = theme
-
-	-- Snapshot the CreateWindow settings so RequestReload can rebuild an
-	-- identical window after a teardown.
-	self._reloadSettings = Settings
 
 	-- Store the original theme name (when a named theme was passed) so the
 	-- Themes settings page can mark the correct card as active on first build.
@@ -2116,6 +2129,10 @@ function Window.new(Settings)
 
 		-- Persist any debounced settings change before the window goes away.
 		SettingsStore.Flush()
+		-- Write any pending config auto-save while components still exist.
+		if self.ConfigManager then
+			self.ConfigManager:Flush()
+		end
 
 		if tabListScrollbarTimer then
 			task.cancel(tabListScrollbarTimer)
@@ -2187,7 +2204,12 @@ function Window.new(Settings)
 	-- section component registers, so attach here (components register lazily).
 	PageAwareness.Attach(self)
 
-	-- Build default settings pages (Themes + UI Settings) first.
+	-- Per-game config manager, created before the settings pages so the
+	-- Configs page can talk to it. Game sections register into it lazily
+	-- (they are built after Window.new returns); settings pages never do.
+	self.ConfigManager = ConfigManager.new(self)
+
+	-- Build default settings pages (Themes + UI Settings + Configs) first.
 	SettingsSystem.BuildDefaultPages(self)
 
 	-- Extra settings pages: each entry gets Build(window, tab) and a single
@@ -2422,39 +2444,6 @@ function Window:SetFont(asset)
 			end
 		end
 	end
-end
-
--- Init registers itself here (Init already requires Window, so a back-require
--- would be a module cycle — and the bundler rejects that). RequestReload uses
--- this table to rebuild instead of re-requiring the facade.
-local facadeModule = nil
-function Window.SetFacade(mod)
-	facadeModule = mod
-end
-
--- Rebuild the window from scratch with the same CreateWindow settings. Guarded
--- so repeated clicks can't stack rebuilds; degrades to a toast if the facade
--- never registered (checked BEFORE teardown, while the window is alive).
-function Window:RequestReload()
-	if self._reloading or self._destroyed then
-		return
-	end
-	local Init = facadeModule
-	if type(Init) ~= "table" or type(Init.CreateWindow) ~= "function" then
-		self:Alert({
-			Title = "Reload unavailable",
-			Description = "The Aetheris facade is not registered, so the UI cannot rebuild itself.",
-		})
-		return
-	end
-	self._reloading = true
-	local settings = table.clone(self._reloadSettings or {})
-	-- Destroy() fades out and tears down (it blocks until the fade completes),
-	-- so rebuild only once the old window is fully gone.
-	task.spawn(function()
-		self:Destroy()
-		Init:CreateWindow(settings)
-	end)
 end
 
 -- Register cleanup that runs when the UI closes or is destroyed (close button,

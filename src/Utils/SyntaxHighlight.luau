@@ -1,9 +1,10 @@
 --[[
 	SyntaxHighlight  ·  Aetheris UI Library
 
-	Lexes Luau, JavaScript and Python into colour classes and renders them as
-	escaped RichText for CodeView. Colours come from the caller's palette, so
-	the same classes can be re-tinted per theme without changing their meaning.
+	Lexes Luau, JavaScript, Python and JSON into colour classes and renders
+	them as escaped RichText for CodeView. Colours come from the caller's
+	palette, so the same classes can be re-tinted per theme without changing
+	their meaning.
 ]]
 
 local SyntaxHighlight = {}
@@ -287,10 +288,29 @@ local LANGS: { [string]: any } = {
 		},
 		operators = "+-*/%=~<>&|^@!",
 	},
+	json = {
+		lineComments = {},
+		blockComments = {},
+		quotes = { { '"', '"', true } },
+		stringKeys = true, -- a quoted run followed by ':' is an object key
+		keywords = {},
+		constants = { "true", "false", "null" },
+		builtins = {},
+		operators = "-",
+	},
 }
 
-local PUNCT =
-	{ ["("] = true, [")"] = true, ["["] = true, ["]"] = true, ["{"] = true, ["}"] = true, [","] = true, [";"] = true }
+local PUNCT = {
+	["("] = true,
+	[")"] = true,
+	["["] = true,
+	["]"] = true,
+	["{"] = true,
+	["}"] = true,
+	[","] = true,
+	[";"] = true,
+	[":"] = true,
+}
 
 local compiled: { [string]: any } = {}
 
@@ -317,6 +337,7 @@ local function compile(language: string?)
 		quotes = cfg.quotes or {},
 		longString = cfg.longString == true,
 		triple = cfg.triple == true,
+		stringKeys = cfg.stringKeys == true,
 		stringPrefixes = cfg.stringPrefixes and toSet(cfg.stringPrefixes) or nil,
 		keywords = toSet(cfg.keywords or {}),
 		constants = toSet(cfg.constants or {}),
@@ -423,7 +444,18 @@ local function lex(code: string, cfg: any): { Token }
 					end
 				end
 				local finalStop = if stop then stop else n
-				push("string", string.sub(code, i, finalStop))
+				-- JSON: a string followed by ':' is an object key, not a value.
+				local class = "string"
+				if cfg.stringKeys then
+					local scan = finalStop + 1
+					while scan <= n and string.find(" \t\n\r", string.sub(code, scan, scan), 1, true) do
+						scan += 1
+					end
+					if string.sub(code, scan, scan) == ":" then
+						class = "key"
+					end
+				end
+				push(class, string.sub(code, i, finalStop))
 				i = finalStop + 1
 				matched = true
 				break

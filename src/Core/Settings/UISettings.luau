@@ -2,8 +2,8 @@
 	UISettings  ·  Aetheris UI Library
 
 	Builds the "UI Settings" page as one vertical column of named Sections
-	(Interface, Behaviour, Visuals, Minimize Pill, Actions); every control is
-	created through the Section component factories.
+	(Interface, Compact Mode, Behaviour, Visuals, Minimize Pill, Actions);
+	every control is created through the Section component factories.
 	UISettings.Build(window, tab) is called by Settings/Init.BuildDefaultPages.
 ]]
 
@@ -82,12 +82,25 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
+	-- Start new windows with the name row masked (still clickable to toggle
+	-- live); decides the initial state only, so no re-build is needed here.
+	interfaceSection:Toggle({
+		Name = "Mask Display Name",
+		Default = SettingsStore.Get("MaskDisplayName"),
+		Callback = function(state)
+			SettingsStore.Set("MaskDisplayName", state)
+		end,
+	})
+
+	-- == Compact Mode =======================================================
+	-- Moved out of Interface into its own section directly below it.
+	local compactSection = tab:Section({ Name = "Compact Mode" })
 	local currentCompact = SettingsStore.Get("CompactMode") or "auto"
 	-- Guard a stale/invalid stored value so one option is always selected.
 	if currentCompact ~= "auto" and currentCompact ~= "always" and currentCompact ~= "never" then
 		currentCompact = "auto"
 	end
-	local compactGroup = interfaceSection:RadioButtonGroup()
+	local compactGroup = compactSection:RadioButtonGroup()
 	for _, opt in ipairs({
 		{ key = "auto", label = "Auto" },
 		{ key = "always", label = "Always" },
@@ -211,14 +224,6 @@ function UISettings.Build(window, tab)
 
 	-- == Actions ============================================================
 	local actionsSection = tab:Section({ Name = "Actions" })
-	actionsSection:Button({
-		Name = "Reload UI",
-		Callback = function()
-			if window.RequestReload then
-				window:RequestReload()
-			end
-		end,
-	})
 	actionsSection:Button({
 		Name = "Reset Layout",
 		Callback = function()

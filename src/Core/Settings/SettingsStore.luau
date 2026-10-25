@@ -5,10 +5,10 @@
 	spin toggle, confirm-on-close, UI volume). Single source of truth that the
 	UI reads from on build and writes to on change.
 
-	Persistence: saves JSON to a file when an executor file API is available
-	(writefile/readfile/isfile), otherwise falls back to a session-only table.
-	This keeps it working in Studio and in a plain game, while persisting
-	across sessions in an executor.
+	Persistence: saves JSON to Aetheris/UI Settings/ when an executor file
+	API is available, otherwise falls back to a session-only table. This keeps
+	it working in Studio and in a plain game, while persisting across sessions
+	in an executor.
 
 	Public API: Load, Get, Set, Save (debounced), SaveNow, Flush, Defaults.
 ]]
@@ -23,7 +23,30 @@ local HttpService = game:GetService("HttpService")
 
 local SettingsStore = {}
 
-local FILE_NAME = "Aetheris_settings.json"
+-- UI settings persist in their own folder under the workspace root. The
+-- pre-folder file (root of the workspace) is migrated in-place on first load.
+local SETTINGS_FOLDER = "Aetheris/UI Settings"
+local FILE_NAME = SETTINGS_FOLDER .. "/UI Settings.json"
+local LEGACY_FILE = "Aetheris_settings.json"
+
+-- Executor file API (present in most executors, absent in Studio/vanilla).
+local hasFileAPI = (type(writefile) == "function" and type(readfile) == "function")
+
+local function ensureFolder(path)
+	if type(makefolder) ~= "function" then
+		return
+	end
+	if isfolder and isfolder(path) then
+		return
+	end
+	pcall(function()
+		makefolder(path)
+	end)
+end
+
+-- Set when Load read the pre-folder file; SaveNow writes the new path first,
+-- then deletes the legacy file.
+local migratedFromLegacy = false
 
 -- Defaults. Anything missing from a loaded config falls back to these.
 SettingsStore.Defaults = {
@@ -37,15 +60,14 @@ SettingsStore.Defaults = {
 	CompactMode = "auto", -- "auto" (by width) | "always" | "never"
 	PageAnimations = true, -- toggle/slider/stepper focus animations on page switch
 	Font = nil, -- nil = built-in Aetheris font (see Constants.FontChoices)
+	MaskDisplayName = false, -- start new windows with display name / username masked
+	AutoSaveConfigs = false, -- auto-save the active config on component change
 }
 
 SettingsStore.Data = {}
 for k, v in pairs(SettingsStore.Defaults) do
 	SettingsStore.Data[k] = v
 end
-
--- Executor file API (present in most executors, absent in Studio/vanilla).
-local hasFileAPI = (type(writefile) == "function" and type(readfile) == "function")
 
 -- A Lua table can't hold a nil value, so keys whose default is "unset"
 -- (Theme / MinimizeKey / Font) don't appear in Defaults and would be dropped
@@ -63,7 +85,20 @@ function SettingsStore.Load()
 		end
 		return readfile(FILE_NAME)
 	end)
-	if ok and content and content ~= "" then
+	if not (ok and content and content ~= "") then
+		-- Legacy migration: read the pre-folder file at the workspace root.
+		local okLegacy, legacy = pcall(function()
+			if isfile and not isfile(LEGACY_FILE) then
+				return nil
+			end
+			return readfile(LEGACY_FILE)
+		end)
+		if okLegacy and legacy and legacy ~= "" then
+			content = legacy
+			migratedFromLegacy = true
+		end
+	end
+	if content and content ~= "" then
 		local decoded
 		local ok2, result = pcall(function()
 			return HttpService:JSONDecode(content)
@@ -99,9 +134,20 @@ function SettingsStore.SaveNow()
 		return HttpService:JSONEncode(SettingsStore.Data)
 	end)
 	if ok and encoded then
-		pcall(function()
+		local wrote = pcall(function()
+			ensureFolder("Aetheris")
+			ensureFolder(SETTINGS_FOLDER)
 			writefile(FILE_NAME, encoded)
 		end)
+		-- Drop the legacy root file only after the new path has the data.
+		if wrote and migratedFromLegacy then
+			migratedFromLegacy = false
+			pcall(function()
+				if delfile then
+					delfile(LEGACY_FILE)
+				end
+			end)
+		end
 	end
 end
 

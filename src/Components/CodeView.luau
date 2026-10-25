@@ -11,6 +11,8 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local SyntaxHighlight = require("../Utils/SyntaxHighlight")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Tween = require("../Utils/Tween")
+local Icons = require("../Assets/Icons")
 local UUID = require("../Utils/UUID")
 
 -- Not a selene-known global; fetched here once rather than per relayout.
@@ -23,12 +25,13 @@ local defaultHeight = 140
 local minHeight = 72
 local titleHeight = 24 -- header row: optional title left, copy button right
 local padding = 12 -- inset around the panel inside the element
-local textPadding = 10 -- inside the panel
+local textPadding = 5 -- inside the panel
 local textSize = 13
 local lineHeight = 1 -- explicit: gutter measurement assumes natural line advance
 local gutterWidth = 36 -- line-number column, same x band in view and edit modes
+local codeX = gutterWidth - 4 -- where code starts; numbers right-align before it
 local relayoutDelay = 0.12 -- coalesce typing bursts into one re-measure
-local copyButtonWidth = 52
+local copyButtonSize = 22
 
 -- Monospace for the code itself (and the numbers): the brand font would
 -- shift columns around on every glyph.
@@ -60,6 +63,7 @@ local function buildPalette(theme)
 		type = hue(0.34, 0.50, 0.95, 0.45),
 		number = hue(0.44, 0.65, 0.97, 0.48),
 		string = hue(0.58, 0.50, 0.92, 0.42),
+		key = hue(0.66, 0.55, 0.97, 0.47),
 		operator = blend(secondary, panel, towardPanel),
 		punct = blend(secondary, panel, towardPanel + 0.2),
 		comment = blend(secondary, panel, towardPanel + 0.4),
@@ -159,56 +163,129 @@ function CodeView:_build()
 	title.TextTruncate = Enum.TextTruncate.AtEnd
 	title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	title.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
-	title.Position = UDim2.fromOffset(padding, 0)
-	title.Size = UDim2.new(1, -(padding * 2 + copyButtonWidth + 8), 0, titleHeight)
+	title.Position = UDim2.fromOffset(padding, 7)
+	title.Size = UDim2.new(1, -(padding * 2 + copyButtonSize + 8), 0, titleHeight)
 	title.Visible = self._name ~= nil and self._name ~= ""
 	title.Parent = main
 	ThemeManager.BindColor(title, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
 	self._title = title
 
-	local copyBtn = Instance.new("TextButton")
+	-- Copy: an icon pill carrying the Button component's motion (UIScale
+	-- hover/press bounce + PrimaryColor click flash). The flash frame sits
+	-- under the icon, exactly like Button's overlay sits under its
+	-- fingerprint. The icon flips to clipboard-check for half a second on
+	-- click. The executor-side clipboard hook lives with the caller
+	-- (setclipboard is executor-only), so it's inert until OnCopy exists.
+	local copyBtn = Instance.new("ImageButton")
 	copyBtn.Name = UUID.Static("CopyButton")
-	copyBtn.Text = "Copy"
 	copyBtn.AutoButtonColor = false
 	copyBtn.BorderSizePixel = 0
 	copyBtn.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(20, 20, 22)
-	copyBtn.BackgroundTransparency = 1
-	copyBtn.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	copyBtn.TextSize = 12
-	copyBtn.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+	copyBtn.BackgroundTransparency = 0
+	copyBtn.Image = ""
 	copyBtn.AnchorPoint = Vector2.new(1, 0)
-	copyBtn.Position = UDim2.new(1, -padding, 0, 2)
-	copyBtn.Size = UDim2.fromOffset(copyButtonWidth, 20)
+	copyBtn.Position = UDim2.new(1, -padding, 0, 7)
+	copyBtn.Size = UDim2.fromOffset(copyButtonSize, copyButtonSize)
 	copyBtn.Parent = main
 	local copyCorner = Instance.new("UICorner")
 	copyCorner.CornerRadius = UDim.new(0, 6)
 	copyCorner.Parent = copyBtn
 	ThemeManager.BindColor(copyBtn, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindColor(copyBtn, "TextColor3", "SecondaryTextColor")
+
+	local copyStroke = Instance.new("UIStroke")
+	copyStroke.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
+	copyStroke.Transparency = theme.StrokeTransparency or 0.9
+	copyStroke.Thickness = 0.7
+	copyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	copyStroke.Parent = copyBtn
+	ThemeManager.BindColor(copyStroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(copyStroke, "Transparency", "StrokeTransparency")
+	copyStroke.Transparency = theme.StrokeTransparency or 0.9
+
+	local copyFlash = Instance.new("Frame")
+	copyFlash.Name = UUID.Static("CopyFlash")
+	copyFlash.BorderSizePixel = 0
+	copyFlash.BackgroundColor3 = theme.PrimaryColor or Color3.fromRGB(120, 140, 255)
+	copyFlash.BackgroundTransparency = 1
+	copyFlash.Size = UDim2.fromScale(1, 1)
+	copyFlash.Parent = copyBtn
+	local flashCorner = Instance.new("UICorner")
+	flashCorner.CornerRadius = UDim.new(0, 6)
+	flashCorner.Parent = copyFlash
+	ThemeManager.BindColor(copyFlash, "BackgroundColor3", "PrimaryColor")
+
+	local copyIcon = Instance.new("ImageLabel")
+	copyIcon.Name = UUID.Static("CopyIcon")
+	copyIcon.BackgroundTransparency = 1
+	copyIcon.BorderSizePixel = 0
+	copyIcon.Image = Icons["clipboard"] or ""
+	copyIcon.ImageColor3 = theme.AccentColor or Color3.fromRGB(120, 140, 255)
+	copyIcon.ImageTransparency = 0.35
+	copyIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	copyIcon.Position = UDim2.fromScale(0.5, 0.5)
+	copyIcon.Size = UDim2.fromOffset(13, 13)
+	copyIcon.Parent = copyBtn
+	ThemeManager.BindColor(copyIcon, "ImageColor3", "AccentColor")
+
+	local copyScale = Instance.new("UIScale")
+	copyScale.Scale = 1
+	copyScale.Parent = copyBtn
+
 	self._copyBtn = copyBtn
+	self._copyIcon = copyIcon
+	self._copyFlash = copyFlash
+	self._copyVersion = 0
+
+	local ICON_BASE = 0.35
+	local ICON_HOVER = 0.1
 
 	copyBtn.MouseEnter:Connect(function()
 		if self._destroyed then
 			return
 		end
 		self._hoveringCopy = true
-		copyBtn.BackgroundTransparency = 0.8
-		copyBtn.TextColor3 = self._theme.AccentColor or copyBtn.TextColor3
+		Tween.Play(copyIcon, "Smooth", { ImageTransparency = ICON_HOVER })
+		Tween.Play(copyScale, "HoverIn", { Scale = 1.02 })
 	end)
 	copyBtn.MouseLeave:Connect(function()
 		if self._destroyed then
 			return
 		end
 		self._hoveringCopy = false
-		copyBtn.BackgroundTransparency = 1
-		copyBtn.TextColor3 = self._theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		Tween.Play(copyIcon, "Smooth", { ImageTransparency = ICON_BASE })
+		Tween.Play(copyScale, "HoverOut", { Scale = 1 })
 	end)
-	-- The executor-side clipboard hook lives with the caller (setclipboard is
-	-- executor-only), so the button is inert until OnCopy is provided.
+	copyBtn.MouseButton1Down:Connect(function()
+		Tween.Play(copyScale, "Fast", { Scale = 0.97 })
+	end)
+	copyBtn.MouseButton1Up:Connect(function()
+		Tween.Play(copyScale, "HoverIn", { Scale = self._hoveringCopy and 1.02 or 1 })
+	end)
+
 	table.insert(
 		self._conns,
 		copyBtn.MouseButton1Click:Connect(function()
+			-- Button's click flash: overlay in over 0.12s, out over 0.5s.
+			Tween.CancelAll(copyFlash)
+			Tween.Play(copyFlash, "Click", { BackgroundTransparency = 0.15 })
+			task.delay(0.12, function()
+				if not copyFlash.Parent then
+					return
+				end
+				Tween.Play(copyFlash, "Release", { BackgroundTransparency = 1 })
+			end)
+			-- clipboard-check for a brief beat, then back (versioned so
+			-- rapid clicks never leave the check icon stuck).
+			self._copyVersion += 1
+			local version = self._copyVersion
+			copyIcon.Image = Icons["clipboard-check"] or copyIcon.Image
+			task.delay(0.5, function()
+				if self._destroyed or version ~= self._copyVersion then
+					return
+				end
+				copyIcon.Image = Icons["clipboard"] or copyIcon.Image
+			end)
 			if type(self._onCopy) == "function" then
 				local ok, err = pcall(self._onCopy, self:GetContent(), self)
 				if not ok then
@@ -295,8 +372,8 @@ function CodeView:_build()
 	box.TextYAlignment = Enum.TextYAlignment.Top
 	box.RichText = false
 	box.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
-	box.Position = UDim2.fromOffset(gutterWidth, 0)
-	box.Size = UDim2.new(1, -gutterWidth, 0, 0)
+	box.Position = UDim2.fromOffset(codeX, 0)
+	box.Size = UDim2.new(1, -codeX, 0, 0)
 	box.Text = ""
 	box.Visible = false
 	box.Parent = editStack
@@ -428,8 +505,8 @@ function CodeView:_buildRows()
 		code.TextColor3 = self._theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 		-- An empty line collapses to nothing; one space keeps its row.
 		code.Text = if rich[index] ~= nil and rich[index] ~= "" then rich[index] else " "
-		code.Position = UDim2.fromOffset(gutterWidth, 0)
-		code.Size = UDim2.new(1, -gutterWidth, 0, 0)
+		code.Position = UDim2.fromOffset(codeX, 0)
+		code.Size = UDim2.new(1, -codeX, 0, 0)
 		code.AutomaticSize = Enum.AutomaticSize.Y
 		code.Parent = row
 		ThemeManager.BindColor(code, "TextColor3", "PrimaryTextColor")
@@ -458,6 +535,10 @@ function CodeView:_enterEdit()
 	self._editStack.Visible = true
 	self._gutterClip.Visible = true
 	self._box.Text = self._text
+	-- The box never shows itself until now — without this the view rows hide
+	-- and the editor is invisible, so the user types into blank space.
+	self._box.Visible = true
+	self:_relayout() -- size it in the same frame; the debounced pass re-checks
 	self:_scheduleRelayout()
 	task.defer(function()
 		if not self._destroyed then
@@ -499,7 +580,7 @@ function CodeView:_relayout()
 	if not self._editing then
 		return
 	end
-	local width = self._scroll.AbsoluteSize.X - gutterWidth
+	local width = self._scroll.AbsoluteSize.X - codeX
 	if width <= 0 then
 		return
 	end
@@ -516,7 +597,7 @@ function CodeView:_relayout()
 	end
 
 	self._editStack.Size = UDim2.new(1, 0, 0, total)
-	self._box.Size = UDim2.new(1, -gutterWidth, 0, total)
+	self._box.Size = UDim2.new(1, -codeX, 0, total)
 	self._gutterInner.Size = UDim2.new(1, 0, 0, total)
 
 	for _, child in ipairs(self._gutterInner:GetChildren()) do
@@ -556,13 +637,12 @@ function CodeView:_applyTheme(liveTheme)
 	end
 	self._theme = ThemeManager.GetTheme(liveTheme)
 	self._palette = buildPalette(self._theme)
-	-- Colour sides ride the bindings; transparencies need a restamp.
+	-- Colour sides ride the bindings; interaction transparencies need a
+	-- restamp (a theme switch cancels in-flight hover/click tweens).
 	self._panel.BackgroundTransparency = 0.15
 	self._panelStroke.Transparency = 0.9
-	if not self._hoveringCopy then
-		self._copyBtn.BackgroundTransparency = 1
-		self._copyBtn.TextColor3 = self._theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
-	end
+	self._copyFlash.BackgroundTransparency = 1
+	self._copyIcon.ImageTransparency = if self._hoveringCopy then 0.1 else 0.35
 	if self._editing then
 		self:_scheduleRelayout()
 	else
@@ -610,6 +690,11 @@ function CodeView:Destroy()
 		conn:Disconnect()
 	end
 	table.clear(self._conns)
+	if self._copyBtn then
+		Tween.CancelAll(self._copyBtn)
+		Tween.CancelAll(self._copyIcon)
+		Tween.CancelAll(self._copyFlash)
+	end
 	if self._unregisterTheme then
 		self._unregisterTheme()
 		self._unregisterTheme = nil

@@ -48,7 +48,10 @@ end
 -- OnActive always restores. OnInactive is gated by a settings key so a feature
 -- can be switched off; because OnActive is unconditional, toggling the gate off
 -- can never leave a component visually stuck in its dimmed state.
-local function fire(entry, active)
+-- `instant` is passed through to OnInactive as its first argument so a
+-- collapse can bypass its tween (used by registration priming, where a
+-- tweened collapse would still be mid-flight when the restore lands).
+local function fire(entry, active, instant)
 	if active then
 		if entry.OnActive then
 			pcall(entry.OnActive)
@@ -59,7 +62,7 @@ local function fire(entry, active)
 			allowed = SettingsStore.Get(entry.Gate) ~= false
 		end
 		if allowed then
-			pcall(entry.OnInactive)
+			pcall(entry.OnInactive, instant)
 		end
 	end
 end
@@ -100,8 +103,13 @@ function PageAwareness.Refresh()
 	end
 end
 
--- handlers = { OnActive, OnInactive, Gate? }. Evaluates active state at
--- registration but does NOT fire handlers (so a fresh component stays at rest).
+-- handlers = { OnActive, OnInactive(instant?), Gate? }. Evaluates active state
+-- at registration, then PRIMES the entry so the first reveal has distance to
+-- cover: OnInactive fires immediately (instantly, gated exactly like a real
+-- hide) to collapse the control, and if the page is already visible OnActive
+-- is deferred a resumption so startup paints a tween-in instead of showing
+-- pre-set values. Hidden pages simply keep the collapsed state until the
+-- normal Refresh transition restores them.
 -- Returns a token for Unregister; the registration auto-removes on root destroy.
 function PageAwareness.Register(root, handlers)
 	if not root then
@@ -128,6 +136,20 @@ function PageAwareness.Register(root, handlers)
 			end
 		end)
 		entry._conn = conn
+	end
+	if entry.OnInactive then
+		fire(entry, false, true)
+	end
+	if entry.active then
+		-- Page already on screen (the startup tab, or a component created
+		-- later on the visible page): restore next resumption so the pair
+		-- reads as a tween-in rather than a snap.
+		task.defer(function()
+			local live = entries[token]
+			if live and live.active then
+				fire(live, true)
+			end
+		end)
 	end
 	return token
 end

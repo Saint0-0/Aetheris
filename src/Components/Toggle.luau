@@ -213,13 +213,23 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- value via applyState(state). `state` is untouched, so GetState() and the
 	-- saved setting are unaffected by the animation.
 	local dimmed = false
-	local function setDimmed(on)
+	local function setDimmed(on, instant)
 		dimmed = on
 		if on then
-			Tween.Play(thumb, "Fast", { Position = offPos, BackgroundTransparency = 1 })
-			Tween.Play(stroke, "Fast", { Transparency = 1 })
-			Tween.Play(track, "Fast", { BackgroundTransparency = 1 })
-			Tween.Play(sheen, "Fast", { ImageTransparency = 1 })
+			if instant then
+				-- Registration priming: snap to the zeroed look so the very
+				-- first restore tween has real distance to cover.
+				thumb.Position = offPos
+				thumb.BackgroundTransparency = 1
+				stroke.Transparency = 1
+				track.BackgroundTransparency = 1
+				sheen.ImageTransparency = 1
+			else
+				Tween.Play(thumb, "Fast", { Position = offPos, BackgroundTransparency = 1 })
+				Tween.Play(stroke, "Fast", { Transparency = 1 })
+				Tween.Play(track, "Fast", { BackgroundTransparency = 1 })
+				Tween.Play(sheen, "Fast", { ImageTransparency = 1 })
+			end
 			-- Park the sheen spin while dimmed (composes with the ON/OFF gate).
 			Tween.SetSpinWanted(sheenGradient, false)
 		else
@@ -327,10 +337,11 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 
 	-- Page awareness: collapse off-page, tween back to `state` on focus. Gated
 	-- by the UI Settings "Page Animations" toggle; OnActive always restores.
+	-- `instant` = registration priming (snap collapse, tween-in on first show).
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
-		OnInactive = function()
-			setDimmed(true)
+		OnInactive = function(instant)
+			setDimmed(true, instant)
 		end,
 		OnActive = function()
 			setDimmed(false)

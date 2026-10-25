@@ -35,7 +35,7 @@ local UUID = require("../Utils/UUID")
 
 local Section = {}
 Section.__index = Section
-function Section.new(parent, Settings, theme, window)
+function Section.new(parent, Settings, theme, window, noSave)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	-- Ensure we have a valid theme table
@@ -45,6 +45,10 @@ function Section.new(parent, Settings, theme, window)
 	local self = setmetatable({}, Section)
 	self._theme = theme
 	self._window = window
+	-- Settings pages pass noSave so their controls never register with the
+	-- window's ConfigManager (game configs must not capture UI settings).
+	self._noSave = noSave == true
+	self._sectionName = Settings.Name or ""
 	-- Built-in popup engines from the owning window, so components never need a
 	-- helper passed as a trailing argument. Nil when the section has no window.
 	if window then
@@ -139,6 +143,48 @@ function Section.new(parent, Settings, theme, window)
 	end
 	return self
 end
+-- ---- config tracking -------------------------------------------------------
+-- Components built through a windowed game section register with the window's
+-- ConfigManager (Core/Settings/ConfigManager), so configs can save and restore
+-- their values. The user's callback also pings the manager for auto-save.
+function Section:_wrapCallback(kind, Settings)
+	local manager = self._noSave and nil or (self._window and self._window.ConfigManager)
+	if not manager then
+		return Settings
+	end
+	Settings = Settings or {}
+	local original = Settings.Callback
+	Settings.Callback = function(...)
+		if original then
+			original(...)
+		end
+		manager:NotifyChanged()
+	end
+	if kind == "Keybind" then
+		-- Keybinds report through OnRebind, not Callback.
+		local originalRebind = Settings.OnRebind
+		Settings.OnRebind = function(...)
+			if originalRebind then
+				originalRebind(...)
+			end
+			manager:NotifyChanged()
+		end
+	end
+	return Settings
+end
+
+function Section:_register(kind, Settings, component)
+	local manager = self._noSave and nil or (self._window and self._window.ConfigManager)
+	if not manager or not component then
+		return component
+	end
+	if Settings and Settings.NoSave then
+		return component
+	end
+	manager:Register(kind, self._sectionName, component)
+	return component
+end
+
 --[[
 	Toggle component builder
 	Settings:
@@ -153,16 +199,19 @@ end
 		:UpdateName(newName) - change the label text
 ]]
 function Section:Toggle(Settings, ShowNotification)
+	Settings = self:_wrapCallback("Toggle", Settings)
 	-- Notification engine is built in from the owning window; the 2nd arg is no
 	-- longer required (still honoured if a caller passes one).
 	ShowNotification = ShowNotification or self._notify
-	return Toggle.new(self.Frame, Settings, ShowNotification, self._theme)
+	return self:_register("Toggle", Settings, Toggle.new(self.Frame, Settings, ShowNotification, self._theme))
 end
 function Section:Slider(Settings)
-	return Slider.new(self.Frame, Settings, self._theme)
+	Settings = self:_wrapCallback("Slider", Settings)
+	return self:_register("Slider", Settings, Slider.new(self.Frame, Settings, self._theme))
 end
 function Section:Keybind(Settings)
-	return Keybind.new(self.Frame, Settings, self._theme)
+	Settings = self:_wrapCallback("Keybind", Settings)
+	return self:_register("Keybind", Settings, Keybind.new(self.Frame, Settings, self._theme))
 end
 function Section:Button(Settings)
 	return Button.new(self.Frame, Settings, self._theme)
@@ -174,10 +223,12 @@ function Section:Divider(Settings)
 	return Divider.new(self.Frame, Settings, self._theme)
 end
 function Section:TextInput(Settings)
-	return TextInput.new(self.Frame, Settings, self._theme)
+	Settings = self:_wrapCallback("TextInput", Settings)
+	return self:_register("TextInput", Settings, TextInput.new(self.Frame, Settings, self._theme))
 end
 function Section:RadioButtonGroup()
-	return RadioButtonGroup.new(self.Frame, self._theme)
+	local group = RadioButtonGroup.new(self.Frame, self._theme)
+	return self:_register("RadioButtonGroup", nil, group)
 end
 function Section:Video(Settings)
 	return Video.new(self.Frame, Settings, self._theme)
@@ -189,8 +240,9 @@ function Section:Status(Settings)
 	return Status.new(self.Frame, Settings, self._theme)
 end
 function Section:Dropdown(Settings, ShowPopup)
+	Settings = self:_wrapCallback("Dropdown", Settings)
 	ShowPopup = ShowPopup or self._openDropdown
-	return Dropdown.new(self.Frame, Settings, ShowPopup, self._theme)
+	return self:_register("Dropdown", Settings, Dropdown.new(self.Frame, Settings, ShowPopup, self._theme))
 end
 function Section:ProgressBar(Settings)
 	return ProgressBar.new(self.Frame, Settings, self._theme)
@@ -205,14 +257,16 @@ function Section:CodeView(Settings)
 	return CodeView.new(self.Frame, Settings, self._theme)
 end
 function Section:Stepper(Settings)
-	return Stepper.new(self.Frame, Settings, self._theme)
+	Settings = self:_wrapCallback("Stepper", Settings)
+	return self:_register("Stepper", Settings, Stepper.new(self.Frame, Settings, self._theme))
 end
 function Section:Paragraph(Settings)
 	return Paragraph.new(self.Frame, Settings, self._theme)
 end
 function Section:ColorPicker(Settings, ShowPopup)
+	Settings = self:_wrapCallback("ColorPicker", Settings)
 	ShowPopup = ShowPopup or self._openColorPicker
-	return ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme)
+	return self:_register("ColorPicker", Settings, ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme))
 end
 
 -- Section chrome is themed declaratively via ThemeManager.Bind* in Section.new;

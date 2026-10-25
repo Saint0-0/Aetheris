@@ -24,7 +24,9 @@ function SettingsTabHandle:Section(Settings)
 	Settings = Settings or {}
 	-- Sections go straight into the page (single vertical column). If a
 	-- scroller has been set up via :Scroller(), they stack into that instead.
-	return Section.new(self._contentParent or self.Page, Settings, self._theme, self.Window)
+	-- noSave (5th arg): settings-page controls never register with the game
+	-- ConfigManager - their state lives in SettingsStore instead.
+	return Section.new(self._contentParent or self.Page, Settings, self._theme, self.Window, true)
 end
 
 -- Optional single-column scroller for this page. Settings pages are ONE
