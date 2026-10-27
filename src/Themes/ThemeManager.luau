@@ -9,6 +9,7 @@ local ThemeDefinitions = require("./ThemeDefinitions")
 local Tween = require("../Utils/Tween")
 local ActiveTheme = require("./ActiveTheme")
 local PageFade = require("../Utils/PageFade")
+local UUID = require("../Utils/UUID")
 
 local ThemeManager = {}
 
@@ -48,7 +49,7 @@ function ThemeManager.SetColorOverride(instance, property, color)
 	if not instance or not property then
 		return
 	end
-	local attr = "ThemeOverride_" .. property
+	local attr = UUID.Static("ThemeOverride_" .. property)
 	local had = instance:GetAttribute(attr) ~= nil
 	if color then
 		instance:SetAttribute(attr, color)
@@ -66,7 +67,7 @@ end
 
 function ThemeManager.ClearColorOverride(instance, property)
 	if instance and property then
-		local attr = "ThemeOverride_" .. property
+		local attr = UUID.Static("ThemeOverride_" .. property)
 		if instance:GetAttribute(attr) ~= nil then
 			instance:SetAttribute(attr, nil)
 			overrideCount -= 1
@@ -189,7 +190,7 @@ local function applyEntry(entry, theme, animate)
 		return
 	end
 	-- Caller owns this property via an override: never touch it.
-	if inst:GetAttribute("ThemeOverride_" .. entry.property) ~= nil then
+	if inst:GetAttribute(UUID.Static("ThemeOverride_" .. entry.property)) ~= nil then
 		return
 	end
 	-- A binding is either a theme key lookup or a LITERAL value (a state map
@@ -214,7 +215,7 @@ local function applyEntry(entry, theme, animate)
 	-- colour/number are always published (they are the fadable kinds); `live`
 	-- additionally publishes other kinds.
 	if entry.opts.live or entry.kind == "color" or entry.kind == "number" then
-		inst:SetAttribute("ThemeLive_" .. entry.property, value)
+		inst:SetAttribute(UUID.Static("ThemeLive_" .. entry.property), value)
 	end
 	local current = inst[entry.property]
 	if current == value then
@@ -611,7 +612,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 	if overrideCount > 0 then
 		for _, d in ipairs(descendants) do
 			for _, p in ipairs(COLOR_PROPS) do
-				local v = d:GetAttribute("ThemeOverride_" .. p)
+				local v = d:GetAttribute(UUID.Static("ThemeOverride_" .. p))
 				if typeof(v) == "Color3" then
 					pcall(function()
 						d[p] = v
@@ -619,7 +620,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 				end
 			end
 			if d:IsA("UIStroke") then
-				local sv = d:GetAttribute("ThemeOverride_Color")
+				local sv = d:GetAttribute(UUID.Static("ThemeOverride_Color"))
 				if typeof(sv) == "Color3" then
 					pcall(function()
 						d.Color = sv

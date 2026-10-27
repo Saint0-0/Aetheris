@@ -11,6 +11,7 @@
 
 local ContentProvider = game:GetService("ContentProvider")
 local SoundService = game:GetService("SoundService")
+local UUID = require("../Utils/UUID")
 
 local SoundUtil = {}
 
@@ -23,6 +24,8 @@ SoundUtil.Assets = {
 	UIOpen = "rbxassetid://103088360945885",
 	UIClose = "rbxassetid://110295449838315",
 	UIShutdown = "rbxassetid://110807507368078",
+	KeySystemOpen = "rbxassetid://103088360945885",
+	KeySystemClose = "rbxassetid://110295449838315",
 }
 
 -- Reusable Sound instances, one per named asset, built once so repeated
@@ -41,10 +44,11 @@ local function getSoundGroup()
 	if soundGroup and soundGroup.Parent then
 		return soundGroup
 	end
-	soundGroup = SoundService:FindFirstChild("AetherisUI")
+	local groupName = UUID.Static("AetherisUI")
+	soundGroup = SoundService:FindFirstChild(groupName)
 	if not soundGroup then
 		soundGroup = Instance.new("SoundGroup")
-		soundGroup.Name = "AetherisUI"
+		soundGroup.Name = groupName
 		soundGroup.Volume = 1
 		soundGroup.Parent = SoundService
 	end
@@ -72,7 +76,7 @@ local function buildSoundInstances()
 	for name, assetId in pairs(SoundUtil.Assets) do
 		if not sounds[name] then
 			local s = Instance.new("Sound")
-			s.Name = name
+			s.Name = UUID.Static(name)
 			s.SoundId = assetId
 			s.SoundGroup = getSoundGroup()
 			s.Parent = SoundService
@@ -164,7 +168,7 @@ function SoundUtil.Play(name, properties)
 			return nil
 		end
 		s = Instance.new("Sound")
-		s.Name = name
+		s.Name = UUID.Static(name)
 		s.SoundId = assetId
 		s.SoundGroup = getSoundGroup()
 		s.Parent = SoundService

@@ -72,7 +72,7 @@ function Section.new(parent, Settings, theme, window, noSave)
 	frame.AutomaticSize = Enum.AutomaticSize.Y
 	frame.Size = UDim2.fromScale(1, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	frame:SetAttribute("IsSection", true)
+	frame:SetAttribute(UUID.Static("IsSection"), true)
 	frame.Parent = parent
 	local corner = Instance.new("UICorner")
 	corner.Name = UUID.Static("SectionUICorner")

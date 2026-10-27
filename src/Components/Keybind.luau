@@ -135,7 +135,7 @@ function Keybind.new(parent, Settings, theme)
 	inputBox.TextColor3 = (theme and theme.SecondaryTextColor)
 	inputBox.BackgroundColor3 = theme.InputBackgroundColor
 	inputBox.BackgroundTransparency = theme.InputBackgroundTransparency
-	inputBox:SetAttribute("IsInputBackground", true)
+	inputBox:SetAttribute(UUID.Static("IsInputBackground"), true)
 	inputBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	inputBox.AnchorPoint = Vector2.new(1, 0.5)
 	inputBox.ClearTextOnFocus = true
@@ -214,7 +214,7 @@ function Keybind.new(parent, Settings, theme)
 		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
 		-- Keep PageFade's cached base at the RESTING transparency so a page fade
 		-- never restores a transient hover/focus brighten.
-		stroke:SetAttribute("PageFadeBase", restTrans)
+		stroke:SetAttribute(UUID.Static("PageFadeBase"), restTrans)
 	end
 	-- Hover events on row and input box
 	local function onHoverEnter()

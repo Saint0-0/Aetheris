@@ -128,7 +128,7 @@ function TabGroup:Tab(Settings)
 	BackImage.Parent = Button
 	-- Mark as a true backdrop so ThemeManager updates its image/visibility
 	-- without touching the component sheens (which also use the brand asset).
-	BackImage:SetAttribute("IsTabBackdrop", true)
+	BackImage:SetAttribute(UUID.Static("IsTabBackdrop"), true)
 	-- Set visibility based on current theme's WallpaperEnabled. Use the same
 	-- `~= false` form as TabGroup:ApplyTheme so construction and a live theme
 	-- switch agree (a plain truthy test treats a nil value as hidden, whereas
@@ -392,7 +392,7 @@ function TabGroup:Divider()
 	Divider.Size = UDim2.new(0.85227, 0, 0, 1)
 	Divider.LayoutOrder = #self.Tabs + 1
 	Divider.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	Divider:SetAttribute("IsDivider", true)
+	Divider:SetAttribute(UUID.Static("IsDivider"), true)
 	Divider.Parent = self.Window.TabList
 	return Divider
 end
@@ -601,7 +601,7 @@ function TabGroup:ApplyTheme(newTheme)
 	end
 	-- Tab dividers created via TabGroup:Divider()
 	for _, child in ipairs(self.Window.TabList:GetChildren()) do
-		if child:GetAttribute("IsDivider") then
+		if child:GetAttribute(UUID.Static("IsDivider")) then
 			child.BackgroundColor3 = theme.SectionDividerColor or theme.TertiaryColor or child.BackgroundColor3
 			child.BackgroundTransparency = theme.SectionDividerTransparency or child.BackgroundTransparency
 		end

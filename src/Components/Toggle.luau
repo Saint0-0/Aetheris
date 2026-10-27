@@ -72,8 +72,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	thumb.Parent = track
 	-- Seed the live-theme color attributes so applyState reads current colors
 	-- even before the first ApplyTheme stamps them.
-	thumb:SetAttribute("ThemePrimary", theme.PrimaryColor)
-	thumb:SetAttribute("ThemeSecondary", theme.SecondaryColor)
+	thumb:SetAttribute(UUID.Static("ThemePrimary"), theme.PrimaryColor)
+	thumb:SetAttribute(UUID.Static("ThemeSecondary"), theme.SecondaryColor)
 	----------------------------------------------------------------
 	-- SIZE CONSTRAINT
 	----------------------------------------------------------------
@@ -102,7 +102,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	sheen.BorderSizePixel = 0
 	sheen.BackgroundTransparency = 1
 	sheen.Image = theme.Wallpaper or "rbxassetid://11094025229"
-	sheen:SetAttribute("IsThemeSheen", true)
+	sheen:SetAttribute(UUID.Static("IsThemeSheen"), true)
 	sheen.ImageTransparency = 1
 	sheen.AnchorPoint = Vector2.new(0.5, 0.5)
 	sheen.Position = UDim2.fromScale(0.5, 0.5)
@@ -154,7 +154,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			return
 		end
 		state = newState
-		thumb:SetAttribute("IsOn", state)
+		thumb:SetAttribute(UUID.Static("IsOn"), state)
 		-- Swap which theme key drives the state-coloured parts; the bindings
 		-- resolve + crossfade the new colour. No manual colour stamping.
 		local onKey = state and "PrimaryColor" or "SecondaryColor"
@@ -170,7 +170,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		-- stroke transparency. applyState changes the stroke OUTSIDE ApplyTheme,
 		-- so without this a page fade would restore a stale base (the
 		-- "stroke stays invisible until hover" bug).
-		stroke:SetAttribute("PageFadeBase", targetStrokeTransparency)
+		stroke:SetAttribute(UUID.Static("PageFadeBase"), targetStrokeTransparency)
 		if animate then
 			Tween.Play(thumb, "Fast", {
 				Position = targetPos,
@@ -189,7 +189,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 				ImageTransparency = state and 0 or 1,
 			})
 		else
-			thumb:SetAttribute("IsOn", state)
+			thumb:SetAttribute(UUID.Static("IsOn"), state)
 			thumb.Position = targetPos
 			thumb.BackgroundTransparency = targetBgTransparency
 			stroke.Transparency = targetStrokeTransparency

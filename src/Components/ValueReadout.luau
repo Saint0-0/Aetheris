@@ -65,7 +65,7 @@ function ValueReadout.new(parent, opts)
 	box.PlaceholderText = ""
 	box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 	box.FontFace = Constants.Font(weight)
-	box:SetAttribute("IsInputBackground", true)
+	box:SetAttribute(UUID.Static("IsInputBackground"), true)
 	box.Parent = parent
 	self.Instance = box
 
@@ -135,7 +135,7 @@ function ValueReadout.new(parent, opts)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = box
 	-- Page fades restore the RESTING alpha, never a hover/focus brighten.
-	stroke:SetAttribute("PageFadeBase", restStrokeAlpha(theme))
+	stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
 	self.Stroke = stroke
 
 	local focused = false
@@ -258,7 +258,7 @@ function ValueReadout.new(parent, opts)
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		theme = liveTheme or theme
 		-- Keep the page-fade base in step with the live resting alpha.
-		stroke:SetAttribute("PageFadeBase", restStrokeAlpha(theme))
+		stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
 		sync(true)
 	end, box)
 

@@ -33,7 +33,7 @@ function Paragraph.new(parent, Settings, theme)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
 	container.AutomaticSize = Enum.AutomaticSize.Y
 	container.Size = UDim2.fromScale(1, 0)
-	container:SetAttribute("IsComponentContainer", true)
+	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
 	-- Corner
 	local corner = Instance.new("UICorner")

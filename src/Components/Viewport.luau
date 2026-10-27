@@ -76,7 +76,7 @@ function Viewport.new(parent, Settings, theme)
 	frame.Size = UDim2.new(1, 0, 0, height)
 	frame.AnchorPoint = Vector2.new(0, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	frame:SetAttribute("IsComponentContainer", true)
+	frame:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	frame.Parent = parent
 	newCorner(frame, 6)
 	local stroke = Instance.new("UIStroke")

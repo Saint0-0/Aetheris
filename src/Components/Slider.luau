@@ -168,7 +168,7 @@ function Slider.new(parent, Settings, theme)
 	backImage.ImageTransparency = 0.5
 	backImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	backImage.Image = theme.Wallpaper or "rbxassetid://11094025229"
-	backImage:SetAttribute("IsThemeSheen", true)
+	backImage:SetAttribute(UUID.Static("IsThemeSheen"), true)
 	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1

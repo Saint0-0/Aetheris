@@ -205,7 +205,7 @@ function SettingsTabGroup:Tab(Settings)
 	BackImage.BackgroundTransparency = 1
 	BackImage.Position = UDim2.fromScale(0.5, 0.5)
 	BackImage.Parent = Button
-	BackImage:SetAttribute("IsTabBackdrop", true)
+	BackImage:SetAttribute(UUID.Static("IsTabBackdrop"), true)
 	-- Match SettingsTabGroup:ApplyTheme's `~= false` form so construction and a
 	-- live theme switch agree on WallpaperEnabled (nil => shown).
 	BackImage.Visible = theme.WallpaperEnabled ~= false

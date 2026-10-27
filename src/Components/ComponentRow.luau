@@ -65,7 +65,7 @@ function ComponentRow.new(parent, Settings)
 		row.ClipsDescendants = true
 	end
 	if Settings.ComponentContainer then
-		row:SetAttribute("IsComponentContainer", true)
+		row:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	end
 	row.Parent = parent
 

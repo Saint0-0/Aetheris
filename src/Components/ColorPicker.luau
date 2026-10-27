@@ -105,7 +105,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	-- because PageFade walks every UIShadow on page fades and can otherwise
 	-- leave it stuck at 1 (fully invisible) after a hide/invalidate cycle.
 	local SHADOW_TRANSPARENCY = 0.5
-	displayShadow:SetAttribute("PageFadeBase", SHADOW_TRANSPARENCY)
+	displayShadow:SetAttribute(UUID.Static("PageFadeBase"), SHADOW_TRANSPARENCY)
 	local function updateDisplay(color)
 		display.BackgroundColor3 = color
 		displayShadow.Color = color

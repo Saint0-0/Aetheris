@@ -91,7 +91,7 @@ function Status.new(parent, Settings, theme)
 	frame.Size = UDim2.fromScale(1, 0)
 	frame.Position = UDim2.fromScale(0, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	frame:SetAttribute("IsComponentContainer", true)
+	frame:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	frame.Parent = parent
 	-- Corner
 	local corner = Instance.new("UICorner")

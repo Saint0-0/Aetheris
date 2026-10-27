@@ -36,7 +36,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	holder.BorderSizePixel = 0
 	holder.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
 	holder.BackgroundTransparency = theme.InputBackgroundTransparency or 1
-	holder:SetAttribute("IsInputBackground", true)
+	holder:SetAttribute(UUID.Static("IsInputBackground"), true)
 	holder.AnchorPoint = Vector2.new(1, 0.5)
 	holder.Size = UDim2.fromOffset(45, 29)
 	holder.Position = UDim2.fromScale(1, 0.5)
@@ -77,7 +77,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	backImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	local imageId = (theme and theme.Wallpaper) or FallbackImage
 	backImage.Image = imageId
-	backImage:SetAttribute("IsThemeSheen", true)
+	backImage:SetAttribute(UUID.Static("IsThemeSheen"), true)
 	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1
@@ -164,7 +164,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		-- Sync PageFade's cached fade-base: selection changes the stroke OUTSIDE
 		-- ApplyTheme, so a stale base would leave the stroke hidden after a page
 		-- switch (only a hover tween brought it back).
-		holderStroke:SetAttribute("PageFadeBase", 1)
+		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), 1)
 	end
 	----------------------------------------------------------------
 	-- DESELECTED
@@ -190,7 +190,7 @@ function RadioButton.new(parent, group, Settings, theme)
 			Transparency = theme.StrokeTransparency or 0.4,
 		})
 		-- Keep the cached fade-base in sync (see playOn).
-		holderStroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.4)
+		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), theme.StrokeTransparency or 0.4)
 	end
 	----------------------------------------------------------------
 	-- HOVER / CLICK
@@ -261,7 +261,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	----------------------------------------------------------------
 	self.SetSelected = function(me, selected)
 		me.IsSelected = selected
-		me.Button:SetAttribute("IsSelected", selected)
+		me.Button:SetAttribute(UUID.Static("IsSelected"), selected)
 		if me._strokeHandle then
 			me._strokeHandle:SetState(selected and "Selected" or "Unselected")
 		end
@@ -324,7 +324,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		if me._strokeHandle then
 			me._strokeHandle:SetState(me.IsSelected and "Selected" or "Unselected")
 		end
-		holderStroke:SetAttribute("PageFadeBase", holderStroke.Transparency)
+		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), holderStroke.Transparency)
 		backImage.Image = theme.Wallpaper or FallbackImage
 		backImage.Visible = not (theme.WallpaperEnabled == false)
 		-- Re-apply the selected visual state directly. ApplyTheme cancels all

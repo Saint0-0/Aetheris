@@ -152,7 +152,7 @@ function TextInput.new(parent, Settings, theme)
 	field.ClearTextOnFocus = false
 	field.FontFace = font
 	field.Text = default
-	field:SetAttribute("IsInputBackground", true)
+	field:SetAttribute(UUID.Static("IsInputBackground"), true)
 	field.Parent = row
 
 	local corner = Instance.new("UICorner")
@@ -166,7 +166,7 @@ function TextInput.new(parent, Settings, theme)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	-- Snapshot the resting transparency so PageFade restores to the theme value
 	-- instead of capturing a mid-fade one. Mirrors Keybind's stroke.
-	stroke:SetAttribute("PageFadeBase", theme.StrokeTransparency or 0.95)
+	stroke:SetAttribute(UUID.Static("PageFadeBase"), theme.StrokeTransparency or 0.95)
 	stroke.Parent = field
 
 	local glow = Instance.new("UIShadow")
@@ -214,7 +214,7 @@ function TextInput.new(parent, Settings, theme)
 		})
 		-- Keep PageFade's cached base at REST so a page fade never restores a
 		-- transient brighten.
-		stroke:SetAttribute("PageFadeBase", rest)
+		stroke:SetAttribute(UUID.Static("PageFadeBase"), rest)
 	end
 
 	local function maxWidth()

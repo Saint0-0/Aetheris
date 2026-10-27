@@ -87,12 +87,12 @@ function PageFade.FadeDecorations(group, hidden, instant)
 		-- tracks every theme switch. Read that; only fall back to the one-time
 		-- PageFadeBase snapshot for a decoration the theme does NOT own (a fixed
 		-- shadow, a component-set stroke).
-		local themeRest = d:GetAttribute("ThemeLive_Transparency")
+		local themeRest = d:GetAttribute(UUID.Static("ThemeLive_Transparency"))
 		local base
 		if themeRest ~= nil then
 			base = themeRest
 		else
-			base = d:GetAttribute("PageFadeBase")
+			base = d:GetAttribute(UUID.Static("PageFadeBase"))
 		end
 		if base == nil then
 			-- Capture the resting transparency ONLY from a visible value. If the
@@ -103,7 +103,7 @@ function PageFade.FadeDecorations(group, hidden, instant)
 			-- state records the real resting value.
 			if d.Transparency < 1 then
 				base = d.Transparency
-				d:SetAttribute("PageFadeBase", base)
+				d:SetAttribute(UUID.Static("PageFadeBase"), base)
 			end
 		end
 		-- If no base was captured (the decoration rests at the hidden sentinel 1,

@@ -17,7 +17,7 @@ local VideoFade = {}
 function VideoFade.attach(videoFrame)
 	local grad = Instance.new("UIGradient")
 	grad.Name = UUID.Static("FadeGradient")
-	grad:SetAttribute("IsVideoFade", true)
+	grad:SetAttribute(UUID.Static("IsVideoFade"), true)
 	grad.Transparency = NumberSequence.new(0)
 	grad.Parent = videoFrame
 	return grad

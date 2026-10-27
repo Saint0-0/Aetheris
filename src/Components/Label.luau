@@ -57,7 +57,7 @@ function Label.new(parent, Settings, theme)
 		or 1
 	container.AutomaticSize = Enum.AutomaticSize.Y
 	container.Size = UDim2.fromScale(1, 0)
-	container:SetAttribute("IsComponentContainer", true)
+	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
 	-- Corner
 	local corner = Instance.new("UICorner")
@@ -73,7 +73,7 @@ function Label.new(parent, Settings, theme)
 		-- Own the property outright via the theme override mechanism: applyEntry
 		-- treats any ThemeOverride_<prop> attribute as caller-owned and skips
 		-- this stroke on every theme switch, so a hidden stroke stays hidden.
-		stroke:SetAttribute("ThemeOverride_Transparency", 1)
+		stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
 	end
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -133,12 +133,12 @@ function Label.new(parent, Settings, theme)
 	-- condition holds; otherwise it is disabled and the value set directly.
 	if not showContainer then
 		bgTransBinding:SetEnabled(false)
-		container:SetAttribute("ThemeOverride_BackgroundTransparency", 1)
+		container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
 		container.BackgroundTransparency = 1
 	end
 	if not showStroke then
 		strokeTransBinding:SetEnabled(false)
-		stroke:SetAttribute("ThemeOverride_Transparency", 1)
+		stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
 		stroke.Transparency = 1
 	end
 	if customTextTransparency ~= nil then
@@ -165,22 +165,22 @@ function Label.new(parent, Settings, theme)
 	self.SetShowContainer = function(_, show)
 		self._showContainer = show
 		if show then
-			container:SetAttribute("ThemeOverride_BackgroundTransparency", nil)
+			container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), nil)
 			bgTransBinding:SetEnabled(true)
 		else
 			bgTransBinding:SetEnabled(false)
-			container:SetAttribute("ThemeOverride_BackgroundTransparency", 1)
+			container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
 			container.BackgroundTransparency = 1
 		end
 	end
 	self.SetShowStroke = function(_, show)
 		self._showStroke = show
 		if show then
-			stroke:SetAttribute("ThemeOverride_Transparency", nil)
+			stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), nil)
 			strokeTransBinding:SetEnabled(true)
 		else
 			strokeTransBinding:SetEnabled(false)
-			stroke:SetAttribute("ThemeOverride_Transparency", 1)
+			stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
 			stroke.Transparency = 1
 		end
 	end

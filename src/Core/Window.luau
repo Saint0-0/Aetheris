@@ -504,7 +504,7 @@ function Window.new(Settings)
 	TabList:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		-- Compact mode hides the scrollbar entirely: skip the fade-in animation
 		-- and keep it fully transparent instead of the usual 0.5 reveal.
-		if TabList:GetAttribute("CompactNoScrollbar") then
+		if TabList:GetAttribute(UUID.Static("CompactNoScrollbar")) then
 			TabList.ScrollBarImageTransparency = 1
 			return
 		end
@@ -529,7 +529,7 @@ function Window.new(Settings)
 	SearchBar.BorderSizePixel = 0
 	SearchBar.BackgroundColor3 = theme.SearchBarBackgroundColor
 	SearchBar.BackgroundTransparency = 1
-	SearchBar:SetAttribute("IsSearchFocused", false)
+	SearchBar:SetAttribute(UUID.Static("IsSearchFocused"), false)
 	-- Fixed offset from the top (below the script info) so it never drifts.
 	SearchBar.Size = UDim2.new(1, 0, 0, 26)
 	SearchBar.Position = UDim2.fromOffset(0, 48)
@@ -593,7 +593,7 @@ function Window.new(Settings)
 	-- box is focused. Bottom divider also sharpens to 0.2 transparency.
 	SearchBar.BackgroundTransparency = 1
 	SearchBox.Focused:Connect(function()
-		SearchBar:SetAttribute("IsSearchFocused", true)
+		SearchBar:SetAttribute(UUID.Static("IsSearchFocused"), true)
 		-- Read the LIVE theme so the focus transparency reflects the current
 		-- theme, not the construction-time one.
 		local liveTheme = self._theme or theme
@@ -604,7 +604,7 @@ function Window.new(Settings)
 		Tween.Play(SearchBarBottomDivider, "Fast", { BackgroundTransparency = 0.2 })
 	end)
 	SearchBox.FocusLost:Connect(function()
-		SearchBar:SetAttribute("IsSearchFocused", false)
+		SearchBar:SetAttribute(UUID.Static("IsSearchFocused"), false)
 		Tween.Play(SearchBar, "Fast", { BackgroundTransparency = 1 })
 		Tween.Play(SearchBoxStroke, "Fast", { Transparency = 1 })
 		Tween.Play(SearchIcon, "Fast", { ImageTransparency = 0.5 })
@@ -927,8 +927,8 @@ function Window.new(Settings)
 				-- gradient's fade target (accent). Previously the pinned accent was
 				-- written to the background too, so a caller-supplied BackgroundColor
 				-- was lost and the fill always followed the accent.
-				local pinnedBase = g:GetAttribute("TagBaseColor")
-				local pinnedAccent = g:GetAttribute("TagAccentColor")
+				local pinnedBase = g:GetAttribute(UUID.Static("TagBaseColor"))
+				local pinnedAccent = g:GetAttribute(UUID.Static("TagAccentColor"))
 				local fill = (typeof(pinnedBase) == "Color3") and pinnedBase or base
 				local hue = (typeof(pinnedAccent) == "Color3") and pinnedAccent or accent
 				pill.BackgroundColor3 = fill
@@ -998,10 +998,10 @@ function Window.new(Settings)
 		-- Record the pinned base + accent so a theme switch preserves them
 		-- (see restampThemeGradients).
 		if bgColor then
-			pillGradient:SetAttribute("TagBaseColor", bgColor)
+			pillGradient:SetAttribute(UUID.Static("TagBaseColor"), bgColor)
 		end
 		if accColor then
-			pillGradient:SetAttribute("TagAccentColor", accColor)
+			pillGradient:SetAttribute(UUID.Static("TagAccentColor"), accColor)
 		end
 		-- White -> accent: the bright end shows the pill's own BackgroundColor and
 		-- the far end fades into the caller's AccentColor (previously this ramped
@@ -1429,7 +1429,7 @@ function Window.new(Settings)
 				Sidebar.Visible = false -- hide the sidebar AFTER the row has moved out
 				TabList.ScrollingDirection = Enum.ScrollingDirection.X
 				-- Hide the tab-row scrollbar completely (no fade-in animation).
-				TabList:SetAttribute("CompactNoScrollbar", true)
+				TabList:SetAttribute(UUID.Static("CompactNoScrollbar"), true)
 				TabList.ScrollBarImageTransparency = 1
 				TabList.AutomaticCanvasSize = Enum.AutomaticSize.X
 				-- Pin the canvas HEIGHT to the row height. Otherwise the canvas keeps a
@@ -1451,7 +1451,7 @@ function Window.new(Settings)
 				compactPad.PaddingBottom = UDim.new(0, 4)
 				compactPad.PaddingLeft = UDim.new(0, 7)
 				for _, child in ipairs(TabList:GetChildren()) do
-					if child:GetAttribute("IsDivider") then
+					if child:GetAttribute(UUID.Static("IsDivider")) then
 						child.Visible = false
 					end
 				end
@@ -1513,12 +1513,12 @@ function Window.new(Settings)
 					compactPad:Destroy()
 				end
 				for _, child in ipairs(TabList:GetChildren()) do
-					if child:GetAttribute("IsDivider") then
+					if child:GetAttribute(UUID.Static("IsDivider")) then
 						child.Visible = true
 					end
 				end
 				TabList.ScrollingDirection = saved.tabListScrollDir
-				TabList:SetAttribute("CompactNoScrollbar", false)
+				TabList:SetAttribute(UUID.Static("CompactNoScrollbar"), false)
 				TabList.AutomaticCanvasSize = saved.tabListAutoSize
 				TabList.VerticalScrollBarPosition = saved.tabListVBarPos
 				TabListLayout.FillDirection = saved.tabListFill
@@ -1600,7 +1600,7 @@ function Window.new(Settings)
 			if not compact then
 				return
 			end
-			if child:GetAttribute("IsDivider") then
+			if child:GetAttribute(UUID.Static("IsDivider")) then
 				child.Visible = false
 			else
 				styleTabButton(child, true)
@@ -1637,13 +1637,13 @@ function Window.new(Settings)
 	-- ThemeLive_Transparency and fight the hover gate).
 	pillStroke.Transparency = 1
 	pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	pillStroke:SetAttribute("PageFadeBase", 1)
+	pillStroke:SetAttribute(UUID.Static("PageFadeBase"), 1)
 	pillStroke.Parent = pill
 	local pillShadow = Instance.new("UIShadow")
 	pillShadow.Color = theme.PopupShadowColor or Color3.fromRGB(0, 0, 0)
 	pillShadow.BlurRadius = UDim.new(0, 16)
 	pillShadow.Transparency = 1 -- rest: invisible; only shows on hover (0.5)
-	pillShadow:SetAttribute("PageFadeBase", 1)
+	pillShadow:SetAttribute(UUID.Static("PageFadeBase"), 1)
 	pillShadow.Parent = pill
 	local pillScale = Instance.new("UIScale")
 	pillScale.Scale = 1
@@ -1772,9 +1772,9 @@ function Window.new(Settings)
 			back.ImageTransparency = isActive and 0 or 1
 			-- Only (re)start/stop the spin when the active state actually changed,
 			-- so spamming minimize doesn't reset the active button's sweep.
-			local wasActive = btn:GetAttribute("PillActive") == true
+			local wasActive = btn:GetAttribute(UUID.Static("PillActive")) == true
 			if isActive ~= wasActive then
-				btn:SetAttribute("PillActive", isActive)
+				btn:SetAttribute(UUID.Static("PillActive"), isActive)
 				local grad = back:FindFirstChildOfClass("UIGradient")
 				if grad then
 					if isActive then
@@ -2334,7 +2334,7 @@ function Window.new(Settings)
 		-- Search bar: the BACKGROUND TRANSPARENCIES are focus-driven (stateful),
 		-- not theme keys -- stamp them from the current focus state. The bar /
 		-- stroke colors are bound.
-		local searchFocused = SearchBar:GetAttribute("IsSearchFocused")
+		local searchFocused = SearchBar:GetAttribute(UUID.Static("IsSearchFocused"))
 		if searchFocused then
 			SearchBar.BackgroundTransparency = t.SearchBarBackgroundTransparency or 0
 			SearchBoxStroke.Transparency = t.StrokeTransparency or 0.95

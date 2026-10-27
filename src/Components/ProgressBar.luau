@@ -81,7 +81,7 @@ function ProgressBar.new(parent, Settings, theme)
 	backImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	local imageId = (theme and theme.Wallpaper) or FallbackImage
 	backImage.Image = imageId
-	backImage:SetAttribute("IsThemeSheen", true)
+	backImage:SetAttribute(UUID.Static("IsThemeSheen"), true)
 	backImage.Size = UDim2.fromScale(1, 1)
 	backImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	backImage.BackgroundTransparency = 1

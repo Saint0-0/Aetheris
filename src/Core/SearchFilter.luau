@@ -80,7 +80,7 @@ local function buildIndex(page)
 	local sections = {}
 	local entries = {}
 	for _, d in ipairs(page:GetDescendants()) do
-		if d:GetAttribute("IsSection") then
+		if d:GetAttribute(UUID.Static("IsSection")) then
 			sections[d] = false
 		elseif d:IsA("TextLabel") and d.Name == UUID.Static("ElementName") then
 			-- Resolve the owning section once, at index time, instead of
@@ -88,7 +88,7 @@ local function buildIndex(page)
 			local sec = nil
 			local p = d.Parent
 			while p do
-				if p:GetAttribute("IsSection") then
+				if p:GetAttribute(UUID.Static("IsSection")) then
 					sec = p
 					break
 				end
@@ -145,11 +145,11 @@ function SearchFilter.Apply(page, query, theme)
 
 	for _, entry in ipairs(entries) do
 		local d = entry.label
-		local base = d:GetAttribute("SearchBaseText")
+		local base = d:GetAttribute(UUID.Static("SearchBaseText"))
 		if base == nil then
 			base = d.Text
-			d:SetAttribute("SearchBaseText", base)
-			d:SetAttribute("SearchBaseRich", d.RichText)
+			d:SetAttribute(UUID.Static("SearchBaseText"), base)
+			d:SetAttribute(UUID.Static("SearchBaseRich"), d.RichText)
 		end
 		local lower = string.lower(base)
 		if string.find(lower, query, 1, true) then
@@ -161,7 +161,7 @@ function SearchFilter.Apply(page, query, theme)
 			d.Text = buildHighlight(base, lower, query, hex)
 		else
 			d.Text = base
-			local br = d:GetAttribute("SearchBaseRich")
+			local br = d:GetAttribute(UUID.Static("SearchBaseRich"))
 			if br ~= nil then
 				d.RichText = br
 			end
@@ -184,15 +184,15 @@ function SearchFilter.Clear(page)
 	end
 	for _, entry in ipairs(idx.entries) do
 		local d = entry.label
-		local base = d:GetAttribute("SearchBaseText")
+		local base = d:GetAttribute(UUID.Static("SearchBaseText"))
 		if base ~= nil then
 			d.Text = base
-			local br = d:GetAttribute("SearchBaseRich")
+			local br = d:GetAttribute(UUID.Static("SearchBaseRich"))
 			if br ~= nil then
 				d.RichText = br
 			end
-			d:SetAttribute("SearchBaseText", nil)
-			d:SetAttribute("SearchBaseRich", nil)
+			d:SetAttribute(UUID.Static("SearchBaseText"), nil)
+			d:SetAttribute(UUID.Static("SearchBaseRich"), nil)
 		end
 	end
 end

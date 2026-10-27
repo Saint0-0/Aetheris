@@ -39,7 +39,7 @@ function Video.new(parent, Settings, theme)
 	frame.Position = UDim2.fromScale(0, 0.8891) -- This position is from export; we'll keep anchor at top
 	frame.AnchorPoint = Vector2.new(0, 0)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	frame:SetAttribute("IsComponentContainer", true)
+	frame:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	frame.Parent = parent
 	-- Corner
 	local corner = Instance.new("UICorner")

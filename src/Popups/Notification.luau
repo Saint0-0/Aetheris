@@ -201,7 +201,7 @@ function Notification.new(container, Settings, theme)
 	-- PageFade restores a decoration to its PageFadeBase; toasts live outside
 	-- the window tree so PageFade never touches them, but stamp it so any
 	-- FadeDecorations sweep that does reach here returns to the rest state.
-	shadow:SetAttribute("PageFadeBase", shadow.Transparency)
+	shadow:SetAttribute(UUID.Static("PageFadeBase"), shadow.Transparency)
 	self._shadow = shadow
 
 	-- Aurora wash replaces the old corner gradient: two low-opacity accent
@@ -390,7 +390,7 @@ function Notification.new(container, Settings, theme)
 				ZIndex = 4,
 				Parent = holder,
 			})
-			btn:SetAttribute("ToastBaseBackground", baseBg)
+			btn:SetAttribute(UUID.Static("ToastBaseBackground"), baseBg)
 			new("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
 
 			-- Button-component motion, 1:1: hover grows 1.02 (HoverIn), press
@@ -421,13 +421,13 @@ function Notification.new(container, Settings, theme)
 			local isHovered = false
 			btn.MouseEnter:Connect(function()
 				isHovered = true
-				btn:SetAttribute("ToastHovered", true)
+				btn:SetAttribute(UUID.Static("ToastHovered"), true)
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 0.4 })
 				Tween.Play(btnScale, "HoverIn", { Scale = 1.02 })
 			end)
 			btn.MouseLeave:Connect(function()
 				isHovered = false
-				btn:SetAttribute("ToastHovered", false)
+				btn:SetAttribute(UUID.Static("ToastHovered"), false)
 				Tween.Play(btnShadow, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Transparency = 1 })
 				Tween.Play(btnScale, "HoverOut", { Scale = 1 })
 			end)
@@ -608,7 +608,7 @@ function Notification:ApplyTheme(themeInput)
 	local buttonText = theme.NotificationActionButtonTextColor or Color3.fromRGB(255, 255, 255)
 	for _, entry in ipairs(self._actions) do
 		local button = entry.button
-		button:SetAttribute("ToastBaseBackground", baseBg)
+		button:SetAttribute(UUID.Static("ToastBaseBackground"), baseBg)
 		-- No hover tint any more (Button-style); bg stays at its base.
 		button.BackgroundColor3 = baseBg
 		button.TextColor3 = buttonText
