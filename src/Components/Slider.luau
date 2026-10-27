@@ -1,34 +1,13 @@
 --[[
-	Slider  ·  Aetheris UI Library
+	Aetheris/Components/Slider.luau
 
-	Draggable value slider. Mechanics are a 1:1 port of Rayfield gen2's
-	slider (src/components/slider.luau); the look, readout, reset button and
-	spinning fill gradient are ours and are preserved.
-
-	Rayfield mechanics copied verbatim:
-		· The pill is a CHILD of the fill and is carried by it -- it has no
-		  position of its own. Position = UDim2.fromScale(1, 0.5), centred on
-		  the fill's leading edge, so half of it hangs past the track at each
-		  end of the range.
-		· Pointer travel is the WHOLE track (ratioFromPointer maps straight
-		  across it).
-		· snapTo() snaps onto an increment grid anchored at range[1], so both
-		  endpoints stay reachable.
-		· Press grows the pill (35x20 -> 41x22, 0.3 Exponential Out), ghosts
-		  it (BackgroundTransparency 0.7) and fades its stroke in (0.6).
-		· Drag is a RenderStepped follow that self-terminates, plus
-		  InputEnded AND WindowFocusReleased both ending the drag.
-		· The fill follows the value with a 0.3 Quint Out tween mid-drag.
-
-	Kept from ours: the spinning gradient (Tween.StartSpin), the shared value
-	chip (ValueReadout), the percentage readout, the reset button and the
-	theme bindings.
-
-	Usage:
-		local slider = section:Slider({
-			Name = "Smoothness", Min = 0, Max = 100, Default = 50,
-			Callback = function(value) end,
-		})
+	Draggable value slider. The drag mechanics are a 1:1 port of Rayfield
+	gen2's slider; the look, readout, reset button and spinning fill gradient
+	are ours. The pill is a child of the fill and rides its leading edge.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
+	Based on Rayfield Gen 2 code (MPL-2.0)
+	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]
 
 local RunService = game:GetService("RunService")
@@ -49,18 +28,14 @@ local UUID = require("../Utils/UUID")
 local Slider = {}
 Slider.__index = Slider
 
--- ---- Rayfield mechanics constants (copied from slider.luau) ----------------
 local TWEEN_INFO = TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 local HELD_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 local FOLLOW_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
--- The pill's two sizes: at rest, and while it's held.
 local HANDLE_REST = Vector2.new(35, 15)
 local HANDLE_HELD = Vector2.new(41, 17)
 
--- Decimal places implied by an increment (0.1 -> 1, 0.25 -> 2, 1 -> 0). Checks
--- against the nearest whole number at each scale so float error can't inflate
--- the count (0.07 * 10 is 0.7000000000000001, still 2 decimals).
+-- float error can't inflate the count (0.07 * 10 is 0.7000000000000001)
 local function decimalsOf(step)
 	local decimals = 0
 	while decimals < 6 do
@@ -73,25 +48,22 @@ local function decimalsOf(step)
 	return decimals
 end
 
--- snap onto the increment grid anchored at range[1], so both endpoints stay
--- reachable (a zero-anchored grid can't express range = {0.5, 2.5} with inc 1).
+-- snap onto a grid anchored at range[1]; a zero-anchored grid can't express
+-- range = {0.5, 2.5} with increment 1
 local function snapTo(range, increment, value)
 	local snapped = range[1] + math.round((value - range[1]) / increment) * increment
 	return math.clamp(snapped, range[1], range[2])
 end
 
--- The fill is a plain ratio of the track; the pill rides its leading edge.
 local function fillSize(ratio)
 	return UDim2.fromScale(ratio, 1)
 end
 
--- The pill sits centred on the fill's leading edge and lives inside the fill,
--- so it tracks the value without a position of its own.
+-- the pill lives inside the fill, so it tracks the value with no position of its own
 local function handleOffset()
 	return UDim2.fromScale(1, 0.5)
 end
 
--- The pointer maps over the whole track, because the pill's centre does too.
 local function ratioFromPointer(x, left, travel)
 	return math.clamp((x - left) / travel, 0, 1)
 end
@@ -118,7 +90,6 @@ function Slider.new(parent, Settings, theme)
 		increment = 1
 	end
 
-	-- Main row frame (shared factory; height 52 preserved).
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "Slider",
@@ -131,7 +102,6 @@ function Slider.new(parent, Settings, theme)
 		LabelAnchorPoint = Vector2.new(0, 0),
 	})
 
-	-- ---- track (Rayfield's `track`) -----------------------------------------
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("SliderHolder")
 	holder.BorderSizePixel = 0
@@ -148,7 +118,6 @@ function Slider.new(parent, Settings, theme)
 	local holderShadow = Instance.new("UIShadow")
 	holderShadow.Parent = holder
 
-	-- ---- fill (Rayfield's `progress`) ---------------------------------------
 	local visual = Instance.new("Frame")
 	visual.Name = UUID.Static("SliderVisual")
 	visual.BorderSizePixel = 0
@@ -160,7 +129,6 @@ function Slider.new(parent, Settings, theme)
 	visualCorner.CornerRadius = UDim.new(0, 4)
 	visualCorner.Parent = visual
 
-	-- spinning sheen inside the fill (ours)
 	local backImage = Instance.new("ImageLabel")
 	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
@@ -189,7 +157,6 @@ function Slider.new(parent, Settings, theme)
 	})
 	gradient.Parent = backImage
 
-	-- ---- the pill (Rayfield's `handle`) -- a child of the FILL, carried by it -
 	local thumb = Instance.new("ImageButton")
 	thumb.Name = UUID.Static("SliderButton")
 	thumb.BorderSizePixel = 0
@@ -198,11 +165,11 @@ function Slider.new(parent, Settings, theme)
 	thumb.BackgroundTransparency = 0
 	thumb.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(255, 255, 255)
 	thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-	thumb.Position = handleOffset() -- centred on the fill's leading edge
+	thumb.Position = handleOffset()
 	thumb.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
 	thumb.Size = UDim2.fromOffset(HANDLE_REST.X, HANDLE_REST.Y)
 	thumb.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	thumb.Parent = visual -- <- carried by the fill, not positioned on the track
+	thumb.Parent = visual -- carried by the fill, not positioned on the track
 	local thumbCorner = Instance.new("UICorner")
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = thumb
@@ -212,7 +179,6 @@ function Slider.new(parent, Settings, theme)
 	thumbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	thumbStroke.Parent = thumb
 
-	-- ---- readout cluster (ours) ---------------------------------------------
 	local controlHolder = Instance.new("Frame")
 	controlHolder.Name = UUID.Static("ControlHolder")
 	controlHolder.AnchorPoint = Vector2.new(1, 0)
@@ -229,7 +195,6 @@ function Slider.new(parent, Settings, theme)
 	controlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	controlLayout.Parent = controlHolder
 
-	-- value readout: shared chip (odometer at rest, text field on focus)
 	local readout = ValueReadout.new(controlHolder, {
 		Theme = theme,
 		Width = 45,
@@ -240,7 +205,6 @@ function Slider.new(parent, Settings, theme)
 		LayoutOrder = 1,
 	})
 
-	-- percentage readout
 	local percentLabel = Instance.new("TextLabel")
 	percentLabel.Name = UUID.Static("PercentageStat")
 	percentLabel.LayoutOrder = 2
@@ -257,7 +221,6 @@ function Slider.new(parent, Settings, theme)
 	percentLabel.BackgroundTransparency = 1
 	percentLabel.Parent = controlHolder
 
-	-- reset button
 	local resetBtn = Instance.new("ImageButton")
 	resetBtn.Name = UUID.Static("ResetButton")
 	resetBtn.LayoutOrder = 3
@@ -274,7 +237,6 @@ function Slider.new(parent, Settings, theme)
 	local resetAspect = Instance.new("UIAspectRatioConstraint")
 	resetAspect.Parent = resetBtn
 
-	-- ---- state --------------------------------------------------------------
 	local currentValue = snapTo({ min, max }, increment, default)
 	local isDragging = false
 	local isHovered = false
@@ -284,11 +246,8 @@ function Slider.new(parent, Settings, theme)
 		return string.format("%." .. precision .. "f", val)
 	end
 
-	-- ---- rendering ----------------------------------------------------------
-	-- The fill carries the pill, so a single Size write moves both. `info`
-	-- chooses the tween (follow mid-drag, set on programmatic changes). Runs
-	-- through the Tween registry so a page-focus collapse and a value change
-	-- replace each other instead of racing on Size.
+	-- the fill carries the pill, so one Size write moves both; runs through the
+	-- Tween registry so a page-collapse and a value change replace, not race
 	local function renderProgress(info)
 		local span = max - min
 		local ratio = (span ~= 0) and math.clamp((currentValue - min) / span, 0, 1) or 0
@@ -318,7 +277,6 @@ function Slider.new(parent, Settings, theme)
 		Tween.Play(backImage, "Fast", { ImageTransparency = target })
 	end
 
-	-- pointer -> value, mapped over the WHOLE track (Rayfield's _updateFromMouse)
 	local function updateFromMouse()
 		local travel = math.max(holder.AbsoluteSize.X, 0)
 		if travel <= 0 then
@@ -338,7 +296,6 @@ function Slider.new(parent, Settings, theme)
 		end
 	end
 
-	-- ---- drag ---------------------------------------------------------------
 	local function endDrag()
 		if not isDragging then
 			return
@@ -400,12 +357,10 @@ function Slider.new(parent, Settings, theme)
 		end
 	end)
 
-	-- releasing the button outside the Roblox window never fires InputEnded, so
-	-- treat losing focus as letting go too - otherwise the slider sticks to the
-	-- cursor forever.
+	-- releasing outside the Roblox window never fires InputEnded, so losing
+	-- focus counts as letting go too - otherwise the slider sticks to the cursor
 	UserInputService.WindowFocusReleased:Connect(endDrag)
 
-	-- ---- hover --------------------------------------------------------------
 	thumb.MouseEnter:Connect(function()
 		isHovered = true
 		updateVisibility()
@@ -415,7 +370,6 @@ function Slider.new(parent, Settings, theme)
 		updateVisibility()
 	end)
 
-	-- ---- value setters ------------------------------------------------------
 	local function updateSlider(value, snapSmooth)
 		value = snapTo({ min, max }, increment, value)
 		local up = value >= currentValue
@@ -430,20 +384,19 @@ function Slider.new(parent, Settings, theme)
 		end
 	end
 
-	-- Typed values go through the same clamp/snap/format path as the drag.
+	-- typed values take the same clamp/snap/format path as the drag
 	readout.OnCommit = function(value)
 		updateSlider(value, true)
 	end
 
 	resetBtn.MouseButton1Click:Connect(function()
 		updateSlider(default, true)
-		-- one full turn on click, settling with a Back ease
 		TweenService:Create(
 			resetBtn,
 			TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 			{ Rotation = resetBtn.Rotation + 360 }
 		):Play()
-		-- a quick squash-and-pop so the click reads even if you miss the spin
+		-- squash-and-pop so the click reads even if the spin is missed
 		TweenService:Create(
 			resetBtn,
 			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -468,7 +421,6 @@ function Slider.new(parent, Settings, theme)
 		Tween.Play(resetBtn, "Fast", { ImageTransparency = 0 })
 	end)
 
-	-- ---- spin (ours, kept) --------------------------------------------------
 	local function startSpin()
 		if not spinEnabled then
 			return
@@ -487,16 +439,11 @@ function Slider.new(parent, Settings, theme)
 	end
 	row.Destroying:Connect(disconnectAll)
 
-	-- ---- init ---------------------------------------------------------------
 	updateSlider(currentValue, false)
 	updateVisibility()
 
-	-- ---- page focus --------------------------------------------------------
-	-- Off-page the fill collapses to zero (carrying the pill with it); on focus
-	-- it tweens back to the current value. Gated by the "Page Animations"
-	-- setting. Restore re-renders from currentValue so it always returns true.
-	-- `instant` = registration priming: snap the collapse so the deferred
-	-- restore tweens from zero instead of chasing a half-finished tween.
+	-- off-page the fill collapses (carrying the pill); `instant` snaps the
+	-- collapse at registration so the deferred restore tweens from zero
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
 		OnInactive = function(instant)
@@ -511,7 +458,6 @@ function Slider.new(parent, Settings, theme)
 		end,
 	})
 
-	-- ---- public API ---------------------------------------------------------
 	self.UpdateValue = function(_, newValue)
 		updateSlider(newValue, true)
 	end
@@ -547,7 +493,6 @@ function Slider.new(parent, Settings, theme)
 		end
 	end
 
-	-- ---- theme bindings -----------------------------------------------------
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(holder, "BackgroundColor3", "Undercolor")

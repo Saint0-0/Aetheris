@@ -1,10 +1,12 @@
 --[[
-	ValueReadout  ·  Aetheris UI Library
+	Aetheris/Components/ValueReadout.luau
 
 	The numeric chip shared by Slider and Stepper: at rest it renders the value
 	through an odometer on an accent card (the LiveStat look); focusing swaps
 	the card for a themed text field. Focus loss commits the typed number
 	through OnCommit(value), then the chip snaps back.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -17,15 +19,12 @@ local UUID = require("../Utils/UUID")
 local ValueReadout = {}
 ValueReadout.__index = ValueReadout
 
--- Stroke alphas per interaction state, matching Keybind/TextInput: rest is
--- theme.StrokeTransparency (0.95) in theme.StrokeColor, hover brightens to
--- 0.45 and focus to 0.3. The resting value doubles as the PageFade base so a
--- page fade can never restore a transient hover brighten.
+-- same stroke family as Keybind/TextInput; the resting alpha doubles as the
+-- PageFade base so a page fade can never restore a transient brighten
 local DEFAULT_REST_STROKE = 0.95
 local HOVER_STROKE = 0.45
 local FOCUS_STROKE = 0.3
 
--- The stroke family shared with Keybind/TextInput.
 local STROKE_THICKNESS = 0.7
 local STROKE_COLOR = Color3.fromRGB(80, 80, 80)
 
@@ -44,8 +43,7 @@ function ValueReadout.new(parent, opts)
 	local weight = opts.Weight or Enum.FontWeight.Medium
 	local cornerRadius = opts.CornerRadius or 4
 
-	-- Root: the editable field. The chip is painted by child layers that sit
-	-- above the text, so focusing/leaving crossfades the card over it.
+	-- child layers paint the chip above the text, so focus crossfades the card over it
 	local box = Instance.new("TextBox")
 	box.Name = UUID.Generate("ValueReadout")
 	box.AnchorPoint = opts.AnchorPoint or Vector2.new(0, 0)
@@ -73,7 +71,7 @@ function ValueReadout.new(parent, opts)
 	corner.CornerRadius = UDim.new(0, cornerRadius)
 	corner.Parent = box
 
-	-- Chip: solid accent card + the LiveStat diagonal sheen, in miniature.
+	-- accent card + the LiveStat diagonal sheen, in miniature
 	local chip = Instance.new("Frame")
 	chip.Name = UUID.Static("Chip")
 	chip.BorderSizePixel = 0
@@ -109,7 +107,7 @@ function ValueReadout.new(parent, opts)
 	})
 	gradient.Parent = sheen
 
-	-- Odometer reel: above the card, hidden while the text field is showing.
+	-- above the card, hidden while the text field is showing
 	local reel = Instance.new("Frame")
 	reel.Name = UUID.Static("Reel")
 	reel.BackgroundTransparency = 1
@@ -134,20 +132,19 @@ function ValueReadout.new(parent, opts)
 	stroke.Thickness = STROKE_THICKNESS
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = box
-	-- Page fades restore the RESTING alpha, never a hover/focus brighten.
+	-- page fades restore the resting alpha, never a hover/focus brighten
 	stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
 	self.Stroke = stroke
 
 	local focused = false
 	local hovered = false
-	-- Page-focus dim: while off-page the chip, sheen and odometer glyphs are
-	-- forced fully transparent regardless of focus/hover, so the value reads as
-	-- zeroed until the page is focused again.
+	-- off-page the glyphs are forced transparent, so the value reads as zeroed
+	-- until the page is focused again
 	local dimmed = false
 	self._text = ""
 
-	-- Re-stamp the current interaction state. Glyph transparencies snap so the
-	-- odometer and the typed text never overlap; card, field and stroke fade.
+	-- glyph transparencies snap so odometer and typed text never overlap;
+	-- card, field and stroke fade
 	local function sync(animate)
 		local live = ActiveTheme.theme or theme
 		local strokeColor = live.StrokeColor or STROKE_COLOR
@@ -182,8 +179,8 @@ function ValueReadout.new(parent, opts)
 		if num ~= nil and self.OnCommit then
 			self.OnCommit(num)
 		end
-		-- Snap to the last committed text: an OnCommit that changed the value
-		-- re-stamped it (normalising e.g. "007" -> "7").
+		-- snap to the last committed text: an OnCommit that changed the value
+		-- re-stamped it (normalising e.g. "007" -> "7")
 		box.Text = self._text
 		focused = false
 		sync(true)
@@ -203,8 +200,7 @@ function ValueReadout.new(parent, opts)
 		end
 	end)
 
-	-- Display `text`; `up` = nil snaps, otherwise the digits roll in that
-	-- direction (true = up).
+	-- up = nil snaps, otherwise the digits roll in that direction (true = up)
 	self.SetValue = function(me, text, up)
 		text = tostring(text)
 		me._text = text
@@ -220,10 +216,8 @@ function ValueReadout.new(parent, opts)
 		return me._text
 	end
 
-	-- Dim (off-page) or restore the readout. Fully transparent while dimmed
-	-- (chip, sheen and odometer glyphs); restoring re-syncs to the live state.
 	-- `instant` skips the tween (registration priming: snap so the first
-	-- restore has distance to cover).
+	-- restore has distance to cover)
 	self.SetDimmed = function(_, on, instant)
 		local target = on == true
 		if target == dimmed then
@@ -248,16 +242,14 @@ function ValueReadout.new(parent, opts)
 		end
 	end
 
-	-- Declarative colours; the stroke's live colour, its state alphas and the
-	-- page-fade base are re-stamped on every theme apply instead
-	-- (owner = box auto-unregisters the callback on destroy).
+	-- stroke's live colour, state alphas and page-fade base are re-stamped on
+	-- every theme apply instead (owner = box auto-unregisters on destroy)
 	ThemeManager.BindColor(box, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindColor(box, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindColor(chip, "BackgroundColor3", "AccentColor")
 	ThemeManager.BindColor(sheen, "BackgroundColor3", "AccentColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		theme = liveTheme or theme
-		-- Keep the page-fade base in step with the live resting alpha.
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
 		sync(true)
 	end, box)

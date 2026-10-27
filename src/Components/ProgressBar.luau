@@ -1,17 +1,10 @@
 --[[
-	ProgressBar  ·  Aetheris UI Library
+	Aetheris/Components/ProgressBar.luau
 
 	Read-only progress bar: label, track, spinning-gradient fill, and an
 	optional value/percentage readout. Use SetValue to animate the fill.
-
-	Usage:
-		local bar = section:ProgressBar({
-			Name = "Loading",
-			MinValue = 0,
-			MaxValue = 100,
-			Value = 0,
-			ShowPercentage = true,
-		})
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -23,9 +16,7 @@ local UUID = require("../Utils/UUID")
 local FallbackImage = Constants.FallbackImage
 local ProgressBar = {}
 ProgressBar.__index = ProgressBar
--- Global control for spinning animations
--- (SpinningEnabled class toggle removed: per-instance Settings.SpinningEnabled
--- plus the central Tween.SpinsEnabled already gate spins.)
+
 function ProgressBar.new(parent, Settings, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -40,7 +31,6 @@ function ProgressBar.new(parent, Settings, theme)
 	local color = Settings.Color
 	local animate = (Settings.Animate == nil) and true or Settings.Animate
 	local spinEnabled = (Settings.SpinningEnabled == nil) and true or Settings.SpinningEnabled
-	-- Build UI from export
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "ProgressBar",
@@ -67,7 +57,7 @@ function ProgressBar.new(parent, Settings, theme)
 	visual.Name = UUID.Static("Visual")
 	visual.BorderSizePixel = 0
 	visual.BackgroundColor3 = color or (theme and theme.PrimaryColor)
-	visual.Size = UDim2.fromScale(0, 1) -- start empty
+	visual.Size = UDim2.fromScale(0, 1)
 	visual.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	visual.Parent = holder
 	local visualCorner = Instance.new("UICorner")
@@ -87,7 +77,6 @@ function ProgressBar.new(parent, Settings, theme)
 	backImage.BackgroundTransparency = 1
 	backImage.Position = UDim2.fromScale(0.5, 0.5)
 	backImage.Parent = visual
-	-- Set visibility based on theme's WallpaperEnabled
 	backImage.Visible = not (theme and theme.WallpaperEnabled == false)
 	local backCorner = Instance.new("UICorner")
 	backCorner.CornerRadius = UDim.new(0, 6)
@@ -120,7 +109,6 @@ function ProgressBar.new(parent, Settings, theme)
 	stats.Text = ""
 	stats.Position = UDim2.fromScale(1, 0.12063)
 	stats.Parent = row
-	-- Store references
 	self.Row = row
 	self.Label = label
 	self.Holder = holder
@@ -131,15 +119,13 @@ function ProgressBar.new(parent, Settings, theme)
 	self.MinValue = minValue
 	self.MaxValue = maxValue
 	self.Color = color
-	-- Declare a custom color as a theme override so the crossfade leaves it
-	-- alone and it survives theme switches without being re-stamped each pass.
+	-- a custom colour is override-locked so theme switches leave it alone
 	if color then
 		ThemeManager.SetColorOverride(visual, "BackgroundColor3", color)
 	end
 	self.Animate = animate
 	self._spinTween = nil
 	self._currentValue = nil
-	-- Helper to update stats text
 	local function updateStats(value)
 		if showPercentage and showFraction then
 			local percent = (value - minValue) / (maxValue - minValue) * 100
@@ -153,7 +139,6 @@ function ProgressBar.new(parent, Settings, theme)
 			stats.Text = ""
 		end
 	end
-	-- Set progress value
 	self.SetValue = function(me, value, noAnimate)
 		value = math.clamp(value, me.MinValue, me.MaxValue)
 		me._currentValue = value
@@ -170,9 +155,8 @@ function ProgressBar.new(parent, Settings, theme)
 			Settings.Callback(value)
 		end
 	end
-	-- Initialize value
 	self:SetValue(currentValue, true)
-	-- Spinning gradient
+
 	local function startSpin()
 		self.Gradient.Rotation = 0
 		self._spinTween = Tween.StartSpin(self.Gradient, { Rotation = 360 }, "SpinIdle")
@@ -184,7 +168,6 @@ function ProgressBar.new(parent, Settings, theme)
 	if spinEnabled then
 		startSpin()
 	end
-	-- Public API
 	self.GetValue = function()
 		return self._currentValue
 	end
@@ -210,7 +193,6 @@ function ProgressBar.new(parent, Settings, theme)
 			stopSpin()
 		end
 	end
-	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(stats, "TextColor3", "PrimaryTextColor")
@@ -220,23 +202,18 @@ function ProgressBar.new(parent, Settings, theme)
 	ThemeManager.Bind(backImage, "Image", "Wallpaper")
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
-	-- Uniform component API (p2-4).
 	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
 	self.Destroy = function(me)
-		-- Stop the gradient spin.
 		stopSpin()
-		-- Cancel any in-flight tweens on the fill bar.
 		Tween.CancelAll(me.Visual)
-		-- Drop all ThemeManager bindings.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(stats)
 		ThemeManager.UnbindInstance(holder)
 		ThemeManager.UnbindInstance(visual)
 		ThemeManager.UnbindInstance(backImage)
 		ThemeManager.UnbindInstance(holderShadow)
-		-- Destroy the root instance.
 		if row and row.Parent then
 			row:Destroy()
 		end

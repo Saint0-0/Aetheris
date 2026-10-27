@@ -1,8 +1,13 @@
 --[[
-	LiveStat  ·  Aetheris UI Library
+	Aetheris/Components/LiveStat.luau
 
 	Animated numeric stat card with Full and Compact layouts. Values roll
-	through the odometer and tint positive, negative or neutral.
+	through the odometer and tint positive, negative or neutral using accents
+	derived from the theme's own AccentColor.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
+	Based on Rayfield Gen 2 code (MPL-2.0)
+	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -15,36 +20,30 @@ local UUID = require("../Utils/UUID")
 local LiveStat = {}
 LiveStat.__index = LiveStat
 
--- 12s / revolution, defined as a shared preset in Utils/Tween.
+-- 12s / revolution, a shared preset in Utils/Tween
 local SPIN_PRESET = "SpinStat"
 
--- Rayfield Statistic geometry.
 local FULL_HEIGHT = 90
 local COMPACT_HEIGHT = 41
 local FULL_CORNER = 8
 local COMPACT_CORNER = 6
 
--- Accents are THEMED, not fixed green/red. Each entry is a fill + a brighter
--- stroke edge. Rising uses the theme's own AccentColor (so the stat belongs to
--- the palette); falling uses that same hue rotated to red at full saturation,
--- which reads as "down" without clashing with the theme. Neutral == rising.
+-- rising uses the theme's AccentColor; falling is that hue rotated to red, so
+-- the card belongs to the palette but "down" still reads as down
 local POS_FALLBACK = Color3.fromRGB(0, 170, 127)
 
--- lighten toward white by `t` (stroke edges are just a brighter fill)
 local function lighten(c, t)
 	return Color3.new(c.R + (1 - c.R) * t, c.G + (1 - c.G) * t, c.B + (1 - c.B) * t)
 end
 
--- rotate a colour's hue to `targetHue` (0..1), preserving S and V, so a blue
--- accent yields a blue-toned "down" that still reads as red-ish when needed.
+-- preserves S and V, so a blue accent yields a blue-toned "down"
 local function withHue(c, targetHue)
 	local _, s, v = Color3.toHSV(c)
 	return Color3.fromHSV(targetHue, math.max(s, 0.55), v)
 end
 
--- Memoized per distinct theme table. :_applyAccent runs on every value tick, so
--- the HSV round-trip and table construction must not happen per tick -- only
--- when the theme reference actually changes.
+-- memoized: _applyAccent runs every value tick, so the HSV round-trip only
+-- happens when the theme reference actually changes
 local cachedTheme, cachedAccents
 local function accentsFor(theme)
 	if theme == cachedTheme and cachedAccents then
@@ -58,11 +57,11 @@ local function accentsFor(theme)
 	return cachedAccents
 end
 
--- Static default; the themed set replaces it on the first :_applyAccent call.
+-- static default until the first :_applyAccent call swaps in the themed set
 local ACCENT = accentsFor(nil)
 
--- Comma-grouped integer, e.g. 1234567 -> "1,234,567". Negatives keep the sign,
--- and a negative that rounds to zero shows plain "0".
+-- comma-grouped integer, e.g. 1234567 -> "1,234,567"; a negative rounding to
+-- zero shows plain "0"
 local function formatNumber(value)
 	if type(value) ~= "number" then
 		return tostring(value)
@@ -95,7 +94,6 @@ function LiveStat.new(parent, Settings, theme)
 	self._value = tonumber(Settings.Value) or 0
 	self._hasValue = Settings.Value ~= nil
 
-	-- Change readout (mirrors Rayfield's Statistic).
 	self._changeMode = (Settings.ChangeMode == "absolute") and "absolute" or "percentage"
 	self._changeBaseline = (Settings.ChangeBaseline == "initial") and "initial" or "previous"
 	self._showChange = (Settings.ShowChange == nil) and true or Settings.ShowChange
@@ -111,9 +109,8 @@ function LiveStat.new(parent, Settings, theme)
 	end
 
 	self:_applyAccent(0)
-	-- Re-derive the accent from the incoming theme whenever one is applied, so
-	-- the card re-colours on a LIVE theme switch instead of waiting for its next
-	-- value change. Owner = main frame, so it auto-unregisters on destroy.
+	-- re-derives the accent on a live theme switch; owner = main frame, so it
+	-- auto-unregisters on destroy
 	ThemeManager.OnThemeApplied(function()
 		self:_applyAccent(self._direction or 0)
 	end, self._main)
@@ -123,8 +120,7 @@ function LiveStat.new(parent, Settings, theme)
 	return self
 end
 
--- Full 90px card, Rayfield layout: title (+icon) top-left, value bottom-left,
--- change bottom-right.
+-- title (+icon) top-left, value bottom-left, change bottom-right
 function LiveStat:_buildFull()
 	local theme = self._theme
 
@@ -145,24 +141,19 @@ function LiveStat:_buildFull()
 	corner.CornerRadius = UDim.new(0, FULL_CORNER)
 	corner.Parent = main
 
-	-- Accent stroke edge (Rayfield's AcrylicBorder / stat stroke).
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = self._accent.stroke
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = main
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Re-stamp AFTER the binding. BindTransparency only writes the theme value
-	-- when the theme changes, so with the assignment before it the stroke kept
-	-- its invisible default until the first theme switch -- which is exactly the
-	-- reported "stroke only shows up after a theme switch".
+	-- re-stamp AFTER the binding: it only writes on theme change, so without
+	-- this the stroke stayed invisible until the first theme switch
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	self._stroke = stroke
 
 	self:_buildAccent(main, FULL_CORNER, 13)
 
-	-- Title row: Rayfield uses a 1,-40 x 32 container at (20,15) with an 8px
-	-- horizontal, vertically-centred list layout (icon then title).
 	local titleContainer = Instance.new("Frame")
 	titleContainer.Name = UUID.Static("Title")
 	titleContainer.Size = UDim2.new(1, -40, 0, 32)
@@ -212,7 +203,6 @@ function LiveStat:_buildFull()
 	ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
 	self._title = title
 
-	-- Value (bottom-left): Rayfield puts a 200x20 host at (0,20,1,-15).
 	local valueHost = Instance.new("Frame")
 	valueHost.Name = UUID.Static("Value")
 	valueHost.AnchorPoint = Vector2.new(0, 1)
@@ -229,7 +219,7 @@ function LiveStat:_buildFull()
 	})
 	self._valueOdo:snap(self:_format(self._value))
 
-	-- Change (bottom-right): 200x15 host at (1,-20,1,-15), right-aligned.
+	-- Change (bottom-right), right-aligned
 	if self._showChange then
 		local changeHost = Instance.new("Frame")
 		changeHost.Name = UUID.Static("Change")
@@ -249,7 +239,7 @@ function LiveStat:_buildFull()
 	end
 end
 
--- Compact 41px row, Rayfield layout: icon + title left, single value right.
+-- icon + title left, single value right
 function LiveStat:_buildCompact()
 	local theme = self._theme
 
@@ -277,10 +267,7 @@ function LiveStat:_buildCompact()
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = main
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Re-stamp AFTER the binding. BindTransparency only writes the theme value
-	-- when the theme changes, so with the assignment before it the stroke kept
-	-- its invisible default until the first theme switch -- which is exactly the
-	-- reported "stroke only shows up after a theme switch".
+	-- re-stamp AFTER the binding: it only writes on theme change
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	self._stroke = stroke
 
@@ -337,10 +324,8 @@ function LiveStat:_buildCompact()
 	self._valueOdo:snap(self:_format(self._value))
 end
 
--- Accent layer: a nearly-transparent white overlay carrying an accent gradient
--- whose alpha ramps in; the gradient multiplies against the white so it shows
--- the true accent. Spun continuously for the "alive" sheen. A UIShadow glow
--- sits behind the card.
+-- near-transparent white overlay carrying an accent gradient whose alpha ramps
+-- in, spun for the "alive" sheen; a UIShadow glow sits behind the card
 function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	local overlay = Instance.new("Frame")
 	overlay.Size = UDim2.fromScale(1, 1)
@@ -355,9 +340,8 @@ function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	oCorner.CornerRadius = UDim.new(0, cornerRadius)
 	oCorner.Parent = overlay
 
-	-- Bright -> dark DIAGONAL ramp (Rayfield's look). The HUE comes from the
-	-- overlay's own BackgroundColor3, which _applyAccent tweens; this ramp only
-	-- carries the brightness, so the whole gradient shifts colour together.
+	-- brightness-only ramp; the hue comes from the overlay's BackgroundColor3,
+	-- so tweening that shifts the whole gradient together
 	local gradient = Instance.new("UIGradient")
 	gradient.Rotation = -55
 	gradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
@@ -377,8 +361,7 @@ function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	self._glow = glow
 end
 
--- Signed change string: "+12.3%" / "-4.0%" / "0%" (percentage) or a signed
--- grouped number (absolute). Zero shows plain "0%" / "0".
+-- "+12.3%" / "-4.0%" / "0%" (percentage) or a signed grouped number (absolute)
 function LiveStat:_formatChange(delta)
 	if self._changeMode == "absolute" then
 		if delta > 0 then
@@ -411,14 +394,12 @@ function LiveStat:_applyAccent(direction)
 	end
 	self._accent = accent
 
-	-- SOLID card base (sits behind the overlay; keeps the edges matched).
+	-- solid card base behind the overlay keeps the edges matched
 	if self._main then
 		ThemeManager.SetColorOverride(self._main, "BackgroundColor3", accent.fill)
 		self._main.BackgroundTransparency = 0
 	end
-	-- TWEEN the hue (stroke + overlay + glow) instead of snapping, so rising /
-	-- falling crossfades red <-> green. The overlay carries the gradient, so
-	-- the whole diagonal ramp shifts colour together.
+	-- tween the hue instead of snapping, so rising/falling crossfades smoothly
 	if self._stroke then
 		Tween.Play(self._stroke, "Fast", { Color = accent.stroke })
 	end
@@ -430,9 +411,8 @@ function LiveStat:_applyAccent(direction)
 	end
 end
 
--- Spin the accent gradient. StartSpin auto-gates on visibility, so an
--- off-screen card pauses its spin and resumes from the frozen angle when its
--- page returns.
+-- StartSpin auto-gates on visibility, so an off-screen card pauses and
+-- resumes from the frozen angle when its page returns
 function LiveStat:_startSpin()
 	if not self._gradient then
 		return

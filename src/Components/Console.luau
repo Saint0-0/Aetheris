@@ -1,27 +1,15 @@
 --[[
-	Console  ·  Aetheris UI Library
+	Aetheris/Components/Console.luau
 
 	A monospaced block for code or log output. Holds the height it's given and
 	scrolls inside itself, so a console that fills up never pushes the rest of
-	the page down.
-
-	Ported from Rayfield's gen2 console, rebuilt on Aetheris's procedural
-	(Instance.new + ThemeManager.Bind*) conventions.
-
-	One label per line, not one label for the whole body: a single auto-sized
-	label inside a fixed-height scroller gets clamped to one viewport and the
-	canvas then has nothing to scroll. A row each keeps every label short, and
-	the list layout measures the canvas for us.
-
-	Usage:
-		local con = section:Console({
-			Name     = "Output",
-			Height   = 140,
-			Follow   = true,       -- pin to the newest line on Append
-			MaxLines = 200,        -- oldest lines roll off past this
-			Text     = "hello",
-		})
-		con:Append("world")
+	the page down. One label per line (pooled and recycled) rather than one
+	auto-sized label, which a fixed-height scroller would clamp to a single
+	viewport with nothing left to scroll.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
+	Based on Rayfield Gen 2 code (MPL-2.0)
+	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -33,9 +21,9 @@ Console.__index = Console
 
 local defaultHeight = 120
 local minHeight = 48
-local titleHeight = 24 -- the row the name sits on, when there is one
-local padding = 12 -- inset around the panel inside the element
-local textPadding = 10 -- inside the panel; log output sits close to its edge
+local titleHeight = 24
+local padding = 12
+local textPadding = 10
 local textSize = 12
 local lineHeight = 1.25 -- dense, the way a real log reads
 local defaultMaxLines = 200
@@ -56,16 +44,14 @@ function Console.new(parent, Settings, theme)
 	self._maxLines = math.max(tonumber(Settings.MaxLines) or defaultMaxLines, 1)
 
 	self._lines = {}
-	-- Pooled and recycled in a ring. Appending at capacity rewrites one label and
-	-- gives it the next LayoutOrder, so a line costs the same whether the buffer
-	-- holds ten or a thousand.
+	-- pooled in a ring: at capacity an append rewrites one label instead of
+	-- shuffling them all, so a line costs the same at ten lines or a thousand
 	self._lineLabels = {}
 	self._head = 1 -- the pooled label holding the oldest line
 	self._nextOrder = 1
 	self._dirty = true
 	self._textTransparency = theme.PrimaryTextTransparency or 0.15
-	-- RichText is opt-in: when off, output is literal (a '<' in a log line is
-	-- text, not markup). Callers that want per-segment styling enable it.
+	-- opt-in: when off, output is literal (a '<' in a log line is text, not markup)
 	self._richText = Settings.RichText == true
 
 	self:_build()
@@ -74,7 +60,7 @@ function Console.new(parent, Settings, theme)
 	return self
 end
 
--- A row for a line. Created once and then recycled; the pool never exceeds maxLines.
+-- created once, then recycled; the pool never exceeds maxLines
 function Console:_makeLabel()
 	local label = Instance.new("TextLabel")
 	label.Name = UUID.Generate("ConsoleLine")
@@ -88,7 +74,7 @@ function Console:_makeLabel()
 	label.TextYAlignment = Enum.TextYAlignment.Top
 	label.TextWrapped = true
 	label.LineHeight = lineHeight
-	label.RichText = self._richText -- opt-in; when on, callers may embed <font> tags
+	label.RichText = self._richText
 	label.TextColor3 = self._theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	label.TextTransparency = self._textTransparency
 	label.Parent = self._scroll
@@ -124,8 +110,8 @@ function Console:_build()
 	stroke.Parent = main
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Re-stamp AFTER the bind: BindTransparency only writes on a theme CHANGE,
-	-- so without this the stroke keeps its default until the first switch.
+	-- re-stamp after the bind: it only writes on a theme change, so without
+	-- this the stroke keeps its default until the first switch
 	stroke.Transparency = theme.StrokeTransparency or 0.9
 	self._stroke = stroke
 
@@ -148,8 +134,7 @@ function Console:_build()
 		self._title = title
 	end
 
-	-- The inset panel the text scrolls inside. Darker than the element it sits
-	-- on, the way a terminal reads against the window around it.
+	-- darker than the element it sits on, the way a terminal reads
 	local panel = Instance.new("Frame")
 	panel.Name = UUID.Static("Panel")
 	panel.AnchorPoint = Vector2.new(0.5, 1)
@@ -201,13 +186,13 @@ function Console:_build()
 	self:_watchCanvas()
 end
 
--- a blank line still has to take a row, and an empty label collapses to nothing
+-- a blank line still has to take a row; an empty label collapses to nothing
 local function rowText(line)
 	return if line == "" then " " else line
 end
 
--- Pin to the bottom. Asking for a position past the end is fine: Roblox clamps
--- it to the real maximum, which saves working out the viewport height ourselves.
+-- asking for a position past the end is fine: Roblox clamps it, which saves
+-- working out the viewport height ourselves
 function Console:_pin()
 	local scroll = self._scroll
 	if not scroll or not scroll.Parent then
@@ -226,9 +211,8 @@ function Console:_followBottom()
 	end)
 end
 
--- The canvas only settles a frame or two after the rows change, so pinning once
--- on Append is a race. The layout's content size is the thing that actually
--- moves, so follow that instead.
+-- the canvas settles a frame or two after the rows change, so pinning once on
+-- Append races; follow the layout's content size instead
 function Console:_watchCanvas()
 	self._canvasConn = self._scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 		if self._follow then
@@ -237,8 +221,8 @@ function Console:_watchCanvas()
 	end)
 end
 
--- The body as one string. Built on demand: joining every line on each append
--- would put an O(n) cost on the one path that has to stay cheap.
+-- built on demand: joining every line on each append would put an O(n) cost
+-- on the one path that has to stay cheap
 function Console:Get()
 	if self._dirty then
 		self._text = table.concat(self._lines, "\n")
@@ -247,8 +231,7 @@ function Console:Get()
 	return self._text or ""
 end
 
--- Rebuild every row from the buffer. Only the paths that replace the whole
--- body use this; Append has its own O(1) route below.
+-- only whole-body replacements use this; Append has its own O(1) route
 function Console:_flush()
 	self._dirty = true
 
@@ -272,8 +255,8 @@ function Console:_flush()
 	self:_followBottom()
 end
 
--- Drop from the front until the buffer fits. table.move rather than repeated
--- table.remove, so a burst of output doesn't turn into a quadratic shuffle.
+-- table.move rather than repeated table.remove, so a burst of output doesn't
+-- turn into a quadratic shuffle
 function Console:_trim()
 	local excess = #self._lines - self._maxLines
 	if excess <= 0 then
@@ -285,7 +268,6 @@ function Console:_trim()
 	end
 end
 
--- Split a body into lines and keep only the newest maxLines of them.
 function Console:_setLines(text)
 	text = if type(text) == "string" then text else tostring(text)
 
@@ -299,9 +281,8 @@ function Console:_setLines(text)
 	self:_flush()
 end
 
--- One line, one label write. At capacity the oldest row is recycled into the
--- newest position rather than every row shuffling up, so the cost doesn't grow
--- with the buffer.
+-- one line, one label write; at capacity the oldest row is recycled into the
+-- newest position, so cost doesn't grow with the buffer
 function Console:_pushLine(line)
 	self._dirty = true
 
@@ -320,8 +301,7 @@ function Console:_pushLine(line)
 		return
 	end
 
-	-- full: drop the oldest line and hand its row to the newest one. table.move
-	-- rather than table.remove so the shift is one bulk copy.
+	-- full: hand the oldest row to the newest line (one bulk copy, no shuffle)
 	table.move(self._lines, 2, #self._lines, 1)
 	self._lines[#self._lines] = line
 
@@ -334,13 +314,12 @@ function Console:_pushLine(line)
 	self._head = (self._head % #self._lineLabels) + 1
 end
 
--- Replace the whole body.
 function Console:Set(text)
 	self:_setLines(text)
 end
 
--- Add a line to the end, the way a console does. Once the buffer is full the
--- oldest line rolls off the top, so what you see is always the newest output.
+-- add a line to the end; once the buffer is full the oldest rolls off the top,
+-- so what you see is always the newest output
 function Console:Append(line)
 	line = if type(line) == "string" then line else tostring(line)
 	for part in string.gmatch(line .. "\n", "([^\n]*)\n") do
@@ -354,8 +333,7 @@ function Console:Clear()
 	self:_flush()
 end
 
--- Change how tall the block stands. The panel takes the height; the element
--- grows around it.
+-- the panel takes the height; the element grows around it
 function Console:SetHeight(height)
 	self._height = math.max(tonumber(height) or defaultHeight, minHeight)
 	local top = if self._name then titleHeight else 0
@@ -363,8 +341,7 @@ function Console:SetHeight(height)
 	self._main.Size = UDim2.new(1, 0, 0, self._height + top + padding * 2)
 end
 
--- Re-apply the accent-independent transparencies after a theme switch (the
--- colour side rides the Bind* registrations).
+-- re-apply the transparency side after a theme switch; colours ride the Bind*
 function Console:ApplyTheme(newTheme)
 	self._theme = ThemeManager.GetTheme(newTheme)
 	self._panel.BackgroundTransparency = 0.15

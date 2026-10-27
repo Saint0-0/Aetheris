@@ -1,40 +1,16 @@
 --[[
-	TextInput  ·  Aetheris UI Library
+	Aetheris/Components/TextInput.luau
 
-	The TextBox IS the field -- there is no wrapper Frame. Every visual
-	(background, stroke, corner, glow, padding) lives on the TextBox itself.
-
-	Layout:
-		AnchorPoint    (1, 0.5)
-		Position       (1, 0, 0.5, 0)   -- flush to the row's right edge
-		Size           (0, w, 0, 29)    -- w is measured + tweened, see below
-		TextXAlignment Center
-
-	Width hug (kept from Rayfield): the pill is resized by MEASURING its
-	shown string (typed text, or the placeholder when empty) and TWEENING
-	Size.X with pillResizeInfo (0.4 Exponential Out). Width = measured text +
-	2*PAD_X, so the centred text keeps PAD_X (15px) clearance each side. No
-	UIPadding: on a centred TextBox it would consume the very slack the
-	+2*PAD_X provides and force an ellipsis.
-
-	Cap: the field's left edge must stay at least LABEL_GAP (20px) clear of
-	the auto-sized name label, so a long value can never run over it.
-	Overflow ellipsises (TextTruncate.AtEnd).
-
-	Animations: focus fade (0.15 Quint Out, text 0.6 -> 0) and the commit
-	accent flash (stroke + glow bloom, then settle).
-
-	Options : Numeric (strips non-number chars, supports "5^3" and "9e9"),
-	          ClearOnFocus (blank on focus, restore if nothing typed).
-
-	Usage:
-		local textInput = section:TextInput({
-			Name = "Input Label",
-			Placeholder = "Enter text...",
-			Default = "",
-			Numeric = false,
-			Callback = function(text) end,
-		})
+	The TextBox IS the field -- every visual (background, stroke, corner, glow)
+	lives on the TextBox itself, flush to the row's right edge. The pill hugs
+	its content: the shown string is measured once and cached, then Size.X is
+	tweened, capped so the field's left edge always stays LABEL_GAP clear of
+	the name label. Supports Numeric (strips non-numbers, parses "5^3" and
+	"9e9") and ClearOnFocus.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
+	Based on Rayfield Gen 2 code (MPL-2.0)
+	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]
 
 local TextService = game:GetService("TextService")
@@ -50,15 +26,13 @@ local UUID = require("../Utils/UUID")
 local TextInput = {}
 TextInput.__index = TextInput
 
--- ---- constants --------------------------------------------------------------
 local FIELD_HEIGHT = 29
-local FIELD_MIN_W = 40 -- floor width; the default still hugs the placeholder
-local FIELD_MAX_W = 220 -- absolute ceiling regardless of row width
+local FIELD_MIN_W = 40
+local FIELD_MAX_W = 220
 local TEXT_SIZE = 11
-local PAD_X = 15 -- clearance each side of the text (centred)
-local LABEL_GAP = 20 -- px the field always keeps clear before the label
+local PAD_X = 15 -- clearance each side of the centred text
+local LABEL_GAP = 20 -- the field always keeps this clear before the label
 
--- Rayfield's pillResizeInfo (the width-hug animation)
 local RESIZE_INFO = TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 local FOCUS_INFO = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local SETTLE_INFO = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -66,8 +40,7 @@ local SETTLE_INFO = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirec
 local REST_TEXT_TRANSPARENCY = 0.6
 local REST_FIELD_TRANSPARENCY = 0.9
 
--- Parse a simple exponent expression like "5^3" -> 125. Falls back to tonumber
--- for plain numbers and scientific notation ("9e9" -> 9000000000).
+-- "5^3" -> 125; falls back to tonumber for plain numbers and "9e9"
 local function parseExp(text)
 	local a, b = text:match("^([%d%.%-]+)%^([%d%.%-]+)$")
 	if a and b then
@@ -79,9 +52,8 @@ local function parseExp(text)
 	return tonumber(text)
 end
 
--- Text width, cached per (family, size, string). Measures once via
--- GetTextBoundsAsync, then serves from the cache -- mirrors Rayfield's
--- textMetrics module so the pill hugs text without re-measuring every keystroke.
+-- measured once per (family, size, string), then served from the cache so the
+-- pill hugs text without re-measuring every keystroke
 local widthCache = {}
 local function measure(font, size, text)
 	text = tostring(text)
@@ -119,8 +91,8 @@ function TextInput.new(parent, Settings, theme)
 	local numeric = Settings.Numeric == true
 	local clearOnFocus = Settings.ClearOnFocus == true
 
-	-- Row + label. LabelAutoSize gives the name a variable-width working space
-	-- (X size 0 + AutomaticSize.X), so the field's cap keys off its real width.
+	-- LabelAutoSize gives the name a variable-width working space, so the
+	-- field's cap keys off its real width
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "TextInput",
@@ -131,7 +103,6 @@ function TextInput.new(parent, Settings, theme)
 
 	local font = Constants.Font(Enum.FontWeight.Medium)
 
-	-- ---- the field (the TextBox itself) -------------------------------------
 	local field = Instance.new("TextBox")
 	field.Name = UUID.Static("Field")
 	field.AnchorPoint = Vector2.new(1, 0.5)
@@ -164,8 +135,8 @@ function TextInput.new(parent, Settings, theme)
 	stroke.Transparency = theme.StrokeTransparency or 0.95
 	stroke.Thickness = 0.7
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	-- Snapshot the resting transparency so PageFade restores to the theme value
-	-- instead of capturing a mid-fade one. Mirrors Keybind's stroke.
+	-- snapshot the resting transparency so PageFade restores to the theme value,
+	-- never a mid-fade one (same as Keybind's stroke)
 	stroke:SetAttribute(UUID.Static("PageFadeBase"), theme.StrokeTransparency or 0.95)
 	stroke.Parent = field
 
@@ -177,14 +148,12 @@ function TextInput.new(parent, Settings, theme)
 	glow.Spread = UDim2.fromOffset(1, 1)
 	glow.Parent = field
 
-	-- Cap: the field's left edge (rowW - width) must stay at least LABEL_GAP px
-	-- right of the auto-sized label.
+	-- the field's left edge must stay at least LABEL_GAP right of the label
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MinSize = Vector2.new(FIELD_MIN_W, FIELD_HEIGHT)
 	constraint.MaxSize = Vector2.new(FIELD_MAX_W, FIELD_HEIGHT)
 	constraint.Parent = field
 
-	-- ---- helpers ------------------------------------------------------------
 	local function activeTheme()
 		return ActiveTheme.theme or theme
 	end
@@ -196,15 +165,13 @@ function TextInput.new(parent, Settings, theme)
 		return (t and t.InputBackgroundTransparency) or REST_FIELD_TRANSPARENCY
 	end
 
-	-- Rest: the theme's StrokeTransparency -- the same base as Keybind, so the
-	-- two components read as one family.
+	-- the same resting base as Keybind, so the two read as one family
 	local function restStrokeTransparency()
 		local t = activeTheme()
 		return (t and t.StrokeTransparency) or 0.95
 	end
 
-	-- Keybind's bright stroke: while hovered or focused the stroke is the LIVE
-	-- theme StrokeColor at 0.3, tweened the same way.
+	-- bright stroke while hovered or focused, matching Keybind
 	local function brightStroke(bright)
 		local t = activeTheme()
 		local rest = (t and t.StrokeTransparency) or 0.95
@@ -212,8 +179,8 @@ function TextInput.new(parent, Settings, theme)
 			Transparency = bright and 0.3 or rest,
 			Color = (t and t.StrokeColor) or Color3.fromRGB(80, 80, 80),
 		})
-		-- Keep PageFade's cached base at REST so a page fade never restores a
-		-- transient brighten.
+		-- keep PageFade's cached base at REST so a page fade never restores a
+		-- transient brighten
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), rest)
 	end
 
@@ -226,8 +193,7 @@ function TextInput.new(parent, Settings, theme)
 		return math.max(FIELD_MIN_W, math.min(FIELD_MAX_W, cap))
 	end
 
-	-- Hug: shown = typed text, or the placeholder when empty. The pill's width
-	-- is measured text + PAD_X*2, clamped to [min, cap], and tweened in.
+	-- hug: measured shown text + PAD_X*2, clamped to [min, cap], tweened in
 	local function sizeBox(animate)
 		local shown = (field.Text ~= "" and field.Text) or placeholder
 		local w = math.clamp(measure(font, TEXT_SIZE, shown) + PAD_X * 2, FIELD_MIN_W, maxWidth())
@@ -243,7 +209,7 @@ function TextInput.new(parent, Settings, theme)
 		Tween.Play(field, FOCUS_INFO, {
 			TextTransparency = lookFocused and 0 or REST_TEXT_TRANSPARENCY,
 		})
-		-- Match Keybind: bright while focused or hovered, resting otherwise.
+		-- bright while focused or hovered, resting otherwise
 		brightStroke(lookFocused or hovered)
 	end
 
@@ -262,15 +228,14 @@ function TextInput.new(parent, Settings, theme)
 			if not field.Parent then
 				return
 			end
-			-- Settle to the Keybind bright stroke if the field is still being
-			-- used (refocused during the flash), otherwise back to rest.
+			-- settle to the bright stroke if the field was refocused during the
+			-- flash, otherwise back to rest
 			brightStroke(field:IsFocused() or hovered)
 			Tween.Play(glow, SETTLE_INFO, { Transparency = 1 })
 		end)
 	end
 	self._flash = flash
 
-	-- ---- interaction --------------------------------------------------------
 	field:GetPropertyChangedSignal("Text"):Connect(function()
 		if numeric then
 			local cleaned = (field.Text:gsub("[^%d%.%-eE%^]", ""))
@@ -320,8 +285,7 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- Hover: the same bright stroke as Keybind (live StrokeColor at 0.3), but
-	-- only while unfocused -- focus owns the bright state while it is active.
+	-- bright while unfocused; focus owns the bright state while it's active
 	field.MouseEnter:Connect(function()
 		hovered = true
 		brightStroke(true)
@@ -333,7 +297,7 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- Recompute the cap (and re-hug) if the row or the auto-sized label resizes.
+	-- recompute the cap (and re-hug) if the row or the label resizes
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		sizeBox(false)
 	end)
@@ -341,7 +305,6 @@ function TextInput.new(parent, Settings, theme)
 		sizeBox(false)
 	end)
 
-	-- ---- public API ---------------------------------------------------------
 	self.GetText = function()
 		return field.Text
 	end
@@ -364,7 +327,6 @@ function TextInput.new(parent, Settings, theme)
 	end
 	self.Flash = flash
 
-	-- ---- theme bindings -----------------------------------------------------
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(field, "BackgroundColor3", "InputBackgroundColor")
@@ -372,9 +334,8 @@ function TextInput.new(parent, Settings, theme)
 	ThemeManager.BindColor(field, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(field, "PlaceholderColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
-	-- Theme-bound stroke transparency: matches RadioButton, publishes
-	-- ThemeLive_Transparency so PageFade reads the correct resting value and a
-	-- theme switch re-resolves it (previously set once, never re-themed).
+	-- theme-bound so PageFade reads the correct resting value and re-resolves
+	-- it on a theme switch
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(glow, "Color", "AccentColor")
 
@@ -387,12 +348,11 @@ function TextInput.new(parent, Settings, theme)
 	glow.Color = theme.AccentColor or Color3.fromRGB(108, 140, 255)
 	glow.Transparency = 1
 
-	sizeBox(false) -- initial hug: placeholder width + 30, no animation
+	sizeBox(false) -- initial hug, no animation
 	task.defer(function()
 		sizeBox(false) -- after the first layout pass, once AbsoluteSize is real
 	end)
 
-	-- ---- uniform component API ----------------------------------------------
 	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
