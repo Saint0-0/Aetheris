@@ -1,17 +1,13 @@
 --[[
-	SearchFilter  ·  Aetheris UI Library
+	Aetheris/Core/SearchFilter.luau
 
 	Filters the sections of a page by a text query and highlights the matched
 	substring inside each component's ElementName label with the theme accent
-	color. Used by the sidebar search box (per active page).
-
-	PERFORMANCE: the sections + ElementName labels for a page are indexed ONCE
-	and cached (weak-keyed by page), then reused across every Apply/Clear.
-	A DescendantAdded/DescendantRemoving pair marks the page dirty so the index
-	rebuilds only when the tree actually changes — search no longer walks the
-	whole page with GetDescendants() on every keystroke or tab switch. The
-	original text and RichText flag are still stashed in attributes so they
-	restore exactly on clear, keeping behavior identical to before.
+	color. Used by the sidebar search box (per active page); sections and labels
+	are indexed once per page and cached (weak-keyed, invalidated on tree change)
+	so a keystroke never walks the whole page.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local UUID = require("../Utils/UUID")
@@ -48,9 +44,7 @@ local function buildHighlight(base, lower, lq, hex)
 	return table.concat(out)
 end
 
--- Public: build a RichText string with every occurrence of `query` wrapped
--- in an accent-colored <font> span. Exposed so the dropdown popup reuses the
--- exact same highlight logic. Returns nil when there is no match.
+-- Public so the dropdown popup reuses the exact same highlight logic.
 function SearchFilter.Highlight(base, query, color)
 	if not base or base == "" then
 		return nil
@@ -67,10 +61,6 @@ function SearchFilter.Highlight(base, query, color)
 	return buildHighlight(base, lower, lq, hex)
 end
 
-----------------------------------------------------------------
--- Page index (lazy, cached, invalidated on tree change)
-----------------------------------------------------------------
-
 -- Weak keys so a destroyed page's index + dirty flag are collected.
 local indexByPage = setmetatable({}, { __mode = "k" })
 local dirtyByPage = setmetatable({}, { __mode = "k" })
@@ -83,8 +73,8 @@ local function buildIndex(page)
 		if d:GetAttribute(UUID.Static("IsSection")) then
 			sections[d] = false
 		elseif d:IsA("TextLabel") and d.Name == UUID.Static("ElementName") then
-			-- Resolve the owning section once, at index time, instead of
-			-- walking parents on every keystroke.
+			-- Resolve the owning section once at index time instead of walking
+			-- parents on every keystroke.
 			local sec = nil
 			local p = d.Parent
 			while p do
@@ -110,8 +100,8 @@ local function getIndex(page)
 	dirtyByPage[page] = nil
 	if not connectedByPage[page] then
 		connectedByPage[page] = true
-		-- Connections live on the page's own signals, so they are torn down
-		-- with the page; the weak key just stops us re-connecting.
+		-- Connections hang off the page's own signals, so they die with the
+		-- page; the weak key only stops us re-connecting.
 		page.DescendantAdded:Connect(function()
 			dirtyByPage[page] = true
 		end)
@@ -177,7 +167,6 @@ function SearchFilter.Clear(page)
 	if not page then
 		return
 	end
-	-- Reuse the cached index (rebuilding first only if the tree changed).
 	local idx = getIndex(page)
 	for sec in pairs(idx.sections) do
 		sec.Visible = true

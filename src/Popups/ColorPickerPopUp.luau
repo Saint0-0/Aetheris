@@ -1,9 +1,11 @@
 --[[
-	ColorPickerPopUp  ·  Aetheris UI Library
+	Aetheris/Popups/ColorPickerPopUp.luau
 
 	Modal colour picker: saturation/value square, value slider, RGB + Hex
 	inputs, and colour wells. Cached per id by Window and reused; theme
 	switches drop the cache so the next open rebuilds with current colors.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -20,11 +22,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local self = setmetatable({}, ColorPickerPopUp)
 	local theme = Settings.Theme
 	self._theme = theme
-	-- Click-outside is handled by a UserInputService.InputBegan connection that
-	-- is created when the popup is shown and disconnected when it is hidden (see
-	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
-	-- needed, so the popup is parented directly to its parent.
-	-- Popup root
 	local popup = Instance.new("CanvasGroup")
 	popup.Name = UUID.Generate("ColorPickerPopup")
 	popup.BorderSizePixel = 0
@@ -50,7 +47,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local scale = Instance.new("UIScale")
 	scale.Scale = 0.9
 	scale.Parent = popup
-	-- Header
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
@@ -68,7 +64,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.Parent = popup
 	header.Text = "Color Picker"
-	-- ColorSquare (plain button; SV square is rendered by its two gradient overlays)
 	local colorSquare = Instance.new("TextButton")
 	colorSquare.Name = UUID.Static("ColorSquare")
 	colorSquare.AutoButtonColor = false
@@ -85,10 +80,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local squareShadow = Instance.new("UIShadow")
 	squareShadow.Color = (theme and theme.PopupShadowColor)
 	squareShadow.Parent = colorSquare
-	-- The SV square is built from gradients (no mystery texture) so the rendered
-	-- pixels EXACTLY match the maths s = x, v = 1 - y:
-	--   white base -> saturation overlay (hue-tinted, transparent left -> opaque
-	--   right) -> value overlay (black, transparent top -> opaque bottom).
+	-- Gradients, not a texture, so the rendered pixels match the s = x, v = 1 - y maths exactly.
 	local satOverlay = Instance.new("Frame")
 	satOverlay.Name = UUID.Static("SaturationOverlay")
 	satOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -120,7 +112,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		NumberSequenceKeypoint.new(1.000, 0),
 	})
 	valGradient.Parent = valOverlay
-	-- Target (visual indicator + drag surface)
 	local target = Instance.new("TextButton")
 	target.Name = UUID.Static("Target")
 	target.BorderSizePixel = 0
@@ -140,7 +131,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local targetCorner = Instance.new("UICorner")
 	targetCorner.CornerRadius = UDim.new(1, 0)
 	targetCorner.Parent = target
-	-- ColorValue (TextButton with gradient)
 	local colorValue = Instance.new("TextButton")
 	colorValue.Name = UUID.Static("ColorValue")
 	colorValue.BorderSizePixel = 0
@@ -171,7 +161,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local valueShadow = Instance.new("UIShadow")
 	valueShadow.Color = (theme and theme.PopupShadowColor)
 	valueShadow.Parent = colorValue
-	-- Slide (visual indicator + drag surface)
 	local slide = Instance.new("TextButton")
 	slide.Name = UUID.Static("Slide")
 	slide.BorderSizePixel = 0
@@ -191,7 +180,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local slideCorner = Instance.new("UICorner")
 	slideCorner.CornerRadius = UDim.new(1, 0)
 	slideCorner.Parent = slide
-	-- Inputs frame
 	local inputsFrame = Instance.new("Frame")
 	inputsFrame.Name = UUID.Static("Inputs")
 	inputsFrame.BorderSizePixel = 0
@@ -287,7 +275,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local greenRow, greenInput, greenStroke = createInputRow("Green", "255", 2)
 	local blueRow, blueInput, blueStroke = createInputRow("Blue", "255", 3)
 	local hexRow, hexInput, hexStroke = createInputRow("Hex", "#FFFFFF", 4)
-	-- ColorWells
 	local colorWells = Instance.new("Frame")
 	colorWells.Name = UUID.Static("ColorWells")
 	colorWells.BorderSizePixel = 0
@@ -303,8 +290,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	wellsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	wellsLayout.CellPadding = UDim2.fromOffset(10, 0)
 	wellsLayout.Parent = colorWells
-	-- Plain colour frames (only a UICorner child): the old one shows the colour
-	-- the picker opened on, the new one shows the colour being picked.
 	local function createColorWell(wellParent, name, layoutOrder)
 		local well = Instance.new("Frame")
 		well.Name = UUID.Static("ColorWell:" .. name)
@@ -321,7 +306,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	end
 	local oldWell = createColorWell(colorWells, "OldColor", 1)
 	local newWell = createColorWell(colorWells, "NewColor", 0)
-	-- Interactions
 	local interactions = Instance.new("Frame")
 	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
@@ -358,7 +342,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
 	confirmBtn.Position = UDim2.fromScale(0, 0)
@@ -383,7 +366,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
 	cancelBtn.Position = UDim2.fromScale(0.515, 0)
@@ -397,7 +379,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelShadow.Color = (theme and theme.PopupNeutralColor) or Color3.fromRGB(0, 0, 0)
 	cancelShadow.Transparency = 1
 	cancelShadow.Parent = cancelBtn
-	-- Store references
 	self.Popup = popup
 	self.Shadow = shadow
 	self.Header = header
@@ -422,10 +403,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.CancelBtn = cancelBtn
 	self.CancelShadow = cancelShadow
 	self._cleanupCallback = cleanupCallback
-	-- Default callbacks
 	self.OnConfirm = function() end
 	self.OnCancel = function() end
-	-- State
 	self._currentColor = Color3.fromRGB(255, 255, 255)
 	self._oldColor = Color3.fromRGB(255, 255, 255)
 	self._hue = 0
@@ -435,10 +414,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self._resolved = false
 	self._inputConnection = nil
 	self._hideTimer = nil
-	-- Repaint every visual from the stored HSV state. The square's saturation
-	-- overlay is tinted to the hue; its position maths (s = x, v = 1 - y) then
-	-- matches the rendered gradient exactly, so the picked colour equals the
-	-- colour under the target.
 	local function refreshVisuals()
 		local h, s, v = self._hue, self._sat, self._val
 		local hueColor = Color3.fromHSV(h, 1, 1)
@@ -450,7 +425,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.NewWell.BackgroundColor3 = Color3.fromHSV(h, s, v)
 		self.OldWell.BackgroundColor3 = self._oldColor
 	end
-	-- Push the stored HSV into the RGB/Hex input boxes.
 	local function refreshInputsFromState()
 		local color = Color3.fromHSV(self._hue, self._sat, self._val)
 		local r = math.round(color.R * 255)
@@ -467,9 +441,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		refreshVisuals()
 		refreshInputsFromState()
 	end
-	-- Drag path: keep the picked HSV verbatim (NOT ToHSV of the rebuilt colour),
-	-- so dragging to s=0 / v=0 / h=1 boundaries never loses the handle's position
-	-- or makes it snap.
+	-- Keep the dragged HSV verbatim (not ToHSV of the rebuilt colour) so the handles never snap at the s/v/h boundaries.
 	self._setHSVAndUpdate = function(me, h, s, v)
 		me._hue = math.clamp(h, 0, 1)
 		me._sat = math.clamp(s, 0, 1)
@@ -490,9 +462,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self:_setColorAndUpdate(currentColor)
 		self.OldWell.BackgroundColor3 = currentColor
 	end
-	-- Re-apply every theme-driven color to a new theme WITHOUT rebuilding.
-	-- Called by Window:SetTheme so an open (or cached) picker recolors live
-	-- instead of being destroyed and recreated.
+	-- Recolor in place without rebuilding so an open or cached picker follows a live theme switch.
 	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
 			return
@@ -575,9 +545,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			end
 		end
 		resetTransparency(self.Popup)
-		-- Restore the elements resetTransparency blanked. ColorSquare is a plain
-		-- white frame (transparency 0) with two gradient overlays; ColorValue
-		-- carries the hue gradient; the wells are plain colour frames.
+		-- Restore the fills resetTransparency blanked (square, overlays, value bar, handles, wells).
 		self.ColorSquare.BackgroundTransparency = 0
 		self.SatOverlay.BackgroundTransparency = 0
 		self.ValOverlay.BackgroundTransparency = 0
@@ -586,7 +554,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.Slide.BackgroundTransparency = 0
 		self.OldWell.BackgroundTransparency = 0
 		self.NewWell.BackgroundTransparency = 0
-		-- Target/Slide handles always use an opaque white stroke (not theme-driven).
 		local openTargetStroke = self.Target:FindFirstChildOfClass("UIStroke")
 		if openTargetStroke then
 			openTargetStroke.Color = Color3.fromRGB(255, 255, 255)
@@ -597,8 +564,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			openSlideStroke.Color = Color3.fromRGB(255, 255, 255)
 			openSlideStroke.Transparency = 0
 		end
-		-- Input strokes initialised inconsistently; set them ALL to one uniform
-		-- base (read from the live theme) on every open.
+		-- Normalize every input stroke to the live theme's base on each open.
 		local liveStroke = ThemeManager.GetTheme(self._theme)
 		local baseStrokeT = liveStroke.StrokeTransparency or 0.95
 		for _, info in pairs(self.Inputs) do
@@ -623,7 +589,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		Tween.Play(self.ConfirmShadow, "Fast", { Transparency = 0.5 })
 		Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 0.8 })
 		self:_setColorAndUpdate(self._currentColor)
-		-- Arm the click-outside listener for as long as the popup is open.
 		self:_connectOutsideClick()
 	end
 	-- Click-outside detection via UserInputService. The connection exists only

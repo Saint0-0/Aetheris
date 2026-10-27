@@ -1,28 +1,12 @@
 --[[
-	Status  ·  Aetheris UI Library
+	Aetheris/Components/Status.luau
 
 	A status readout: a header label plus up to MAX_ENTRIES coloured lines.
-	Entry = { key, text, color } where color is a named string ("green" /
-	"orange" / "red" / "info") or a Color3. Rich-text colours are emitted as
-	hex (see colorToString) because Roblox RichText rejects rgb().
-
-	Usage:
-		local status = section:Status({
-			Name = "System Status",
-			Entries = {
-				{ "info", "All systems nominal", "green" },
-				{ "alert", "CPU usage high", "orange" },
-				{ "custom", "Custom colour", Color3.fromRGB(255, 200, 100) },
-			},
-		})
-
-	Per-entry API (entries are keyed by their first field):
-		status:SetEntry("cpu", "CPU normal", "green")  -- update text + colour
-		status:SetEntry("newKey", "Fresh line")        -- appends (up to MAX)
-		status:AddEntry("event", "New line")           -- always appends (up to MAX)
-		status:AddEntry("", "Unkeyed line")            -- no "key:" prefix
-		status:GetEntry("cpu")                         -- current text or nil
-		status:SetEntries({ ... })                     -- replace all entries
+	Each entry is a { key, text, color } triplet where color is a named string
+	("green" / "orange" / "red" / "info") or a Color3; rich-text colours are
+	emitted as hex because Roblox RichText rejects rgb().
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

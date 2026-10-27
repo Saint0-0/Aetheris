@@ -1,15 +1,11 @@
 --[[
-	Paragraph  ·  Aetheris UI Library
+	Aetheris/Components/Paragraph.luau
 
 	Container with a title and a wrapped description body. Accepts Title (or
-	Name) and Description (or Text). Themed properties are declarative BINDINGS
-	(ThemeManager.BindColor / BindTransparency) -- this component has no ApplyTheme.
-
-	Usage:
-		local paragraph = section:Paragraph({
-			Title = "My Title",
-			Description = "Lorem ipsum...",
-		})
+	Name) and Description (or Text); themed properties are declarative bindings
+	so a theme switch re-resolves them with no ApplyTheme body to maintain.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -25,7 +21,6 @@ function Paragraph.new(parent, Settings, theme)
 	self._theme = theme
 	local title = Settings.Title or Settings.Name or "Paragraph"
 	local description = Settings.Description or Settings.Text or ""
-	-- Main container (matches GUI style)
 	local container = Instance.new("Frame")
 	container.Name = UUID.Generate("Paragraph")
 	container.BorderSizePixel = 0
@@ -35,17 +30,14 @@ function Paragraph.new(parent, Settings, theme)
 	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
-	-- Corner
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = container
-	-- Stroke
 	local stroke = Instance.new("UIStroke")
 	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = container
-	-- Title label (ElementName)
 	local titleLabel = Instance.new("TextLabel")
 	titleLabel.Name = UUID.Static("ElementName")
 	titleLabel.TextWrapped = true
@@ -58,12 +50,11 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.TextColor3 = (theme and theme.PrimaryTextColor)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Size = UDim2.new(0.909, 0, 0, 20)
-	titleLabel.AutomaticSize = Enum.AutomaticSize.Y -- grow to fit larger/wrapped titles
+	titleLabel.AutomaticSize = Enum.AutomaticSize.Y
 	titleLabel.Text = title
 	titleLabel.AnchorPoint = Vector2.new(0, 0.5)
-	titleLabel.Position = UDim2.fromOffset(11, 18) -- x aligned with description, vertically centred
+	titleLabel.Position = UDim2.fromOffset(11, 18)
 	titleLabel.Parent = container
-	-- Description label (LabelDescription)
 	local descLabel = Instance.new("TextLabel")
 	descLabel.Name = UUID.Static("LabelDescription")
 	descLabel.TextWrapped = true
@@ -78,25 +69,20 @@ function Paragraph.new(parent, Settings, theme)
 	descLabel.Size = UDim2.fromScale(0.91, 0)
 	descLabel.AutomaticSize = Enum.AutomaticSize.Y
 	descLabel.Text = description
-	descLabel.Position = UDim2.fromOffset(11, 38) -- left padding, below title
+	descLabel.Position = UDim2.fromOffset(11, 38)
 	descLabel.Parent = container
-	-- Padding inside description for bottom spacing
 	local descPadding = Instance.new("UIPadding")
 	descPadding.PaddingBottom = UDim.new(0, 15)
 	descPadding.Parent = descLabel
-	-- Store references
 	self.Container = container
 	self.TitleLabel = titleLabel
 	self.DescLabel = descLabel
-	-- Public API
 	self.SetTitle = function(_, newTitle)
 		titleLabel.Text = newTitle
 	end
 	self.SetDescription = function(_, newDesc)
 		descLabel.Text = newDesc
 	end
-	-- Declarative theming: every themed property is a BINDING. A theme switch
-	-- re-resolves them automatically -- no ApplyTheme body to forget.
 	ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
@@ -105,7 +91,6 @@ function Paragraph.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(titleLabel, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
-	-- Uniform component API (p2-4): visibility toggle + teardown.
 	self.SetVisibility = function(_self, visible)
 		container.Visible = visible
 	end

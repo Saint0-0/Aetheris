@@ -6,28 +6,21 @@
 	for testing. Also owns the saved-key record that KeySystem.SaveKey writes,
 	so a valid key survives re-execution and its check history can be shown in
 	the key screen's Information card.
-
 	License: Saint0-0 Source License - use in your own scripts, no editing or
 	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 --# selene: allow(undefined_variable)
--- The executor APIs (request, loadstring, writefile, setclipboard, ...) are
--- injected by the host at runtime, not defined in source. They are probed
--- with type() checks throughout; the directive scopes the lint to this file.
+-- The executor APIs (request, loadstring, writefile, ...) are injected by
+-- the host at runtime, not defined in source.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local KeyServices = {}
 
-----------------------------------------------------------------
--- SHA-256
-----------------------------------------------------------------
-
--- Platoboost identifiers and nonce integrity hashes are sha256 hex digests.
--- This is a straight FIPS 180-4 implementation over bit32 so we carry no
--- dependency on the minified hash from any service's official library.
+-- Platoboost identifiers and nonce hashes are sha256 hex digests; a straight
+-- FIPS 180-4 implementation over bit32, so no service hash library is needed.
 
 local bit32_band, bit32_bnot, bit32_bxor = bit32.band, bit32.bnot, bit32.bxor
 local bit32_lshift, bit32_rshift, bit32_rrotate = bit32.lshift, bit32.rshift, bit32.rrotate
@@ -105,7 +98,6 @@ local function sha256(message)
 		bytes[index] = string.byte(message, index)
 	end
 
-	-- padding: 0x80, zeros, then the 64-bit big-endian bit length
 	local bitLength = #message * 8
 	table.insert(bytes, 0x80)
 	while #bytes % 64 ~= 56 do
@@ -171,10 +163,6 @@ end
 
 KeyServices.Sha256 = sha256
 
-----------------------------------------------------------------
--- Executor helpers
-----------------------------------------------------------------
-
 local function getRequestFunction()
 	local fn = request or http_request
 	if fn == nil and type(syn) == "table" then
@@ -212,10 +200,6 @@ local function decodeJson(body)
 	return nil
 end
 
-----------------------------------------------------------------
--- Platoboost
-----------------------------------------------------------------
-
 local Platoboost = {}
 Platoboost.__index = Platoboost
 
@@ -247,7 +231,6 @@ function Platoboost.new(config)
 	return self
 end
 
--- Probe the mirrors once and remember the first that answers.
 function Platoboost:_host()
 	if self.host then
 		return self.host
@@ -455,10 +438,6 @@ function Platoboost:GetKeyLink()
 	return nil, "couldn't get the key link."
 end
 
-----------------------------------------------------------------
--- Panda
-----------------------------------------------------------------
-
 local Panda = {}
 Panda.__index = Panda
 
@@ -564,12 +543,8 @@ function Panda:GetKeyLink()
 	return nil, "couldn't get the key link."
 end
 
-----------------------------------------------------------------
--- Custom
-----------------------------------------------------------------
-
--- { Type = "custom", Validate = function(key) -> valid, reason,
---                     GetLink = function() -> url } -- both optional hooks
+-- { Type = "custom", Validate = function(key) -> valid, reason, GetLink =
+-- function() -> url } -- both hooks optional
 local Custom = {}
 Custom.__index = Custom
 
@@ -608,12 +583,8 @@ function Custom:GetKeyLink()
 	return nil, "couldn't get the key link."
 end
 
-----------------------------------------------------------------
--- Stub (testing)
-----------------------------------------------------------------
-
--- { Type = "stub", Keys = { "TEST" }, Link = "https://..." }
--- Accepts a key from the list (or any non-empty key when Keys is omitted).
+-- { Type = "stub", Keys = { "TEST" }, Link = "https://..." }; any non-empty
+-- key passes when Keys is omitted.
 local Stub = {}
 Stub.__index = Stub
 
@@ -651,10 +622,6 @@ function Stub:GetKeyLink()
 	end
 	return nil, "the stub service has no link."
 end
-
-----------------------------------------------------------------
--- Validator (combines static keys + services)
-----------------------------------------------------------------
 
 local BUILDERS = {
 	platoboost = Platoboost.new,
@@ -771,10 +738,6 @@ function KeyServices.Create(config)
 
 	return validator
 end
-
-----------------------------------------------------------------
--- Saved-key record (SaveKey + Information card stats)
-----------------------------------------------------------------
 
 local KEYS_FOLDER = "Aetheris/Keys"
 

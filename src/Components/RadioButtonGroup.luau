@@ -1,14 +1,11 @@
 --[[
-	RadioButtonGroup  ·  Aetheris UI Library
+	Aetheris/Components/RadioButtonGroup.luau
 
 	Manages a set of radio buttons, enforcing single selection. Create buttons
-	through the group so selection state stays consistent.
-
-	Usage:
-		local group = RadioButtonGroup.new(parent)
-		group:RadioButton({ Name = "Option 1", Default = true })
-		group:RadioButton({ Name = "Option 2" })
-		group:GetSelected()  -- returns the selected button object
+	through the group so selection state stays consistent; the first button (or
+	any marked Default) is selected automatically.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -29,8 +26,6 @@ function RadioButtonGroup:RadioButton(Settings)
 	Settings = Settings or {}
 	local button = RadioButton.new(self.Parent, self, Settings, self._theme)
 	table.insert(self.Buttons, button)
-	-- Selection logic: if this button is marked default, select it.
-	-- Otherwise, if no button has been selected yet and this is the first button, select it.
 	if Settings.Default or (not self._hasSelection and #self.Buttons == 1) then
 		self:Select(button)
 	end
@@ -40,7 +35,6 @@ function RadioButtonGroup:Select(button)
 	if self.Selected == button then
 		return
 	end
-	-- Deselect previous
 	if self.Selected then
 		self.Selected.SetSelected(self.Selected, false)
 	end

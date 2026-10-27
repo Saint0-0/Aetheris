@@ -1,8 +1,11 @@
 --[[
-	SettingsTabGroup  ·  Aetheris UI Library
+	Aetheris/Core/Settings/SettingsTabGroup.luau
 
 	Horizontal settings tab bar with a single-column content area per page.
-	It mirrors Core/TabGroup without the two-column split.
+	It mirrors Core/TabGroup without the two-column split, and owns tab
+	creation, the active/inactive theme bindings, and page crossfades.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Tween = require("../../Utils/Tween")
@@ -22,17 +25,10 @@ SettingsTabHandle.__index = SettingsTabHandle
 
 function SettingsTabHandle:Section(Settings)
 	Settings = Settings or {}
-	-- Sections go straight into the page (single vertical column). If a
-	-- scroller has been set up via :Scroller(), they stack into that instead.
-	-- noSave (5th arg): settings-page controls never register with the game
-	-- ConfigManager - their state lives in SettingsStore instead.
+	-- noSave: settings-page controls keep their state in SettingsStore, not ConfigManager.
 	return Section.new(self._contentParent or self.Page, Settings, self._theme, self.Window, true)
 end
 
--- Optional single-column scroller for this page. Settings pages are ONE
--- column (no left/right split); call :Scroller() once to get an auto-sizing
--- scrolling area, then every :Section() stacks into it top-to-bottom. The
--- default pages (Themes/UISettings) build their own equivalent by hand.
 function SettingsTabHandle:Scroller()
 	if self._scroller then
 		return self._scroller
@@ -42,7 +38,7 @@ function SettingsTabHandle:Scroller()
 	scroller.Name = UUID.Static("SettingsScroller")
 	scroller.Active = true
 	scroller.BorderSizePixel = 0
-	scroller.ScrollBarImageTransparency = 1 -- hidden until scrolling
+	scroller.ScrollBarImageTransparency = 1
 	scroller.BackgroundTransparency = 1
 	scroller.AnchorPoint = Vector2.new(0.5, 0.5)
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -66,7 +62,6 @@ function SettingsTabHandle:Scroller()
 	padding.PaddingRight = UDim.new(0, 15)
 	padding.Parent = scroller
 
-	-- Scrollbar: only visible while scrolling, matching the other settings pages.
 	local scrollTimer
 	scroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		Tween.Play(scroller, "Fast", { ScrollBarImageTransparency = 0.5 })

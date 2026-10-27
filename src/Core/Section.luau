@@ -1,13 +1,12 @@
 --[[
-	Section  ·  Aetheris UI Library
+	Aetheris/Core/Section.luau
 
 	A card inside a tab column that hosts components (Toggle, Slider, etc.).
-	Section is the component factory: call section:Toggle(...), section:Slider(...),
-	etc., and each forwards the section theme to the component.
-
-	Usage:
-		local section = tab:Section({ Side = "Left", Name = "My Section" })
-		local toggle = section:Toggle({ Name = "Enable", Default = true, Callback = function(state) end })
+	Section is the component factory: each builder forwards the section theme to
+	the component, and windowed sections register their controls with the
+	window's config manager so configs can save and restore their values.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Toggle = require("../Components/Toggle")
@@ -38,19 +37,18 @@ Section.__index = Section
 function Section.new(parent, Settings, theme, window, noSave)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
-	-- Ensure we have a valid theme table
 	if not theme or type(theme) ~= "table" then
 		theme = ThemeManager.GetTheme(nil)
 	end
 	local self = setmetatable({}, Section)
 	self._theme = theme
 	self._window = window
-	-- Settings pages pass noSave so their controls never register with the
-	-- window's ConfigManager (game configs must not capture UI settings).
+	-- Settings pages pass noSave so game configs never capture UI settings
+	-- through the window's ConfigManager.
 	self._noSave = noSave == true
 	self._sectionName = Settings.Name or ""
-	-- Built-in popup engines from the owning window, so components never need a
-	-- helper passed as a trailing argument. Nil when the section has no window.
+	-- Popup engines come from the owning window, so components never need a
+	-- helper passed as a trailing argument.
 	if window then
 		self._notify = function(s)
 			return window:UINotification(s)
@@ -62,7 +60,6 @@ function Section.new(parent, Settings, theme, window, noSave)
 			return window:ColorPickerPopUp(id, s)
 		end
 	end
-	-- Build the section frame
 	local frame = Instance.new("Frame")
 	frame.Name = UUID.Generate("Section")
 	frame.BorderSizePixel = 0
@@ -77,11 +74,8 @@ function Section.new(parent, Settings, theme, window, noSave)
 	local corner = Instance.new("UICorner")
 	corner.Name = UUID.Static("SectionUICorner")
 	corner.Parent = frame
-	-- Section strokes are their own thing: prefer the section-specific keys so
-	-- construction matches ApplyTheme (previously construction used the general
-	-- StrokeTransparency while ApplyTheme used SectionStrokeTransparency, so a
-	-- freshly-built section and a theme-switched one disagreed). Fall back to the
-	-- general stroke keys, then a sane default.
+	-- Prefer the section-specific stroke keys so a freshly built section
+	-- matches a theme-switched one; general stroke keys are the fallback.
 	local stroke = Instance.new("UIStroke")
 	stroke.Name = UUID.Static("SectionUIStroke")
 	stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or 0.985
@@ -106,11 +100,8 @@ function Section.new(parent, Settings, theme, window, noSave)
 	self.Layout = layout
 	self.Padding = padding
 	self.Parent = parent
-	-- Section title: a small, muted label naming what the section is for
-	-- (e.g. "Gameplay", "Interface"). Only shown when a Name is provided.
-	-- LayoutOrder -1 keeps it above the section's components (which default
-	-- to LayoutOrder 0), and its TextColor3 crossfades on theme switch via
-	-- the normal ThemeManager descendant pass (no override stamped).
+	-- LayoutOrder -1 keeps the title above the section's components (which
+	-- default to LayoutOrder 0).
 	if Settings.Name and Settings.Name ~= "" then
 		local title = Instance.new("TextLabel")
 		title.Name = UUID.Static("SectionTitle")
@@ -121,7 +112,6 @@ function Section.new(parent, Settings, theme, window, noSave)
 		title.TextYAlignment = Enum.TextYAlignment.Center
 		title.TextSize = 12
 		title.FontFace = Constants.Font(Enum.FontWeight.Medium)
-		-- Muted section label: TitleTextColor + 0.7 transparency.
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
 		title.TextTransparency = 0.7
 		title.AutomaticSize = Enum.AutomaticSize.Y
@@ -130,10 +120,8 @@ function Section.new(parent, Settings, theme, window, noSave)
 		title.Parent = frame
 		self.Title = title
 	end
-	-- Declarative theming: every themed property is a BINDING. The bind applies
-	-- immediately (so the section is themed on the first frame) and crossfades
-	-- on every theme switch, honouring overrides automatically. This replaces
-	-- the old registry + Section:ApplyTheme path for the section's own chrome.
+	-- Declarative theming: every themed property is a BINDING, so the section is
+	-- themed on the first frame and crossfades on every theme switch.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "SectionStrokeColor")
@@ -143,10 +131,8 @@ function Section.new(parent, Settings, theme, window, noSave)
 	end
 	return self
 end
--- ---- config tracking -------------------------------------------------------
--- Components built through a windowed game section register with the window's
--- ConfigManager (Core/Settings/ConfigManager), so configs can save and restore
--- their values. The user's callback also pings the manager for auto-save.
+-- Windowed sections register with the window's ConfigManager so configs can
+-- save and restore their values.
 function Section:_wrapCallback(kind, Settings)
 	local manager = self._noSave and nil or (self._window and self._window.ConfigManager)
 	if not manager then
@@ -185,23 +171,10 @@ function Section:_register(kind, Settings, component)
 	return component
 end
 
---[[
-	Toggle component builder
-	Settings:
-		Name (string) - label text (required)
-		Default (bool) - initial state (default: false)
-		Callback (function) - called when toggled, receives new state
-		Flag (string, optional) - for config save/load
-	Returns a component object with:
-		:UpdateState(newState) - set the toggle state (animates)
-		:GetState() - get current state (bool)
-		:SetVisibility(visible) - show/hide the component
-		:UpdateName(newName) - change the label text
-]]
 function Section:Toggle(Settings, ShowNotification)
 	Settings = self:_wrapCallback("Toggle", Settings)
-	-- Notification engine is built in from the owning window; the 2nd arg is no
-	-- longer required (still honoured if a caller passes one).
+	-- The 2nd argument is optional; the owning window's notification engine
+	-- is used when it is omitted.
 	ShowNotification = ShowNotification or self._notify
 	return self:_register("Toggle", Settings, Toggle.new(self.Frame, Settings, ShowNotification, self._theme))
 end
@@ -269,7 +242,6 @@ function Section:ColorPicker(Settings, ShowPopup)
 	return self:_register("ColorPicker", Settings, ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme))
 end
 
--- Section chrome is themed declaratively via ThemeManager.Bind* in Section.new;
--- there is no Section:ApplyTheme and the section is not registered with
--- ThemeManager, so the registry walk no longer touches it.
+-- Section chrome is themed declaratively in Section.new, so there is no
+-- Section:ApplyTheme and no registry entry.
 return Section

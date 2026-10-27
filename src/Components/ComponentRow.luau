@@ -1,33 +1,12 @@
 --[[
-	ComponentRow  ·  Aetheris UI Library
+	Aetheris/Components/ComponentRow.luau
 
 	Shared factory for the standard settings row: a full-width container with a
-	left-aligned themed name label. Returns (row, label); the caller parents its
-	control straight into `row`.
-
-	Every component used to hand-build this boilerplate. Centralising it means a
-	row is defined in ONE place (sleek + consistent), with NO extra wrapper frame
-	and NO UIShadow (both per-row costs we deliberately avoid).
-
-	Usage:
-		local row, label = ComponentRow.new(parent, {
-			Name       = "Field Name",
-			Theme      = theme,          -- optional; stamps + live-binds label colour
-			RowName    = "Foo",          -- optional exact row name (else `Name`)
-			Height     = 45,             -- optional, default 45
-			Clickable  = false,          -- optional; TextButton row when true
-			LabelWidth = 0.486,          -- optional fraction, default 0.486
-			LabelHeight = 0.714,         -- optional fraction, default 0.714
-			-- optional decorations (default: none / plain transparent row)
-			BackgroundColor       = Color3,
-			BackgroundTransparency= number,
-			ClipsDescendants      = bool,
-			CornerRadius          = number,   -- adds a UICorner
-			Stroke                = bool,     -- adds a themed UIStroke
-			ComponentContainer    = bool,     -- sets IsComponentContainer attr
-			LabelPosition         = UDim2,    -- override label Position
-			LabelTextSize         = number,   -- override label TextSize
-		})
+	left-aligned themed name label. Returns (row, label) so the caller can parent
+	its control straight into the row; centralising the boilerplate keeps every
+	component's row consistent with no extra wrapper frame or shadow.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -80,8 +59,7 @@ function ComponentRow.new(parent, Settings)
 		stroke.Color = (theme and theme.StrokeColor)
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = row
-		-- Bind the stroke so it re-themes on every switch (was stamped once
-		-- from construction-time theme and never updated).
+		-- Bind the stroke so it re-themes on every switch.
 		ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 		ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	end
@@ -98,8 +76,8 @@ function ComponentRow.new(parent, Settings)
 	label.AnchorPoint = Settings.LabelAnchorPoint or Vector2.new(0, 0.5)
 	label.BackgroundTransparency = 1
 	if Settings.LabelAutoSize then
-		-- Hug the name text: X size 0 + AutomaticSize.X. Callers that need a
-		-- variable-width label (e.g. TextInput's field cap) opt in with this.
+		-- Hug the name text (X size 0 + AutomaticSize.X) for callers that need a
+		-- variable-width label, like TextInput's field cap.
 		label.TextWrapped = false
 		label.AutomaticSize = Enum.AutomaticSize.X
 		label.Size = UDim2.fromScale(0, labelHeight)

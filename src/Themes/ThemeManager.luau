@@ -1,8 +1,10 @@
 --[[
-	ThemeManager  ·  Aetheris UI Library
+	Aetheris/Themes/ThemeManager.luau
 
-	Resolves and applies themes, crossfading colors and restarting spins.
-	Live colors are mirrored as attributes so handlers never read stale data.
+	Resolves and applies themes, crossfading colors and restarting spins. Live
+	colors are mirrored as attributes so handlers never read stale data.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeDefinitions = require("./ThemeDefinitions")
@@ -13,23 +15,13 @@ local UUID = require("../Utils/UUID")
 
 local ThemeManager = {}
 
--- Crossfade duration (seconds) used by every animated binding and the color
--- crossfade pass. A binding can override it per-entry via opts.duration.
--- MUST be a number before any ApplyTheme runs: TweenInfo.new's first arg is
--- the tween time, so a nil here throws at the first animated binding.
+-- Must be a number before ApplyTheme runs: TweenInfo.new errors on a nil time at the first animated binding.
 ThemeManager.ColorFadeTime = 0.7
 
--- Launch default. The theme applied when a caller does not pass one (or when
--- GetTheme is given nil). Change this ONE string to make any theme the
--- default -- dark, light, whatever. It is independent of the structural merge
--- base (`Base`), which only fills in keys a theme omits.
+-- Independent of the merge base (Base), which only fills in the keys a theme omits.
 ThemeManager.DefaultTheme = "Umbral"
 
--- Component registry. Components call ThemeManager.Register(rootInstance, self)
--- at construction; ApplyTheme then invokes each component's own ApplyTheme(theme)
--- instead of relying solely on fragile name/attribute matching. Keyed by the
--- component's ROOT instance with weak keys, so destroyed components drop out
--- automatically.
+-- Weak keys, so destroyed components drop out automatically.
 ThemeManager._components = setmetatable({}, { __mode = "k" })
 
 function ThemeManager.Register(root, component)
@@ -38,11 +30,7 @@ function ThemeManager.Register(root, component)
 	end
 end
 
--- Caller-pinned colors: stamping ThemeOverride_<Property> makes the theme
--- system skip that property, so custom colors survive theme switches. The two
--- functions below are the only writers, which keeps overrideCount accurate.
---   ThemeManager.SetColorOverride(frame, "BackgroundColor3", Color3.new(1,0,0))
---   ThemeManager.ClearColorOverride(frame, "BackgroundColor3")
+-- Stamping ThemeOverride_<Property> makes the theme system skip that property, so custom colors survive theme switches.
 local overrideCount = 0
 
 function ThemeManager.SetColorOverride(instance, property, color)
@@ -75,11 +63,7 @@ function ThemeManager.ClearColorOverride(instance, property)
 	end
 end
 
--- ─────────────────────────────────────────────────────────────────────────
--- DECLARATIVE BINDINGS (the foolproof path)
--- ─────────────────────────────────────────────────────────────────────────
--- Declare the driving theme key once; every switch re-resolves it. Overrides
--- win over bindings, which win over the prior value.
+-- Precedence on a switch: overrides win over bindings, which win over the prior value.
 
 ThemeManager.THEME_KEYS = {
 	"WindowColor",
@@ -157,15 +141,10 @@ for _, k in ipairs(ThemeManager.THEME_KEYS) do
 	THEME_KEY_SET[k] = true
 end
 
--- When true, Bind*/SetKey error on an unknown theme key, and ApplyTheme can be
--- made to assert that every themed property on a registered instance is bound.
--- Turn on in Studio to catch omissions at build time instead of on a switch.
+-- Turn on in Studio to catch omissions at build time instead of at switch time.
 ThemeManager.strict = false
 
--- Flat binding registry. `bindingIndex[inst][prop]` is the live entry (also in
--- `bindings`, the ordered array the apply pass walks). Entries are dropped on
--- Instance.Destroying and compacted on the next apply, so the arrays never
--- accumulate dead UI.
+-- Entries are dropped on Destroying and compacted on the next apply, so the arrays never accumulate dead UI.
 local bindings = {}
 local bindingIndex = setmetatable({}, { __mode = "k" })
 
@@ -183,19 +162,15 @@ local function compactBindings()
 	end
 end
 
--- Resolve + write one binding. `animate` crossfades; overrides always win.
 local function applyEntry(entry, theme, animate)
 	local inst = entry.instance
 	if not inst or entry.dropped or entry.disabled then
 		return
 	end
-	-- Caller owns this property via an override: never touch it.
 	if inst:GetAttribute(UUID.Static("ThemeOverride_" .. entry.property)) ~= nil then
 		return
 	end
-	-- A binding is either a theme key lookup or a LITERAL value (a state map
-	-- entry of the form { value = <any> }). Literals are constant and do not
-	-- change on a theme switch, but still resolve through the binding system.
+	-- A literal is a state-map entry of the form { value = <any> }; it stays constant across theme switches.
 	local value
 	if entry.literal ~= nil then
 		value = entry.literal
@@ -208,12 +183,7 @@ local function applyEntry(entry, theme, animate)
 	if entry.opts.transform then
 		value = entry.opts.transform(value)
 	end
-	-- Publish the RESOLVED value as data. Consumers that fade this instance
-	-- (PageFade's decoration pass) read the theme's AUTHORITATIVE resting value
-	-- from here instead of guessing one from a mid-tween property -- so a page
-	-- fade DEPENDS on the theme system rather than snapshotting its own base.
-	-- colour/number are always published (they are the fadable kinds); `live`
-	-- additionally publishes other kinds.
+	-- PageFade's decoration pass reads this authoritative resting value instead of guessing from a mid-tween property.
 	if entry.opts.live or entry.kind == "color" or entry.kind == "number" then
 		inst:SetAttribute(UUID.Static("ThemeLive_" .. entry.property), value)
 	end
@@ -222,9 +192,7 @@ local function applyEntry(entry, theme, animate)
 		return
 	end
 	if animate and not entry.opts.instant and (entry.kind == "color" or entry.kind == "number") then
-		-- Capture-then-restore so the crossfade starts from the CURRENT look,
-		-- then let the central Tween registry own the tween (replace-per-
-		-- property-set, so a rapid re-switch cancels cleanly).
+		-- Capture-then-restore so the crossfade starts from the current look; the central Tween registry then owns the tween.
 		inst[entry.property] = value
 		inst[entry.property] = current
 		local info = TweenInfo.new(
@@ -251,8 +219,7 @@ local function makeHandle(entry)
 			applyEntry(entry, theme, true)
 		end
 	end
-	-- Multi-state binding: flip to the theme key mapped to `name`. No-op for
-	-- single-key bindings (no state map), so callers can invoke it blindly.
+	-- No-op for single-key bindings (no state map), so callers can invoke it blindly.
 	function handle:SetState(name)
 		local map = entry.stateMap
 		if not map then
@@ -262,9 +229,6 @@ local function makeHandle(entry)
 		if spec == nil then
 			error("[ThemeManager] SetState: no state '" .. tostring(name) .. "' on this binding", 2)
 		end
-		-- A state spec is either a theme key (string) or a LITERAL
-		-- ({ value = <any> }). Literals are constant; they clear the theme
-		-- key so applyEntry uses entry.literal directly.
 		if type(spec) == "table" then
 			entry.literal = spec.value
 			entry.themeKey = nil
@@ -300,11 +264,7 @@ end
 local function bind(instance, property, themeKey, kind, opts)
 	opts = opts or {}
 
-	-- Defensive: a caller passed a nil instance (typically an optional element
-	-- that never got built). Binding into bindingIndex[nil] throws "table index
-	-- is nil"; instead hand back a no-op handle so a missing optional element
-	-- can never take the whole window down. This is expected for optional
-	-- chrome, so it is intentionally silent.
+	-- A nil instance (an optional element that never got built) gets a no-op handle so it can't take the window down.
 	if instance == nil then
 		return {
 			SetState = function() end,
@@ -313,9 +273,6 @@ local function bind(instance, property, themeKey, kind, opts)
 		}
 	end
 
-	-- themeKey is either a single key (string) or a state map
-	-- ({ StateName = "ThemeKey", ... }). For a state map, resolve the initial
-	-- state up front so entry.themeKey always starts on a real string key.
 	local stateMap = nil
 	local initialStateName = nil
 	local initialKey = themeKey
@@ -378,8 +335,7 @@ local function bind(instance, property, themeKey, kind, opts)
 	}
 	byProp[property] = entry
 	bindings[#bindings + 1] = entry
-	-- Apply immediately so the property is themed on the very first frame,
-	-- not only after the next switch.
+	-- Apply immediately so the property is themed on the first frame, not only after the next switch.
 	local theme = ActiveTheme.theme
 	if theme then
 		applyEntry(entry, theme, false)
@@ -395,10 +351,7 @@ function ThemeManager.BindTransparency(instance, property, themeKey, opts)
 	return bind(instance, property, themeKey, "number", opts)
 end
 
--- Infers kind from the property's current value type. Color3 -> colour,
--- number -> transparency/number (both crossfade); anything else (string,
--- boolean, asset id) is a 'value' binding that snaps instantly, since those
--- cannot be tweened.
+-- Non-tweenable kinds (string, boolean, asset id) snap instantly instead of crossfading.
 function ThemeManager.Bind(instance, property, themeKey, opts)
 	local t = typeof(instance[property])
 	local kind = "value"
@@ -430,19 +383,13 @@ function ThemeManager.UnbindInstance(instance)
 	end
 end
 
--- Interaction-time read: current value of a theme key, without touching an
--- instance. Handlers use this instead of reading a mid-tween instance[prop].
+-- Handlers use this instead of reading a mid-tween instance[prop].
 function ThemeManager.Get(themeKey)
 	local theme = ActiveTheme.theme or ThemeManager.GetTheme(ThemeManager.DefaultTheme)
 	return theme[themeKey]
 end
 
--- Callbacks run at the END of every ApplyTheme (after bindings + crossfade).
--- A component whose state is encoded in a property the theme does NOT own
--- (e.g. Button's hover/click fingerprint transparency) uses this to re-stamp
--- that state, because ApplyTheme's CancelAll can freeze it mid-tween.
--- Passing an optional ownerInstance automatically unregisters the callback
--- when the instance is destroyed.
+-- For state the theme does not own (e.g. a hover transparency), which ApplyTheme's CancelAll can freeze mid-tween.
 local themeAppliedCallbacks = {}
 
 function ThemeManager.OnThemeApplied(fn, ownerInstance)
@@ -468,32 +415,15 @@ function ThemeManager.OnThemeApplied(fn, ownerInstance)
 	end
 end
 
--- Color crossfade: snapshot every element's current colors, let ApplyTheme set
--- the new theme instantly, then for any element whose color changed, restore
--- the old color and tween it to the new one. This makes a theme switch read as
--- the colors fading from the old theme into the new one (no dim/flash overlay).
 local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
 
--- (snapshotColors removed: the old color-snapshot/crossfade system was the
--- second theming system. All themed colors are declarative BINDINGS now and
--- crossfade through the bindings pass in ApplyTheme.)
-
--- (applyColorFade removed alongside snapshotColors -- the old second
--- theming system. Theme color crossfades now run entirely through Bind*.)
-
--- Memo of merged tables for named themes (and nil -> Default). Section,
--- TabGroup, and every component call GetTheme at construct, and ApplyTheme
--- calls it again; without this each call re-allocated a full merged table.
--- Custom TABLES are still merged fresh each time (they are caller-owned and
--- may differ), so only the string/nil paths are cached.
+-- Only named (string/nil) results are memoized; custom tables are caller-owned and merged fresh each time.
 local themeMemo = {}
 
 function ThemeManager.GetTheme(themeInput)
-	-- Legacy alias: "Default" resolves to the library default theme.
 	if themeInput == "Default" then
 		themeInput = ThemeManager.DefaultTheme
 	end
-	-- Cache key: a named theme, or the launch default for nil input.
 	local key
 	if type(themeInput) == "string" then
 		key = themeInput
@@ -508,7 +438,6 @@ function ThemeManager.GetTheme(themeInput)
 		end
 	end
 
-	-- Determine theme table
 	local themeTable
 	if type(themeInput) == "string" then
 		themeTable = ThemeDefinitions[themeInput]
@@ -522,24 +451,19 @@ function ThemeManager.GetTheme(themeInput)
 		themeTable = ThemeDefinitions.Base
 	end
 
-	-- Merge with the structural base (fills any key a theme omits).
 	local theme = {}
 	for k, v in pairs(ThemeDefinitions.Base) do
 		theme[k] = themeTable[k] ~= nil and themeTable[k] or v
 	end
 
-	-- Only intern named/nil results; a missing name warns and falls back to
-	-- Base, so a bad name never poisons the memo with a real theme's table.
+	-- Only named/nil results are interned; a bad name falls back to Base, so it never overwrites a real theme's memo entry.
 	if key then
 		themeMemo[key] = theme
 	end
 	return theme
 end
 
--- Theme-sync hook. Pushes the resolved theme onto a target and, if the
--- target exposes a .Tabs list, onto each tab entry so tab-switch handlers read
--- the live theme. (The old InvalidateCaches() call was removed: it had no
--- implementer anywhere in the library and was a permanent no-op behind pcall.)
+-- Pushes onto each tab entry too, so tab-switch handlers read the live theme.
 function ThemeManager.SyncTheme(target, theme)
 	if not target then
 		return
@@ -555,48 +479,27 @@ end
 function ThemeManager.ApplyTheme(window, themeInput)
 	local theme = ThemeManager.GetTheme(themeInput)
 
-	-- Publish the live theme so stateful components (e.g. Toggle) read the
-	-- current colors at interaction time instead of a stale construction-time
-	-- table.
+	-- Publish the live theme so components read current colors at interaction time, not a stale construction-time table.
 	ActiveTheme.theme = theme
 	ActiveTheme.name = (type(themeInput) == "string") and themeInput or nil
 
-	-- Cancel every in-flight tween first. Otherwise a fade/switch tween
-	-- started by the old theme can finish after this pass and overwrite the
-	-- new theme's values with stale transparency/color targets.
-	-- Cancel every in-flight tween first, via a sparse-registry sweep
-	-- (O(active tweens)) rather than a per-descendant hash probe (O(descendants)).
+	-- Cancel in-flight tweens first, or one started by the old theme can finish after this pass and overwrite the new values.
 	Tween.CancelAllUnder(window.Base)
-	-- One traversal of the tree, reused by every pass below (component registry
-	-- walk, override re-stamp).
 	local descendants = window.Base:GetDescendants()
 
-	-- NOTE: window shell colors/transparencies (MainFrame, ContentBackground,
-	-- Sidebar, MainFrameShadow) are DECLARATIVE BINDINGS created in Window.new.
-	-- NOT stamped here anymore -- that was a DOUBLE-STAMP of the same four
-	-- properties window:ApplyTheme also set. The bindings pass below re-resolves
-	-- them now.
-
-	-- Store theme values for later use by components
+	-- Window shell colors are declarative bindings created in Window.new; the bindings pass below re-resolves them.
 	window._theme = theme
 
-	-- Keep each tab group's live theme copy in sync so tab-switch handlers read
-	-- the new theme. SyncTheme pushes _theme (and each tab's _theme) onto the
-	-- target; it no longer calls any cache-invalidation hook.
 	ThemeManager.SyncTheme(window.TabGroup, theme)
 	ThemeManager.SyncTheme(window.SettingsTabGroup, theme)
 
-	-- The WINDOW is the root of the tree (window.Base == the ScreenGui), so it
-	-- cannot self-register: the registry iterates Base's DESCENDANTS, which
-	-- excludes Base itself. Call the window's own ApplyTheme explicitly first.
+	-- The window can't self-register (the registry walks Base's descendants, excluding Base itself), so call its ApplyTheme explicitly first.
 	if window.ApplyTheme then
 		pcall(function()
 			window:ApplyTheme(theme)
 		end)
 	end
 
-	-- Component-owned theming: iterate registered components directly instead
-	-- of scanning the entire descendant tree of Base.
 	for root, comp in pairs(ThemeManager._components) do
 		if root and root.Parent and root:IsDescendantOf(window.Base) then
 			if comp.ApplyTheme then
@@ -607,8 +510,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Re-stamp caller overrides after every ApplyTheme pass so a component's own
-	-- theme colors cannot clobber a pinned custom color.
+	-- Re-stamp overrides after every pass so component theme colors can't clobber a pinned custom color.
 	if overrideCount > 0 then
 		for _, d in ipairs(descendants) do
 			for _, p in ipairs(COLOR_PROPS) do
@@ -630,16 +532,9 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Declarative bindings pass. ADDITIVE: components migrated to Bind* are
-	-- themed here; components still on the registry path are themed by the
-	-- component walk above. Bindings skip overridden props, so an override
-	-- re-stamped just above is preserved.
+	-- Additive with the component walk above; bindings skip overridden props, so re-stamped overrides survive.
 	compactBindings()
-	-- Scope the binding pass to THIS window's tree, matching the component walk
-	-- above. Without this, a second window's ApplyTheme would re-theme the first
-	-- window's instances too (bindings is a module-global registry). Everything
-	-- a window owns — chrome, tabs, popups, pill, tooltip — lives under
-	-- window.Base (the ScreenGui), so this covers them all.
+	-- bindings is module-global, so scope the pass to this window's tree or a second window's ApplyTheme would re-theme the first.
 	local scopeRoot = window.Base
 	for _, entry in ipairs(bindings) do
 		local inst = entry.instance
@@ -648,9 +543,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- ApplyTheme cancelled all active tweens above. Restart the active tab
-	-- spins for both tab groups so the selected tab keeps its spinning
-	-- gradient (it would otherwise stay stopped until a tab switch).
+	-- CancelAll stopped these spins; restart them so the selected tab keeps its gradient instead of staying stopped until a tab switch.
 	if window.TabGroup and window.TabGroup.ActiveTab and window.TabGroup.ActiveTab.BackImageGradient then
 		window.TabGroup:_resumeSpin(window.TabGroup.ActiveTab.BackImageGradient, true)
 	end
@@ -662,17 +555,10 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		window.SettingsTabGroup:_resumeSpin(window.SettingsTabGroup.ActiveTab.BackImageGradient, true)
 	end
 
-	-- Restart every component spin gradient (slider fill, progress bar fill,
-	-- radio sheen, dropdown items). The CancelAll pass above cancels them,
-	-- and unlike the tab backdrops they are not restarted anywhere else, so
-	-- without this the theme switch would silently freeze every spin.
+	-- CancelAll kills these spins and nothing else restarts them, so a switch would silently freeze every one.
 	Tween.RestartSpins()
 
-	-- Fix settings-tab final state after all tween cancellation. The tabs
-	-- themselves animate normally on click, but ApplyTheme cancels those
-	-- tweens at startup/theme-switch, leaving the initial SelectionStatus
-	-- stuck at 1. Set the final visual state directly without disturbing
-	-- future animations.
+	-- CancelAll leaves the initial SelectionStatus stuck at 1, so set the final state directly without disturbing future animations.
 	if window.SettingsTabGroup and window.SettingsTabGroup.Tabs then
 		local active = window.SettingsTabGroup.ActiveTab
 		for _, tab in ipairs(window.SettingsTabGroup.Tabs) do
@@ -689,10 +575,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Theme-bound decorations read their resting transparency from ThemeLive_,
-	-- which the bindings pass above republished, so there is no stale base to
-	-- clear -- just re-mark layers dirty and restore the active pages, since the
-	-- CancelAll pass killed any in-flight page fade.
+	-- Decorations read their resting transparency from ThemeLive_, which the bindings pass republished; restore the pages CancelAll killed.
 	if PageFade.InvalidateDecorationBases then
 		PageFade.InvalidateDecorationBases()
 	end
@@ -703,13 +586,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		window.SettingsTabGroup:RestoreActivePage()
 	end
 
-	-- (No color-fade pass: all themed colors are DECLARATIVE BINDINGS now, and
-	-- the bindings pass above already crossfaded them. snapshotColors/
-	-- applyColorFade were the second theming system and have been removed.)
-
-	-- Let components re-stamp any non-theme state the CancelAll above may have
-	-- frozen (e.g. a mid-hover interaction transparency).
-	-- Automatically prune dead callbacks if their owner was destroyed.
+	-- Let components re-stamp non-theme state (e.g. a mid-hover transparency) that CancelAll froze.
 	for i = #themeAppliedCallbacks, 1, -1 do
 		local entry = themeAppliedCallbacks[i]
 		if entry.owner and (not entry.owner.Parent or not entry.owner:IsDescendantOf(game)) then
@@ -720,7 +597,6 @@ function ThemeManager.ApplyTheme(window, themeInput)
 	end
 end
 
--- Update theme at runtime (e.g., window:SetTheme("Black"))
 function ThemeManager.UpdateTheme(window, newTheme)
 	ThemeManager.ApplyTheme(window, newTheme)
 end

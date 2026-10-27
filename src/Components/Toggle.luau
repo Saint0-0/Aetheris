@@ -1,8 +1,11 @@
 --[[
-	Toggle  ·  Aetheris UI Library
+	Aetheris/Components/Toggle.luau
 
 	Boolean switch row with an optional confirmation. An IsOn attribute keeps
 	the on/off look stable across theme switches.
+
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -23,9 +26,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	local default = Settings.Default or false
 	local confirm = Settings.Confirm or {}
 	local confirmEnabled = confirm.Enabled or false
-	----------------------------------------------------------------
-	-- MAIN ROW
-	----------------------------------------------------------------
+
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. " [Toggle]",
@@ -42,9 +43,6 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	toggleInterractionHolder.Position = UDim2.fromScale(1, 0.5)
 	toggleInterractionHolder.Parent = row
 
-	----------------------------------------------------------------
-	-- TRACK
-	----------------------------------------------------------------
 	local track = Instance.new("Frame")
 	track.Name = UUID.Static("ToggleSlidingFrame")
 	track.BorderSizePixel = 0
@@ -55,9 +53,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	track.Position = UDim2.fromScale(0.5, 0.5)
 	track.Parent = toggleInterractionHolder
 	self.track = track
-	----------------------------------------------------------------
-	-- THUMB
-	----------------------------------------------------------------
+
 	local thumb = Instance.new("TextButton")
 	thumb.Name = UUID.Static("Toggle")
 	thumb.BorderSizePixel = 0
@@ -70,33 +66,25 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	thumb.TextTransparency = 1
 	thumb.AutoButtonColor = false
 	thumb.Parent = track
-	-- Seed the live-theme color attributes so applyState reads current colors
-	-- even before the first ApplyTheme stamps them.
+	-- Seed the live-theme attributes so applyState reads current colours even
+	-- before the first theme apply stamps them.
 	thumb:SetAttribute(UUID.Static("ThemePrimary"), theme.PrimaryColor)
 	thumb:SetAttribute(UUID.Static("ThemeSecondary"), theme.SecondaryColor)
-	----------------------------------------------------------------
-	-- SIZE CONSTRAINT
-	----------------------------------------------------------------
+
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.Parent = thumb
-	----------------------------------------------------------------
-	-- CORNER
-	----------------------------------------------------------------
+
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = thumb
-	----------------------------------------------------------------
-	-- STROKE
-	----------------------------------------------------------------
+
 	local stroke = Instance.new("UIStroke")
 	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.7
 	stroke.Thickness = 1.5
 	stroke.Color = theme.PrimaryColor
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = thumb
-	----------------------------------------------------------------
-	-- SHEEN (spinning gradient on the thumb, visible only when ON)
-	----------------------------------------------------------------
+
 	local sheen = Instance.new("ImageLabel")
 	sheen.Name = UUID.Static("BackImage")
 	sheen.BorderSizePixel = 0
@@ -121,23 +109,16 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		NumberSequenceKeypoint.new(1.000, 0),
 	})
 	sheenGradient.Parent = sheen
-	-- Perpetual spin, like the original ToggleMechanics; visibility is driven
-	-- by ImageTransparency in applyState.
 	sheenGradient.Rotation = 0
 	Tween.StartSpin(sheenGradient, { Rotation = 360 }, "SpinIdle")
-	----------------------------------------------------------------
-	-- STATE
-	----------------------------------------------------------------
+
 	local state = default
 	local offPos = UDim2.new(0, -6, 0.5, 0)
 	local onPos = UDim2.new(0, 41, 0.5, 0)
-	-- True while a confirmation notification is open.
 	local confirmationPending = false
-	----------------------------------------------------------------
-	-- DECLARATIVE THEME BINDINGS (no ApplyTheme body)
-	----------------------------------------------------------------
+
 	-- Label colour is pure theme; thumb/track/stroke are bindings whose key
-	-- applyState swaps for ON (PrimaryColor) and OFF (SecondaryColor).
+	-- applyState swaps between PrimaryColor (ON) and SecondaryColor (OFF).
 	local FAST = { duration = 0.2 }
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local thumbColorBinding =
@@ -146,17 +127,13 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		ThemeManager.BindColor(track, "BackgroundColor3", state and "PrimaryColor" or "SecondaryColor", FAST)
 	local strokeColorBinding =
 		ThemeManager.BindColor(stroke, "Color", state and "PrimaryColor" or "SecondaryColor", FAST)
-	----------------------------------------------------------------
-	-- APPLY STATE
-	----------------------------------------------------------------
+
 	local function applyState(newState, animate, fireCallback)
 		if state == newState and fireCallback then
 			return
 		end
 		state = newState
 		thumb:SetAttribute(UUID.Static("IsOn"), state)
-		-- Swap which theme key drives the state-coloured parts; the bindings
-		-- resolve + crossfade the new colour. No manual colour stamping.
 		local onKey = state and "PrimaryColor" or "SecondaryColor"
 		thumbColorBinding:SetKey(onKey)
 		trackColorBinding:SetKey(onKey)
@@ -166,10 +143,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		local targetStrokeTransparency = state and 0 or 0.7
 		local targetTrackTransparency = state and 0 or 0.9
 		local targetLabelTransparency = state and 0.1 or 0.45
-		-- Keep PageFade's cached fade-base in sync with the CURRENT resting
-		-- stroke transparency. applyState changes the stroke OUTSIDE ApplyTheme,
-		-- so without this a page fade would restore a stale base (the
-		-- "stroke stays invisible until hover" bug).
+		-- PageFade caches its fade-base from ApplyTheme, but applyState changes
+		-- the stroke here, so keep the cached base in sync.
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), targetStrokeTransparency)
 		if animate then
 			Tween.Play(thumb, "Fast", {
@@ -197,28 +172,23 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			track.BackgroundTransparency = targetTrackTransparency
 			sheen.ImageTransparency = state and 0 or 1
 		end
-		-- The sheen is only VISIBLE while ON, so don't let it spin while OFF:
-		-- pause it (angle preserved) and resume from where it left off next time
-		-- the toggle turns on. Composes with the shared visibility gate.
+		-- The sheen is invisible while OFF, so pause the spin there; it resumes
+		-- from the frozen angle the next time the toggle turns on.
 		Tween.SetSpinWanted(sheenGradient, state)
 		if fireCallback and Settings.Callback then
 			Settings.Callback(state)
 		end
 	end
-	----------------------------------------------------------------
-	-- PAGE FOCUS DIM (visual-only; does NOT change `state`)
-	----------------------------------------------------------------
-	-- Off-page, the control collapses to a zeroed look (thumb parked at off,
-	-- chrome faded) so returning to the page can tween it back to its real
-	-- value via applyState(state). `state` is untouched, so GetState() and the
-	-- saved setting are unaffected by the animation.
+
+	-- Page-focus dim is visual only; `state` (GetState, the saved setting) is
+	-- never touched, so the restore tween can return to the real value.
 	local dimmed = false
 	local function setDimmed(on, instant)
 		dimmed = on
 		if on then
 			if instant then
-				-- Registration priming: snap to the zeroed look so the very
-				-- first restore tween has real distance to cover.
+				-- Snap at registration so the very first restore tween has real
+				-- distance to cover.
 				thumb.Position = offPos
 				thumb.BackgroundTransparency = 1
 				stroke.Transparency = 1
@@ -230,26 +200,20 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 				Tween.Play(track, "Fast", { BackgroundTransparency = 1 })
 				Tween.Play(sheen, "Fast", { ImageTransparency = 1 })
 			end
-			-- Park the sheen spin while dimmed (composes with the ON/OFF gate).
 			Tween.SetSpinWanted(sheenGradient, false)
 		else
-			-- Restore: recompute the real look from `state`, animating back.
 			applyState(state, true, false)
 		end
 	end
-	----------------------------------------------------------------
-	-- HANDLE CLICK
-	----------------------------------------------------------------
+
 	local function handleClick()
-		-- Don't allow another notification while one
-		-- confirmation is already waiting for a response.
+		-- One confirmation at a time; extra clicks while one is open are ignored.
 		if confirmationPending then
 			return
 		end
 		local intendedState = not state
-		------------------------------------------------------------
-		-- CONFIRMATION MODE (only when turning ON)
-		------------------------------------------------------------
+		-- Confirmation only guards turning ON; OFF (or no confirm) applies
+		-- immediately.
 		if confirmEnabled and ShowNotification and intendedState then
 			confirmationPending = true
 			ShowNotification({
@@ -258,58 +222,38 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 				TitleColor = confirm.TitleColor,
 				ConfirmText = confirm.ConfirmText or "Yes",
 				CancelText = confirm.CancelText or "No",
-				----------------------------------------------------
-				-- CONFIRMED
-				----------------------------------------------------
 				OnConfirm = function()
 					confirmationPending = false
-					-- Apply the state requested when the
-					-- notification was originally opened.
+					-- Apply the state captured when the prompt opened rather than
+					-- re-reading `state`.
 					applyState(intendedState, true, true)
 				end,
-				----------------------------------------------------
-				-- CANCELLED
-				----------------------------------------------------
 				OnCancel = function()
-					-- IMPORTANT:
-					-- The toggle does NOT change state.
-					-- We simply unlock it so it can be
-					-- clicked again.
+					-- Cancel only unlocks; it never applies the pending state.
 					confirmationPending = false
 				end,
 			})
-			------------------------------------------------------------
-			-- NORMAL MODE (turning OFF, or no confirmation)
-			------------------------------------------------------------
 		else
 			applyState(intendedState, true, true)
 		end
 	end
-	----------------------------------------------------------------
-	-- SINGLE CLICK HANDLER
-	----------------------------------------------------------------
+
 	row.MouseButton1Click:Connect(function()
 		handleClick()
 	end)
 	thumb.MouseButton1Click:Connect(function()
 		handleClick()
 	end)
-	----------------------------------------------------------------
-	-- INITIAL STATE
-	----------------------------------------------------------------
-	-- Apply the visual default state.
-	-- Do NOT fire the user's callback during construction.
+
+	-- Apply the default look without firing the callback during construction.
 	applyState(default, false, false)
-	----------------------------------------------------------------
-	-- PUBLIC API
-	----------------------------------------------------------------
+
 	self.UpdateState = function(_self, newState)
 		if typeof(newState) ~= "boolean" then
 			warn("[Toggle] UpdateState expected a boolean, got:", typeof(newState))
 			return
 		end
-		-- Programmatic state changes bypass confirmation.
-		-- Confirmation is only for user clicks.
+		-- Programmatic updates bypass confirmation; that is only for user clicks.
 		if newState ~= state then
 			applyState(newState, true, true)
 		end
@@ -323,21 +267,18 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	self.UpdateName = function(_self, newName)
 		label.Text = newName
 	end
-	-- Colours are bindings, but the state transparencies are set by applyState's
-	-- own tweens; a theme switch cancels those tweens, so re-stamp the resting
-	-- state after every theme apply to avoid a half-faded toggle.
+	-- A theme switch cancels applyState's transparencies tweens, so re-stamp
+	-- the resting state to avoid a half-faded toggle.
 	local unregisterTheme = ThemeManager.OnThemeApplied(function()
 		applyState(state, false, false)
-		-- A theme switch re-stamps the real look; if we're currently dimmed
-		-- off-page, re-collapse so the switch doesn't pop it back to full.
+		-- Re-collapse too, so an off-page toggle doesn't pop back to full.
 		if dimmed then
 			setDimmed(true)
 		end
 	end, row)
 
-	-- Page awareness: collapse off-page, tween back to `state` on focus. Gated
-	-- by the UI Settings "Page Animations" toggle; OnActive always restores.
-	-- `instant` = registration priming (snap collapse, tween-in on first show).
+	-- Collapse off-page and tween back to `state` on focus. "Page Animations"
+	-- gates the tweens; OnActive always restores.
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
 		OnInactive = function(instant)
@@ -353,20 +294,16 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			unregisterTheme()
 			unregisterTheme = nil
 		end
-		-- Stop the sheen gradient spin before destroying.
 		Tween.StopSpin(sheenGradient)
-		-- Cancel any in-flight tweens on themed instances.
 		Tween.CancelAll(thumb)
 		Tween.CancelAll(track)
 		Tween.CancelAll(stroke)
 		Tween.CancelAll(label)
 		Tween.CancelAll(sheen)
-		-- Drop all ThemeManager bindings for every instance we registered.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(thumb)
 		ThemeManager.UnbindInstance(track)
 		ThemeManager.UnbindInstance(stroke)
-		-- Destroy the root instance (cascades to all children).
 		if row and row.Parent then
 			row:Destroy()
 		end

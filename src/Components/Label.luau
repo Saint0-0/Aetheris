@@ -1,18 +1,12 @@
 --[[
-	Label  ·  Aetheris UI Library
+	Aetheris/Components/Label.luau
 
-	Styled text label with an optional container (background + corner +
-	stroke). A label built with ShowStroke = false stamps a
-	ThemeOverride_Transparency attribute so ThemeManager treats the stroke as
-	caller-owned and leaves it hidden across theme switches.
-
-	Usage:
-		local label = section:Label({
-			Text = "Hello World",
-			ShowContainer = true,   -- default true
-			ShowStroke = true,      -- default true
-			FontWeight = "Bold",    -- optional, default "Regular"
-		})
+	Styled text label with an optional container (background, corner, and
+	stroke). A label built with ShowStroke = false stamps a theme-override
+	attribute so ThemeManager treats the stroke as caller-owned and leaves it
+	hidden across theme switches.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -21,7 +15,6 @@ local ComponentAPI = require("../Utils/ComponentAPI")
 local UUID = require("../Utils/UUID")
 local Label = {}
 Label.__index = Label
--- Map string to Enum.FontWeight
 local function getFontWeight(weight)
 	if typeof(weight) == "EnumItem" then
 		return weight
@@ -48,7 +41,6 @@ function Label.new(parent, Settings, theme)
 	local textSize = Settings.TextSize or 14
 	local customTextTransparency = Settings.TextTransparency
 	local paddingOverride = Settings.Padding
-	-- Container (matches Paragraph's style)
 	local container = Instance.new("Frame")
 	container.Name = UUID.Generate("Label")
 	container.BorderSizePixel = 0
@@ -59,26 +51,20 @@ function Label.new(parent, Settings, theme)
 	container.Size = UDim2.fromScale(1, 0)
 	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
-	-- Corner
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = container
-	-- Stroke. When ShowStroke is false the stroke is fully transparent and
-	-- tagged so ThemeManager leaves it alone on theme switches.
 	local stroke = Instance.new("UIStroke")
 	if showStroke then
 		stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	else
 		stroke.Transparency = 1
-		-- Own the property outright via the theme override mechanism: applyEntry
-		-- treats any ThemeOverride_<prop> attribute as caller-owned and skips
-		-- this stroke on every theme switch, so a hidden stroke stays hidden.
+		-- Tag the stroke caller-owned so ThemeManager skips it on every theme switch.
 		stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
 	end
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = container
-	-- Padding inside container
 	local padding = Instance.new("UIPadding")
 	if paddingOverride then
 		padding.PaddingTop = UDim.new(0, paddingOverride.Top or 0)
@@ -92,7 +78,6 @@ function Label.new(parent, Settings, theme)
 		padding.PaddingRight = UDim.new(0, 11)
 	end
 	padding.Parent = container
-	-- Label
 	local label = Instance.new("TextLabel")
 	label.Name = UUID.Static("ElementName")
 	label.FontFace = Constants.Font(fontWeight)
@@ -107,10 +92,9 @@ function Label.new(parent, Settings, theme)
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 0) -- fill width, height auto
+	label.Size = UDim2.fromScale(1, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.Parent = container
-	-- Store references
 	self.Container = container
 	self.Corner = corner
 	self.Stroke = stroke
@@ -120,17 +104,13 @@ function Label.new(parent, Settings, theme)
 	self._showStroke = showStroke
 	self._fontWeight = fontWeight
 	self._hasCustomTextTransparency = (customTextTransparency ~= nil)
-	-- Declarative theming: every themed property is a BINDING. No ApplyTheme.
 	local bgTransBinding =
 		ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
-	-- Text COLOUR was stamped once from the construction-time theme and never
-	-- bound, so a theme switch left the label text at its original colour (white
-	-- on the default theme). Bind it like every other themed colour.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Conditional properties: a binding drives the value only while its
-	-- condition holds; otherwise it is disabled and the value set directly.
+	-- A binding drives its value only while its condition holds; otherwise
+	-- disable it and set the value directly.
 	if not showContainer then
 		bgTransBinding:SetEnabled(false)
 		container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
@@ -144,7 +124,6 @@ function Label.new(parent, Settings, theme)
 	if customTextTransparency ~= nil then
 		textTransBinding:SetEnabled(false)
 	end
-	-- Public API
 	self.SetText = function(_, newText)
 		label.Text = newText
 	end
@@ -184,13 +163,11 @@ function Label.new(parent, Settings, theme)
 			stroke.Transparency = 1
 		end
 	end
-	-- Uniform component API (p2-4): visibility toggle + teardown.
 	self.SetVisibility = function(_self, visible)
 		container.Visible = visible
 	end
 	self.Destroy = function(_self)
-		-- Drop the theme bindings so a destroyed label leaves nothing behind in
-		-- the ThemeManager registry.
+		-- Drop the bindings so a destroyed label leaves nothing in the ThemeManager registry.
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(container)
 		ThemeManager.UnbindInstance(stroke)
@@ -199,7 +176,6 @@ function Label.new(parent, Settings, theme)
 		end
 	end
 	ComponentAPI.Apply(self, { Root = container, Label = label, Name = Settings.Text })
-	-- No ApplyTheme / Register: all themed properties are bindings above.
 	return self
 end
 return Label

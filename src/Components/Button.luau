@@ -1,14 +1,11 @@
 --[[
-	Button  ·  Aetheris UI Library
+	Aetheris/Components/Button.luau
 
 	Clickable action row with a hover/press bounce and an optional trailing
-	fingerprint icon. No BackImage (removed by design).
-
-	Usage:
-		local button = section:Button({
-			Name = "Reset Layout",
-			Callback = function() end,
-		})
+	fingerprint icon. Clicking runs the callback and plays a short flash
+	animation that restarts cleanly on rapid clicks.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -27,7 +24,6 @@ function Button.new(parent, Settings, theme)
 	local name = Settings.Name or "Button"
 	local callback = Settings.Callback or function() end
 	local FINGERPRINT_IMAGE = Icons["fingerprint-pattern"]
-	-- Main row (TextButton)
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. " [Button]",
@@ -41,7 +37,6 @@ function Button.new(parent, Settings, theme)
 		ComponentContainer = true,
 	})
 	label.ZIndex = 2
-	-- ButtonColor frame (background glow)
 	local buttonColor = Instance.new("Frame")
 	buttonColor.Name = UUID.Static("ButtonColor")
 	buttonColor.BorderSizePixel = 0
@@ -54,7 +49,6 @@ function Button.new(parent, Settings, theme)
 	local colorCorner = Instance.new("UICorner")
 	colorCorner.CornerRadius = UDim.new(0, 6)
 	colorCorner.Parent = buttonColor
-	-- Fingerprint ImageLabel
 	local fingerprint = Instance.new("ImageLabel")
 	fingerprint.Name = UUID.Static("Fingerprint")
 	fingerprint.BorderSizePixel = 0
@@ -69,30 +63,24 @@ function Button.new(parent, Settings, theme)
 	local fpAspect = Instance.new("UIAspectRatioConstraint")
 	fpAspect.DominantAxis = Enum.DominantAxis.Height
 	fpAspect.Parent = fingerprint
-	-- UIStroke for the button border
 	local stroke = Instance.new("UIStroke")
 	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	stroke.Thickness = 0.7
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = row
-	-- Store references
 	self.Row = row
 	self.Label = label
 	self.ButtonColor = buttonColor
 	self.Fingerprint = fingerprint
 	self.Callback = callback
 	self._clicking = false
-	-- Base transparencies
 	local FINGERPRINT_BASE = 0.5
 	local BUTTONCOLOR_BASE = 1
-	-- Hover/press scale bounce, matching the window-control buttons' feel.
 	local scale = Instance.new("UIScale")
 	scale.Scale = 1
 	scale.Parent = row
-	-- Hover state
 	local isHovered = false
-	-- Hover effects
 	row.MouseEnter:Connect(function()
 		isHovered = true
 		Tween.CancelAll(fingerprint)
@@ -115,20 +103,16 @@ function Button.new(parent, Settings, theme)
 	row.MouseButton1Up:Connect(function()
 		Tween.Play(scale, "HoverIn", { Scale = isHovered and 1.02 or 1 })
 	end)
-	-- Click flash sequence
 	local function performClick()
-		-- Restart the visual feedback immediately on every click
+		-- Rapid clicks restart the flash instead of stacking or locking the button.
 		Tween.CancelAll(buttonColor)
 		Tween.CancelAll(fingerprint)
-		-- Flash in
 		Tween.Play(buttonColor, "Click", {
 			BackgroundTransparency = 0.15,
 		})
 		Tween.Play(fingerprint, "Click", {
 			ImageTransparency = 0.1,
 		})
-		-- Fade back out shortly after the flash.
-		-- Rapid clicks restart the animation instead of locking the button.
 		task.delay(0.12, function()
 			if not row.Parent then
 				return
@@ -140,18 +124,15 @@ function Button.new(parent, Settings, theme)
 				ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE,
 			})
 		end)
-		-- Fire callback immediately; animation never blocks button behavior.
 		self.Callback()
 	end
 	row.MouseButton1Click:Connect(performClick)
-	-- Public API
 	self.UpdateName = function(_, newName)
 		label.Text = newName
 	end
 	self.Click = function()
 		performClick()
 	end
-	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
@@ -159,18 +140,14 @@ function Button.new(parent, Settings, theme)
 	ThemeManager.BindColor(fingerprint, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Fingerprint / glow transparencies are INTERACTION state (hover/click),
-	-- not theme-driven, so they are NOT bound. Re-stamp them to their natural
-	-- base on each theme switch: a switch cancels in-flight hover/click tweens
-	-- and the page-fade cache re-primes right after, so without this it would
-	-- capture a mid-tween value and the fingerprint would never restore.
+	-- Interaction transparencies aren't theme-bound; re-stamp them on theme
+	-- switch so a mid-tween hover/click value isn't captured.
 	local function restampInteractionBases()
 		fingerprint.ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE
 		buttonColor.BackgroundTransparency = BUTTONCOLOR_BASE
 	end
 	local unregisterTheme = ThemeManager.OnThemeApplied(restampInteractionBases, row)
 
-	-- Uniform component API (p2-4).
 	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end

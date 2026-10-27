@@ -1,5 +1,5 @@
 --[[
-	Aetheris  ·  UI Library facade
+	Aetheris/Init.luau
 
 	Single entry point for the whole library. Require this once and reach
 	everything through it, instead of deep-requiring individual modules:
@@ -23,13 +23,8 @@
 			},
 		})
 
-	Exposed surface:
-		Aetheris.Icons         - Lucide icon set (name -> rbxassetid://)
-		Aetheris.Window        - Window module (advanced use)
-		Aetheris.ThemeManager  - theme utilities (GetTheme / ApplyTheme)
-		Aetheris.ThemeDefinitions - the named theme tables
-		Aetheris.SetAuroraTexture - point the aurora at an uploaded glow texture
-		Aetheris:CreateWindow(Settings) - build a window (preferred entry)
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Window = require("./Core/Window")
@@ -46,8 +41,8 @@ Aetheris.Window = Window
 Aetheris.ThemeManager = ThemeManager
 Aetheris.ThemeDefinitions = ThemeDefinitions
 
--- Point the window aurora at an uploaded neutral glow texture (see
--- Constants.AuroraGlow). Pass nil to fall back to the procedural bloom.
+-- Points the aurora at an uploaded glow texture; pass nil to fall back to
+-- the procedural bloom.
 function Aetheris.SetAuroraTexture(id)
 	Aurora.SetTexture(id)
 end
@@ -56,9 +51,8 @@ function Aetheris:CreateWindow(Settings)
 	local options = table.clone(Settings or {})
 	options.AETHERIS_SECUREMODE = options.AETHERIS_SECUREMODE == true
 
-	-- KeySystem = {...} shows the loading + key card before the window builds.
-	-- The call blocks until the key is accepted; it returns nil + reason if
-	-- the card is dismissed without passing, so the window never opens.
+	-- KeySystem blocks until a key is accepted; a dismissed card returns nil
+	-- reason, so the window never opens.
 	local keyConfig = options.KeySystem
 	if keyConfig == true then
 		keyConfig = {}
