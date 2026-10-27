@@ -13,6 +13,11 @@
 			MinimizeKey = "LeftControl",
 			AnimationStyle = "Smooth",  -- or "Snappy"
 			AETHERIS_SECUREMODE = false, -- optional hardening; default false
+			KeySystem = {                -- optional; shows the key card first
+				SaveKey = true,
+				API = { { Type = "platoboost", ServiceId = 1234, Secret = "..." } },
+				Discord = "https://discord.gg/invite",
+			},
 			SettingsPages = {
 				{ Name = "Keybinds", Icon = Aetheris.Icons["keyboard"] },
 			},
@@ -28,6 +33,7 @@
 ]]
 
 local Window = require("./Core/Window")
+local KeyScreen = require("./Popups/KeyScreen")
 local Icons = require("./Assets/Icons")
 local Aurora = require("./Utils/Aurora")
 local ThemeManager = require("./Themes/ThemeManager")
@@ -49,6 +55,26 @@ end
 function Aetheris:CreateWindow(Settings)
 	local options = table.clone(Settings or {})
 	options.AETHERIS_SECUREMODE = options.AETHERIS_SECUREMODE == true
+
+	-- KeySystem = {...} shows the loading + key card before the window builds.
+	-- The call blocks until the key is accepted; it returns nil + reason if
+	-- the card is dismissed without passing, so the window never opens.
+	local keyConfig = options.KeySystem
+	if keyConfig == true then
+		keyConfig = {}
+	end
+	if type(keyConfig) == "table" then
+		local passed = KeyScreen.Run(keyConfig, {
+			Theme = options.Theme,
+			Title = options.Title,
+			SecureMode = options.AETHERIS_SECUREMODE,
+			DragStyle = Window.DragStyle,
+		})
+		if not passed then
+			return nil, "key system closed before a key was accepted."
+		end
+	end
+
 	return Window.new(options)
 end
 

@@ -91,6 +91,18 @@ local window = Aetheris:CreateWindow({
 	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl", -- press to minimize / restore the window
 	AETHERIS_SECUREMODE = false, -- true parents via gethui/CoreGui and renames to a UUID
+	KeySystem = {
+		-- Type "stub" accepts anything in Keys (or any key at all if Keys is
+		-- omitted). Swap in { Type = "platoboost", ServiceId = ..., Secret = ... }
+		-- or { Type = "panda", ServiceId = ... } for a real service, and add
+		-- Key = "MYKEY" (or a list/function) to also accept a static key.
+		API = {
+			{ Type = "stub", Keys = { "TEST" }, Link = "https://example.com/getkey" },
+		},
+		SaveKey = true, -- remember a valid key per place and skip the card next time
+		-- Discord = "https://discord.gg/invite", -- copy-link card on the key screen
+		-- Discord = { Link = "https://discord.gg/invite", Id = "123456789" }, -- + live counts
+	},
 	SettingsPages = { -- extra pages shown in the Settings tab
 		{
 			Name = "Keybinds",
