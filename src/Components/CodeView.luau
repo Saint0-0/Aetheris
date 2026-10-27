@@ -1,10 +1,12 @@
 --[[
-	CodeView  ·  Aetheris UI Library
+	Aetheris/Components/CodeView.luau
 
 	A syntax-highlighted code block with line numbers: view mode renders
 	theme-tinted RichText and (when Editable) a click swaps in a multiline
 	TextBox that re-highlights on blur. The header's copy button forwards the
 	current content to Settings.OnCopy — wire setclipboard there.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -23,27 +25,28 @@ CodeView.__index = CodeView
 
 local defaultHeight = 140
 local minHeight = 72
-local titleHeight = 24 -- header row: optional title left, copy button right
-local padding = 12 -- inset around the panel inside the element
-local textPadding = 5 -- inside the panel
+local titleHeight = 24
+local padding = 12
+local textPadding = 5
 local textSize = 13
-local lineHeight = 1 -- explicit: gutter measurement assumes natural line advance
-local gutterWidth = 36 -- line-number column, same x band in view and edit modes
-local codeX = gutterWidth - 4 -- where code starts; numbers right-align before it
-local relayoutDelay = 0.12 -- coalesce typing bursts into one re-measure
+-- explicit: gutter measurement assumes a natural line advance
+local lineHeight = 1
+-- the same x band in view and edit modes, so numbers never shift sideways
+local gutterWidth = 36
+local codeX = gutterWidth - 4
+-- coalesce typing bursts into one re-measure
+local relayoutDelay = 0.12
 local copyButtonSize = 22
 
--- Monospace for the code itself (and the numbers): the brand font would
--- shift columns around on every glyph.
+-- the brand font would shift columns around on every glyph
 local monoFont = Font.fromEnum(Enum.Font.Code)
 
 local function blend(a: Color3, b: Color3, t: number): Color3
 	return a:Lerp(b, t)
 end
 
--- Theme-tinted syntax palette. Each class is a hue offset from the theme
--- accent so relationships between colours survive every theme, while the
--- panel's luminance picks bright or dark values so tokens stay readable.
+-- each class is a hue offset from the theme accent so the colour relationships
+-- survive every theme, while panel luminance picks bright or dark values
 local function buildPalette(theme)
 	local panel = theme.InputBackgroundColor or theme.ComponentBackgroundColor or Color3.fromRGB(24, 24, 28)
 	local luminance = 0.2126 * panel.R + 0.7152 * panel.G + 0.0722 * panel.B
@@ -148,10 +151,10 @@ function CodeView:_build()
 	stroke.Parent = main
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Re-stamp after the bind: BindTransparency only writes on a theme CHANGE.
+	-- re-stamp after the bind: it only writes on theme change
 	stroke.Transparency = theme.StrokeTransparency or 0.9
 
-	-- Header: optional name on the left, copy button pinned top-right.
+	-- optional name on the left, copy button pinned top-right
 	local title = Instance.new("TextLabel")
 	title.Name = UUID.Static("Title")
 	title.BorderSizePixel = 0
@@ -171,12 +174,8 @@ function CodeView:_build()
 	ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
 	self._title = title
 
-	-- Copy: an icon pill carrying the Button component's motion (UIScale
-	-- hover/press bounce + PrimaryColor click flash). The flash frame sits
-	-- under the icon, exactly like Button's overlay sits under its
-	-- fingerprint. The icon flips to clipboard-check for half a second on
-	-- click. The executor-side clipboard hook lives with the caller
-	-- (setclipboard is executor-only), so it's inert until OnCopy exists.
+	-- copy pill carries the Button component's motion (UIScale bounce + click
+	-- flash); the clipboard hook is the caller's, so it's inert without OnCopy
 	local copyBtn = Instance.new("ImageButton")
 	copyBtn.Name = UUID.Static("CopyButton")
 	copyBtn.AutoButtonColor = false
@@ -266,7 +265,7 @@ function CodeView:_build()
 	table.insert(
 		self._conns,
 		copyBtn.MouseButton1Click:Connect(function()
-			-- Button's click flash: overlay in over 0.12s, out over 0.5s.
+			-- Button's click flash: in over 0.12s, out over 0.5s
 			Tween.CancelAll(copyFlash)
 			Tween.Play(copyFlash, "Click", { BackgroundTransparency = 0.15 })
 			task.delay(0.12, function()
@@ -275,8 +274,8 @@ function CodeView:_build()
 				end
 				Tween.Play(copyFlash, "Release", { BackgroundTransparency = 1 })
 			end)
-			-- clipboard-check for a brief beat, then back (versioned so
-			-- rapid clicks never leave the check icon stuck).
+			-- clipboard-check for a beat, then back; versioned so rapid clicks
+			-- never leave the check icon stuck
 			self._copyVersion += 1
 			local version = self._copyVersion
 			copyIcon.Image = Icons["clipboard-check"] or copyIcon.Image
@@ -295,7 +294,7 @@ function CodeView:_build()
 		end)
 	)
 
-	-- Inner panel the code scrolls inside: darker than the card, terminal-like.
+	-- darker than the card it sits on, the way a terminal reads
 	local panel = Instance.new("Frame")
 	panel.Name = UUID.Static("Panel")
 	panel.AnchorPoint = Vector2.new(0.5, 1)
@@ -346,8 +345,8 @@ function CodeView:_build()
 	layout.Parent = scroll
 	self._layout = layout
 
-	-- Edit stack: a layout child holding the TextBox offset past the number
-	-- band, so edit-mode text lands in the same column as view-mode code.
+	-- layout child holding the TextBox offset past the number band, so edit-mode
+	-- text lands in the same column as view-mode code
 	local editStack = Instance.new("Frame")
 	editStack.Name = UUID.Static("EditStack")
 	editStack.BackgroundTransparency = 1
@@ -381,8 +380,8 @@ function CodeView:_build()
 	ThemeManager.BindColor(box, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(box, "TextTransparency", "PrimaryTextTransparency")
 
-	-- Static line-number column: only shown while editing (view mode keeps its
-	-- numbers inline with each row, so both share the same x band).
+	-- static number column: only shown while editing, since view mode keeps its
+	-- numbers inline with each row
 	local gutterClip = Instance.new("Frame")
 	gutterClip.Name = UUID.Static("GutterClip")
 	gutterClip.Position = UDim2.fromOffset(textPadding, textPadding)
@@ -410,7 +409,7 @@ function CodeView:_build()
 	gutterLayout.Parent = gutterInner
 	self._gutterLayout = gutterLayout
 
-	-- Wiring: focus swap, typing re-measure, gutter scroll sync, resize.
+	-- focus swap, typing re-measure, gutter scroll sync, resize
 	table.insert(
 		self._conns,
 		box.FocusLost:Connect(function()
@@ -445,9 +444,8 @@ function CodeView:_build()
 	end, main)
 end
 
--- One row per line: number label + highlighted code label, both mono. The row
--- auto-sizes to the wrapped code label, so numbers stay pinned to each line's
--- first row no matter how it wraps.
+-- one row per line: number label + highlighted code label, both mono; the row
+-- auto-sizes to the wrapped code, so numbers stay pinned to each line's first row
 function CodeView:_buildRows()
 	for _, row in ipairs(self._rows) do
 		for _, descendant in ipairs(row:GetDescendants()) do
@@ -503,7 +501,7 @@ function CodeView:_buildRows()
 		code.TextXAlignment = Enum.TextXAlignment.Left
 		code.TextYAlignment = Enum.TextYAlignment.Top
 		code.TextColor3 = self._theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
-		-- An empty line collapses to nothing; one space keeps its row.
+		-- an empty line collapses to nothing; one space keeps its row
 		code.Text = if rich[index] ~= nil and rich[index] ~= "" then rich[index] else " "
 		code.Position = UDim2.fromOffset(codeX, 0)
 		code.Size = UDim2.new(1, -codeX, 0, 0)
@@ -535,10 +533,10 @@ function CodeView:_enterEdit()
 	self._editStack.Visible = true
 	self._gutterClip.Visible = true
 	self._box.Text = self._text
-	-- The box never shows itself until now — without this the view rows hide
-	-- and the editor is invisible, so the user types into blank space.
+	-- the box never shows itself until now, or the user types into blank space
 	self._box.Visible = true
-	self:_relayout() -- size it in the same frame; the debounced pass re-checks
+	-- size in the same frame; the debounced pass re-checks once layout settles
+	self:_relayout()
 	self:_scheduleRelayout()
 	task.defer(function()
 		if not self._destroyed then
@@ -547,8 +545,8 @@ function CodeView:_enterEdit()
 	end)
 end
 
--- commit = the focus loss came from a click elsewhere; take the box's text as
--- the new source and rebuild the highlighted view on top of it.
+-- commit = the focus loss came from a click elsewhere, so the box's text
+-- becomes the new source and the highlighted view rebuilds on top of it
 function CodeView:_exitEdit(commit: boolean)
 	if not self._editing then
 		return
@@ -573,9 +571,9 @@ function CodeView:_scheduleRelayout()
 	end)
 end
 
--- Edit mode only: measure every (wrapped) line so the TextBox and the static
--- gutter agree on where each line starts. Width 0 means the first layout pass
--- hasn't run; the AbsoluteSize watcher re-schedules once it has.
+-- edit mode only: measure every wrapped line so the TextBox and the static
+-- gutter agree on where each line starts; width 0 means the first layout pass
+-- hasn't run and the AbsoluteSize watcher re-schedules once it has
 function CodeView:_relayout()
 	if not self._editing then
 		return
@@ -644,8 +642,8 @@ function CodeView:_applyTheme(liveTheme)
 	end
 	self._theme = ThemeManager.GetTheme(liveTheme)
 	self._palette = buildPalette(self._theme)
-	-- Colour sides ride the bindings; interaction transparencies need a
-	-- restamp (a theme switch cancels in-flight hover/click tweens).
+	-- colours ride the bindings; interaction transparencies need a restamp
+	-- because a theme switch cancels in-flight hover/click tweens
 	self._panel.BackgroundTransparency = 0.15
 	self._panelStroke.Transparency = 0.9
 	self._copyFlash.BackgroundTransparency = 1
