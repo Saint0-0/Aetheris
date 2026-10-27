@@ -590,8 +590,15 @@ function CodeView:_relayout()
 	local heights = {}
 	for index, line in ipairs(lines) do
 		local probe = if line == "" then " " else line
-		local bounds = TextService:GetTextSize(probe, textSize, monoFont, Vector2.new(width, 100000))
-		local rowHeight = math.max(bounds.Y, textSize)
+		local params = Instance.new("GetTextBoundsParams")
+		params.Text = probe
+		params.Font = monoFont
+		params.Size = textSize
+		params.Width = width
+		local ok, bounds = pcall(function()
+			return TextService:GetTextBoundsAsync(params)
+		end)
+		local rowHeight = math.max((ok and bounds.Y) or textSize, textSize)
 		heights[index] = rowHeight
 		total += rowHeight
 	end

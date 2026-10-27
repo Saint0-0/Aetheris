@@ -26,7 +26,6 @@ local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
 local ConfigManager = require("./Settings/ConfigManager")
 local PageAwareness = require("../Utils/PageAwareness")
-local TextRoll = require("../Utils/TextRoll")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -763,25 +762,35 @@ function Window.new(Settings)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
 
-	-- Clicking the display name toggles masking of both the display name and
-	-- username, rolling each changed glyph (Utils/TextRoll). The
-	-- Mask Display Name setting decides what state a new window starts in.
+	-- Clicking the display name swaps both lines to asterisks behind a quick
+	-- fade. The Mask Display Name setting picks the state a window opens in.
 	local originalDisplayName = DisplayName.Text
 	local originalUsername = Username.Text
 	local function maskOf(text)
 		return string.rep("*", utf8.len(text) or #text)
 	end
-	local displayNameRoll = TextRoll.new(DisplayName)
-	local usernameRoll = TextRoll.new(Username)
 	local masked = SettingsStore.Get("MaskDisplayName") == true
-	local function applyMask(instant)
-		displayNameRoll:SetText(if masked then maskOf(originalDisplayName) else originalDisplayName, instant)
-		usernameRoll:SetText(if masked then maskOf(originalUsername) else originalUsername, instant)
-	end
-	applyMask(true)
+	DisplayName.Text = if masked then maskOf(originalDisplayName) else originalDisplayName
+	Username.Text = if masked then maskOf(originalUsername) else originalUsername
+	local maskFading = false
 	DisplayName.MouseButton1Click:Connect(function()
+		if maskFading then
+			return
+		end
+		maskFading = true
 		masked = not masked
-		applyMask(false)
+		Tween.Play(DisplayName, "Fast", { TextTransparency = 1 })
+		Tween.Play(Username, "Fast", { TextTransparency = 1 })
+		task.delay(0.2, function()
+			if not DisplayName.Parent then
+				return
+			end
+			DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
+			Username.Text = masked and maskOf(originalUsername) or originalUsername
+			Tween.Play(DisplayName, "Smooth", { TextTransparency = 0.3 })
+			Tween.Play(Username, "Smooth", { TextTransparency = 0.7 })
+			maskFading = false
+		end)
 	end)
 
 	local TimeLabel = Instance.new("TextLabel")

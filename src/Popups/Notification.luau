@@ -623,12 +623,31 @@ function Notification:ApplyTheme(themeInput)
 	if self._dismiss then
 		self._dismiss.ImageColor3 = theme.NotificationDismissColor or self._dismiss.ImageColor3
 	end
+	self:_resumeTimer()
 end
 
 function Notification:_startTimer()
+	self._timerStarted = os.clock()
 	self._timerTween = Tween.Play(
 		self.TimerFrame,
 		TweenInfo.new(self.Duration, Enum.EasingStyle.Linear),
+		{ Size = UDim2.fromOffset(0, 2) }
+	)
+end
+
+-- A theme switch cancels every tween under the ScreenGui, including this
+-- bar's. Pick it back up from wherever the sweep left it.
+function Notification:_resumeTimer()
+	if self._closing or not self._timerStarted then
+		return
+	end
+	local remaining = self.Duration - (os.clock() - self._timerStarted)
+	if remaining <= 0 then
+		return
+	end
+	self._timerTween = Tween.Play(
+		self.TimerFrame,
+		TweenInfo.new(remaining, Enum.EasingStyle.Linear),
 		{ Size = UDim2.fromOffset(0, 2) }
 	)
 end
