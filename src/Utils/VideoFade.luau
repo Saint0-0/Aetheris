@@ -1,12 +1,11 @@
 --[[
-	VideoFade  ·  Aetheris UI Library
+	Aetheris/Utils/VideoFade.luau
 
-	VideoFrame.Transparency does not actually affect the rendered video, so the
-	Video component puts a UIGradient ("FadeGradient", tagged IsVideoFade) on
-	the frame and fades THAT instead. UIGradient.Transparency is a NumberSequence
-	which TweenService cannot interpolate, so it is lerped manually per frame.
-
-	Public API: attach, set, get, fade.
+	VideoFrame.Transparency doesn't affect the rendered video, so the Video
+	component fades a tagged UIGradient instead. UIGradient.Transparency is a
+	NumberSequence TweenService can't interpolate, so it's lerped per frame.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local RunService = game:GetService("RunService")
@@ -35,9 +34,8 @@ function VideoFade.get(grad)
 	return 0
 end
 
--- Easing curves matching the Tween presets used across the UI, so the video
--- fades in lockstep with everything else ("Smooth" = Quad InOut, "Fast" =
--- Quad Out). A raw linear lerp makes the video linger visibly at the start.
+-- Matches the UI's Tween presets so the video fades in lockstep; a raw
+-- linear lerp lingers visibly at the start.
 local EASING = {
 	Out = function(t)
 		return 1 - (1 - t) * (1 - t)
@@ -53,9 +51,6 @@ local EASING = {
 	end,
 }
 
--- Animate a video fade gradient's uniform transparency to `target` over
--- `duration`, using `easingName` ("Out"|"InOut"|"Linear"). Calls `onComplete`
--- when it finishes (or the gradient is gone).
 function VideoFade.fade(grad, target, duration, easingName, onComplete)
 	duration = duration or 0.3
 	local ease = EASING[easingName or "Out"] or EASING.Out

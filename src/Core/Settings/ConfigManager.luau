@@ -1,16 +1,17 @@
 --[[
-	ConfigManager  ·  Aetheris UI Library
+	Aetheris/Core/Settings/ConfigManager.luau
 
 	Per-game config save/load in the Fluent SaveManager style: JSON files
 	under Aetheris/Games/<placeId>/<WindowTitle>/. Components built through
 	windowed Sections register here; Save writes their values, Load restores
 	them (callbacks fire so script logic reacts to a load).
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 --# selene: allow(undefined_variable)
--- The executor file API (writefile/readfile/isfile/makefolder/delfile) is
--- injected by the host executor, not defined in source. It is probed
--- defensively with type(x) == "function" (SettingsStore pattern), scoped here.
+-- Executor file APIs (writefile/readfile/isfile/makefolder/delfile) are
+-- injected by the host and probed with type() checks before every use.
 
 local HttpService = game:GetService("HttpService")
 local SettingsStore = require("./SettingsStore")
@@ -23,9 +24,8 @@ local hasFileAPI = (type(writefile) == "function" and type(readfile) == "functio
 local ConfigManager = {}
 ConfigManager.__index = ConfigManager
 
--- Value parsers per component kind. Save converts the component to a plain
--- (JSON-encodable) value; Load applies a plain value back via the component's
--- public setter. Setters' first arg is the self placeholder (colon calls).
+-- Save converts a component to a plain JSON value; Load applies it back via
+-- the component's public setter (whose first arg is the self placeholder).
 local Parsers = {
 	Toggle = {
 		Save = function(comp)
@@ -128,8 +128,7 @@ local Parsers = {
 	},
 }
 
--- Strip rich-text tags and path-illegal characters from the window title so
--- it is usable as a folder name; fall back when nothing usable remains.
+-- Folder-name-safe copy of the window title; falls back when nothing usable remains
 local function sanitizeTitle(title)
 	title = tostring(title or ""):gsub("<[^>]->", "")
 	title = title:gsub('[\\/:*?"<>|]', ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -177,9 +176,8 @@ function ConfigManager:_ensureFolders()
 	ensureFolder(self.Folder)
 end
 
--- Called by Section factories. Keys are "Section.ComponentName" (Fluent
--- style) with a numeric suffix on collisions, so save files stay stable
--- across sessions as long as the script builds the same UI.
+-- Section factories call this. Keys are "Section.ComponentName" with a
+-- numeric suffix on collisions, so save files stay stable across sessions.
 function ConfigManager:Register(kind, sectionName, component)
 	local parser = Parsers[kind]
 	if not parser then
@@ -210,8 +208,7 @@ function ConfigManager:Serialize()
 	return data
 end
 
--- Re-list the folder on every call (Fluent's refresh pattern), so configs
--- written by other sessions/scripts show up without a stale cache.
+-- Re-list the folder every call so configs written elsewhere show up
 function ConfigManager:List()
 	local names = {}
 	if not hasFileAPI then
@@ -306,7 +303,6 @@ function ConfigManager:Delete(name)
 	return true
 end
 
--- Raw file content for the Configs page preview (CodeView, json).
 function ConfigManager:Preview(name)
 	if not hasFileAPI then
 		return nil
@@ -321,8 +317,8 @@ function ConfigManager:Preview(name)
 	return nil
 end
 
--- Debounced auto-save hook: component callbacks ping this on every user
--- change; writes land ~0.5s after the last one, only on the active config.
+-- Debounced auto-save: writes land ~0.5s after the last change, only on the
+-- active config.
 function ConfigManager:NotifyChanged()
 	if not self._autoSave or not self.Active then
 		return
@@ -340,8 +336,7 @@ end
 function ConfigManager:SetAutoSave(on)
 	self._autoSave = on == true
 	SettingsStore.Set("AutoSaveConfigs", self._autoSave)
-	-- Make auto-save useful immediately: with no active config yet, changes
-	-- would accumulate nowhere, so adopt a default target on enable.
+	-- with no active config yet, changes would accumulate nowhere
 	if self._autoSave and not self.Active then
 		self.Active = "Autosave"
 	end
@@ -351,7 +346,7 @@ function ConfigManager:GetAutoSave()
 	return self._autoSave
 end
 
--- Window teardown: write any pending auto-save now instead of losing it.
+-- Window teardown: write any pending auto-save now instead of losing it
 function ConfigManager:Flush()
 	if self._pendingSave then
 		local name = self.Active

@@ -1,11 +1,11 @@
 --[[
-	Themes (settings page)  ·  Aetheris UI Library
+	Aetheris/Core/Settings/Themes.luau
 
-	Builds the "Themes" page as a grid of theme cards. Each card uses the
-	theme's WindowColor background, shows Primary/Secondary/Tertiary/Accent
-	swatches plus a wallpaper backdrop, and reflects the active/inactive state
-	through BackImage / ThemeTitle / Divider transparencies. THEME_ORDER sets
-	the render order; the active card is marked from window._themeName.
+	Builds the "Themes" page as a grid of theme cards. Each card previews its
+	theme's wallpaper, swatches and accent strokes, and reflects active/inactive
+	state through transparency. THEME_ORDER sets the render order.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ThemeDefinitions = require("../../Themes/ThemeDefinitions")
@@ -60,7 +60,7 @@ local THEME_ORDER = {
 	"Linen",
 }
 
--- Card-sized descriptions; keep them short enough not to wrap.
+-- short enough to fit a card without wrapping
 local THEME_DESCRIPTIONS = {
 	Umbral = "Deep navy night",
 	Ember = "Lava on slate",
@@ -95,7 +95,6 @@ local THEME_DESCRIPTIONS = {
 	Frost = "Fire on ice",
 	Amber = "Porcelain pop",
 	Rosa = "Rose & periwinkle",
-	-- Added (2026-10): each fills a gap the original roster had no answer for.
 	Gruvbox = "Warm retro",
 	Graphite = "Pure neutral",
 	Crimson = "Deep red",
@@ -139,7 +138,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = card
 
-	-- Vertical divider reflects TertiaryColor (used for scrollbars etc.)
 	local divider = Instance.new("Frame")
 	divider.Name = UUID.Static("Divider")
 	divider.BorderSizePixel = 0
@@ -150,7 +148,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 	divider.Position = UDim2.fromScale(0.5, 0.5)
 	divider.Parent = card
 
-	-- 2x2 color swatch holder
 	local colorHolder = Instance.new("Frame")
 	colorHolder.Name = UUID.Static("ThemeColorHolder")
 	colorHolder.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -196,7 +193,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 		swatchScales[def[1]] = swScale
 	end
 
-	-- Wallpaper backdrop
 	local backImage = Instance.new("ImageLabel")
 	backImage.Name = UUID.Static("BackImage")
 	backImage.BorderSizePixel = 0
@@ -232,7 +228,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 	})
 	gradient.Parent = backImage
 
-	-- Theme title (active cards use lower transparency)
 	local title = Instance.new("TextLabel")
 	title.Name = UUID.Static("ThemeTitle")
 	title.TextSize = 13
@@ -247,7 +242,6 @@ local function makeCard(parent, name, theme, active, onActivate)
 	title.Text = name
 	title.Parent = card
 
-	-- Theme description
 	local description = Instance.new("TextLabel")
 	description.Name = UUID.Static("ThemeDescription")
 	description.TextSize = 9
@@ -404,17 +398,11 @@ function Themes.Build(window, tab)
 	local page = tab.Page
 	local pageTheme = ThemeManager.GetTheme(tab._theme)
 
-	-- The Themes page uses the template's proportion: {1,0},{0.879,0}.
+	-- fixed proportion the rest of the settings layout assumes
 	page.Size = UDim2.fromScale(1, 0.87857)
 	page.Position = UDim2.fromScale(0.5, 0.561)
 	page.AnchorPoint = Vector2.new(0.5, 0.5)
 
-	--ui constraint for page
-	--local pageUIConstraint = Instance.new("UISizeConstraint")
-	--pageUIConstraint.MinSize = Vector2.new(535, 340)
-	--pageUIConstraint.Parent = page
-
-	-- Page title
 	local pageTitle = Instance.new("TextLabel")
 	pageTitle.Name = UUID.Static("ThemePageText")
 	pageTitle.TextWrapped = true
@@ -434,10 +422,8 @@ function Themes.Build(window, tab)
 	pageTitle.Position = UDim2.fromScale(0, 0)
 	pageTitle.Parent = page
 
-	-- PageHolder: a scrolling container for the theme cards, sitting below
-	-- the fixed header. It matches the rest of the UI (thin scrollbar in the
-	-- theme's tertiary color, hidden until the user scrolls) and is
-	-- re-colored on theme switch by ThemeManager's ScrollingFrame pass.
+	-- scrolling container for the cards; ThemeManager's ScrollingFrame pass
+	-- re-colors its scrollbar on theme switch
 	local pageHolder = Instance.new("ScrollingFrame")
 	pageHolder.Name = UUID.Static("PageHolder")
 	pageHolder.BorderSizePixel = 0
@@ -453,7 +439,6 @@ function Themes.Build(window, tab)
 	pageHolder.ScrollBarImageTransparency = 1
 	pageHolder.Parent = page
 
-	-- Hide the scrollbar until scrolling, mirroring TabList's behaviour.
 	local holderScrollbarTimer
 	pageHolder:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		Tween.Play(pageHolder, "Fast", { ScrollBarImageTransparency = 0.5 })
@@ -469,13 +454,11 @@ function Themes.Build(window, tab)
 	local holderPadding = Instance.new("UIPadding")
 	holderPadding.PaddingTop = UDim.new(0, 10)
 	holderPadding.PaddingBottom = UDim.new(0, 20)
-	-- Keep hover scale and card shadows inside the scroll frame instead of
-	-- clipping the first/last column against its edges.
+	-- side padding keeps hover-scaled cards and shadows from clipping
 	holderPadding.PaddingLeft = UDim.new(0, 10)
 	holderPadding.PaddingRight = UDim.new(0, 10)
 	holderPadding.Parent = pageHolder
 
-	-- Grid lays the theme cards out directly on the scrolling PageHolder.
 	local grid = Instance.new("UIGridLayout")
 	grid.CellSize = UDim2.fromOffset(145, 75)
 	grid.CellPadding = UDim2.fromOffset(17, 10)
@@ -485,7 +468,6 @@ function Themes.Build(window, tab)
 	grid.VerticalAlignment = Enum.VerticalAlignment.Top
 	grid.Parent = pageHolder
 
-	-- Build ordered theme list (THEME_ORDER first, then any extras)
 	local ordered = {}
 	local seen = {}
 	for _, name in ipairs(THEME_ORDER) do
@@ -500,7 +482,6 @@ function Themes.Build(window, tab)
 		end
 	end
 
-	-- Current theme label
 	local currentText = Instance.new("TextLabel")
 	currentText.Name = UUID.Static("CurrentThemeText")
 	currentText.TextWrapped = true
@@ -520,7 +501,6 @@ function Themes.Build(window, tab)
 	currentText.Position = UDim2.fromScale(0, 0.06)
 	currentText.Parent = page
 
-	-- Store card states and active theme name
 	tab._themeCards = {}
 	tab._activeThemeName = window._themeName or ThemeManager.DefaultTheme
 
@@ -543,15 +523,11 @@ function Themes.Build(window, tab)
 		tab._themeCards[name] = state
 	end
 
-	-- Initial current-theme text (in case the active name isn't in the list)
+	-- fallback when the active theme isn't in the ordered list
 	currentText.Text = "<b>Current theme:</b> " .. tab._activeThemeName
 
-	-- Component-owned theming. The Themes page is a settings page (not a
-	-- regular component), but its header texts and card-grid scrollbar must
-	-- follow the active theme. Register a small themable wrapper on the page
-	-- frame so the registry reaches it without a name-matching pass.
-	-- NOTE: the theme CARDS themselves are intentionally left alone - each
-	-- card previews a specific theme's colors and must NOT be re-tinted.
+	-- header texts and scrollbar follow the theme; the cards themselves are
+	-- left alone, since each previews a specific theme's colors
 	local themesPageComponent = {}
 	function themesPageComponent:ApplyTheme(newTheme)
 		local t = ThemeManager.GetTheme(newTheme)

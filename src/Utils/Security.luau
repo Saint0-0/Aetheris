@@ -1,10 +1,12 @@
 --[[
-	Security  ·  Aetheris UI Library
+	Aetheris/Utils/Security.luau
 
 	Optional hardening for AETHERIS_SECUREMODE. Parenting prefers gethui,
 	then CoreGui, then PlayerGui; protection hooks are called when the
 	executor exposes them. All calls are pcall-guarded so the UI still loads
 	in a plain Studio session.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local UUID = require("./UUID")

@@ -1,10 +1,12 @@
 --[[
-	ComponentAPI  ·  Aetheris UI Library
+	Aetheris/Utils/ComponentAPI.luau
 
 	Adds the shared public surface every component exposes: SetName /
 	UpdateName, SetVisible / SetVisibility, GetVisible, and a fallback
 	Destroy. Components with custom name side effects pass OnName; components
 	with custom teardown keep their own Destroy.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local ComponentAPI = {}

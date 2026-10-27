@@ -1,35 +1,27 @@
 --[[
-	SettingsStore  ·  Aetheris UI Library
+	Aetheris/Core/Settings/SettingsStore.luau
 
 	Central store for user-adjustable settings (theme, UI scale, minimize key,
-	spin toggle, confirm-on-close, UI volume). Single source of truth that the
-	UI reads from on build and writes to on change.
-
-	Persistence: saves JSON to Aetheris/UI Settings/ when an executor file
-	API is available, otherwise falls back to a session-only table. This keeps
-	it working in Studio and in a plain game, while persisting across sessions
-	in an executor.
-
-	Public API: Load, Get, Set, Save (debounced), SaveNow, Flush, Defaults.
+	spin toggle, confirm-on-close, UI volume), persisted as JSON to
+	Aetheris/UI Settings/ when an executor file API exists, session-only
+	otherwise. Load, Get, Set, Save (debounced), SaveNow, Flush, Defaults.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 --# selene: allow(undefined_variable)
--- The executor file API (writefile/readfile/isfile) is injected by the host
--- executor at runtime, not defined in source. It is probed defensively with
--- type(x) == "function", so referencing it is intentional. Scoped to THIS
--- file only, so a genuine undefined-variable typo elsewhere is still caught.
+-- Executor file APIs (writefile/readfile/isfile) are injected by the host and
+-- probed with type() checks before every use.
 
 local HttpService = game:GetService("HttpService")
 
 local SettingsStore = {}
 
--- UI settings persist in their own folder under the workspace root. The
--- pre-folder file (root of the workspace) is migrated in-place on first load.
+-- Settings live in their own folder; the old root-level file migrates in-place
 local SETTINGS_FOLDER = "Aetheris/UI Settings"
 local FILE_NAME = SETTINGS_FOLDER .. "/UI Settings.json"
 local LEGACY_FILE = "Aetheris_settings.json"
 
--- Executor file API (present in most executors, absent in Studio/vanilla).
 local hasFileAPI = (type(writefile) == "function" and type(readfile) == "function")
 
 local function ensureFolder(path)
@@ -44,11 +36,8 @@ local function ensureFolder(path)
 	end)
 end
 
--- Set when Load read the pre-folder file; SaveNow writes the new path first,
--- then deletes the legacy file.
-local migratedFromLegacy = false
+local migratedFromLegacy = false -- Load read the old root file; SaveNow rewrites then deletes it
 
--- Defaults. Anything missing from a loaded config falls back to these.
 SettingsStore.Defaults = {
 	Theme = nil, -- nil = whatever CreateWindow was given
 	UIScale = 1, -- window scale, 0.8 - 1.25
@@ -69,10 +58,8 @@ for k, v in pairs(SettingsStore.Defaults) do
 	SettingsStore.Data[k] = v
 end
 
--- A Lua table can't hold a nil value, so keys whose default is "unset"
--- (Theme / MinimizeKey / Font) don't appear in Defaults and would be dropped
--- by the load filter below. List them so they still round-trip through the
--- saved JSON file.
+-- nil defaults (Theme / MinimizeKey / Font) can't round-trip through a Lua
+-- table or the saved JSON on their own; list them so Load keeps them.
 SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font" }
 
 function SettingsStore.Load()
@@ -86,7 +73,7 @@ function SettingsStore.Load()
 		return readfile(FILE_NAME)
 	end)
 	if not (ok and content and content ~= "") then
-		-- Legacy migration: read the pre-folder file at the workspace root.
+		-- fall back to the old root-level file (migrated below)
 		local okLegacy, legacy = pcall(function()
 			if isfile and not isfile(LEGACY_FILE) then
 				return nil
@@ -124,8 +111,7 @@ function SettingsStore.Load()
 	return SettingsStore.Data
 end
 
--- Immediate write. Does the JSON encode + writefile synchronously. Most
--- callers should use Save() (debounced) instead; Flush() forces this now.
+-- Immediate write; most callers want the debounced Save() instead.
 function SettingsStore.SaveNow()
 	if not hasFileAPI then
 		return
@@ -151,10 +137,8 @@ function SettingsStore.SaveNow()
 	end
 end
 
--- Debounced write. A drag of the UI Scale / Volume slider fires Set() on every
--- mouse move; writing the file each tick is disk I/O per frame. Coalesce those
--- into one write ~300ms after the last change. Flush() (called on window
--- teardown) writes immediately if a write is pending.
+-- Debounced write: a UI Scale / Volume slider drag fires Set() per mouse
+-- move, so coalesce into one write ~300ms after the last change.
 local SAVE_DEBOUNCE = 0.3
 local pendingSave = nil
 
@@ -171,8 +155,6 @@ function SettingsStore.Save()
 	end)
 end
 
--- Write any pending change immediately (e.g. window closing). Safe to call
--- when nothing is pending.
 function SettingsStore.Flush()
 	if pendingSave then
 		task.cancel(pendingSave)
@@ -181,7 +163,6 @@ function SettingsStore.Flush()
 	end
 end
 
--- Get a setting (falls back to its default).
 function SettingsStore.Get(key)
 	local v = SettingsStore.Data[key]
 	if v == nil then
@@ -190,7 +171,6 @@ function SettingsStore.Get(key)
 	return v
 end
 
--- Set a setting and persist.
 function SettingsStore.Set(key, value)
 	SettingsStore.Data[key] = value
 	SettingsStore.Save()

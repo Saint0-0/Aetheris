@@ -1,9 +1,11 @@
 --[[
-	Configs  ·  Aetheris UI Library
+	Aetheris/Core/Settings/Configs.luau
 
 	Settings page for the per-game config system: save the current component
 	values under a name, load or delete them from a dropdown, toggle
 	auto-save, and preview the selected config's JSON in a CodeView.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Configs = {}
@@ -21,10 +23,9 @@ function Configs.Build(window, tab)
 	end
 
 	local selectedName = nil
-	local refreshAll -- forward declaration: Save button refreshes the list too
-	local refreshPreview -- forward declaration: the dropdown callback previews
+	local refreshAll -- forward declared: Save also refreshes the list
+	local refreshPreview -- forward declared: the dropdown callback previews
 
-	-- == Save ===============================================================
 	local saveSection = tab:Section({ Name = "Save" })
 	local nameInput = saveSection:TextInput({
 		Name = "Config Name",
@@ -46,7 +47,6 @@ function Configs.Build(window, tab)
 		end,
 	})
 
-	-- == Load ===============================================================
 	local loadSection = tab:Section({ Name = "Load" })
 	local configDropdown = loadSection:Dropdown({
 		Name = "Config",
@@ -95,7 +95,6 @@ function Configs.Build(window, tab)
 		end,
 	})
 
-	-- == Options ============================================================
 	local optionsSection = tab:Section({ Name = "Options" })
 	optionsSection:Toggle({
 		Name = "Auto-Save",
@@ -106,7 +105,6 @@ function Configs.Build(window, tab)
 		end,
 	})
 
-	-- == Preview ============================================================
 	local previewSection = tab:Section({ Name = "Preview" })
 	local preview = previewSection:CodeView({
 		Name = "Config Preview",
@@ -133,8 +131,7 @@ function Configs.Build(window, tab)
 			table.insert(items, { name = configName, value = configName })
 		end
 		configDropdown:SetValues(items, false)
-		-- Keep the current selection if it still exists; otherwise take the
-		-- first config (or clear out when the folder is empty).
+		-- keep the selection if it still exists, else fall back to the first
 		if selectedName and table.find(names, selectedName) then
 			configDropdown:SetValue(selectedName, true)
 		else
@@ -146,8 +143,7 @@ function Configs.Build(window, tab)
 		refreshPreview(selectedName)
 	end
 
-	-- Populate once the window has finished building (deferred past
-	-- Window.new's current thread).
+	-- deferred so it runs after Window.new's current thread
 	task.defer(refreshAll)
 end
 

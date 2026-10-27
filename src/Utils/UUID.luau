@@ -1,9 +1,11 @@
 --[[
-	UUID  ·  Aetheris UI Library
+	Aetheris/Utils/UUID.luau
 
-	Names interface elements. Secure mode uses deterministic UUIDs for fixed
-	elements and random UUIDs for per-instance elements; normal mode keeps
-	readable semantic names so Explorer stays usable.
+	Names interface elements. Secure mode hashes fixed keys to deterministic
+	UUIDs and randomizes per-instance ones; normal mode keeps readable names
+	so Explorer stays usable.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local UUID = {}

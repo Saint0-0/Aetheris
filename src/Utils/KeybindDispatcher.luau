@@ -1,32 +1,20 @@
 --[[
-	KeybindDispatcher  ·  Aetheris UI Library
+	Aetheris/Utils/KeybindDispatcher.luau
 
-	One shared UserInputService.InputBegan listener for every Keybind row.
-
-	Previously each Keybind owned its own InputBegan connection, so N binds
-	meant N handlers firing on every keypress, each string-comparing
-	input.KeyCode.Name. The dispatcher keeps a KeyCode.Name -> callbacks map
-	and does ONE O(1) map lookup per keystroke; the listener count is constant
-	no matter how many binds exist.
-
-	Lifecycle: the connection is created lazily on the first Register and kept
-	for the session (cheap: one connection, one map lookup per keypress). A
-	register/unregister pair is reference-counted per key so emptying a key's
-	bucket drops the map entry.
-
-	Public API:
-		Register(keyName, callback) -> token   -- token is an opaque handle
-		Unregister(token)
+	Single shared InputBegan listener for every Keybind row: one O(1) map
+	lookup per keystroke instead of N connections each comparing key names.
+	Register returns an opaque token; Unregister drops it and removes a key's
+	bucket once it empties.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local UserInputService = game:GetService("UserInputService")
 
 local KeybindDispatcher = {}
 
--- [keyName] = { [token] = callback }
-local byKey = {}
--- [token] = keyName  (reverse lookup for Unregister)
-local tokenToKey = {}
+local byKey = {} -- [keyName] = { [token] = callback }
+local tokenToKey = {} -- reverse lookup for Unregister
 local nextToken = 0
 local connection = nil
 
@@ -35,8 +23,7 @@ local function ensureConnection()
 		return
 	end
 	connection = UserInputService.InputBegan:Connect(function(input, processed)
-		-- Respect game-processed input (chat / a focused TextBox), matching
-		-- the old per-row handler's behavior.
+		-- ignore chat / focused TextBox input
 		if processed then
 			return
 		end
@@ -47,10 +34,6 @@ local function ensureConnection()
 		if not bucket then
 			return
 		end
-		-- Copy-free iteration is fine here: callbacks must not mutate the
-		-- bucket synchronously in a way that would break the loop. If one
-		-- does (unregisters itself), pairs() on a table with a single
-		-- removed key is still well-defined in Luau.
 		for _, cb in pairs(bucket) do
 			cb()
 		end

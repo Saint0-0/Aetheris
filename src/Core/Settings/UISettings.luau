@@ -1,10 +1,11 @@
 --[[
-	UISettings  ·  Aetheris UI Library
+	Aetheris/Core/Settings/UISettings.luau
 
 	Builds the "UI Settings" page as one vertical column of named Sections
 	(Interface, Compact Mode, Behaviour, Visuals, Minimize Pill, Actions);
 	every control is created through the Section component factories.
-	UISettings.Build(window, tab) is called by Settings/Init.BuildDefaultPages.
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Tween = require("../../Utils/Tween")
@@ -27,13 +28,9 @@ function UISettings.Build(window, tab)
 	page.Position = UDim2.fromScale(0, 0)
 	page.LayoutOrder = 1
 
-	-- No page heading: the settings tab bar already names the page. The
-	-- heading was removed because a settings-page fade/theme switch kept
-	-- leaving it stuck transparent. Everything below is Sections.
-	-- Single-column scroller; tab:Section() stacks every section into it.
+	-- no page heading: the settings tab bar already names the page
 	tab:Scroller()
 
-	-- == Interface ==========================================================
 	local interfaceSection = tab:Section({ Name = "Interface" })
 	interfaceSection:Slider({
 		Name = "UI Scale",
@@ -51,9 +48,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- Font dropdown. Choices come from Constants.FontChoices (built-in Aetheris
-	-- first, then Roblox's bundled families); picking the first entry resets to
-	-- the built-in font, so it persists as nil instead of a raw asset id.
+	-- first entry is the built-in font, stored as nil so it stays "unset"
 	local fontChoices = Constants.FontChoices
 	local fontItems = {}
 	local storedFont = SettingsStore.Get("Font") or fontChoices[1].Value
@@ -72,7 +67,6 @@ function UISettings.Build(window, tab)
 		Callback = function(selected)
 			local pick = selected[1]
 			local value = (pick and pick.value) or nil
-			-- First entry = built-in font: store nil so it stays "unset".
 			if value == fontChoices[1].Value then
 				value = nil
 			end
@@ -82,8 +76,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- Start new windows with the name row masked (still clickable to toggle
-	-- live); decides the initial state only, so no re-build is needed here.
+	-- decides the initial state only; the row stays clickable to toggle live
 	interfaceSection:Toggle({
 		Name = "Mask Display Name",
 		Default = SettingsStore.Get("MaskDisplayName"),
@@ -92,11 +85,9 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- == Compact Mode =======================================================
-	-- Moved out of Interface into its own section directly below it.
 	local compactSection = tab:Section({ Name = "Compact Mode" })
 	local currentCompact = SettingsStore.Get("CompactMode") or "auto"
-	-- Guard a stale/invalid stored value so one option is always selected.
+	-- guard a stale stored value so one option is always selected
 	if currentCompact ~= "auto" and currentCompact ~= "always" and currentCompact ~= "never" then
 		currentCompact = "auto"
 	end
@@ -118,7 +109,6 @@ function UISettings.Build(window, tab)
 		})
 	end
 
-	-- == Behaviour ==========================================================
 	local behaviourSection = tab:Section({ Name = "Behaviour" })
 	behaviourSection:Toggle({
 		Name = "Spinning Animations",
@@ -133,8 +123,7 @@ function UISettings.Build(window, tab)
 		Default = SettingsStore.Get("PageAnimations") ~= false,
 		Callback = function(state)
 			SettingsStore.Set("PageAnimations", state)
-			-- No page transition happens on this click, so Refresh() wouldn't
-			-- fire; re-apply the gate to dim or restore off-page controls now.
+			-- no page transition fires on this click, so re-apply the gates now
 			PageAwareness.ReapplyGates()
 		end,
 	})
@@ -153,8 +142,7 @@ function UISettings.Build(window, tab)
 				window.ToggleMinimize()
 			end
 		end,
-		-- Persist a rebind: update the live window key AND save it so it survives
-		-- across sessions (Window reads SettingsStore 'MinimizeKey' on CreateWindow).
+		-- rebind updates the live window key and persists it for next session
 		OnRebind = function(key)
 			if key and key ~= "" then
 				window._minimizeKey = key
@@ -163,13 +151,10 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- == Visuals ============================================================
 	local visualsSection = tab:Section({ Name = "Visuals" })
 	visualsSection:Toggle({
 		Name = "Aurora Background",
 		Default = SettingsStore.Get("AuroraEnabled") ~= false,
-		-- Off tears the aurora's instances and drift tweens down completely;
-		-- on rebuilds them and restarts the tweens.
 		Callback = function(state)
 			SettingsStore.Set("AuroraEnabled", state)
 			if window.Aurora then
@@ -177,8 +162,7 @@ function UISettings.Build(window, tab)
 			end
 		end,
 	})
-	-- Transparency of the aurora glow images: 0 = solid accent, 100 = gone.
-	-- Applies live and is remembered across sessions.
+	-- aurora glow transparency: 0 = solid accent, 100 = gone
 	visualsSection:Slider({
 		Name = "Aurora Transparency",
 		Min = 10,
@@ -206,7 +190,6 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- == Minimize Pill ======================================================
 	local pillSection = tab:Section({ Name = "Minimize Pill" })
 	local currentPill = SettingsStore.Get("PillPosition") or "right"
 	local pillGroup = pillSection:RadioButtonGroup()
@@ -222,7 +205,6 @@ function UISettings.Build(window, tab)
 		})
 	end
 
-	-- == Actions ============================================================
 	local actionsSection = tab:Section({ Name = "Actions" })
 	actionsSection:Button({
 		Name = "Reset Layout",
@@ -233,8 +215,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- No page-level theme wrapper needed: the scroller, sections and every
-	-- control are registered components and theme themselves via the registry.
+	-- no page-level theme wrapper: every control themes itself via the registry
 end
 
 return UISettings
