@@ -5,8 +5,8 @@
 	through an odometer on an accent card (the LiveStat look); focusing swaps
 	the card for a themed text field. Focus loss commits the typed number
 	through OnCommit(value), then the chip snaps back.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("../Utils/Tween")

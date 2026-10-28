@@ -8,8 +8,8 @@
 	cards) when a key is actually required. Draggable like the main window,
 	fades in/out, fully themed, sounds through KeySystemOpen/Close.
 
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 --# selene: allow(undefined_variable)
@@ -32,6 +32,7 @@ local Constants = require("../Constants")
 local Icons = require("../Assets/Icons")
 
 local KeyScreen = {}
+KeyScreen.__index = KeyScreen
 
 local CARD_WIDTH = 460
 local LOADING_HEIGHT = 274
@@ -309,7 +310,7 @@ local function buildCard(self)
 		Position = UDim2.fromOffset(CONTENT_PAD + 44, HEADER_HEIGHT / 2 - 10),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 18),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.SemiBold),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = self._opts.Title or "Aetheris",
 		TextSize = 15,
 		TextColor3 = theme.TitleTextColor or Color3.new(1, 1, 1),
@@ -324,7 +325,7 @@ local function buildCard(self)
 		Position = UDim2.fromOffset(CONTENT_PAD + 44, HEADER_HEIGHT / 2 + 8),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 12),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "Key System",
 		TextSize = 10,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -366,7 +367,7 @@ local function buildCard(self)
 		Position = UDim2.new(0, 22, 0.5, 0),
 		Size = UDim2.new(1, -28, 1, 0),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = execName .. " · " .. execStatus,
 		TextSize = 10,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -443,7 +444,7 @@ local function buildLoading(self)
 			Position = UDim2.new(0, 20, 0.5, 0),
 			Size = UDim2.new(1, -20, 1, 0),
 			BackgroundTransparency = 1,
-			Font = Constants.Font(Enum.FontWeight.Medium),
+			FontFace = Constants.Font(Enum.FontWeight.Medium),
 			Text = step.Label,
 			TextSize = 12,
 			TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -488,7 +489,7 @@ local function buildLoading(self)
 		Position = UDim2.new(0, CONTENT_PAD, 1, -30),
 		Size = UDim2.new(1, -(CONTENT_PAD * 2 + 50), 0, 14),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "",
 		TextSize = 11,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -502,7 +503,7 @@ local function buildLoading(self)
 		Position = UDim2.new(1, -CONTENT_PAD, 1, -30),
 		Size = UDim2.fromOffset(46, 14),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.SemiBold),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "0%",
 		TextSize = 11,
 		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
@@ -629,7 +630,7 @@ local function buildKeyPhase(self)
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		PlaceholderText = "Enter your key",
 		PlaceholderColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
 		Text = "",
@@ -683,7 +684,7 @@ local function buildKeyPhase(self)
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Font = Constants.Font(Enum.FontWeight.SemiBold),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "Continue",
 		TextSize = 13,
 		TextColor3 = Color3.new(1, 1, 1),
@@ -705,7 +706,7 @@ local function buildKeyPhase(self)
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "  Get a key",
 		TextSize = 12,
 		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
@@ -795,7 +796,7 @@ local function buildKeyPhase(self)
 		Position = UDim2.fromOffset(58, 13),
 		Size = UDim2.new(1, -66, 0, 15),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.SemiBold),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "Discord",
 		TextSize = 13,
 		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
@@ -809,7 +810,7 @@ local function buildKeyPhase(self)
 		Position = UDim2.fromOffset(58, 33),
 		Size = UDim2.new(1, -66, 0, 13),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "Tap to copy the invite",
 		TextSize = 11,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -874,7 +875,7 @@ local function buildKeyPhase(self)
 		Position = UDim2.fromOffset(58, 13),
 		Size = UDim2.new(1, -66, 0, 15),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.SemiBold),
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "Information",
 		TextSize = 13,
 		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
@@ -889,7 +890,7 @@ local function buildKeyPhase(self)
 		Position = UDim2.fromOffset(58, 33),
 		Size = UDim2.new(1, -66, 0, 13),
 		BackgroundTransparency = 1,
-		Font = Constants.Font(Enum.FontWeight.Medium),
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "Tap to view",
 		TextSize = 11,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),

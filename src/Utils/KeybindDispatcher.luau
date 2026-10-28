@@ -5,8 +5,8 @@
 	lookup per keystroke instead of N connections each comparing key names.
 	Register returns an opaque token; Unregister drops it and removes a key's
 	bucket once it empties.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local UserInputService = game:GetService("UserInputService")

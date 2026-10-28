@@ -30,8 +30,6 @@
 ]]
 
 -- == 0. LIBRARY BOOTSTRAP ==================================================
--- Aetheris is the single facade for the whole library. Requiring Init gives
--- us every public entry point (CreateWindow, Icons, ThemeManager, ...).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 

@@ -4,8 +4,8 @@
 	Modal colour picker: saturation/value square, value slider, RGB + Hex
 	inputs, and colour wells. Cached per id by Window and reused; theme
 	switches drop the cache so the next open rebuilds with current colors.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

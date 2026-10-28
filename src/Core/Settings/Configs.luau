@@ -4,8 +4,8 @@
 	Settings page for the per-game config system: save the current component
 	values under a name, load or delete them from a dropdown, toggle
 	auto-save, and preview the selected config's JSON in a CodeView.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Configs = {}

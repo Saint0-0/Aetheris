@@ -5,8 +5,8 @@
 	Section is the component factory: each builder forwards the section theme to
 	the component, and windowed sections register their controls with the
 	window's config manager so configs can save and restore their values.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Toggle = require("../Components/Toggle")

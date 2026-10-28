@@ -5,8 +5,8 @@
 	create its own vertical breathing room; Padding sets the holder's Y size in
 	offset pixels (default 1px). A caller-supplied Color or Transparency
 	overrides the theme value and survives every theme pass.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

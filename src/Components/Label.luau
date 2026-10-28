@@ -5,8 +5,8 @@
 	stroke). A label built with ShowStroke = false stamps a theme-override
 	attribute so ThemeManager treats the stroke as caller-owned and leaves it
 	hidden across theme switches.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

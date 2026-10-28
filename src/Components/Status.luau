@@ -5,8 +5,8 @@
 	Each entry is a { key, text, color } triplet where color is a named string
 	("green" / "orange" / "red" / "info") or a Color3; rich-text colours are
 	emitted as hex because Roblox RichText rejects rgb().
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

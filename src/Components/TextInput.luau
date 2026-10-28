@@ -7,8 +7,8 @@
 	tweened, capped so the field's left edge always stays LABEL_GAP clear of
 	the name label. Supports Numeric (strips non-numbers, parses "5^3" and
 	"9e9") and ClearOnFocus.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
 	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]

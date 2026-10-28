@@ -4,8 +4,8 @@
 	Clickable action row with a hover/press bounce and an optional trailing
 	fingerprint icon. Clicking runs the callback and plays a short flash
 	animation that restarts cleanly on rapid clicks.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")

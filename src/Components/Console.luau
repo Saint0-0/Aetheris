@@ -6,8 +6,8 @@
 	the page down. One label per line (pooled and recycled) rather than one
 	auto-sized label, which a fixed-height scroller would clamp to a single
 	viewport with nothing left to scroll.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
 	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 ]]

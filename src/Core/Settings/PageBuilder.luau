@@ -4,8 +4,8 @@
 	Registers the default settings pages (Themes, UI Settings, Configs) on a
 	window's SettingsTabGroup. Called by Window.new via BuildDefaultPages;
 	developer-added pages are appended afterwards from CreateWindow options.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Themes = require("./Themes")

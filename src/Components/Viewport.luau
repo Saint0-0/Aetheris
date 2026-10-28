@@ -4,8 +4,8 @@
 	Player card: a ViewportFrame rendering a live character clone (slow orbit or
 	static 3/4 view) beside four info rows. Framing picks the camera crop;
 	SetPlayer swaps the subject in place.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Players = game:GetService("Players")

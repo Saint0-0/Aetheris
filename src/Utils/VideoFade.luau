@@ -4,8 +4,8 @@
 	VideoFrame.Transparency doesn't affect the rendered video, so the Video
 	component fades a tagged UIGradient instead. UIGradient.Transparency is a
 	NumberSequence TweenService can't interpolate, so it's lerped per frame.
-	License: Saint0-0 Source License - use in your own scripts, no editing or
-	redistribution without permission. (c) 2026 Saint0-0.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local RunService = game:GetService("RunService")
