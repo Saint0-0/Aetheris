@@ -1,20 +1,11 @@
 --[[
-	Viewport  ·  Aetheris UI Library
+	Aetheris/Components/Viewport.luau
 
 	Player card: a ViewportFrame rendering a live character clone (slow orbit or
 	static 3/4 view) beside four info rows. Framing picks the camera crop;
 	SetPlayer swaps the subject in place.
-
-	Usage:
-		local view = section:Viewport({
-			Player = Players.LocalPlayer,  -- any Player; defaults to LocalPlayer
-			Rotate = true,                 -- slow orbit; default true
-			Framing = "UpperBody",         -- "Full" | "UpperBody" | "Torso" | "Head"
-			Height = 160,                  -- offset pixels; default 160
-		})
-		view:SetPlayer(otherPlayer)
-		view:SetFraming("Head")
-		view:SetRotate(false)
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,8 +17,8 @@ local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
--- Camera crop per framing: focus offset above the bounding-box centre and
--- distance, both as fractions of the model's height (plus a small constant).
+-- camera crop per framing: focus offset above the bounding-box centre and
+-- distance, both as fractions of the model's height
 local FRAMING = {
 	Full = { focus = 0.0, distance = 1.25 },
 	UpperBody = { focus = 0.18, distance = 0.55 },
@@ -60,14 +51,12 @@ function Viewport.new(parent, Settings, theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Viewport)
 	self._theme = theme
-	-- Page-awareness flag: the orbit RenderStepped early-returns while the
-	-- component's page is not on screen (cheaper than connect/disconnect).
+	-- the orbit RenderStepped early-returns while off screen (cheaper than connect/disconnect)
 	self._pageActive = true
 	local height = Settings.Height or 160
 	local framing = FRAMING[Settings.Framing] and Settings.Framing or "Full"
 	local rotating = Settings.Rotate ~= false
 
-	-- Main container (matches the Video/Paragraph card chrome).
 	local frame = Instance.new("Frame")
 	frame.Name = UUID.Static("Viewport")
 	frame.BorderSizePixel = 0
@@ -85,11 +74,8 @@ function Viewport.new(parent, Settings, theme)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 
-	-- Viewport square on the left; the input-well tint keeps it recessed and
-	-- themed like a Keybind/TextInput field. `side` is recomputed by relayout:
-	-- the square yields width to the info column on narrow cards so the labels
-	-- never clip (a height-sized square used to squeeze them past the window
-	-- edge).
+	-- input-well tint keeps it recessed and themed like a Keybind/TextInput
+	-- field; `side` is recomputed by relayout so the info labels never clip
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
 	viewport.BorderSizePixel = 0
@@ -97,7 +83,6 @@ function Viewport.new(parent, Settings, theme)
 	viewport.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
 	viewport.AnchorPoint = Vector2.new(0, 0.5)
 	viewport.Position = UDim2.new(0, 8, 0.5, 0)
-	-- X/Y are a fixed fraction of the card (see UISizeConstraint below).
 	viewport.Size = UDim2.fromScale(0.55, 0.9)
 	viewport.Ambient = Color3.fromRGB(126, 126, 134)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
@@ -117,7 +102,7 @@ function Viewport.new(parent, Settings, theme)
 	local worldModel = Instance.new("WorldModel")
 	worldModel.Parent = viewport
 
-	-- Info column on the right: caption over value, four rows.
+	-- caption over value, four rows
 	local infoColumn = Instance.new("Frame")
 	infoColumn.Name = UUID.Static("InfoColumn")
 	infoColumn.BorderSizePixel = 0
@@ -171,11 +156,8 @@ function Viewport.new(parent, Settings, theme)
 		valueLabels[index] = value
 	end
 
-	----------------------------------------------------------------
-	-- Character binding + camera
-	----------------------------------------------------------------
 	local yaw = STATIC_YAW
-	local boxCF, boxSize -- character bounding box; nil until a clone exists.
+	local boxCF, boxSize -- bounding box; nil until a clone exists
 	local clone
 	local renderConn, charAddedConn
 	local bindToken = 0
@@ -188,8 +170,8 @@ function Viewport.new(parent, Settings, theme)
 		local focus = boxCF.Position + Vector3.new(0, boxSize.Y * mode.focus, 0)
 		local distance = boxSize.Y * mode.distance + 0.4
 		local rotation = CFrame.Angles(0, yaw, 0)
-		-- Characters face -Z, so the camera sits on the -Z side at yaw 0 to
-		-- show the front; elevation adds a touch of top-down perspective.
+		-- characters face -Z, so yaw 0 puts the camera on the -Z side showing
+		-- the front; elevation adds a touch of top-down perspective
 		local camPos = focus + rotation:VectorToWorldSpace(Vector3.new(0, boxSize.Y * 0.05, -distance))
 		camera.CFrame = CFrame.lookAt(camPos, focus)
 	end
@@ -201,8 +183,7 @@ function Viewport.new(parent, Settings, theme)
 		end
 		boxCF, boxSize = nil, nil
 
-		-- Clone the live character (non-archivable by default) and strip
-		-- anything that could execute or float away inside the viewport.
+		-- strip anything that could execute or float away inside the viewport
 		local previousArchivable = character.Archivable
 		character.Archivable = true
 		local ok, result = pcall(function()
@@ -218,8 +199,8 @@ function Viewport.new(parent, Settings, theme)
 				descendant:Destroy()
 			end
 		end
-		-- Hold the model upright and let the camera derive its crop from the
-		-- bounding box, so R6/R15/scaled avatars all frame correctly.
+		-- hold the model upright and frame off the bounding box, so R6/R15 and
+		-- scaled avatars all crop correctly
 		local root = clone:FindFirstChild("HumanoidRootPart")
 		if root then
 			root.Anchored = true
@@ -249,8 +230,8 @@ function Viewport.new(parent, Settings, theme)
 			boxCF, boxSize = nil, nil
 			return
 		end
+		-- a respawn or player swap may have queued this attach late
 		local function attachIfCurrent(character)
-			-- A respawn or player swap may have queued this attach late.
 			if token == bindToken and frame.Parent then
 				attach(character)
 			end
@@ -263,7 +244,7 @@ function Viewport.new(parent, Settings, theme)
 		end)
 	end
 
-	-- Orbit: one RenderStepped connection; static views keep yaw fixed.
+	-- one RenderStepped connection; static views keep yaw fixed
 	if rotating then
 		renderConn = RunService.RenderStepped:Connect(function(deltaTime)
 			if not self._pageActive then
@@ -277,9 +258,6 @@ function Viewport.new(parent, Settings, theme)
 		end)
 	end
 
-	----------------------------------------------------------------
-	-- Public API
-	----------------------------------------------------------------
 	self.SetPlayer = function(_, player)
 		bindPlayer(player or Players.LocalPlayer)
 	end
@@ -307,10 +285,8 @@ function Viewport.new(parent, Settings, theme)
 			applyCamera()
 		end
 	end
-	-- Custom teardown: the orbit connection and the player respawn listener
-	-- outlive the instance tree unless disconnected here.
-	-- Page awareness: pause the orbit while the page is off screen (always on,
-	-- no Gate -- it saves per-frame camera math on a hidden view).
+	-- pause the orbit while the page is off screen (always on, no Gate: it
+	-- saves per-frame camera math on a hidden view)
 	PageAwareness.Register(frame, {
 		OnInactive = function()
 			self._pageActive = false
@@ -322,6 +298,8 @@ function Viewport.new(parent, Settings, theme)
 	if not PageAwareness.IsActive(frame) then
 		self._pageActive = false
 	end
+	-- the orbit and respawn connections outlive the instance tree unless
+	-- disconnected here
 	self.Destroy = function(_self)
 		if renderConn then
 			renderConn:Disconnect()
@@ -336,7 +314,6 @@ function Viewport.new(parent, Settings, theme)
 		end
 	end
 
-	-- Declarative theming: bindings only, no ApplyTheme body to forget.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")

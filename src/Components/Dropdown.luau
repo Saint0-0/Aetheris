@@ -1,22 +1,11 @@
 --[[
-	Dropdown  ·  Aetheris UI Library
+	Aetheris/Components/Dropdown.luau
 
 	Button that opens a modal popup for single/multi item selection. The
 	button row lives here; the popup itself is PopUps/DropdownPopUp, created
 	lazily via the supplied ShowDropdownPopup factory.
-
-	Usage (via Section):
-		local dropdown = section:Dropdown({
-			Name = "Select Option",
-			Items = {
-				{ name = "Option A", icon = Icons.circle, value = "a" },
-				{ name = "Option B", icon = Icons.circle, value = "b" },
-			},
-			Default = { "a" },
-			MaxItemsChoosable = 2,
-			Placeholder = "Choose...",
-			Callback = function(selected) print(selected) end,
-		}, ShowDropdownPopup)
+	License: Saint0-0 Source License - use in your own scripts, no editing or
+	redistribution without permission. (c) 2026 Saint0-0.
 ]]
 
 local Icons = require("../Assets/Icons")
@@ -34,13 +23,11 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	self._theme = theme
 	_counter = _counter + 1
 	local name = Settings.Name or "Dropdown"
-	-- Generate a unique ID from the name and a counter
 	self._id = name .. _counter
 	local items = Settings.Items or {}
 	local default = Settings.Default or {}
 	local maxItems = Settings.MaxItemsChoosable or math.huge
 	local callback = Settings.Callback or function() end
-	-- Build the dropdown button UI from the export (shared row factory).
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "Dropdown",
@@ -55,7 +42,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		Stroke = true,
 		ComponentContainer = true,
 	})
-	-- Interact button (covers the whole row to capture clicks)
+	-- covers the whole row so clicks anywhere open the popup
 	local interact = Instance.new("TextButton")
 	interact.Name = UUID.Static("Interact")
 	interact.BorderSizePixel = 0
@@ -66,7 +53,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	interact.Size = UDim2.fromScale(1, 1)
 	interact.Text = ""
 	interact.Parent = row
-	-- Dropdown chevron image
 	local dropdownImage = Instance.new("ImageLabel")
 	dropdownImage.Name = UUID.Static("DropdownImage")
 	dropdownImage.BorderSizePixel = 0
@@ -78,9 +64,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.Size = UDim2.fromOffset(14, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
 	dropdownImage.Parent = row
-	-- State
 	local selectedItems = {} -- array of { name, value }
-	-- Initialize from Default values
 	for _, value in ipairs(default) do
 		for _, item in ipairs(items) do
 			if item.value == value then
@@ -90,10 +74,8 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		end
 	end
 	local popupInstance = nil
-	-- Function to open the popup
 	local function openPopup()
 		if popupInstance and popupInstance.IsOpen then
-			-- If a popup is already open, do nothing
 			return
 		end
 		if not ShowPopup then
@@ -109,7 +91,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			Items = items,
 			Default = defaultValues,
 			MaxItemsChoosable = maxItems,
-			Theme = self._theme, -- Pass theme to popup
+			Theme = self._theme,
 			OnConfirm = function(selected)
 				selectedItems = selected
 				if callback then
@@ -118,17 +100,16 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 				popupInstance = nil
 			end,
 			OnCancel = function()
-				-- Clear the instance when cancelled (including click-outside)
+				-- cleared on cancel too, including click-outside
 				popupInstance = nil
 			end,
 		})
 		popupInstance:Open()
 	end
-	-- Click handler: ONLY the interact button (avoid double-fire from row.InputBegan)
+	-- only the interact button, to avoid double-fire from row.InputBegan
 	interact.MouseButton1Click:Connect(function()
 		openPopup()
 	end)
-	-- Public API
 	self.SetItems = function(_, newItems)
 		items = newItems
 		selectedItems = {}
@@ -176,32 +157,27 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		label.Text = newName
 	end
 	self.OpenPopup = openPopup
-	-- Declarative theming: every themed property is a BINDING.
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
-	-- The row's UIStroke is created AND bound by ComponentRow (Stroke = true),
-	-- so it needs no binding here.
+	-- the row's stroke is created and bound by ComponentRow (Stroke = true)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
-	-- Uniform component API (p2-4).
 	self.SetVisibility = function(_self, visible)
 		row.Visible = visible
 	end
 	self.Destroy = function()
-		-- Close any open popup first to avoid it dangling.
+		-- close any open popup so it can't dangle
 		if popupInstance and popupInstance.IsOpen then
 			pcall(function()
 				popupInstance:Close()
 			end)
 			popupInstance = nil
 		end
-		-- Drop all ThemeManager bindings. (The row's stroke binds die with the
-		-- row's own Destroying signal, so it needs no unbind here.)
+		-- the row's own stroke binds die with its Destroying signal
 		ThemeManager.UnbindInstance(row)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(dropdownImage)
-		-- Destroy the root instance.
 		if row and row.Parent then
 			row:Destroy()
 		end
