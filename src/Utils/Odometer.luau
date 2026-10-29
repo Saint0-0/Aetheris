@@ -1,22 +1,18 @@
 --[[
-	Odometer  ·  Aetheris UI Library
+	Aetheris/Utils/Odometer.luau
 
-	Ported faithfully from Rayfield's odometer. Renders a numeric string as a row
-	of per-digit REELS: each digit is a clipped cell holding a vertical strip of
-	the glyphs 0-9 (twice = 20 high). Changing a digit tweens the strip's Y
-	position so the new digit rolls up from below (value increased) or down from
-	above (value decreased), easing out (Quint) into place -- the slot-machine
-	"casino" roll.
+	Renders a numeric string as a row of per-digit reels: each digit is a
+	clipped cell holding a vertical strip of the glyphs 0-9, and changing a
+	digit rolls the strip into place with an eased slot-machine motion.
+	Non-digit characters stay as plain static labels, cells are variable
+	width, and the string reconciles from the right so decimals and suffixes
+	stay put as digits grow. Cells are pooled and reused.
 
-	Non-digit characters (separators, %, prefixes/suffixes) are plain static
-	labels. Cells are variable width (each digit's natural advance) so it reads
-	like text, and the string reconciles from the RIGHT so decimals / suffixes
-	stay put as digits grow on the left. Cells are pooled and reused.
+	Based on Rayfield Gen 2 code (MPL-2.0)
+	https://github.com/SiriusSoftwareLtd/rayfield-gen2
 
-	  local odo = Odometer.new(container, { textSize = 22 })
-	  odo:snap("1,000")        -- set instantly
-	  odo:to("2,500", true)   -- roll up toward the new value
-	  odo:setTransparency(1)  -- fade every glyph
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Constants = require("../Constants")
@@ -29,21 +25,13 @@ local TextService = game:GetService("TextService")
 local Odometer = {}
 Odometer.__index = Odometer
 
--- Two stacked copies of 0-9. A reel on digit d rests at strip Y = -d*H. Rolling
--- up moves to higher indices; rolling down first jumps to the second copy (same
--- glyph) so it can travel down without running past index 0.
+-- Two stacked copies of 0-9: rolling down jumps to the second copy so it can travel past index 0.
 local STRIP_LENGTH = 20
 
--- Extra cell width beyond the digit's measured advance. GetTextBoundsAsync
--- returns layout bounds, but the rendered glyph (antialiasing / side bearings)
--- can overshoot by ~1px; with ClipsDescendants the cell would shave that edge
--- off (the clipped trailing "0"). Widening the cell gives each glyph a hair of
--- horizontal breathing room so nothing is cut.
+-- Extra cell width so ClipsDescendants never shaves a glyph's edge off.
 local CELL_PAD = 2
 
--- Digit advances are the same for every odometer of a given font+size, but
--- GetTextBoundsAsync yields, so measure the ten digits once per (font, size,
--- style) and cache. Later odometers reuse the result.
+-- Digit advances are the same per font+size; measure once and cache (GetTextBoundsAsync yields).
 local metricsCache = {}
 local function digitMetrics(font, size)
 	local key = tostring(font.Family)
@@ -79,8 +67,7 @@ local function digitMetrics(font, size)
 	return cached
 end
 
--- parent : Frame the row lives in; the odometer lays its cells out inside it
--- opts   : { textSize, height, alignment (Enum.HorizontalAlignment), transparency, duration, weight }
+-- opts: { textSize, height, alignment, transparency, duration, weight }
 function Odometer.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({
@@ -95,8 +82,7 @@ function Odometer.new(parent, opts)
 	}, Odometer)
 
 	self.font = Constants.Font(self.weight)
-	-- A cell as tall as the font size clips ascenders/descenders; allow callers
-	-- to pass a taller cell (e.g. the Stepper, whose reel matches its text box).
+	-- A taller cell can be passed so ascenders/descenders don't clip.
 	self.height = opts.height or math.ceil(self.textSize)
 
 	local metrics = digitMetrics(self.font, self.textSize)
@@ -115,9 +101,7 @@ function Odometer.new(parent, opts)
 	return self
 end
 
--- Lazily build (or fetch) the reel for a slot: a clipped cell + a fixed-width
--- strip of 20 themed digit labels, centred so the visible glyph sits in the
--- middle of the (variable-width) cell.
+-- Lazily build the reel: a clipped cell + a strip of 20 themed digit labels.
 function Odometer:_reel(index)
 	local slot = self.slots[index]
 	if slot.reel then
@@ -137,7 +121,7 @@ function Odometer:_reel(index)
 
 	local strip = Instance.new("Frame")
 	strip.Size = UDim2.fromOffset(self.maxWidth, self.height)
-	strip.AnchorPoint = Vector2.new(0.5, 0) -- centred horizontally in the cell
+	strip.AnchorPoint = Vector2.new(0.5, 0)
 	strip.Position = UDim2.fromScale(0.5, 0)
 	strip.BackgroundTransparency = 1
 	strip.BorderSizePixel = 0
@@ -166,8 +150,7 @@ function Odometer:_reel(index)
 	return reel
 end
 
--- Fetch/build the static (separator/letter) label for a slot. Statics hug their
--- own glyph width so separators/suffixes space naturally.
+-- Statics hug their own glyph width so separators and suffixes space naturally.
 function Odometer:_static(index)
 	local slot = self.slots[index]
 	if slot.static then
@@ -216,7 +199,7 @@ function Odometer:_reelRoll(reel, digit, up)
 	local startIndex, targetIndex
 	if up then
 		startIndex = a
-		targetIndex = a + (digit - a) % 10 -- 1..9 above, glyph at target = digit
+		targetIndex = a + (digit - a) % 10
 	else
 		startIndex = a + 10 -- jump to 2nd copy (same glyph) to travel downward
 		targetIndex = startIndex - (a - digit) % 10
@@ -225,16 +208,13 @@ function Odometer:_reelRoll(reel, digit, up)
 	reel.strip.Position = UDim2.new(0.5, 0, 0, -startIndex * self.height)
 	reel.target = digit
 
-	-- Roll the strip vertically and reflow the cell to the new digit's width together.
 	local info = TweenInfo.new(self.duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	Tween.Play(reel.strip, info, { Position = UDim2.new(0.5, 0, 0, -targetIndex * self.height) })
 	Tween.Play(reel.cell, info, { Size = UDim2.fromOffset(self.advance[digit] + CELL_PAD, self.height) })
 	reel.digit = digit
 end
 
--- Show a slot as a digit; hide its static twin. A cell coming back from hidden
--- (the number grew past this column earlier) snaps rather than rolling from a
--- stale digit it last held.
+-- A cell coming back from hidden snaps rather than rolling from a stale digit.
 function Odometer:_putDigit(index, digit, up, animate)
 	local reel = self:_reel(index)
 	local wasHidden = not reel.cell.Visible
@@ -250,7 +230,6 @@ function Odometer:_putDigit(index, digit, up, animate)
 	end
 end
 
--- Show a slot as a static char; hide its reel twin.
 function Odometer:_putStatic(index, char)
 	local label = self:_static(index)
 	if not label.Visible then
@@ -277,8 +256,7 @@ function Odometer:_hide(index)
 	end
 end
 
--- Core: render `text`, animating digit changes when `animate` and rolling in the
--- direction implied by `up` (value increased vs decreased).
+-- Render text, animating digit changes in the direction implied by `up`.
 function Odometer:_render(text, animate, up)
 	text = tostring(text)
 
@@ -287,8 +265,7 @@ function Odometer:_render(text, animate, up)
 	end
 	self._lastText = text
 
-	-- Split into whole UTF-8 characters, not bytes: a suffix like "°" is two
-	-- bytes and string.sub would tear it into invalid halves (rendered as tofu).
+	-- Whole UTF-8 characters, not bytes, so suffixes like "°" survive.
 	local chars = {}
 	for _, code in utf8.codes(text) do
 		table.insert(chars, utf8.char(code))
@@ -311,17 +288,14 @@ function Odometer:_render(text, animate, up)
 	self.length = n
 end
 
--- Roll to `text` (digits animate, direction from `up`).
 function Odometer:to(text, up)
 	self:_render(text, true, up)
 end
 
--- Set `text` instantly (no roll).
 function Odometer:snap(text)
 	self:_render(text, false, true)
 end
 
--- Set the base transparency for every glyph (visible = 0, hidden = 1).
 function Odometer:setTransparency(target)
 	self.transparency = target
 	for _, slot in pairs(self.slots) do

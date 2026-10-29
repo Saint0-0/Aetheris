@@ -1,5 +1,5 @@
 --[[
-	Aurora  ·  Aetheris UI Library
+	Aetheris/Utils/Aurora.luau
 
 	Soft accent bloom behind the window. Prefers a single uploaded glow
 	texture (Constants.AuroraGlow or Aurora.SetTexture), which makes every
@@ -8,6 +8,9 @@
 	loops and the static Wash variant is used inside notifications.
 	Disabling the aurora tears its instances and tweens down completely;
 	re-enabling rebuilds them.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("./Tween")
@@ -18,9 +21,7 @@ local UUID = require("./UUID")
 local Aurora = {}
 Aurora.__index = Aurora
 
--- Procedural fallback: nested circles fake a radial falloff without a blur
--- pass. Transparency is scaled by each bloom's intensity so secondary blooms
--- can sit further back.
+-- Procedural fallback: nested circles fake a radial falloff without a blur pass.
 local LAYERS = {
 	{ scale = 1.0, transparency = 0.988 },
 	{ scale = 0.76, transparency = 0.978 },
@@ -28,17 +29,13 @@ local LAYERS = {
 	{ scale = 0.34, transparency = 0.95 },
 }
 
--- Default ImageTransparency for textured blooms, used until the settings
--- slider stores its own value. The baked radial falloff and the blob sizes
--- carry the depth, so every glow image shares this transparency.
+-- Shared transparency for textured blooms; the baked falloff carries the depth.
 local GLOW_TRANSPARENCY = 0.5
 
--- Runtime override set through Aurora.SetTexture; nil falls back to
--- Constants.AuroraGlow.
+-- Runtime override via SetTexture; nil falls back to Constants.AuroraGlow.
 Aurora.Texture = nil
 
--- Resolve the configured glow texture to an rbxassetid:// string, or nil when
--- nothing is configured (callers then build the procedural circles).
+-- Resolve to an rbxassetid:// string, or nil when nothing is configured.
 function Aurora.GetTexture()
 	local id = Aurora.Texture or Constants.AuroraGlow
 	if type(id) == "number" then
@@ -50,8 +47,7 @@ function Aurora.GetTexture()
 	return nil
 end
 
--- Point every aurora at an uploaded neutral glow texture. Pass nil or "" to
--- go back to the procedural fallback; call this before creating the window.
+-- Pass nil or "" to go back to the procedural fallback.
 function Aurora.SetTexture(id)
 	Aurora.Texture = id
 end
@@ -92,8 +88,7 @@ local function makeCircle(parent, color, x, y, width, height, transparency)
 	return circle
 end
 
--- One textured bloom: a single ImageLabel, optionally bound to a theme color
--- so its tint follows theme switches.
+-- One tinted image, optionally bound to a theme color.
 local function makeGlow(parent, texture, color, x, y, width, height, transparency, colorKey)
 	local glow = Instance.new("ImageLabel")
 	glow.Name = UUID.Generate("AuroraGlow")
@@ -114,11 +109,8 @@ local function makeGlow(parent, texture, color, x, y, width, height, transparenc
 	return glow
 end
 
--- A bloom is one textured ImageLabel when a glow texture is configured, and a
--- stack of circles otherwise. `transparency` (nil = GLOW_TRANSPARENCY)
--- overrides the image transparency and rescales the circle stack's alpha, so
--- the settings slider drives both paths. Pieces come back as { inst, prop }
--- so callers can recolor without knowing which path built them.
+-- One tinted image when a texture is set, layered circles otherwise; pieces
+-- come back as { inst, prop } so callers can recolor without knowing the path.
 local function makeBloom(parent, texture, color, x, y, width, height, intensity, colorKey, transparency)
 	local t = transparency or GLOW_TRANSPARENCY
 	if texture then
@@ -140,19 +132,15 @@ local function makeBloom(parent, texture, color, x, y, width, height, intensity,
 	return pieces
 end
 
--- Build a static bloom. Caller can recolor it when the theme changes.
 function Aurora.Wash(parent, opts)
 	opts = opts or {}
 	local root = makeRoot(parent, opts)
 	local texture = Aurora.GetTexture()
 	local color = opts.Color or Color3.fromRGB(122, 156, 210)
 	local intensity = opts.Intensity or 1
-	-- Optional theme key: when set, every bloom binds to it (ThemeManager) so
-	-- the wash repaints live on a theme switch without a manual SetColor.
+	-- When set, every bloom binds to this theme key so the wash repaints live.
 	local colorKey = opts.ColorKey
-	-- Keep every bloom inside the parent's bottom edge (y + size / 2 <= 1):
-	-- blooms count toward an AutomaticSize parent's content, so an overhanging
-	-- one would stretch the parent taller on every layout pass.
+	-- Blooms stay inside the parent's bottom edge; an overhang would stretch an AutomaticSize parent.
 	local blobs = opts.Blobs
 		or {
 			{ x = 0.02, y = 0.18, size = 0.95, intensity = 1 },
@@ -222,8 +210,7 @@ local BLOBS = {
 local function makeBlob(root, theme, def, texture, transparency)
 	local color = theme[def.colorKey] or theme.AccentColor or Color3.fromRGB(122, 156, 210)
 
-	-- The holder carries the drift/scale tweens; the bloom inside is either a
-	-- single tinted image or the layered-circle fallback.
+	-- The holder carries the drift tweens; the bloom inside is image or circles.
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Generate("AuroraBlob")
 	holder.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -267,8 +254,6 @@ function Aurora.new(parent, opts)
 	return self
 end
 
--- Build every instance for the enabled state. Runs once on creation and again
--- each time the aurora is re-enabled after a teardown.
 function Aurora:_build()
 	self.Root = makeRoot(self._parent, self._opts)
 	local texture = Aurora.GetTexture()
@@ -290,8 +275,7 @@ function Aurora:_build()
 	end
 end
 
--- Full teardown: cancel every drift tween, drop the theme callback and destroy
--- the instances, so an "off" aurora costs nothing at all.
+-- Full teardown so an "off" aurora costs nothing at all.
 function Aurora:_teardown()
 	self:_stop()
 	self._blobs = {}
@@ -316,12 +300,8 @@ end
 
 function Aurora:_play()
 	for _, blob in ipairs(self._blobs) do
-		-- Pick the target by DISTANCE from the holder's CURRENT position, not a
-		-- flip flag. A theme re-apply calls _stop();_play() while the holder may
-		-- still be at its start point; a flip-based target could resolve back to
-		-- that same point, collapsing the pendulum range to ~0 and freezing the
-		-- aurora for a whole cycle. The farther end always wins, so the blob
-		-- always travels its full range.
+		-- Target by distance from the current position, not a flip flag: a theme
+		-- re-apply mid-drift could otherwise collapse the pendulum range to zero.
 		local pos = blob.holder.Position
 		local px, py = pos.X.Scale, pos.Y.Scale
 		local dStart = (px - blob.x) ^ 2 + (py - blob.y) ^ 2
@@ -338,8 +318,6 @@ function Aurora:_play()
 	end
 end
 
--- Off destroys the blobs and their drift tweens; on rebuilds them and
--- restarts the tweens.
 function Aurora:SetEnabled(on)
 	if self._destroyed then
 		return
@@ -350,8 +328,7 @@ function Aurora:SetEnabled(on)
 	end
 	self._enabled = on
 	if on then
-		-- Refresh the starting colors in case the theme switched while torn
-		-- down; the BindColor bindings snap to the active theme on build anyway.
+		-- Refresh colors in case the theme switched while torn down.
 		self._theme = ThemeManager.GetTheme(self._opts.Theme)
 		self:_build()
 	else
@@ -359,8 +336,7 @@ function Aurora:SetEnabled(on)
 	end
 end
 
--- Live-update the transparency of every bloom image (and the alpha of the
--- circle fallback) without rebuilding anything.
+-- Live-update every bloom's transparency without rebuilding.
 function Aurora:SetTransparency(value)
 	local t = tonumber(value)
 	if t == nil then

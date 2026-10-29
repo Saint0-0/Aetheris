@@ -1,12 +1,12 @@
 --[[
-	Sound  ·  Aetheris UI Library
+	Aetheris/Utils/Sound.luau
 
 	Central audio layer for the UI. One reusable Sound instance per named
 	asset (no per-play allocation), all routed through a single 'AetherisUI'
 	SoundGroup so one master volume controls the whole UI.
 
-	Public API: Assets, Preload, GetProgress, IsPreloaded, Play, Stop,
-	StopAll, SetVolume, GetVolume, Release, ReleaseAll.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ContentProvider = game:GetService("ContentProvider")
@@ -15,9 +15,7 @@ local UUID = require("../Utils/UUID")
 
 local SoundUtil = {}
 
--- Every sound the UI can play, keyed by name. Fill in real rbxassetid://s as
--- you add sounds -- Preload() walks this table, so adding a new sound here
--- is the only step needed to have it preloaded automatically.
+-- Every sound the UI can play, keyed by name; Preload walks this table.
 SoundUtil.Assets = {
 	UIStart = "rbxassetid://82845990304289",
 	Notification = "rbxassetid://17208361335",
@@ -28,17 +26,13 @@ SoundUtil.Assets = {
 	KeySystemClose = "rbxassetid://110295449838315",
 }
 
--- Reusable Sound instances, one per named asset, built once so repeated
--- plays don't allocate a new Instance every time (which is where the
--- "delayed sound" feeling usually comes from -- not just missing content,
--- but paying Instance.new + parenting cost on every single play call).
+-- One reusable Sound per name, built once so repeated plays don't allocate.
 local sounds = {}
 local preloaded = false
 local preloadedCount = 0
 local totalCount = 0
 
--- All UI sounds route through one SoundGroup so a single master volume
--- controls them. Created lazily and reused.
+-- One SoundGroup so a single master volume controls every UI sound.
 local soundGroup
 local function getSoundGroup()
 	if soundGroup and soundGroup.Parent then
@@ -55,7 +49,6 @@ local function getSoundGroup()
 	return soundGroup
 end
 
--- Master UI volume, 0-1 (drives the shared SoundGroup).
 function SoundUtil.SetVolume(volume)
 	getSoundGroup().Volume = math.clamp(volume or 1, 0, 1)
 end
@@ -88,13 +81,9 @@ end
 --[[
 	Preload(progressCallback)
 
-	Loads every sound in SoundUtil.Assets via ContentProvider:PreloadAsync so
-	the first real Play() call has zero delay. progressCallback, if given, is
-	called as (loadedCount, totalCount, name, status) after each asset
-	finishes loading -- wire this straight into a loading bar's progress.
-
-	Safe to call once at startup before showing the UI. Calling it again
-	after the first successful preload is a no-op.
+	Loads every sound via ContentProvider so the first Play() has zero delay.
+	progressCallback, if given, receives (loaded, total, name, status) after
+	each asset. A second call after a successful preload is a no-op.
 ]]
 function SoundUtil.Preload(progressCallback)
 	if preloaded then
@@ -132,8 +121,7 @@ function SoundUtil.Preload(progressCallback)
 	preloaded = true
 end
 
--- Returns 0-1 progress. Useful for a loading bar to poll if you'd rather
--- not thread everything through the Preload callback.
+-- 0-1 progress for a loading bar that would rather poll than take the callback.
 function SoundUtil.GetProgress()
 	if totalCount == 0 then
 		return 1
@@ -148,16 +136,9 @@ end
 --[[
 	Play(name, properties)
 
-	Plays a named sound from SoundUtil.Assets. properties (optional) is a
-	table of Sound properties to set before playing -- e.g. { Volume = 0.5,
-	PlaybackSpeed = 1.1 } -- for one-off variation without permanently
-	mutating the shared instance's defaults beyond this call.
-
-	Reuses the single preloaded Sound instance per name rather than creating
-	a new one each call. If the same sound is triggered again while still
-	playing (e.g. rapid hover events), it restarts from the beginning rather
-	than layering overlapping copies -- keeps memory flat regardless of how
-	fast the UI fires sound triggers.
+	Plays a named sound, reusing its preloaded instance. `properties` sets
+	one-off overrides (e.g. { Volume = 0.5, PlaybackSpeed = 1.1 }). Re-triggering
+	while still playing restarts it rather than layering overlapping copies.
 ]]
 function SoundUtil.Play(name, properties)
 	local s = sounds[name]
@@ -181,9 +162,7 @@ function SoundUtil.Play(name, properties)
 		end
 	end
 
-	-- Stop() first: a Sound can be left IsPaused=true (e.g. by a prior play /
-	-- Stop-Play cycle), and Play() on a paused sound does NOT restart it. Stop
-	-- clears the paused state so Play always (re)starts from the beginning.
+	-- Stop() first: Play() on a paused sound does NOT restart it.
 	s:Stop()
 	s.TimePosition = 0
 	s:Play()
@@ -203,9 +182,7 @@ function SoundUtil.StopAll()
 	end
 end
 
--- Fully releases a sound's Instance so it can be GC'd -- use for sounds you
--- know won't be needed again for a while (e.g. a one-time intro chime) when
--- you want the memory back rather than just silence.
+-- Destroys the instance so it can be GC'd, not just silenced.
 function SoundUtil.Release(name)
 	local s = sounds[name]
 	if s then

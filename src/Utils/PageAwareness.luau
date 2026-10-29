@@ -1,10 +1,13 @@
 --[[
-	PageAwareness  ·  Aetheris UI Library
+	Aetheris/Utils/PageAwareness.luau
 
 	Tracks which page is currently visible so components can react when their
 	page is shown or hidden (video pauses, viewport stops orbiting, controls
 	dim to zero and tween back on focus). A tiny singleton registry, single
 	window, like SettingsStore.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local SettingsStore = require("../Core/Settings/SettingsStore")
@@ -15,9 +18,7 @@ local attachedWindow = nil
 local entries = {}
 local nextToken = 0
 
--- Resolve the container of the page that is on screen right now, or nil when
--- nothing is showing (window minimized). Reads window fields directly so it
--- works during construction, before the window's GetActivePage closure exists.
+-- Reads window fields directly so it works during construction.
 local function currentActivePage()
 	local win = attachedWindow
 	if not win then
@@ -45,12 +46,8 @@ local function isActiveRoot(root)
 	return root == page or root:IsDescendantOf(page)
 end
 
--- OnActive always restores. OnInactive is gated by a settings key so a feature
--- can be switched off; because OnActive is unconditional, toggling the gate off
--- can never leave a component visually stuck in its dimmed state.
--- `instant` is passed through to OnInactive as its first argument so a
--- collapse can bypass its tween (used by registration priming, where a
--- tweened collapse would still be mid-flight when the restore lands).
+-- OnActive always restores; OnInactive is gated by a settings key. `instant`
+-- lets a collapse bypass its tween (registration priming).
 local function fire(entry, active, instant)
 	if active then
 		if entry.OnActive then
@@ -81,8 +78,6 @@ function PageAwareness.Detach()
 end
 
 -- Recompute every registration's active state and fire handlers on change.
--- Safe to call on any page transition; components are evaluated lazily against
--- the current window state rather than tracked eagerly.
 function PageAwareness.Refresh()
 	if not attachedWindow then
 		return
@@ -103,13 +98,9 @@ function PageAwareness.Refresh()
 	end
 end
 
--- handlers = { OnActive, OnInactive(instant?), Gate? }. Evaluates active state
--- at registration, then PRIMES the entry so the first reveal has distance to
--- cover: OnInactive fires immediately (instantly, gated exactly like a real
--- hide) to collapse the control, and if the page is already visible OnActive
--- is deferred a resumption so startup paints a tween-in instead of showing
--- pre-set values. Hidden pages simply keep the collapsed state until the
--- normal Refresh transition restores them.
+-- handlers = { OnActive, OnInactive(instant?), Gate? }. Primes the entry so the
+-- first reveal has distance to cover: OnInactive collapses instantly, and a
+-- visible page gets a deferred restore so startup paints a tween-in.
 -- Returns a token for Unregister; the registration auto-removes on root destroy.
 function PageAwareness.Register(root, handlers)
 	if not root then
@@ -141,9 +132,7 @@ function PageAwareness.Register(root, handlers)
 		fire(entry, false, true)
 	end
 	if entry.active then
-		-- Page already on screen (the startup tab, or a component created
-		-- later on the visible page): restore next resumption so the pair
-		-- reads as a tween-in rather than a snap.
+		-- Restore next resumption so the pair reads as a tween-in rather than a snap.
 		task.defer(function()
 			local live = entries[token]
 			if live and live.active then
@@ -154,9 +143,8 @@ function PageAwareness.Register(root, handlers)
 	return token
 end
 
--- Re-apply gated handlers for off-page entries after a gate setting changed:
--- turning a feature on dims them again, turning it off restores them. Refresh
--- can't do this because the visible page hasn't changed, so nothing would fire.
+-- Re-apply gated handlers for off-page entries after a gate setting changed;
+-- Refresh can't catch this because the visible page hasn't changed.
 function PageAwareness.ReapplyGates()
 	local snapshot = {}
 	for _, entry in pairs(entries) do

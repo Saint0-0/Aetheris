@@ -1,18 +1,20 @@
 --[[
-	SyntaxHighlight  ·  Aetheris UI Library
+	Aetheris/Utils/SyntaxHighlight.luau
 
 	Lexes Luau, JavaScript, Python and JSON into colour classes and renders
 	them as escaped RichText for CodeView. Colours come from the caller's
 	palette, so the same classes can be re-tinted per theme without changing
 	their meaning.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local SyntaxHighlight = {}
 
 type Token = { class: string, text: string }
 
--- Language rules. The lexer is a single ordered scan: block comments, line
--- comments, strings, identifiers, numbers, operators, punctuation.
+-- Language rules; the lexer is a single ordered scan through these.
 local LANGS: { [string]: any } = {
 	lua = {
 		lineComments = { "--" },
@@ -322,8 +324,7 @@ local function toSet(list): { [string]: boolean }
 	return set
 end
 
--- Unknown languages fall back to Lua rules so a bad Language value still
--- renders readable code instead of raw markup soup.
+-- Unknown languages fall back to Lua rules.
 local function compile(language: string?)
 	local key = if LANGS[language :: string] then language :: string else "lua"
 	local cached = compiled[key]
@@ -465,7 +466,6 @@ local function lex(code: string, cfg: any): { Token }
 			continue
 		end
 
-		-- Identifiers: keywords, constants, builtins, call sites, Types.
 		if string.match(c, "[%a_]") then
 			local p = i
 			while p <= n and string.match(string.sub(code, p, p), "[%w_]") do
@@ -506,8 +506,7 @@ local function lex(code: string, cfg: any): { Token }
 			while p <= n do
 				local ch = string.sub(code, p, p)
 				local isWord = string.match(ch, "[%w_]") ~= nil
-				-- A '.' only continues the number when the next char isn't
-				-- another '.' (Lua's ".." concat follows numbers closely).
+				-- '.' only continues a number when the next char isn't another '.' (Lua's "..").
 				local isDot = ch == "." and string.sub(code, p + 1, p + 1) ~= "."
 				local isExpSign = (ch == "+" or ch == "-") and (prev == "e" or prev == "E")
 				if isWord or isDot or isExpSign then
@@ -570,8 +569,7 @@ function SyntaxHighlight.Tokenize(code: string?, language: string?): { Token }
 	return lex(if type(code) == "string" then code else "", compile(language))
 end
 
--- Every font span is closed before a line break, so callers can safely split
--- the result on "\n" into per-line labels without ever splitting a tag.
+-- Every font span is closed before a line break, so callers can split on "\n" safely.
 function SyntaxHighlight.Render(code: string?, language: string?, palette: { [string]: any }?): string
 	local tokens = lex(if type(code) == "string" then code else "", compile(language))
 	local parts = {}

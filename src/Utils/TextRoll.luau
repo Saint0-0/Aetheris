@@ -1,10 +1,13 @@
 --[[
-	TextRoll  ·  Aetheris UI Library
+	Aetheris/Utils/TextRoll.luau
 
 	Per-glyph roll for arbitrary text: takes over a TextLabel and renders its
 	string as a row of glyph cells, rolling only the characters that changed
 	(the new glyph rises from below). The username-mask toggle uses it.
 	Static glyphs are plain labels; rolled ones tween a two-glyph strip.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("./Tween")
@@ -15,8 +18,7 @@ local TextService = game:GetService("TextService")
 local TextRoll = {}
 TextRoll.__index = TextRoll
 
--- Same rationale as Odometer: clipped cells shave ~1px off glyph edges
--- (antialiasing / side bearings overshoot the layout bounds), so widen slightly.
+-- Clipped cells shave glyph edges, so widen slightly (same as Odometer).
 local CELL_PAD = 2
 
 local function measure(text, font, size)
@@ -40,9 +42,8 @@ local function toChars(text)
 	return chars
 end
 
--- Take over a TextLabel: its glyphs render as child rows (the label's own
--- Text is cleared). Style is captured from the label and mirrored live, so a
--- theme switch restamps every glyph. Call SetText to populate.
+-- Take over a TextLabel: glyphs render as child rows and the label's own Text
+-- is cleared. Style is mirrored live, so a theme switch restamps every glyph.
 function TextRoll.new(label)
 	local self = setmetatable({}, TextRoll)
 	self.label = label
@@ -96,7 +97,6 @@ function TextRoll:_makeLabel(char, width)
 	return glyph
 end
 
--- Replace a cell with a plain static label showing char.
 function TextRoll:_setStatic(index, char)
 	local old = self.cells[index]
 	if old then
@@ -109,8 +109,7 @@ function TextRoll:_setStatic(index, char)
 	self.cells[index] = { frame = glyph, char = char, rolling = false }
 end
 
--- Replace a cell with a clipped two-glyph strip and roll it up, so newChar
--- rises from below; settles into a static label when the tween completes.
+-- A clipped two-glyph strip rolls newChar up from below, then settles into a static label.
 function TextRoll:_setRolling(index, oldChar, newChar)
 	local old = self.cells[index]
 	if old then
@@ -168,7 +167,7 @@ function TextRoll:SetText(text, instant)
 				self:_setStatic(i, ch)
 			end
 		elseif not cell then
-			self:_setStatic(i, ch) -- newly added glyph: pop in
+			self:_setStatic(i, ch)
 		elseif cell.char ~= ch then
 			self:_setRolling(i, cell.char, ch)
 		end
@@ -187,8 +186,7 @@ function TextRoll:GetText()
 	return self.text
 end
 
--- Mirror live style changes (theme switch / font change) onto every glyph.
--- Widths are not re-measured; color/transparency/font restamps cover theming.
+-- Mirror live style changes onto every glyph; widths aren't re-measured.
 function TextRoll:_restyle()
 	for _, glyph in ipairs(self.label:GetDescendants()) do
 		if glyph:IsA("TextLabel") then
