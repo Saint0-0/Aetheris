@@ -36,9 +36,11 @@ KeyScreen.__index = KeyScreen
 
 local CARD_WIDTH = 460
 local LOADING_HEIGHT = 274
-local KEY_HEIGHT = 364
+local KEY_HEIGHT = 300
 local FADE_IN = 0.25
 local FADE_OUT = 0.2
+local INTRO_HOLD = 0.85
+local SUCCESS_HOLD = 1.3
 local HEADER_HEIGHT = 62
 local CONTENT_PAD = 18
 
@@ -281,6 +283,17 @@ local function buildCard(self)
 	-- Header
 	----------------------------------------------------------------
 
+	-- Hidden during the intro, then faded in with the loading body
+	local headerGroup = new("CanvasGroup", {
+		Name = UUID.Static("HeaderGroup"),
+		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT),
+		BackgroundTransparency = 1,
+		GroupTransparency = 1,
+		ZIndex = 4,
+		Parent = card,
+	})
+	self._headerGroup = headerGroup
+
 	local brandTile = new("Frame", {
 		Name = UUID.Static("BrandTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -289,7 +302,7 @@ local function buildCard(self)
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BorderSizePixel = 0,
 		ZIndex = 4,
-		Parent = card,
+		Parent = headerGroup,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = brandTile })
 	new("ImageLabel", {
@@ -317,7 +330,7 @@ local function buildCard(self)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 4,
-		Parent = card,
+		Parent = headerGroup,
 	})
 	local subtitle = new("TextLabel", {
 		Name = UUID.Static("Subtitle"),
@@ -332,7 +345,7 @@ local function buildCard(self)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 4,
-		Parent = card,
+		Parent = headerGroup,
 	})
 
 	local execName = getExecutorName()
@@ -347,7 +360,7 @@ local function buildCard(self)
 		BackgroundTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02,
 		BorderSizePixel = 0,
 		ZIndex = 4,
-		Parent = card,
+		Parent = headerGroup,
 	})
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = execChip })
 	local statusDot = new("Frame", {
@@ -384,18 +397,124 @@ local function buildCard(self)
 end
 
 ----------------------------------------------------------------
+-- Intro phase
+----------------------------------------------------------------
+
+local function buildIntro(self)
+	local theme = self._theme
+
+	local body = new("CanvasGroup", {
+		Name = UUID.Static("IntroBody"),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = self._card,
+	})
+	self._introBody = body
+
+	local ringSize = 78
+	local ring = new("Frame", {
+		Name = UUID.Static("IntroRing"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromOffset(ringSize, ringSize),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = body,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ring })
+	local ringStroke = new("UIStroke", {
+		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
+		Transparency = 0.2,
+		Thickness = 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = ring,
+	})
+	local comet = new("UIGradient", {
+		Color = ColorSequence.new(theme.AccentColor or Color3.fromRGB(14, 45, 178)),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.3, 0),
+			NumberSequenceKeypoint.new(0.45, 0.75),
+			NumberSequenceKeypoint.new(1, 0.9),
+		}),
+		Rotation = 0,
+		Parent = ringStroke,
+	})
+
+	local tile = new("Frame", {
+		Name = UUID.Static("IntroTile"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(50, 50),
+		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
+		BorderSizePixel = 0,
+		ZIndex = 4,
+		Parent = ring,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 14), Parent = tile })
+	new("ImageLabel", {
+		Name = UUID.Static("IntroIcon"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundTransparency = 1,
+		Image = Icons["sparkles"] or Icons["key"],
+		ImageColor3 = Color3.new(1, 1, 1),
+		ZIndex = 4,
+		Parent = tile,
+	})
+
+	new("TextLabel", {
+		Name = UUID.Static("IntroBrand"),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.5, ringSize / 2 + 18),
+		Size = UDim2.new(1, -40, 0, 18),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
+		Text = self._opts.Title or "Aetheris",
+		TextSize = 15,
+		TextColor3 = theme.TitleTextColor or Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 4,
+		Parent = body,
+	})
+	new("TextLabel", {
+		Name = UUID.Static("IntroHint"),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.5, ringSize / 2 + 38),
+		Size = UDim2.new(1, -40, 0, 13),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
+		Text = "Getting things ready",
+		TextSize = 11,
+		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 4,
+		Parent = body,
+	})
+
+	self._introComet = comet
+	self._introSpin = Tween.StartSpin(comet, { Rotation = 360 }, "SpinBurst")
+	self._introFadeTargets = captureFade(body)
+end
+
+----------------------------------------------------------------
 -- Loading phase
 ----------------------------------------------------------------
 
 local function buildLoading(self)
 	local theme = self._theme
 
-	-- CanvasGroup so the phase crossfade can tween one GroupTransparency
+	-- CanvasGroup so the phase crossfade can tween one GroupTransparency;
+	-- starts hidden until the intro hands off
 	local body = new("CanvasGroup", {
 		Name = UUID.Static("LoadingBody"),
 		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
 		Size = UDim2.new(1, 0, 1, -HEADER_HEIGHT),
 		BackgroundTransparency = 1,
+		GroupTransparency = 1,
+		Visible = false,
 		ZIndex = 3,
 		Parent = self._card,
 	})
@@ -483,6 +602,26 @@ local function buildLoading(self)
 		Parent = fill,
 	})
 
+	local sheen = new("Frame", {
+		Name = UUID.Static("BarSheen"),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Parent = fill,
+	})
+	local sheenGradient = new("UIGradient", {
+		Color = ColorSequence.new(Color3.new(1, 1, 1)),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.35, 0.85),
+			NumberSequenceKeypoint.new(0.5, 0.55),
+			NumberSequenceKeypoint.new(0.65, 0.85),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Offset = Vector2.new(-0.5, 0),
+		Parent = sheen,
+	})
+
 	local currentLabel = new("TextLabel", {
 		Name = UUID.Static("CurrentStep"),
 		AnchorPoint = Vector2.new(0, 0),
@@ -514,6 +653,8 @@ local function buildLoading(self)
 	self._stepRows = rows
 	self._barFill = fill
 	self._barGradient = fillGradient
+	self._sheenGradient = sheenGradient
+	self._sheenSpin = Tween.StartSpin(sheenGradient, { Offset = Vector2.new(0.5, 0) }, "SpinBurst")
 	self._currentLabel = currentLabel
 	self._percentLabel = percentLabel
 end
@@ -622,11 +763,10 @@ local function buildKeyPhase(self)
 	})
 	self._keyBody = body
 
-	local inputWidth = CARD_WIDTH - (CONTENT_PAD * 2) - 96 - 8
 	local field = new("TextBox", {
 		Name = UUID.Static("KeyInput"),
-		Position = UDim2.fromOffset(CONTENT_PAD, 14),
-		Size = UDim2.fromOffset(inputWidth, 38),
+		Position = UDim2.fromOffset(CONTENT_PAD, 10),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 40),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
@@ -659,8 +799,20 @@ local function buildKeyPhase(self)
 	})
 	local PAD = 12
 	local padding = new("UIPadding", { Parent = field })
-	padding.PaddingLeft = UDim.new(0, PAD)
+	padding.PaddingLeft = UDim.new(0, PAD + 26)
 	padding.PaddingRight = UDim.new(0, PAD)
+
+	new("ImageLabel", {
+		Name = UUID.Static("KeyIcon"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, PAD + 1, 0.5, 0),
+		Size = UDim2.fromOffset(15, 15),
+		BackgroundTransparency = 1,
+		Image = Icons["key"] or Icons["link"],
+		ImageColor3 = theme.AccentColor or Color3.fromRGB(108, 140, 255),
+		ZIndex = 3,
+		Parent = field,
+	})
 
 	field.Focused:Connect(function()
 		Tween.Play(fieldGlow, "Smooth", { Transparency = 0.6 })
@@ -676,11 +828,24 @@ local function buildKeyPhase(self)
 	self._field = field
 	self._fieldGlow = fieldGlow
 
+	new("TextLabel", {
+		Name = UUID.Static("Microcopy"),
+		Position = UDim2.fromOffset(CONTENT_PAD, 56),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 13),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
+		Text = "Press enter to continue",
+		TextSize = 10,
+		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = body,
+	})
+
 	local continue = new("TextButton", {
 		Name = UUID.Static("Continue"),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -CONTENT_PAD, 0, 14),
-		Size = UDim2.fromOffset(96, 38),
+		Position = UDim2.fromOffset(CONTENT_PAD, 78),
+		Size = UDim2.fromOffset(248, 40),
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
@@ -700,14 +865,14 @@ local function buildKeyPhase(self)
 
 	local getKey = new("TextButton", {
 		Name = UUID.Static("GetKey"),
-		Position = UDim2.fromOffset(CONTENT_PAD, 60),
-		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 34),
+		Position = UDim2.fromOffset(CONTENT_PAD + 258, 78),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2 + 258), 0, 40),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
-		Text = "  Get a key",
+		Text = "Get a key",
 		TextSize = 12,
 		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
 		ZIndex = 3,
@@ -724,7 +889,7 @@ local function buildKeyPhase(self)
 	new("ImageLabel", {
 		Name = UUID.Static("LinkIcon"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, CARD_WIDTH / 2 - 46, 0.5, 0),
+		Position = UDim2.new(0, 16, 0.5, 0),
 		Size = UDim2.fromOffset(14, 14),
 		BackgroundTransparency = 1,
 		Image = Icons["link"] or Icons["external-link"],
@@ -744,12 +909,12 @@ local function buildKeyPhase(self)
 
 	local infoWidth = 168
 	local discordWidth = CARD_WIDTH - (CONTENT_PAD * 2) - infoWidth - 10
-	local cardsY = 104
+	local cardsY = 134
 
 	local discordCard = new("TextButton", {
 		Name = UUID.Static("DiscordCard"),
 		Position = UDim2.fromOffset(CONTENT_PAD, cardsY),
-		Size = UDim2.fromOffset(discordWidth, 64),
+		Size = UDim2.fromOffset(discordWidth, 74),
 		BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.ComponentBackgroundTransparency or 0.94,
 		BorderSizePixel = 0,
@@ -772,18 +937,18 @@ local function buildKeyPhase(self)
 		Name = UUID.Static("IconTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(36, 36),
+		Size = UDim2.fromOffset(40, 40),
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = discordCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = dcTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dcTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(17, 17),
+		Size = UDim2.fromOffset(19, 19),
 		BackgroundTransparency = 1,
 		Image = Icons["link"] or Icons["external-link"],
 		ImageColor3 = theme.AccentColor or Color3.fromRGB(108, 140, 255),
@@ -793,8 +958,8 @@ local function buildKeyPhase(self)
 	new("TextLabel", {
 		Name = UUID.Static("CardTitle"),
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromOffset(58, 13),
-		Size = UDim2.new(1, -66, 0, 15),
+		Position = UDim2.fromOffset(62, 18),
+		Size = UDim2.new(1, -70, 0, 15),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "Discord",
@@ -807,8 +972,8 @@ local function buildKeyPhase(self)
 	local dcSub = new("TextLabel", {
 		Name = UUID.Static("CardSub"),
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromOffset(58, 33),
-		Size = UDim2.new(1, -66, 0, 13),
+		Position = UDim2.fromOffset(62, 40),
+		Size = UDim2.new(1, -70, 0, 13),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "Tap to copy the invite",
@@ -828,7 +993,7 @@ local function buildKeyPhase(self)
 		Name = UUID.Static("InfoCard"),
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -CONTENT_PAD, 0, cardsY),
-		Size = UDim2.fromOffset(infoWidth, 64),
+		Size = UDim2.fromOffset(infoWidth, 74),
 		BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.ComponentBackgroundTransparency or 0.94,
 		BorderSizePixel = 0,
@@ -851,18 +1016,18 @@ local function buildKeyPhase(self)
 		Name = UUID.Static("IconTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(36, 36),
+		Size = UDim2.fromOffset(40, 40),
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = infoCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = infoTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(17, 17),
+		Size = UDim2.fromOffset(19, 19),
 		BackgroundTransparency = 1,
 		Image = Icons["info"] or Icons["badge-info"],
 		ImageColor3 = theme.AccentColor or Color3.fromRGB(108, 140, 255),
@@ -872,8 +1037,8 @@ local function buildKeyPhase(self)
 	local infoTitle = new("TextLabel", {
 		Name = UUID.Static("CardTitle"),
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromOffset(58, 13),
-		Size = UDim2.new(1, -66, 0, 15),
+		Position = UDim2.fromOffset(62, 18),
+		Size = UDim2.new(1, -70, 0, 15),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
 		Text = "Information",
@@ -887,8 +1052,8 @@ local function buildKeyPhase(self)
 	local infoSub = new("TextLabel", {
 		Name = UUID.Static("CardSub"),
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromOffset(58, 33),
-		Size = UDim2.new(1, -66, 0, 13),
+		Position = UDim2.fromOffset(62, 40),
+		Size = UDim2.new(1, -70, 0, 13),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		Text = "Tap to view",
@@ -946,6 +1111,113 @@ local function buildKeyPhase(self)
 end
 
 ----------------------------------------------------------------
+-- Success phase
+----------------------------------------------------------------
+
+local function buildSuccess(self)
+	local theme = self._theme
+
+	local body = new("CanvasGroup", {
+		Name = UUID.Static("SuccessBody"),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 3,
+		Parent = self._card,
+	})
+	self._successBody = body
+
+	local ringSize = 76
+	local ring = new("Frame", {
+		Name = UUID.Static("SuccessRing"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromOffset(ringSize, ringSize),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = body,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ring })
+	new("UIStroke", {
+		Color = SUCCESS_COLOR,
+		Transparency = 0.35,
+		Thickness = 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = ring,
+	})
+
+	local check = new("Frame", {
+		Name = UUID.Static("Check"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = ring,
+	})
+	local barShort = new("Frame", {
+		Name = UUID.Static("CheckShort"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(9, 22),
+		Size = UDim2.fromOffset(0, 5),
+		Rotation = 45,
+		BackgroundColor3 = SUCCESS_COLOR,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = check,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = barShort })
+	local barLong = new("Frame", {
+		Name = UUID.Static("CheckLong"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(19, 32),
+		Size = UDim2.fromOffset(0, 5),
+		Rotation = -45,
+		BackgroundColor3 = SUCCESS_COLOR,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = check,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = barLong })
+
+	local label = new("TextLabel", {
+		Name = UUID.Static("SuccessLabel"),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.42, ringSize / 2 + 16),
+		Size = UDim2.new(1, -40, 0, 18),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
+		Text = "Key accepted",
+		TextSize = 14,
+		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 3,
+		Parent = body,
+	})
+
+	self._successLabel = label
+	self._checkBars = { barShort, barLong }
+	self._successFadeTargets = captureFade(body)
+end
+
+local function drawCheck(self)
+	local bars = self._checkBars
+	if not bars then
+		return
+	end
+	Tween.Play(bars[1], TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.fromOffset(13, 5),
+	})
+	task.delay(0.14, function()
+		if bars[2].Parent then
+			Tween.Play(bars[2], TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.fromOffset(24, 5),
+			})
+		end
+	end)
+end
+
+----------------------------------------------------------------
 -- Phase transitions
 ----------------------------------------------------------------
 
@@ -956,26 +1228,54 @@ function KeyScreen:_fadeCard(target, duration)
 	fadeTo(self._fadeTargets, target, duration)
 end
 
+-- CanvasGroup transparency skips UIStroke/UIShadow, so phases carry their own
+-- captured fade targets and snap invisible before restoring on the way in.
+function KeyScreen:_phaseOut(body, targets, duration)
+	if not body then
+		return
+	end
+	duration = duration or 0.22
+	Tween.Play(body, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		GroupTransparency = 1,
+	})
+	fadeTo(targets, 1, duration)
+	local snapshot = body
+	task.delay(duration + 0.04, function()
+		if snapshot.Parent then
+			snapshot.Visible = false
+		end
+	end)
+end
+
+function KeyScreen:_phaseIn(body, targets)
+	if not body then
+		return
+	end
+	body.Visible = true
+	body.GroupTransparency = 1
+	for _, target in ipairs(targets or {}) do
+		target[1].Transparency = 1
+	end
+	Tween.Play(body, "Smooth", { GroupTransparency = 0 })
+	fadeRestore(targets, 0.3)
+end
+
 function KeyScreen:_showKeyPhase()
 	self._subtitle.Text = "Enter your key to continue"
 	Tween.Play(self._card, "Smooth", { Size = UDim2.fromOffset(CARD_WIDTH, KEY_HEIGHT) })
-	Tween.Play(self._loadingBody, "Fast", { GroupTransparency = 1 })
-	task.delay(0.2, function()
-		if self._loadingBody then
-			self._loadingBody.Visible = false
-		end
-		if self._keyBody then
-			-- CanvasGroup transparency skips UIStroke, so snap the key phase's
-			-- strokes invisible and tween them in with the body
-			self._keyBody.Visible = true
-			self._keyBody.GroupTransparency = 1
-			for _, target in ipairs(self._keyFadeTargets or {}) do
-				target[1].Transparency = 1
-			end
-			Tween.Play(self._keyBody, "Smooth", { GroupTransparency = 0 })
-			fadeRestore(self._keyFadeTargets, 0.3)
-		end
-	end)
+	self:_phaseOut(self._loadingBody)
+	self:_phaseIn(self._keyBody, self._keyFadeTargets)
+end
+
+function KeyScreen:_showSuccess(message)
+	if self._successLabel then
+		self._successLabel.Text = message or "Key accepted"
+	end
+	self._subtitle.Text = "Access granted"
+	self:_phaseOut(self._keyBody, self._keyFadeTargets)
+	self:_phaseOut(self._loadingBody)
+	self:_phaseIn(self._successBody, self._successFadeTargets)
+	drawCheck(self)
 end
 
 function KeyScreen:_submitKey()
@@ -1012,7 +1312,7 @@ function KeyScreen:_submitKey()
 			self._record.LastAt = os.time()
 			self._record.Key = key
 			KeyServices.SaveRecord(self._record)
-			self:_finish()
+			self:_finish("Key accepted")
 		else
 			self._record.Rejected = (self._record.Rejected or 0) + 1
 			self._record.Last = "rejected"
@@ -1035,18 +1335,34 @@ function KeyScreen:_submitKey()
 	end)
 end
 
-function KeyScreen:_finish()
-	Sound.Play("KeySystemClose")
-	self:_fadeCard(1, FADE_OUT)
-	task.delay(FADE_OUT + 0.05, function()
-		self:_destroy()
-		if self._resolve then
-			self._resolve(true)
+function KeyScreen:_finish(message)
+	self:_showSuccess(message)
+	task.delay(SUCCESS_HOLD, function()
+		if not self._gui then
+			return
 		end
+		Sound.Play("KeySystemClose")
+		self:_fadeCard(1, FADE_OUT)
+		task.delay(FADE_OUT + 0.05, function()
+			self:_destroy()
+			if self._resolve then
+				self._resolve(true)
+			end
+		end)
 	end)
 end
 
 function KeyScreen:_destroy()
+	if self._introSpin then
+		Tween.StopSpin(self._introComet)
+		self._introSpin = nil
+		self._introComet = nil
+	end
+	if self._sheenSpin then
+		Tween.StopSpin(self._sheenGradient)
+		self._sheenSpin = nil
+		self._sheenGradient = nil
+	end
 	if self._dragConn then
 		self._dragConn:Disconnect()
 		self._dragConn = nil
@@ -1187,8 +1503,10 @@ function KeyScreen.Run(keyConfig, opts)
 	}
 
 	buildCard(self)
+	buildIntro(self)
 	buildLoading(self)
 	buildKeyPhase(self)
+	buildSuccess(self)
 	self._fadeTargets = captureFade(self._card)
 
 	self._themeUnbind = ThemeManager.OnThemeApplied(function(theme)
@@ -1232,17 +1550,28 @@ function KeyScreen.Run(keyConfig, opts)
 		end)
 	end
 
+	task.wait(INTRO_HOLD)
+	if not self._card then
+		return signal.Event:Wait()
+	end
+	self._subtitle.Text = "Loading"
+	self:_phaseOut(self._introBody, self._introFadeTargets)
+	Tween.StopSpin(self._introComet)
+	self._introSpin = nil
+	Tween.Play(self._headerGroup, "Smooth", { GroupTransparency = 0 })
+	self:_phaseIn(self._loadingBody)
+
 	self:_runSteps()
 
 	-- saved key already verified during loading: skip the key UI entirely
 	if self._savedValid == true then
-		self:_finish()
+		self:_finish("All set")
 		return signal.Event:Wait()
 	end
 
 	if not self._validator:HasAny() then
 		-- KeySystem configured but nothing to validate against: loading only
-		self:_finish()
+		self:_finish("All set")
 		return signal.Event:Wait()
 	end
 
