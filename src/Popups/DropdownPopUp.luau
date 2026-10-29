@@ -1,8 +1,11 @@
 --[[
-	DropdownPopUp  ·  Aetheris UI Library
+	Aetheris/Popups/DropdownPopUp.luau
 
 	Searchable multi-select popup with select-all and clear. Rows rebuild only
 	when the item list changes.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -14,9 +17,7 @@ local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local DropdownPopUp = {}
 DropdownPopUp.__index = DropdownPopUp
--- Compares two item lists by the fields that affect the rendered rows. Used to
--- skip rebuilding every row when the list is unchanged (the common case: a
--- dropdown re-sends the same items on each open).
+-- Compares two item lists by the fields that affect rendered rows, to skip rebuilds.
 local function itemsEqual(a, b)
 	if #a ~= #b then
 		return false
@@ -41,10 +42,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	local maxItems = Settings.MaxItemsChoosable or math.huge
 	local onConfirm = Settings.OnConfirm or function() end
 	local onCancel = Settings.OnCancel or function() end
-	-- Click-outside is handled by a UserInputService.InputBegan connection that
-	-- is created when the popup is shown and disconnected when it is hidden (see
-	-- _connectOutsideClick / _disconnectOutsideClick below). No scrim instance is
-	-- needed, so the popup is parented directly to its parent.
+	-- Click-outside is a UserInputService connection armed while the popup is open.
 	local popup = Instance.new("CanvasGroup")
 	popup.Name = UUID.Generate("DropdownPopup")
 	popup.BorderSizePixel = 0
@@ -91,8 +89,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	interactions.BorderSizePixel = 0
 	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
 	interactions.BackgroundTransparency = 0.8
-	-- Anchored bottom-right (1, 0.5), pinned flush to the popup's bottom edge
-	-- (center Y = 1 - height/2).
 	interactions.AnchorPoint = Vector2.new(0.5, 1)
 	interactions.Size = UDim2.new(1, 0, 0, 55)
 	interactions.Position = UDim2.fromScale(0.5, 1)
@@ -125,7 +121,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
 	confirmBtn.Position = UDim2.fromScale(0, 0)
@@ -150,7 +145,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
 	cancelBtn.Position = UDim2.fromScale(0.515, 0)
@@ -240,8 +234,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchBox.Size = UDim2.fromScale(0.38996, 1)
 	searchBox.Position = UDim2.fromScale(0.26484, 0.5)
 	searchBox.Parent = searchArea
-	-- Mirrors the sidebar search bar's BottomDivider: an inset 80%-wide line
-	-- centered under the whole search area (NOT the box, which is narrower).
+	-- Inset line centered under the whole search area, not the narrower box.
 	local searchDivider = Instance.new("Frame")
 	searchDivider.Name = UUID.Static("SearchDividerBottom")
 	searchDivider.BorderSizePixel = 0
@@ -324,13 +317,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllShadow.Color = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 	selectAllShadow.Transparency = 1
 	selectAllShadow.Parent = selectAllBtn
-	-- Hide SelectAll if cap is finite
 	if maxItems ~= math.huge then
 		selectAllBtn.Visible = false
 	end
-	-- ============================================================
-	-- Store references
-	-- ============================================================
+
 	self.Popup = popup
 	self.Interactions = interactions
 	self.Shadow = shadow
@@ -365,8 +355,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	self._scrollbarTimer = nil
 	self._hideTimer = nil
 
-	-- Search box focus animation, mirroring the sidebar search bar: the bottom
-	-- divider and search icon sharpen while the box is focused and relax at rest.
+	-- The divider and search icon sharpen on focus, matching the sidebar search.
 	searchBox.Focused:Connect(function()
 		Tween.Play(searchDivider, "Fast", { BackgroundTransparency = 0.2 })
 		Tween.Play(searchIcon, "Fast", { ImageTransparency = 0.2 })
@@ -376,11 +365,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		Tween.Play(searchIcon, "Fast", { ImageTransparency = 0.7 })
 	end)
 
-	-- ============================================================
-	-- ApplyTheme(theme): re-apply every theme-driven color WITHOUT
-	-- rebuilding. Called by Window:SetTheme so a cached/open dropdown recolors
-	-- live instead of being destroyed and recreated.
-	-- ============================================================
+	-- Re-apply every theme color without rebuilding, so a cached/open dropdown recolors live.
 	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
 			return
@@ -426,28 +411,21 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			if obj.shadow then
 				obj.shadow.Color = t.ComponentShadowColor or obj.shadow.Color
 			end
-			-- Item sheen follows the theme wallpaper (was previously handled by
-			-- ThemeManager.updateThemeSheens; now owned here since rows are
-			-- recolored in place rather than rebuilt).
+			-- Item sheen follows the theme; rows recolor in place rather than rebuild.
 			if obj.selectionStatus then
 				obj.selectionStatus.BackgroundColor3 = t.SecondaryColor or obj.selectionStatus.BackgroundColor3
 			end
 		end
 	end
 
-	-- ============================================================
-	-- Internal methods
-	-- ============================================================
 	self._flashDivider = function(_self)
 		local divider = self.Divider
 		if not divider then
 			return
 		end
-		-- Token guards against overlapping flashes (e.g. Select-All selecting
-		-- many items in one frame): only the newest flash owns the divider.
+		-- Token guards overlapping flashes; only the newest flash owns the divider.
 		self._dividerFlashToken = (self._dividerFlashToken or 0) + 1
 		local token = self._dividerFlashToken
-		-- Stage 1: Fast down to fully opaque.
 		local down = Tween.Play(divider, "Fast", { BackgroundTransparency = 0 })
 		if not (down and down.Tween) then
 			return
@@ -456,7 +434,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			if self._dividerFlashToken ~= token or state ~= Enum.PlaybackState.Completed then
 				return
 			end
-			-- Stage 2: Fast back up to the resting 0.9 transparency.
 			local up = Tween.Play(divider, "Fast", { BackgroundTransparency = 0.9 })
 			if up and up.Tween then
 				up.Tween.Completed:Connect(function(state2)
@@ -529,7 +506,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			if itemObj.shadow then
 				Tween.Play(itemObj.shadow, "Fast", { Transparency = 0.5 })
 			end
-			-- Show the selection bar (same OnOff animation as sidebar tabs).
 			if itemObj.selectionStatus then
 				Tween.Play(
 					itemObj.selectionStatus,
@@ -555,7 +531,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			if itemObj.shadow then
 				Tween.Play(itemObj.shadow, "Fast", { Transparency = 1 })
 			end
-			-- Collapse the selection bar.
 			if itemObj.selectionStatus then
 				Tween.Play(
 					itemObj.selectionStatus,
@@ -621,13 +596,11 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	self._filterItems = function(me, query)
 		local lower = string.lower(query or "")
 		local accent = (me._theme and me._theme.AccentColor) or Color3.fromRGB(96, 165, 250)
-		-- Plain-text search (find with plain=true) so query text is never treated
-		-- as a Lua pattern, and so it matches faster than a pattern search.
+		-- Plain-text search (plain=true) so the query is never treated as a pattern.
 		for _, obj in ipairs(me._itemObjects) do
 			local matched = (lower == "") or (string.find(string.lower(obj.name), lower, 1, true) ~= nil)
 			obj.button.Visible = matched
-			-- Highlight the matched substring in the row label with the accent
-			-- color (RichText). Restore the plain name when there is no query.
+			-- Highlight the match with accent RichText; plain name when no query.
 			if obj.nameLabel then
 				local hl = matched and lower ~= "" and SearchFilter.Highlight(obj.name, lower, accent) or nil
 				if hl then
@@ -674,11 +647,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		me:Close()
 		me.OnCancel()
 	end
-	-- ============================================================
-	-- Build items from current Items table
-	-- ============================================================
 	self._buildItems = function(_self)
-		-- Clear old
 		for _, obj in ipairs(self._itemObjects) do
 			obj.button:Destroy()
 		end
@@ -693,10 +662,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			button.BorderSizePixel = 0
 			button.TextTransparency = 1
 			button.AutoButtonColor = false
-			-- Item background: theme-driven (AccentColor), matching ApplyTheme so a
-			-- live theme switch and a fresh build agree. Starts fully transparent
-			-- (deselected); selected items get a very subtle fill (transparency
-			-- 0.5) set in _setItemSelected.
+			-- Theme-driven background; starts transparent, selected items get a subtle fill in _setItemSelected.
 			button.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(255, 255, 255)
 			button.BackgroundTransparency = 1
 			button.Size = UDim2.new(1, 0, 0, 40)
@@ -704,16 +670,14 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local btnCorner = Instance.new("UICorner")
 			btnCorner.CornerRadius = UDim.new(0, 6)
 			btnCorner.Parent = button
-			-- Selection indicator: a thin left-edge bar, animated exactly like the
-			-- sidebar tab SelectionStatus (OnOff tween). Color is a theme option
-			-- (SecondaryColor), matching the other selection statuses in the UI.
+			-- Thin left-edge bar animated like the sidebar tab selection status.
 			local selectionStatus = Instance.new("Frame")
 			selectionStatus.Name = UUID.Static("SelectionStatus")
 			selectionStatus.BorderSizePixel = 0
 			selectionStatus.BackgroundColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
-			selectionStatus.BackgroundTransparency = 1 -- hidden until selected
+			selectionStatus.BackgroundTransparency = 1
 			selectionStatus.AnchorPoint = Vector2.new(0, 0.5)
-			selectionStatus.Size = UDim2.fromOffset(2, 0) -- start collapsed
+			selectionStatus.Size = UDim2.fromOffset(2, 0)
 			selectionStatus.Position = UDim2.new(0, -8, 0.5, 0)
 			selectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			selectionStatus.Parent = button
@@ -722,8 +686,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemImage.ImageTransparency = 0.9
 			itemImage.AnchorPoint = Vector2.new(0.5, 0.5)
 			itemImage.Image = icon
-			-- Item icons use the same theme keys as sidebar tab icons (selected ->
-			-- ActiveTabIconColor, deselected -> InactiveTabIconColor).
+			-- Icons use the sidebar tab icon theme keys for selected/deselected.
 			itemImage.ImageColor3 = (theme and theme.InactiveTabIconColor) or Color3.fromRGB(255, 255, 255)
 			itemImage.Size = UDim2.fromOffset(18, 18)
 			itemImage.BackgroundTransparency = 1
@@ -772,11 +735,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				selected = false,
 			}
 			table.insert(self._itemObjects, obj)
-			-- Click
 			button.MouseButton1Click:Connect(function()
 				self:_toggleItem(obj)
 			end)
-			-- Hover: icon and shadow
 			button.MouseEnter:Connect(function()
 				if obj.selected then
 					if obj.icon then
@@ -826,7 +787,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		self:_filterItems(searchBox.Text)
 	end)
-	-- Confirm button hover shadow (like UINotification)
 	confirmBtn.MouseEnter:Connect(function()
 		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 50),
@@ -839,7 +799,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			Transparency = 1,
 		})
 	end)
-	-- Cancel button hover text (like UINotification)
 	cancelBtn.MouseEnter:Connect(function()
 		Tween.Play(cancelBtn, "Fast", {
 			TextTransparency = 0.2,
@@ -850,18 +809,13 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			TextTransparency = 0.5,
 		})
 	end)
-	-- ============================================================
-	-- Public API
-	-- ============================================================
 	self.SetContent = function(_self, contentSettings)
 		if not self.Popup then
 			return
 		end
 		contentSettings = contentSettings or {}
 		local newTitle = contentSettings.Title or "Select Items"
-		-- Read the LIVE theme, not the construction-time `theme` upvalue: SetContent
-		-- runs on every reopen and would otherwise overwrite the header color with
-		-- a stale value after a theme switch.
+		-- Read the LIVE theme; SetContent runs on every reopen, so a construction-time theme would be stale.
 		local liveTheme = ThemeManager.GetTheme(contentSettings.Theme or self._theme)
 		local newTitleColor = contentSettings.TitleColor
 			or (liveTheme and liveTheme.PopupTextColor)
@@ -875,20 +829,15 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.OnConfirm = contentSettings.OnConfirm or function() end
 		self.OnCancel = contentSettings.OnCancel or function() end
 		self.Title = newTitle
-		-- Update header (color via TextColor3, no RichText tag needed)
 		self.Header.Text = newTitle
 		self.Header.TextColor3 = newTitleColor or Color3.fromRGB(255, 255, 255)
-		-- Only rebuild the rows when the item list actually changed. Rebuilding
-		-- destroys and recreates every row (~10 instances + 3 connections each)
-		-- and previously ran on EVERY open -- the main source of churn.
+		-- Only rebuild the rows when the item list actually changed.
 		if not itemsEqual(oldItems, newItems) then
 			self:_buildItems()
 		end
 		self:SetSelection(newDefault)
 		self:_updateSelectedText()
-		-- Reset resolved
 		self._resolved = false
-		-- SelectAll visibility
 		if newMaxItems ~= math.huge then
 			self.SelectAllBtn.Visible = false
 		else
@@ -899,28 +848,22 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if not self.Popup then
 			return
 		end
-		-- Cancel any pending hide timer
 		if self._hideTimer then
 			task.cancel(self._hideTimer)
 			self._hideTimer = nil
 		end
-		-- If already open, we still want to ensure it's visible (e.g., after being hidden)
-		-- So we don't return early; we just make sure it's visible and reset state.
 		self.IsOpen = true
 		self._resolved = false
-		-- Clear search and reset item visibility
 		if self.SearchBox then
 			self.SearchBox.Text = ""
 		end
 		for _, obj in ipairs(self._itemObjects) do
 			obj.button.Visible = true
 		end
-		-- Ensure the popup is visible immediately
 		self.Popup.Visible = true
 		self.Popup.GroupTransparency = 1
-		-- Arm the click-outside listener for as long as the popup is open.
 		self:_connectOutsideClick()
-		-- Reset item visuals
+		-- Snap item visuals to their resting selection state before the fade-in.
 		for _, obj in ipairs(self._itemObjects) do
 			if obj.selected then
 				if obj.button then
@@ -964,7 +907,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				end
 			end
 		end
-		-- Reset UI elements to transparent
+		-- Snap every chrome element transparent so the fade-in owns all of it.
 		self.Popup.BackgroundTransparency = 1
 		self.Interactions.BackgroundTransparency = 1
 		self.Shadow.Transparency = 1
@@ -991,7 +934,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		self.SelectAllBtn.BackgroundTransparency = 1
 		self.ClearBtn.TextTransparency = 1
 		self.ClearBtn.BackgroundTransparency = 1
-		-- Reset icons and divider to hidden
 		if self.SearchIcon then
 			self.SearchIcon.ImageTransparency = 1
 		end
@@ -1005,7 +947,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			self.Divider.BackgroundTransparency = 1
 		end
 		self.Popup.Visible = true
-		-- Fade in
 		if self.Popup then
 			Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07, GroupTransparency = 0 })
 		end
@@ -1042,7 +983,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if self.ClearShadow then
 			Tween.Play(self.ClearShadow, "Fast", { Transparency = 0.5 })
 		end
-		-- Fade in icons and divider
 		if self.SearchIcon then
 			Tween.Play(self.SearchIcon, "Fast", { ImageTransparency = 0.7 })
 		end
@@ -1058,19 +998,15 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if self.SearchDivider then
 			Tween.Play(self.SearchDivider, "Fast", { BackgroundTransparency = 0.9 })
 		end
-		-- Show scrollbar initially hidden, will appear on scroll
 		if self.List then
 			Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 1 })
 			self.List.ScrollBarImageTransparency = 1
-			-- Setup scroll detection if not already connected
 			if not self._scrollConnection then
 				self._scrollConnection = self.List:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 					self:_showScrollbar()
 				end)
 			end
 		end
-		-- Click-outside is handled by _connectOutsideClick() (called below on
-		-- open) and torn down again on close, so there is nothing to do here.
 	end
 	self.Close = function(_self)
 		if not self.Popup then
@@ -1080,20 +1016,16 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			return
 		end
 		self.IsOpen = false
-		-- Disarm the click-outside listener immediately on close so a click
-		-- during the fade-out cannot re-trigger it.
+		-- Disarm click-outside immediately so a click during the fade-out can't re-trigger it.
 		self:_disconnectOutsideClick()
-		-- Disconnect input
 		if self._inputConnection then
 			self._inputConnection:Disconnect()
 			self._inputConnection = nil
 		end
-		-- Cancel scrollbar timer
 		if self._scrollbarTimer then
 			task.cancel(self._scrollbarTimer)
 			self._scrollbarTimer = nil
 		end
-		-- Fade out items
 		for _, obj in ipairs(self._itemObjects) do
 			if obj.button then
 				Tween.Play(obj.button, "Fast", { BackgroundTransparency = 1 })
@@ -1114,7 +1046,6 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				Tween.Play(obj.selectionStatus, "Fast", { BackgroundTransparency = 1 })
 			end
 		end
-		-- Fade out UI
 		if self.Header then
 			Tween.Play(self.Header, "Fast", { TextTransparency = 1 })
 		end
@@ -1193,9 +1124,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			self._hideTimer = nil
 		end)
 	end
-	-- Click-outside detection via UserInputService. The connection exists only
-	-- while the popup is open: created in Open(), disconnected in
-	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
+	-- Click-outside via UserInputService, connected only while the popup is open.
 	self._connectOutsideClick = function(_self)
 		if self._outsideConn then
 			return
@@ -1212,10 +1141,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				return
 			end
 			local p = input.Position
-			-- Inside if the point is within the popup's rect OR lands on any of its
-			-- descendants. The descendant check makes this robust when visually-
-			-- belonging content (overlays, shadows, indicators) extends past the
-			-- frame's own rect; a pure rect test would misread those as "outside".
+			-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
 			local pos = self.Popup.AbsolutePosition
 			local size = self.Popup.AbsoluteSize
 			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -1253,19 +1179,16 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			me._inputConnection:Disconnect()
 			me._inputConnection = nil
 		end
-		-- Cancel any pending hide timer
 		if me._hideTimer then
 			task.cancel(me._hideTimer)
 			me._hideTimer = nil
 		end
-		-- Cancel any pending scrollbar timer
 		if me._scrollbarTimer then
 			task.cancel(me._scrollbarTimer)
 			me._scrollbarTimer = nil
 		end
 	end
 	self.Destroy = function(me)
-		-- Only call this when you truly want to remove the popup from memory
 		if me._inputConnection then
 			me._inputConnection:Disconnect()
 			me._inputConnection = nil
@@ -1278,7 +1201,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if me.Popup then
 			me.Popup = nil
 		end
-		-- Call cleanup callback to notify Window that this popup is gone
+		-- Notify Window that this popup is gone.
 		if me._cleanupCallback then
 			me._cleanupCallback()
 			me._cleanupCallback = nil
@@ -1288,12 +1211,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	self._showScrollbar = function(_self)
 		if self.List then
 			Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 0.5 })
-			-- Cancel any pending hide timer
 			if self._scrollbarTimer then
 				task.cancel(self._scrollbarTimer)
 				self._scrollbarTimer = nil
 			end
-			-- Schedule hide after 1.5s of inactivity
 			self._scrollbarTimer = task.delay(1.5, function()
 				if self.List then
 					Tween.Play(self.List, "Fast", { ScrollBarImageTransparency = 1 })
