@@ -1,16 +1,14 @@
 --[[
-	Notification  ·  Aetheris UI Library
+	Aetheris/Popups/Notification.luau
 
-	Self-destroying toast notifications in three flavours:
-	  Alert    - informational (amber accent)
-	  Error    - error (red accent)
-	  Variable - success/custom (green accent by default); supports a custom
-	             icon, icon/gradient colours, an optional background image,
-	             and up to MAX_ACTIONS interaction buttons with callbacks.
+	Self-destroying toast notifications in three flavours: Alert (amber),
+	Error (red), and Variable (green; custom icon, colours, background image
+	and up to MAX_ACTIONS action buttons). Created via window:Alert() /
+	window:Error() / window:Toast(); each toast fades in, counts down via
+	TimerFrame, then fades out and destroys itself.
 
-	Create via window:Alert() / window:Error() / window:Toast().
-	Each toast builds itself, fades in, counts down via TimerFrame, then fades
-	out and :Destroy()s itself to avoid leaking memory.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -29,23 +27,13 @@ local MAX_ACTIONS = 2
 local FADE_IN = 0.2
 local FADE_OUT = 0.2
 
--- Card geometry. The toast's height is derived from the row's content rather
--- than from AutomaticSize (see syncHeight), so these are the only fixed
--- numbers: the card width, the top inset above the row, and the floor that
--- keeps a very short toast from collapsing.
+-- Card geometry: height derives from the row's content via syncHeight, so these are the only fixed numbers.
 local TOAST_WIDTH = 233
 local ROW_TOP_INSET = 17
 local TOAST_MIN_HEIGHT = 40
--- Extra card height added below the row so a one-line toast is not cramped.
--- Applied in syncHeight only, so the row keeps its top alignment (the top
--- inset above the row and the row's own bottom padding stay untouched) and
--- the timer bar keeps a little breathing room under the description.
+-- Extra height below the row so a one-line toast isn't cramped; applied in syncHeight only.
 local TOAST_EXTRA_HEIGHT = 7
--- Header box. The title rides at the very top of the text column and is
--- followed by a 1px divider; its box is taller than the glyphs and
--- top-aligned, which lifts the title (level with the dismiss button) AND
--- pushes the divider -- plus everything below it -- down, so the title is no
--- longer jammed against the rule.
+-- Top-aligned title box taller than the glyphs, so the title sits level with the dismiss button and clears the divider.
 local HEADER_HEIGHT = 16
 local HEADER_GAP = 10
 
@@ -61,8 +49,7 @@ local function new(className, props)
 	return inst
 end
 
--- Snapshot the decorations that CanvasGroup transparency does NOT cover
--- (UIStroke/UIShadow), so they can fade alongside the group.
+-- Snapshot decorations CanvasGroup transparency does not cover (UIStroke/UIShadow) so they can fade along.
 local function captureFade(root)
 	local targets = {}
 	local function scan(inst)
@@ -93,12 +80,8 @@ local function tweenAll(targets, value, duration)
 	end
 end
 
--- The card's height is measured, not auto-sized. `row` keeps AutomaticSize.Y
--- but only holds offset-sized content, so it converges; the card copies it.
+-- Height is measured from the row (which converges on offset content), not auto-sized.
 local function syncHeight(root, row)
-	-- `row` already includes its own 12px bottom band (UIPadding.PaddingBottom),
-	-- so the card only adds the top inset plus TOAST_EXTRA_HEIGHT.
-	-- One-line alert ≈ 75px.
 	local height = math.max(TOAST_MIN_HEIGHT, row.AbsoluteSize.Y + ROW_TOP_INSET + TOAST_EXTRA_HEIGHT)
 	root.Size = UDim2.fromOffset(TOAST_WIDTH, height)
 end
@@ -109,9 +92,7 @@ local ACCENT_KEY = {
 	Variable = "NotificationVariableAccent",
 }
 
--- Per-type fallbacks: even if a theme is missing its Notification*Accent keys
--- the rim still colour-matches the toast (alert = orange, error = red,
--- variable = green) instead of every flavour sharing one colour.
+-- Per-type fallbacks so a theme missing its Notification*Accent keys still colour-matches each flavour.
 local FALLBACK_ACCENT = {
 	Alert = Color3.fromRGB(249, 115, 22),
 	Error = Color3.fromRGB(226, 42, 42),
@@ -124,8 +105,7 @@ local DEFAULT_TITLE = {
 	Variable = "Changes saved!",
 }
 
--- Default icon per notification type, from the shared Icons module. These are
--- full-images (no ImageRect), so no rect offset/size is set.
+-- Default icon per type; all full images, so no rect offset/size is set.
 local DEFAULT_ICON = {
 	Alert = Icons["triangle-alert"] or "rbxassetid://125920361880643",
 	Error = Icons["shield-alert"] or "rbxassetid://114995877719925",
@@ -147,11 +127,7 @@ function Notification.new(container, Settings, theme)
 	local iconColor = Settings.IconColor or accent
 	local washColor = Settings.GradientColor or accent
 
-	-- Height is driven from the row below (see syncHeight), NOT by AutomaticSize.
-	-- AutomaticSize measures children by AbsoluteSize, so the wash / background
-	-- scale(1,1) frames measured against the very card they were sizing and the
-	-- toast grew a little on every layout pass -- that is what made them far too
-	-- tall once the aurora landed. X stays fixed at 233.
+	-- Sized by syncHeight from the row below, not AutomaticSize: scale(1,1) wash frames measured against this card and grew it every pass.
 	local root = new("CanvasGroup", {
 		Name = UUID.Generate("Toast"),
 		ZIndex = 999,
@@ -159,9 +135,7 @@ function Notification.new(container, Settings, theme)
 		GroupTransparency = 1,
 		BackgroundColor3 = theme.NotificationBackgroundColor or Color3.fromRGB(16, 16, 17),
 		BackgroundTransparency = theme.NotificationBackgroundTransparency or 0.1,
-		-- NOT AutomaticSize: see syncHeight below. No ClipsDescendants here --
-		-- it would also clip this card's own UIShadow glow. The wash and
-		-- background already clip themselves to their own scale(1,1) frame.
+		-- No ClipsDescendants: it would clip this card's own UIShadow glow; the wash/background already clip themselves.
 		Size = UDim2.fromOffset(TOAST_WIDTH, TOAST_MIN_HEIGHT),
 		BorderColor3 = Color3.fromRGB(41, 41, 41),
 		LayoutOrder = 2,
@@ -169,16 +143,9 @@ function Notification.new(container, Settings, theme)
 	})
 	self.Root = root
 
-	-- NOTE: root deliberately has NO UIPadding -- it would inset the scale(1,1)
-	-- wash/background and float the bottom timer bar. The row below uses
-	-- absolute offsets instead (14 left, 30 right gutter for the dismiss).
-
+	-- Root has no UIPadding: it would inset the scale(1,1) wash and float the timer bar; the row below uses absolute offsets.
 	new("UICorner", { Parent = root, CornerRadius = UDim.new(0, 6) })
-	-- Card-style chrome, colour-matched to the flavour: the stroke AND shadow
-	-- take the per-type accent (alert = orange rim, error = red, variable =
-	-- theme-derived). Theme keys only tune transparency now -- their neutral
-	-- colours used to win over the accent and flattened every toast to one
-	-- look. Stroke sits a touch more transparent than the theme cards' 0.55.
+	-- Card chrome colour-matched to the flavour accent; theme keys only tune transparency.
 	local stroke = new("UIStroke", {
 		Parent = root,
 		Color = accent,
@@ -187,10 +154,7 @@ function Notification.new(container, Settings, theme)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 
-	-- Root accent shadow: the card's glow. Colour-matched to the flavour accent
-	-- (ApplyTheme re-resolves it live); transparency from the theme key with a
-	-- fixed fallback. It's a UIShadow under root, so captureFade() picks it up
-	-- and the toast's own Show/Close fade carries it with the group.
+	-- The card's glow, colour-matched to the accent; captureFade carries it with the group fade.
 	local shadow = new("UIShadow", {
 		Parent = root,
 		Color = accent,
@@ -198,17 +162,11 @@ function Notification.new(container, Settings, theme)
 		BlurRadius = UDim.new(0, 18),
 		Offset = UDim2.fromOffset(0, 6),
 	})
-	-- PageFade restores a decoration to its PageFadeBase; toasts live outside
-	-- the window tree so PageFade never touches them, but stamp it so any
-	-- FadeDecorations sweep that does reach here returns to the rest state.
+	-- Stamp PageFadeBase so any FadeDecorations sweep that reaches out-of-tree toasts returns to the rest state.
 	shadow:SetAttribute(UUID.Static("PageFadeBase"), shadow.Transparency)
 	self._shadow = shadow
 
-	-- Aurora wash replaces the old corner gradient: two low-opacity accent
-	-- blooms clipped to the toast shape. Static, so it costs nothing at idle.
-	-- ColorKey binds each bloom to the live theme accent so a theme switch
-	-- repaints the wash in place (falls back to the static washColor when the
-	-- caller overrode the gradient).
+	-- Accent bloom wash clipped to the toast; ColorKey binds it to the live theme accent unless the caller overrode the gradient.
 	local wash = Aurora.Wash(root, {
 		Color = washColor,
 		ColorKey = (Settings.GradientColor == nil) and ACCENT_KEY[ntype] or nil,
@@ -216,15 +174,12 @@ function Notification.new(container, Settings, theme)
 		Intensity = 0.1,
 	})
 
-	-- Optional sheen background image
 	if Settings.ShowBackground then
 		local bg = new("ImageLabel", {
 			Name = UUID.Static("Background"),
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
 			ImageTransparency = 0.5,
-			-- Default to the active theme's wallpaper (falls back to the brand
-			-- asset if the theme has none).
 			Image = Settings.BackgroundImage or theme.Wallpaper or FallbackImage,
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -252,14 +207,7 @@ function Notification.new(container, Settings, theme)
 		})
 	end
 
-	-- Row: icon beside a single in-flow text column. Every child uses offset
-	-- sizes and UIListLayouts -- nothing is scale-positioned -- so this frame's
-	-- AutomaticSize.Y converges deterministically and syncHeight can copy it
-	-- straight onto the card: a one-line alert is ~65px tall and growth is
-	-- linear with the description. (The old layout pinned the header/divider/
-	-- icon at absolute offsets and stacked a 40px top offset on top, which is
-	-- what made every toast long.) Absolute insets: 14px left margin, 30px
-	-- right gutter for the dismiss button.
+	-- Icon beside one in-flow text column; all-offset children so AutomaticSize.Y converges and syncHeight can copy it (14px left margin, 30px right gutter for the dismiss).
 	local row = new("Frame", {
 		Name = UUID.Static("Row"),
 		BorderSizePixel = 0,
@@ -276,12 +224,9 @@ function Notification.new(container, Settings, theme)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		FillDirection = Enum.FillDirection.Horizontal,
 	})
-	-- Bottom band: included in row's AutomaticSize.Y (unlike root UIPadding,
-	-- which would break the wash), so the timer bar at the card's bottom edge
-	-- never overlaps the description.
+	-- Bottom band rides in the row's AutomaticSize.Y (root UIPadding would break the wash), so the timer bar clears the description.
 	new("UIPadding", { Parent = row, PaddingBottom = UDim.new(0, ROW_TOP_INSET) })
 
-	-- Icon (full image from the Icons module; no rect offset/size)
 	local icon = new("ImageLabel", {
 		Name = UUID.Static("Icon"),
 		BorderSizePixel = 0,
@@ -299,8 +244,7 @@ function Notification.new(container, Settings, theme)
 		Name = UUID.Static("Column"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
-		-- Icon (22) + gap (10); the dismiss button sits outside the row at the
-		-- card edge, so no extra reserve is needed here.
+		-- Icon (22) + gap (10); the dismiss button sits outside the row, so no extra reserve.
 		Size = UDim2.new(1, -32, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = 2,
@@ -324,8 +268,7 @@ function Notification.new(container, Settings, theme)
 		TextTransparency = theme.NotificationHeaderTransparency or 0.3,
 		TextColor3 = theme.NotificationHeaderColor or Color3.fromRGB(255, 255, 255),
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
-		-- Top-aligned text in a box taller than the glyphs: the title sits at
-		-- the card's top edge while HEADER_GAP becomes breathing room under it.
+		-- Top-aligned in a taller box: the title rides the card's top edge and HEADER_GAP becomes room under it.
 		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT + HEADER_GAP),
 		LayoutOrder = 1,
 		ZIndex = 2,
@@ -333,7 +276,6 @@ function Notification.new(container, Settings, theme)
 		Parent = col,
 	})
 	new("UIPadding", { Parent = header, PaddingBottom = UDim.new(0, 7) })
-	-- Description
 	local desc = new("TextLabel", {
 		Name = UUID.Static("Description"),
 		BorderSizePixel = 0,
@@ -353,7 +295,6 @@ function Notification.new(container, Settings, theme)
 		Parent = col,
 	})
 
-	-- Interaction buttons (up to MAX_ACTIONS)
 	local actions = Settings.Actions or {}
 	self._actions = {}
 	if #actions > 0 then
@@ -393,14 +334,9 @@ function Notification.new(container, Settings, theme)
 			btn:SetAttribute(UUID.Static("ToastBaseBackground"), baseBg)
 			new("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
 
-			-- Button-component motion, 1:1: hover grows 1.02 (HoverIn), press
-			-- dips 0.97 (Fast), click washes a PrimaryColor overlay in over
-			-- 0.12s and back out over 0.5s — exactly Button's performClick.
-			-- No hover/press background tint (Button has none) and the accent
-			-- UIShadow bloom is deliberately left as-is.
+			-- Button-component motion 1:1: hover 1.02, press 0.97, click wash in/out.
 			local btnScale = new("UIScale", { Parent = btn, Scale = 1 })
 
-			-- Accent-tinted shadow (hidden at rest, blooms on hover).
 			local btnShadow = new("UIShadow", {
 				Color = accent,
 				Transparency = 1,
@@ -439,9 +375,7 @@ function Notification.new(container, Settings, theme)
 			end)
 
 			btn.MouseButton1Click:Connect(function()
-				-- Button's click flash: overlay in over 0.12s, out over 0.5s.
-				-- Rapid clicks restart it instead of locking (Button does the
-				-- same via CancelAll).
+				-- Overlay in over 0.12s, out over 0.5s; rapid clicks restart it instead of locking.
 				Tween.CancelAll(btnFlash)
 				Tween.Play(btnFlash, "Click", { BackgroundTransparency = 0.15 })
 				task.delay(0.12, function()
@@ -450,9 +384,7 @@ function Notification.new(container, Settings, theme)
 					end
 					Tween.Play(btnFlash, "Release", { BackgroundTransparency = 1 })
 				end)
-				-- Callback fires immediately (Button never blocks behaviour);
-				-- the toast exits just after the flash-in lands. Close is
-				-- guarded by _closing, so the timer race is harmless.
+				-- Callback fires immediately; the toast exits just after the flash-in lands.
 				if action.Callback then
 					action.Callback(self)
 				end
@@ -465,7 +397,7 @@ function Notification.new(container, Settings, theme)
 		end
 	end
 
-	-- Dismiss button (full image from the Icons module; no rect offset/size)
+	-- Right-pinned so hover growth extends into the gutter, aligned with the header line.
 	local dismiss = new("ImageButton", {
 		Name = UUID.Static("DismissButton"),
 		BorderSizePixel = 0,
@@ -474,14 +406,13 @@ function Notification.new(container, Settings, theme)
 		Image = CLOSE_ICON,
 		ImageColor3 = theme.NotificationDismissColor or Color3.fromRGB(255, 255, 255),
 		Size = UDim2.fromOffset(16, 16),
-		AnchorPoint = Vector2.new(1, 0), -- right-pinned: hover growth extends into the gutter, not past the card edge
-		Position = UDim2.new(1, -12, 0, 15), -- 30px gutter right of the row, aligned with the header line
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 15),
 		ZIndex = 3,
 		Parent = root,
 	})
 	new("UIAspectRatioConstraint", { Parent = dismiss, DominantAxis = Enum.DominantAxis.Height })
 
-	-- Hover brightens + scales the close icon; press shrinks it for feedback.
 	local function dismissTween(prop, dur)
 		Tween.Play(dismiss, TweenInfo.new(dur or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), prop)
 	end
@@ -501,7 +432,6 @@ function Notification.new(container, Settings, theme)
 		self:Close()
 	end)
 
-	-- Timer bar
 	self.TimerFrame = new("Frame", {
 		Name = UUID.Static("TimerFrame"),
 		BorderSizePixel = 0,
@@ -517,9 +447,7 @@ function Notification.new(container, Settings, theme)
 	self._shown = false
 	self._closing = false
 
-	-- Theme context retained so ApplyTheme can recolor a toast that is already
-	-- on screen when the theme changes (toasts live outside the window tree,
-	-- so ThemeManager's own pass never reaches them).
+	-- Retained so ApplyTheme can recolour a toast already on screen (toasts live outside the window tree).
 	self._type = ntype
 	self._accent = accent
 	self._iconOverride = Settings.IconColor
@@ -531,9 +459,7 @@ function Notification.new(container, Settings, theme)
 	self._desc = desc
 	self._dismiss = dismiss
 
-	-- Height: the row measures its own content (wrapped description, optional
-	-- action buttons) and the card copies that. Re-running on AbsoluteSize
-	-- covers text reflow after font/theme swaps as well as the initial pass.
+	-- Re-sync on reflow so text changes and font/theme swaps resize the card too.
 	syncHeight(root, row)
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		if root.Parent then
@@ -544,10 +470,7 @@ function Notification.new(container, Settings, theme)
 	return self
 end
 
--- Live theme switch: re-resolve this toast's themed properties in place so an
--- open notification crossfades with the rest of the UI instead of being
--- destroyed and rebuilt (which is what Window:SetTheme does to popups that
--- lack ApplyTheme).
+-- Live theme switch: recolour in place so an open toast follows the UI instead of being rebuilt.
 function Notification:ApplyTheme(themeInput)
 	if not self.Root then
 		return
@@ -561,10 +484,7 @@ function Notification:ApplyTheme(themeInput)
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
 
-	-- Colour-matched card chrome: rim and glow follow the flavour accent, so
-	-- alerts glow amber, errors red, toasts green. Theme keys only tune
-	-- transparency now -- their neutral colours used to win the `or` and
-	-- flattened every flavour to one look.
+	-- Rim and glow follow the flavour accent; theme keys only tune transparency.
 	self._shadow.Color = accent
 	if theme.NotificationShadowTransparency then
 		self._shadow.Transparency = theme.NotificationShadowTransparency
@@ -575,8 +495,7 @@ function Notification:ApplyTheme(themeInput)
 		self._wash:SetColor(washColor)
 	end
 
-	-- Wallpaper is an asset id, so it is not a color binding. Re-stamp it on
-	-- every switch so an open toast follows the live theme.
+	-- Wallpaper is an asset id, not a colour binding, so re-stamp it on every switch.
 	if self._background then
 		self._background.Image = self._backgroundOverride or theme.Wallpaper or FallbackImage
 		self._background.Visible = (self._backgroundOverride ~= nil) or theme.WallpaperEnabled ~= false
@@ -609,7 +528,6 @@ function Notification:ApplyTheme(themeInput)
 	for _, entry in ipairs(self._actions) do
 		local button = entry.button
 		button:SetAttribute(UUID.Static("ToastBaseBackground"), baseBg)
-		-- No hover tint any more (Button-style); bg stays at its base.
 		button.BackgroundColor3 = baseBg
 		button.TextColor3 = buttonText
 		if entry.flash then
@@ -635,8 +553,7 @@ function Notification:_startTimer()
 	)
 end
 
--- A theme switch cancels every tween under the ScreenGui, including this
--- bar's. Pick it back up from wherever the sweep left it.
+-- A theme switch cancels every tween under the ScreenGui; pick the bar back up from wherever the sweep left it.
 function Notification:_resumeTimer()
 	if self._closing or not self._timerStarted then
 		return
@@ -669,9 +586,7 @@ function Notification:Show()
 	tweenAll(self._fadeTargets, nil, FADE_IN)
 	self:_startTimer()
 	self._dismissTask = task.delay(self.Duration, function()
-		-- Clear the handle first: Close() cancels _dismissTask, and cancelling
-		-- the thread we're currently running on would abort before the
-		-- destroy step below is scheduled.
+		-- Clear the handle first: Close() cancels _dismissTask, and cancelling this running thread would abort before the destroy step below is scheduled.
 		self._dismissTask = nil
 		self:Close()
 	end)

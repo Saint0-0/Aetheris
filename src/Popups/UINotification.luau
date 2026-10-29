@@ -1,7 +1,10 @@
 --[[
-	UINotification  ·  Aetheris UI Library
+	Aetheris/Popups/UINotification.luau
 
 	Modal confirm/cancel dialog. Descriptions and title colors support RichText.
+
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -27,7 +30,6 @@ local function colorToString(color)
 	return "#FFFFFF"
 end
 function UINotification.new(parent, Settings)
-	-- Safety: ensure Settings is a table
 	if type(Settings) ~= "table" then
 		warn("[UINotification] Settings is not a table, defaulting to empty table")
 		Settings = {}
@@ -43,9 +45,6 @@ function UINotification.new(parent, Settings)
 	local onCancel = Settings.OnCancel or function() end
 	self.IsOpen = false
 	self._resolved = false
-	----------------------------------------------------------------
-	-- POPUP
-	----------------------------------------------------------------
 	local popup = Instance.new("CanvasGroup")
 	popup.Name = UUID.Generate("NotificationPopup")
 	popup.BorderSizePixel = 0
@@ -60,31 +59,19 @@ function UINotification.new(parent, Settings)
 	popup.Visible = false
 	popup.ZIndex = 11
 	popup.Parent = parent
-	----------------------------------------------------------------
-	-- SHADOW
-	----------------------------------------------------------------
 	local shadow = Instance.new("UIShadow")
 	shadow.BlurRadius = UDim.new(0, 24)
 	shadow.Offset = UDim2.fromOffset(0, 6)
 	shadow.Transparency = 1
 	shadow.Color = (theme and theme.NotificationShadowColor) or (theme and theme.PopupShadowColor)
 	shadow.Parent = popup
-	----------------------------------------------------------------
-	-- CORNER
-	----------------------------------------------------------------
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = popup
-	----------------------------------------------------------------
-	-- SIZE CONSTRAINT
-	----------------------------------------------------------------
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.MinSize = Vector2.new(320, 277)
 	sizeConstraint.MaxSize = Vector2.new(320, 336)
 	sizeConstraint.Parent = popup
-	----------------------------------------------------------------
-	-- HEADER
-	----------------------------------------------------------------
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
@@ -102,9 +89,6 @@ function UINotification.new(parent, Settings)
 	header.TextColor3 = (theme and theme.PopupTextColor)
 	header.Parent = popup
 	header.Text = string.format('<font color="%s">%s</font>', colorToString(titleColor), title)
-	----------------------------------------------------------------
-	-- DESCRIPTION
-	----------------------------------------------------------------
 	local notifText = Instance.new("TextLabel")
 	notifText.Name = UUID.Static("NotificationText")
 	notifText.TextWrapped = true
@@ -127,9 +111,6 @@ function UINotification.new(parent, Settings)
 	local notifPadding = Instance.new("UIPadding")
 	notifPadding.PaddingBottom = UDim.new(0, 15)
 	notifPadding.Parent = notifText
-	----------------------------------------------------------------
-	-- DIVIDER
-	----------------------------------------------------------------
 	local divider = Instance.new("Frame")
 	divider.Name = UUID.Static("ComponentDivider")
 	divider.BorderSizePixel = 0
@@ -140,9 +121,6 @@ function UINotification.new(parent, Settings)
 	divider.Position = UDim2.fromScale(0.5, 1.7)
 	divider.ZIndex = 12
 	divider.Parent = notifText
-	----------------------------------------------------------------
-	-- INTERACTIONS
-	----------------------------------------------------------------
 	local interactions = Instance.new("Frame")
 	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
@@ -170,9 +148,6 @@ function UINotification.new(parent, Settings)
 	interactionsPadding.PaddingLeft = UDim.new(0, 10)
 	interactionsPadding.PaddingRight = UDim.new(0, 10)
 	interactionsPadding.Parent = interactions
-	----------------------------------------------------------------
-	-- CONFIRM BUTTON
-	----------------------------------------------------------------
 	local confirmBtn = Instance.new("TextButton")
 	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
@@ -182,7 +157,6 @@ function UINotification.new(parent, Settings)
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
 	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	-- Side-by-side row: confirm on the LEFT half, cancel on the right.
 	confirmBtn.AnchorPoint = Vector2.new(0, 0)
 	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
 	confirmBtn.Text = confirmText
@@ -197,9 +171,6 @@ function UINotification.new(parent, Settings)
 	confirmShadow.Color = (theme and theme.PrimaryColor)
 	confirmShadow.Transparency = 1
 	confirmShadow.Parent = confirmBtn
-	----------------------------------------------------------------
-	-- CANCEL BUTTON
-	----------------------------------------------------------------
 	local cancelBtn = Instance.new("TextButton")
 	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
@@ -210,7 +181,6 @@ function UINotification.new(parent, Settings)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.Regular)
-	-- Right half, with a small gap from confirm.
 	cancelBtn.AnchorPoint = Vector2.new(0, 0)
 	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
 	cancelBtn.Text = cancelText
@@ -225,9 +195,6 @@ function UINotification.new(parent, Settings)
 	cancelShadow.Color = (theme and theme.PopupNeutralColor)
 	cancelShadow.Transparency = 1
 	cancelShadow.Parent = cancelBtn
-	----------------------------------------------------------------
-	-- STORE REFERENCES
-	----------------------------------------------------------------
 	self.Popup = popup
 	self.Shadow = shadow
 	self._popupTransparency = (theme and theme.PopupBackgroundTransparency) or 0.07
@@ -241,14 +208,10 @@ function UINotification.new(parent, Settings)
 	self.CancelBtn = cancelBtn
 	self.OnConfirm = onConfirm
 	self.OnCancel = onCancel
-	self.Settings = Settings -- store for later content updates
-	-- Remember the header's origin so ApplyTheme can rebuild its RichText colour
-	-- without clobbering a caller-supplied custom TitleColor.
+	self.Settings = Settings
+	-- Remember the origin so ApplyTheme doesn't clobber a caller-supplied TitleColor.
 	self._title = title
 	self._customTitleColor = Settings.TitleColor ~= nil
-	----------------------------------------------------------------
-	-- INTERNAL RESOLVE FUNCTIONS
-	----------------------------------------------------------------
 	self._Confirm = function(_self)
 		if self._resolved then
 			return
@@ -269,19 +232,12 @@ function UINotification.new(parent, Settings)
 			self.OnCancel()
 		end)
 	end
-	----------------------------------------------------------------
-	-- BUTTON EVENTS
-	----------------------------------------------------------------
 	confirmBtn.MouseButton1Click:Connect(function()
 		self:_Confirm()
 	end)
 	cancelBtn.MouseButton1Click:Connect(function()
 		self:_Cancel()
 	end)
-	----------------------------------------------------------------
-	-- HOVER EFFECTS
-	----------------------------------------------------------------
-	-- Confirm button shadow on hover
 	confirmBtn.MouseEnter:Connect(function()
 		Tween.Play(confirmShadow, "Fast", {
 			BlurRadius = UDim.new(0, 50),
@@ -294,9 +250,7 @@ function UINotification.new(parent, Settings)
 			Transparency = 1,
 		})
 	end)
-	-- Cancel button text transparency on hover. The resting value MUST match
-	-- what Open() sets (0.5) so unhovering returns to the original state, not a
-	-- different theme-derived value.
+	-- Resting value must match what Open() restores, so unhovering returns to the same state.
 	local CANCEL_TEXT_REST = 0.5
 	local CANCEL_TEXT_HOVER = 0.2
 	cancelBtn.MouseEnter:Connect(function()
@@ -305,14 +259,9 @@ function UINotification.new(parent, Settings)
 	cancelBtn.MouseLeave:Connect(function()
 		Tween.Play(cancelBtn, "Fast", { TextTransparency = CANCEL_TEXT_REST })
 	end)
-	-- NotificationPopup is a Frame, so never connect MouseButton1Click to it.
 	return self
 end
-----------------------------------------------------------------
--- CLICK-OUTSIDE (UserInputService)
-----------------------------------------------------------------
--- The connection exists only while the popup is open: created in Open(),
--- disconnected in Close()/Hide()/Destroy(). Replaces the old scrim button.
+-- Connected only while the popup is open: armed in Open(), dropped in Close/Hide/Destroy.
 function UINotification:_connectOutsideClick()
 	if self._outsideConn then
 		return
@@ -329,10 +278,7 @@ function UINotification:_connectOutsideClick()
 			return
 		end
 		local p = input.Position
-		-- Inside if the point is within the popup's rect OR lands on any of its
-		-- descendants. The descendant check makes this robust when visually-
-		-- belonging content (overlays, shadows, indicators) extends past the
-		-- frame's own rect; a pure rect test would misread those as "outside".
+		-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
 		local pos = self.Popup.AbsolutePosition
 		local size = self.Popup.AbsoluteSize
 		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -358,9 +304,6 @@ function UINotification:_disconnectOutsideClick()
 		self._outsideConn = nil
 	end
 end
-----------------------------------------------------------------
--- OPEN
-----------------------------------------------------------------
 function UINotification:Open()
 	if self.IsOpen then
 		return
@@ -368,9 +311,8 @@ function UINotification:Open()
 	self.IsOpen = true
 	self._resolved = false
 	Sound.Play("Notification")
-	-- Reset to transparent before showing
+	-- Snap everything transparent so the fade-in owns all of it.
 	self.Popup.BackgroundTransparency = 1
-	-- Internal elements: start fully transparent
 	self.Header.TextTransparency = 1
 	self.NotifText.TextTransparency = 1
 	self.Divider.BackgroundTransparency = 1
@@ -379,18 +321,14 @@ function UINotification:Open()
 	self.CancelBtn.TextTransparency = 1
 	self.Popup.Visible = true
 	self.Popup.GroupTransparency = 1
-	-- Arm the click-outside listener for as long as the popup is open.
 	self:_connectOutsideClick()
-	-- Fade in popup background
 	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = self._popupTransparency,
 		GroupTransparency = 0,
 	})
-	-- Fade in shadow
 	Tween.Play(self.Shadow, "Fast", {
 		Transparency = 0.5,
 	})
-	-- Fade in internal elements
 	Tween.Play(self.Header, "Fast", {
 		TextTransparency = 0.4,
 	})
@@ -410,15 +348,11 @@ function UINotification:Open()
 		TextTransparency = 0.5,
 	})
 end
-----------------------------------------------------------------
--- CLOSE
-----------------------------------------------------------------
 function UINotification:Close()
 	if not self.IsOpen then
 		return
 	end
 	self.IsOpen = false
-	-- Fade out internal elements
 	Tween.Play(self.Header, "Fast", {
 		TextTransparency = 1,
 	})
@@ -439,24 +373,20 @@ function UINotification:Close()
 		TextTransparency = 1,
 		BackgroundTransparency = 1,
 	})
-	-- Fade out popup shadow
 	Tween.Play(self.Shadow, "Fast", {
 		Transparency = 1,
 	})
 
-	-- Reset confirm shadow to default (fade out)
 	Tween.Play(self.ConfirmShadow, "Fast", {
 		BlurRadius = UDim.new(0, 20),
 		Transparency = 1,
 	})
 
-	-- Reset cancel shadow to default (fade out)
 	Tween.Play(self.CancelShadow, "Fast", {
 		Transparency = 1,
 	})
-	-- Disarm the click-outside listener immediately on close.
+	-- Disarm click-outside immediately so a click during the fade-out can't re-trigger it.
 	self:_disconnectOutsideClick()
-	-- Fade out popup background
 	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 1,
 		GroupTransparency = 1,
@@ -469,7 +399,6 @@ function UINotification:Close()
 end
 -- Set content without rebuilding the UI (reuse instance)
 function UINotification:SetContent(Settings)
-	-- Safety: ensure Settings is a table
 	if type(Settings) ~= "table" then
 		warn("[UINotification:SetContent] Settings is not a table, defaulting to empty table")
 		Settings = {}
@@ -485,20 +414,13 @@ function UINotification:SetContent(Settings)
 	if Settings.TitleColor ~= nil then
 		self._customTitleColor = true
 	end
-	-- Update header
 	local colorStr = colorToString(titleColor)
 	self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, title)
-	-- Update description
 	self.NotifText.Text = description
-	-- Update button texts
 	self.ConfirmBtn.Text = confirmText
 	self.CancelBtn.Text = cancelText
-	-- Reset resolved state
 	self._resolved = false
 end
-----------------------------------------------------------------
--- SET TITLE
-----------------------------------------------------------------
 function UINotification:SetTitle(title, color)
 	self._title = title
 	if color ~= nil then
@@ -507,15 +429,9 @@ function UINotification:SetTitle(title, color)
 	local titleColor = color or self.Header.TextColor3 or Color3.fromRGB(255, 255, 255)
 	self.Header.Text = string.format('<font color="%s">%s</font>', colorToString(titleColor), title)
 end
-----------------------------------------------------------------
--- SET DESCRIPTION
-----------------------------------------------------------------
 function UINotification:SetDescription(desc)
 	self.NotifText.Text = desc
 end
-----------------------------------------------------------------
--- DESTROY
-----------------------------------------------------------------
 function UINotification:Destroy()
 	self:_disconnectOutsideClick()
 	if self.Popup then
@@ -529,9 +445,7 @@ function UINotification:Hide()
 	self:_disconnectOutsideClick()
 end
 
--- Live theme switch: recolour every themed element in place so an already-open
--- dialog crossfades with the rest of the window instead of being destroyed and
--- rebuilt by Window:SetTheme.
+-- Live theme switch: recolour in place so an open dialog follows the window instead of being rebuilt.
 function UINotification:ApplyTheme(themeInput)
 	local t = ThemeManager.GetTheme(themeInput)
 	if not t or not self.Popup then

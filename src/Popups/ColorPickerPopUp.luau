@@ -4,6 +4,7 @@
 	Modal colour picker: saturation/value square, value slider, RGB + Hex
 	inputs, and colour wells. Cached per id by Window and reused; theme
 	switches drop the cache so the next open rebuilds with current colors.
+
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -591,9 +592,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self:_setColorAndUpdate(self._currentColor)
 		self:_connectOutsideClick()
 	end
-	-- Click-outside detection via UserInputService. The connection exists only
-	-- while the popup is open: created in Open(), disconnected in
-	-- Close()/Hide()/Destroy(). Replaces the old full-screen scrim button.
+	-- Connected only while the popup is open: armed in Open(), dropped in Close/Hide/Destroy.
 	self._connectOutsideClick = function(_self)
 		if self._outsideConn then
 			return
@@ -611,10 +610,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				return
 			end
 			local p = input.Position
-			-- Inside if the point is within the popup's rect OR lands on any of its
-			-- descendants. The descendant check makes this robust when visually-
-			-- belonging content (overlays, shadows, indicators) extends past the
-			-- frame's own rect; a pure rect test would misread those as "outside".
+			-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
 			local pos = self.Popup.AbsolutePosition
 			local size = self.Popup.AbsoluteSize
 			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -737,7 +733,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			me._cleanupCallback = nil
 		end
 	end
-	-- Event connections
 	self.ConfirmBtn.MouseButton1Click:Connect(function()
 		self:_Confirm()
 	end)
@@ -756,7 +751,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.CancelBtn.MouseLeave:Connect(function()
 		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5 })
 	end)
-	-- Drag functions
 	local function setFromSquarePosition(screenPosition)
 		local size = self.ColorSquare.AbsoluteSize
 		if size.X <= 0 or size.Y <= 0 then
@@ -765,8 +759,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local squarePos = self.ColorSquare.AbsolutePosition
 		local x = clamp((screenPosition.X - squarePos.X) / size.X, 0, 1)
 		local y = clamp((screenPosition.Y - squarePos.Y) / size.Y, 0, 1)
-		-- Keep the existing hue; saturation = x, value = 1 - y. Set via the
-		-- HSV-preserving path so the handle never snaps at the edges.
+		-- Keep the existing hue; saturation = x, value = 1 - y, set via the HSV-preserving path so the handle never snaps.
 		self:_setHSVAndUpdate(self._hue, x, 1 - y)
 	end
 	local function setFromHuePosition(screenPosition)
@@ -778,9 +771,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local h = clamp((screenPosition.X - barPos.X) / size.X, 0, 1)
 		self:_setHSVAndUpdate(h, self._sat, self._val)
 	end
-	-- Click-and-drag anywhere on the square/bar to move the indicator.
-	-- UIDragDetector only drags the instance it's attached to (the handle),
-	-- so we track the whole surface manually instead.
+	-- Click-and-drag anywhere on the square/bar: UIDragDetector only drags its own instance, so the whole surface is tracked manually.
 	local UserInputService = game:GetService("UserInputService")
 	local squareDragging = false
 	local barDragging = false
@@ -802,9 +793,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			setFromHuePosition(input.Position)
 		end
 	end)
-	-- Follow the drag globally so it keeps working even if the cursor leaves the
-	-- square/bar. These live on UserInputService, so they are disconnected in
-	-- Destroy() (otherwise each picker leaks two global connections).
+	-- Follow the drag globally so it survives the cursor leaving the square/bar; disconnected in Destroy().
 	self._dragChangedConnection = UserInputService.InputChanged:Connect(function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseMovement
@@ -826,7 +815,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			barDragging = false
 		end
 	end)
-	-- Input focus lost
 	local function onFocusLost(inputBox, channel)
 		inputBox.FocusLost:Connect(function()
 			local text = inputBox.Text
@@ -868,9 +856,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	for channel, info in pairs(self.Inputs) do
 		onFocusLost(info.Input, channel)
 		local function setStrokeBright(bright)
-			-- Read the LIVE theme (self._theme is kept current by ApplyTheme), not
-			-- the construction-time Settings.Theme, so hover/focus after a theme
-			-- switch doesn't write the old theme's colors back.
+			-- Read the live theme (ApplyTheme keeps self._theme current) so hover/focus after a switch doesn't write old colors back.
 			local liveTheme = ThemeManager.GetTheme(self._theme)
 			local baseTrans = liveTheme.StrokeTransparency or 0.95
 			local baseColor = liveTheme.StrokeColor or Color3.fromRGB(255, 255, 255)
