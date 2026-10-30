@@ -22,8 +22,8 @@ SoundUtil.Assets = {
 	UIOpen = "rbxassetid://103088360945885",
 	UIClose = "rbxassetid://110295449838315",
 	UIShutdown = "rbxassetid://110807507368078",
-	KeySystemOpen = "rbxassetid://103088360945885",
-	KeySystemClose = "rbxassetid://110295449838315",
+	KeySystemOpen = "rbxassetid://624706518",
+	KeySystemClose = "rbxassetid://231731980",
 }
 
 -- One reusable Sound per name, built once so repeated plays don't allocate.
