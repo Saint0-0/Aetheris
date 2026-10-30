@@ -23,6 +23,7 @@ local Tween = require("../Utils/Tween")
 local UUID = require("../Utils/UUID")
 local Sound = require("../Utils/Sound")
 local Aurora = require("../Utils/Aurora")
+local Odometer = require("../Utils/Odometer")
 local Security = require("../Utils/Security")
 local ThemeManager = require("../Themes/ThemeManager")
 local KeyServices = require("../Core/KeyServices")
@@ -77,7 +78,7 @@ local function captureFade(root)
 end
 
 local function fadeTo(targets, value, duration)
-	for _, target in ipairs(targets) do
+	for _, target in ipairs(targets or {}) do
 		Tween.Play(target[1], TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			[target[2]] = value,
 		})
@@ -86,7 +87,7 @@ end
 
 -- Tween captured targets back to the transparency they were captured at.
 local function fadeRestore(targets, duration)
-	for _, target in ipairs(targets) do
+	for _, target in ipairs(targets or {}) do
 		Tween.Play(target[1], TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			[target[2]] = target[3],
 		})
@@ -189,10 +190,11 @@ local function buildCard(self)
 	self._card = card
 
 	new("UIScale", { Scale = cardScale, Parent = card })
-	new("UICorner", { CornerRadius = UDim.new(0, 14), Parent = card })
+	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = card })
 	local stroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		Transparency = theme.StrokeTransparency or 0.85,
+		-- Floored at 0.85: some themes ship a heavier border that reads too bright on this card.
+		Transparency = math.max(theme.StrokeTransparency or 0.85, 0.85),
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = card,
@@ -215,7 +217,7 @@ local function buildCard(self)
 		ZIndex = 0,
 		Parent = card,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 14), Parent = clip })
+	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = clip })
 	self._aurora = Aurora.new(clip, { Theme = theme, Transparency = 0.35 })
 
 	-- Drag frame mirrors the window: Instant follows the cursor, Smooth tweens.
@@ -304,7 +306,7 @@ local function buildCard(self)
 		ZIndex = 4,
 		Parent = headerGroup,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = brandTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandTile })
 	new("ImageLabel", {
 		Name = UUID.Static("BrandIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -452,7 +454,7 @@ local function buildIntro(self)
 		ZIndex = 4,
 		Parent = ring,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 14), Parent = tile })
+	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = tile })
 	new("ImageLabel", {
 		Name = UUID.Static("IntroIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -636,19 +638,21 @@ local function buildLoading(self)
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = body,
 	})
-	local percentLabel = new("TextLabel", {
+	-- Odometer rolls the percent digits slot-machine style as loading advances.
+	local percentHolder = new("Frame", {
 		Name = UUID.Static("Percent"),
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -CONTENT_PAD, 1, -30),
 		Size = UDim2.fromOffset(46, 14),
 		BackgroundTransparency = 1,
-		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
-		Text = "0%",
-		TextSize = 11,
-		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
-		TextXAlignment = Enum.TextXAlignment.Right,
 		Parent = body,
 	})
+	local percent = Odometer.new(percentHolder, {
+		textSize = 11,
+		height = 14,
+		alignment = Enum.HorizontalAlignment.Right,
+	})
+	percent:snap("0%")
 
 	self._stepRows = rows
 	self._barFill = fill
@@ -656,7 +660,7 @@ local function buildLoading(self)
 	self._sheenGradient = sheenGradient
 	self._sheenSpin = Tween.StartSpin(sheenGradient, { Offset = Vector2.new(0.5, 0) }, "SpinBurst")
 	self._currentLabel = currentLabel
-	self._percentLabel = percentLabel
+	self._percent = percent
 end
 
 local function setStepState(self, index, state)
@@ -694,7 +698,7 @@ end
 local function setProgress(self, fraction, label)
 	fraction = math.clamp(fraction, 0, 1)
 	Tween.Play(self._barFill, "Smooth", { Size = UDim2.fromScale(fraction, 1) })
-	self._percentLabel.Text = math.floor(fraction * 100 + 0.5) .. "%"
+	self._percent:to(math.floor(fraction * 100 + 0.5) .. "%", true)
 	if label then
 		self._currentLabel.Text = label
 	end
@@ -781,10 +785,10 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = field })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = field })
 	local fieldStroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80),
-		Transparency = theme.StrokeTransparency or 0.95,
+		Transparency = math.max(theme.StrokeTransparency or 0.95, 0.85),
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = field,
@@ -820,7 +824,7 @@ local function buildKeyPhase(self)
 	end)
 	field.FocusLost:Connect(function(enterPressed)
 		Tween.Play(fieldGlow, "Smooth", { Transparency = 1 })
-		Tween.Play(fieldStroke, "Smooth", { Transparency = theme.StrokeTransparency or 0.95 })
+		Tween.Play(fieldStroke, "Smooth", { Transparency = math.max(theme.StrokeTransparency or 0.95, 0.85) })
 		if enterPressed then
 			self:_submitKey()
 		end
@@ -856,7 +860,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = continue })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = continue })
 	buttonMotion(continue)
 	self._continue = continue
 	continue.MouseButton1Click:Connect(function()
@@ -878,10 +882,10 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 9), Parent = getKey })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = getKey })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		Transparency = theme.StrokeTransparency or 0.9,
+		Transparency = math.max(theme.StrokeTransparency or 0.9, 0.85),
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = getKey,
@@ -923,7 +927,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = discordCard })
+	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = discordCard })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
 		Transparency = theme.SectionStrokeTransparency or 0.9,
@@ -944,7 +948,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = discordCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dcTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = dcTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -1002,7 +1006,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoCard })
+	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = infoCard })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
 		Transparency = theme.SectionStrokeTransparency or 0.9,
@@ -1023,7 +1027,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = infoCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = infoTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
