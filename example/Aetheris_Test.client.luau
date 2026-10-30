@@ -4,8 +4,7 @@
 ============================================================================
 
   A living showcase of the ENTIRE Aetheris UI library. Every element the
-  library exposes is created at least once here, and every block is heavily
-  commented so this file doubles as the reference documentation.
+  library exposes is created at least once here.
 
   What it demonstrates
   --------------------
@@ -24,8 +23,7 @@
   How to run
   ----------
     Drop this LocalScript into StarterPlayerScripts, or paste it into the
-    command bar while the game is running. The whole window is built purely
-    with Instance.new by the library - no pre-built assets required.
+    command bar while the game is running. No pre-built assets required.
 ============================================================================
 ]]
 
@@ -36,47 +34,38 @@ local Players = game:GetService("Players")
 local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init)
 local Icons = Aetheris.Icons
 
--- Tiny helper: a missing icon key falls back to the crosshair icon (which
--- always exists) so the demo never crashes on a typo'd icon name.
+-- A missing icon key falls back to the crosshair icon so a typo'd name can't crash the demo.
 local function ico(name)
 	return Icons[name] or Icons.crosshair
 end
 
--- Grab the local player + humanoid once, so the Health ProgressBar can bind
--- to real health changes later on.
+-- Grab the local player's humanoid so the Health ProgressBar can bind to real health changes.
 local localPlayer = Players.LocalPlayer
 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
 -- == 1. CREATE THE MAIN WINDOW =============================================
--- CreateWindow is the preferred entry point. Everything you see is themed by
--- the library; the theme name below is the starting theme.
---
--- The aurora behind the window uses the glow texture configured in
--- Constants.AuroraGlow (tinted per theme). Swap in your own uploaded neutral
--- glow PNG here, or pass nil for the procedural fallback:
+-- CreateWindow is the preferred entry point; the theme name sets the starting theme.
+-- The aurora behind the window uses the glow texture in Constants.AuroraGlow (tinted
+-- per theme) - swap in your own neutral glow PNG, or pass nil for the fallback:
 -- Aetheris.SetAuroraTexture("rbxassetid://0")
 local window = Aetheris:CreateWindow({
 	Title = "Aetheris",
-	-- Up to 3 tag pills under the description. A plain string uses the theme's
-	-- colours; a table can pin any of BackgroundColor / TextColor / AccentColor
-	-- (a pinned colour is override-locked so theme switches leave it alone).
+	-- Up to 3 tag pills under the description. A plain string uses theme colours; a
+	-- table pins explicit colours, override-locked so theme switches leave them alone.
 	Tags = {
-		-- orange bg, white text, lighter-orange accent gradient
 		{
 			Name = "v0.2.0",
 			BackgroundColor = Color3.fromRGB(217, 119, 6),
 			TextColor = Color3.fromRGB(255, 255, 255),
 			AccentColor = Color3.fromRGB(255, 221, 109),
 		},
-		-- blue, same pattern
 		{
 			Name = "build",
 			BackgroundColor = Color3.fromRGB(9, 52, 145),
 			TextColor = Color3.fromRGB(255, 255, 255),
 			AccentColor = Color3.fromRGB(167, 206, 255),
 		},
-		-- green, same pattern
 		{
 			Name = "DEMO",
 			BackgroundColor = Color3.fromRGB(6, 119, 47),
@@ -87,17 +76,15 @@ local window = Aetheris:CreateWindow({
 	Theme = "Umbral", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
 	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
 	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
-	MinimizeKey = "LeftControl", -- press to minimize / restore the window
+	MinimizeKey = "LeftControl",
 	AETHERIS_SECUREMODE = false, -- true parents via gethui/CoreGui and renames to a UUID
 	KeySystem = {
-		-- Type "stub" accepts anything in Keys (or any key at all if Keys is
-		-- omitted). Swap in { Type = "platoboost", ServiceId = ..., Secret = ... }
-		-- or { Type = "panda", ServiceId = ... } for a real service, and add
-		-- Key = "MYKEY" (or a list/function) to also accept a static key.
+		-- "stub" accepts anything in Keys (or any key if Keys is omitted). Swap in a real
+		-- service (platoboost/panda + ServiceId), or add Key = "MYKEY" for a static key.
 		API = {
 			{ Type = "stub", Keys = { "TEST" }, Link = "https://example.com/getkey" },
 		},
-		SaveKey = true, -- remember a valid key per place and skip the card next time
+		SaveKey = true,
 		-- Discord = "https://discord.gg/invite", -- copy-link card on the key screen
 		-- Discord = { Link = "https://discord.gg/invite", Id = "123456789" }, -- + live counts
 	},
@@ -105,10 +92,8 @@ local window = Aetheris:CreateWindow({
 		{
 			Name = "Keybinds",
 			Icon = ico("keyboard"),
-			-- Dummy content so the custom-page pipeline is exercised end to end.
-			-- NOTE: these Build callbacks run DURING CreateWindow, so they can only
-			-- use component factories that don't need popup helpers (openDropdown,
-			-- openColorPicker, notify are all defined later in this file).
+			-- Dummy content exercising the custom-page pipeline. NOTE: Build runs DURING
+			-- CreateWindow, so it can't use popup helpers (openDropdown, notify...) defined later.
 			Build = function(window, tab)
 				local move = tab:Section({ Name = "Movement" })
 				move:Keybind({ Name = "Jump", Default = "Space", Callback = function() end })
@@ -131,7 +116,6 @@ local window = Aetheris:CreateWindow({
 		{
 			Name = "Macros",
 			Icon = ico("mouse-pointer-click"),
-			-- Dummy content exercising a wider mix of single-column components.
 			Build = function(window, tab)
 				local list = tab:Section({ Name = "Recorded Macros" })
 				list:Paragraph({
@@ -177,14 +161,8 @@ local window = Aetheris:CreateWindow({
 	DefaultSettingsPage = "Themes",
 })
 
--- Helpers handed to components that open popups, so the popups inherit the
--- window's theme + positioning instead of building their own.
--- Popup engines are now built into the components (see Section): no helper
--- arguments are required when building toggles/dropdowns/color pickers.
-
 -- == 2. CREATE THE TABS ====================================================
--- window:Tab(name, icon) adds a page to the sidebar. window:Divider() inserts
--- a thin separator (used here to visually detach the Settings tab).
+-- window:Tab(name, icon) adds a sidebar page; window:Divider() adds a thin separator.
 local homeTab = window:Tab("Home", ico("home"))
 local controlsTab = window:Tab("Controls", ico("sliders-horizontal"))
 local inputsTab = window:Tab("Inputs", ico("list"))
@@ -215,16 +193,13 @@ heroSection:Label({
 	ShowStroke = false,
 })
 
--- Label with a heavier font weight, and the default container styling.
 heroSection:Label({
 	Text = "Bold label with container",
 	FontWeight = "Bold",
 })
 
--- Divider with a custom accent color.
 heroSection:Divider({ Color = Color3.fromRGB(108, 140, 255) })
 
--- Button section (right column).
 local actionSection = homeTab:Section({ Name = "Actions", Side = "Right" })
 
 actionSection:Button({
@@ -253,7 +228,6 @@ actionSection:Button({
 	end,
 })
 
--- A button that fires a themed toast notification with clickable actions.
 actionSection:Button({
 	Name = "Send a toast",
 	Callback = function()
@@ -277,10 +251,6 @@ actionSection:Button({
 -- =========================================================================
 --  3a. SECURE MODE / COMPONENT API
 -- =========================================================================
--- AETHERIS_SECUREMODE (set above) defaults to false. When true the window is
--- parented through gethui -> CoreGui -> PlayerGui when the executor exposes
--- them, and the ScreenGui is renamed to a random UUID instead of "Aetheris".
---
 -- Every component shares the same public surface:
 --   SetName / UpdateName        - change the displayed label
 --   SetVisible / SetVisibility  - show or hide the component's root
@@ -352,15 +322,11 @@ apiSection:Button({
 -- =========================================================================
 --  3b. STATS TAB  -  LiveStat readouts (left) + the buttons that drive them (right)
 -- =========================================================================
--- LiveStat shows ONE number the consumer drives via :Set(number). Two shapes:
--- Size = "Full" (90px card) or "Compact" (41px row). The accent gradient spins
--- (one revolution per SPIN_PRESET) and auto-pauses off-screen, exactly like the
--- slider/toggle/radio spins -- so it costs nothing on an inactive page.
+-- LiveStat shows ONE number driven via :Set(number). Two shapes: Size = "Full" (90px
+-- card) or "Compact" (41px row). Its accent spin auto-pauses off-screen like the sliders.
 
--- Left column: the stat readouts.
 local statSection = statsTab:Section({ Name = "Readouts", Side = "Left" })
 
--- Full card: title, big value, spinning accent gradient behind it.
 local scoreStat = statSection:LiveStat({
 	Name = "Score",
 	Size = "Full",
@@ -368,7 +334,6 @@ local scoreStat = statSection:LiveStat({
 	Value = 100,
 })
 
--- Compact row: icon + title on the left, one readout on the right.
 local timeStat = statSection:LiveStat({
 	Name = "Time",
 	Size = "Compact",
@@ -377,11 +342,9 @@ local timeStat = statSection:LiveStat({
 	Value = 0,
 })
 
--- Right column: the buttons that drive the readouts.
 local statControls = statsTab:Section({ Name = "Controls", Side = "Right" })
 
--- Drive the stat to different numbers so the count-up roll + accent direction
--- change (up = positive accent, down = negative accent) are visible.
+-- Driving the value up vs down shows the count-up roll and accent direction change.
 statControls:Button({
 	Name = "Set Score = 100",
 	Callback = function()
@@ -422,8 +385,7 @@ switchSection:Toggle({
 	end,
 })
 
--- Toggle with a confirmation prompt. When Confirm.Enabled is true, flipping
--- the switch shows a modal; the notification engine is now built into the component.
+-- Toggle with a confirmation prompt: when Confirm.Enabled, flipping the switch shows a modal.
 switchSection:Toggle({
 	Name = "Dangerous Toggle",
 	Default = false,
@@ -454,9 +416,8 @@ valueSection:Slider({
 	end,
 })
 
--- Stepper: an odometer value reel with +/- step buttons. Click the field to
--- type a value directly; Integer forces whole numbers and Step is the click
--- increment.
+-- Stepper: an odometer value reel with +/- buttons; click the field to type a value.
+-- Integer forces whole numbers, Step is the click increment.
 valueSection:Stepper({
 	Name = "Ammo Count",
 	Min = 0,
@@ -490,8 +451,7 @@ textSection:TextInput({
 	end,
 })
 
--- RadioButtonGroup: mutually-exclusive choices. Create the group, then add
--- RadioButtons to it; only one can be selected at a time.
+-- RadioButtonGroup: mutually-exclusive choices - create the group, then add RadioButtons to it.
 local choiceSection = controlsTab:Section({ Name = "Choices", Side = "Right" })
 local radioGroup = choiceSection:RadioButtonGroup()
 radioGroup:RadioButton({
@@ -542,7 +502,6 @@ dropSection:Dropdown({
 	end,
 })
 
--- Dropdown, multi-select capped at 2.
 dropSection:Dropdown({
 	Name = "Snack Selection (max 2)",
 	Items = dropdownItems,
@@ -571,8 +530,7 @@ dropSection:Dropdown({
 
 local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
 
--- ColorPicker: opens a themed colour-picker popup; the 2nd arg is the popup
--- factory so it renders consistently with the rest of the window.
+-- ColorPicker: opens a themed colour-picker popup.
 colorSection:ColorPicker({
 	Name = "Accent Colour",
 	Default = Color3.fromRGB(108, 140, 255),
@@ -594,8 +552,7 @@ colorSection:ColorPicker({
 -- =========================================================================
 local statusSection = feedbackTab:Section({ Name = "System Status", Side = "Left" })
 
--- Status: a list of labelled entries. Each entry is { kind, text, color }
--- where color is a named colour ("green"/"orange"/"red") or a Color3.
+-- Status: a list of { kind, text, color } entries; color is a name ("green"/"orange"/"red") or Color3.
 statusSection:Status({
 	Name = "Diagnostics",
 	Entries = {
@@ -623,7 +580,6 @@ humanoid.HealthChanged:Connect(function(hp)
 	healthBar:SetValue(hp)
 end)
 
--- A second, static progress bar to show the default styling.
 progressSection:ProgressBar({
 	Name = "Download",
 	MinValue = 0,
@@ -635,7 +591,6 @@ progressSection:ProgressBar({
 
 local toastSection = feedbackTab:Section({ Name = "Notifications", Side = "Right" })
 
--- Alert toast.
 toastSection:Button({
 	Name = "Alert",
 	Callback = function()
@@ -643,7 +598,6 @@ toastSection:Button({
 	end,
 })
 
--- Error toast.
 toastSection:Button({
 	Name = "Error",
 	Callback = function()
@@ -651,7 +605,6 @@ toastSection:Button({
 	end,
 })
 
--- Variable toast with a gradient icon + action buttons.
 toastSection:Button({
 	Name = "Rich Toast",
 	Callback = function()
@@ -698,8 +651,7 @@ mediaSection:Paragraph({
 	Description = "The Video component wraps a VideoFrame with the library's stroke, rounding and shadow styling, all theme-aware.",
 })
 
--- Viewport: renders a live character clone beside four info rows. Framing
--- picks the camera crop; the buttons exercise the public API.
+-- Viewport: renders a live character clone; Framing picks the camera crop.
 local viewportDemo = mediaSection:Viewport({
 	Player = Players.LocalPlayer,
 	Rotate = true,
@@ -744,8 +696,7 @@ settingsSection:Paragraph({
 })
 
 local themeSection = settingsTab:Section({ Name = "Theme Switcher", Side = "Right" })
--- Build the roster from the live ThemeDefinitions so the dropdown can never go
--- stale: "Base" is the merge fallback, not a selectable theme.
+-- Build from the live ThemeDefinitions so the list can't go stale; "Base" is the merge fallback, not a theme.
 local themeItems = {}
 for name in pairs(Aetheris.ThemeDefinitions) do
 	if name ~= "Base" then
@@ -773,9 +724,8 @@ themeSection:Dropdown({
 -- =========================================================================
 --  8b. CONSOLE  -  monospaced, self-scrolling log block (ported from Rayfield)
 -- =========================================================================
--- A Console holds the height it's given and scrolls inside itself, so a log
--- that fills up never pushes the page down. One label per line, pooled and
--- recycled in a ring, so Append stays O(1) however long it runs.
+-- A Console holds its height and scrolls inside itself so a growing log never pushes
+-- the page down. Lines are pooled and recycled in a ring, so Append stays O(1).
 local consoleSection = settingsTab:Section({ Name = "Console", Side = "Left" })
 
 local demoConsole = consoleSection:Console({
@@ -787,9 +737,6 @@ local demoConsole = consoleSection:Console({
 	RichText = true, -- let the numbered lines dim the number, not the text
 })
 
--- Buttons that exercise Set / Append / Clear so the scroll + ring buffer are
--- visible: Append keeps adding (and drops the oldest past MaxLines), Set
--- replaces the whole body, Clear empties it.
 local consoleLine = 0
 local consoleControls = settingsTab:Section({ Name = "Console Controls", Side = "Right" })
 
@@ -822,17 +769,15 @@ consoleControls:Button({
 	Name = "Clear",
 	Callback = function()
 		demoConsole:Clear()
-		consoleLine = 0 -- reset the demo counter so the next line starts at 1.
+		consoleLine = 0
 	end,
 })
 
 -- =========================================================================
 --  8c. CODE VIEW  -  syntax-highlighted block, line numbers, optional editing
 -- =========================================================================
--- View mode renders theme-tinted RichText (one row per line, numbers inline);
--- clicking swaps in a multiline TextBox when Editable, and the text is
--- re-highlighted on blur. The Copy button calls OnCopy with the content —
--- wire setclipboard there in an executor.
+-- View mode renders theme-tinted RichText; clicking swaps in a multiline TextBox when
+-- Editable (re-highlighted on blur). OnCopy receives the content - wire setclipboard there.
 local codeSection = settingsTab:Section({ Name = "CodeView", Side = "Left" })
 
 local demoCode = codeSection:CodeView({
@@ -854,7 +799,6 @@ if player then
 	player.CharacterAdded:Connect(onCharacter)
 end]==],
 	OnCopy = function(content)
-		-- Executor-only hooks go here (setclipboard(content)); print stands in.
 		print("[Aetheris Demo] copy requested,", #content, "bytes")
 	end,
 })
@@ -917,9 +861,8 @@ print(
 -- =========================================================================
 -- 11. ONDESTROY HOOK — script-side cleanup when the UI closes
 -- =========================================================================
--- Stands in for a real loop (autofarm, autosell, ...): the loop would keep
--- running after the window is gone unless something stops it. Close the window
--- (or uncomment the auto-destroy above) to watch it cancel with a final print.
+-- Stands in for a real loop (autofarm, autosell, ...): it would keep running after the
+-- window is gone unless something stops it. Close the window to watch it cancel.
 local demoLoopStart = os.clock()
 local demoLoopThread = task.spawn(function()
 	while true do
