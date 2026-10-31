@@ -3,7 +3,7 @@
 
 	Combined loading + key-system card shown before the window builds when
 	CreateWindow receives a KeySystem table. One card plays the loading steps
-	(theme, sounds, key services, saved-key check) with a real progress bar,
+	(assets, sounds, key services, saved-key check) with a real progress bar,
 	then crossfades into the key UI (input, Get Key, Discord + Information
 	cards) when a key is actually required. Draggable like the main window,
 	fades in/out, fully themed, sounds through KeySystemOpen/Close.
@@ -18,6 +18,7 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local Tween = require("../Utils/Tween")
 local UUID = require("../Utils/UUID")
@@ -44,6 +45,20 @@ local INTRO_HOLD = 0.85
 local SUCCESS_HOLD = 1.3
 local HEADER_HEIGHT = 62
 local CONTENT_PAD = 18
+
+-- First-paint images for the card and window chrome, warmed by the loading step.
+local PRELOAD_IMAGES = {
+	"rbxassetid://92458734285074",
+	Icons["sparkles"],
+	Icons["key"],
+	Icons["link"],
+	Icons["info"],
+	Icons["x"],
+	Icons["bell"],
+	Icons["triangle-alert"],
+	Icons["shield-alert"],
+	Icons["minimize-2"],
+}
 
 local SUCCESS_COLOR = Color3.fromRGB(74, 200, 120)
 local WARN_COLOR = Color3.fromRGB(249, 115, 22)
@@ -77,10 +92,13 @@ local function captureFade(root)
 	return targets
 end
 
+-- Tween each decoration between its own resting transparency and hidden: the
+-- fade value scales toward 1, never toward an opaque 0.
 local function fadeTo(targets, value, duration)
 	for _, target in ipairs(targets or {}) do
+		local base = target[3]
 		Tween.Play(target[1], TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			[target[2]] = value,
+			[target[2]] = base + (1 - base) * value,
 		})
 	end
 end
@@ -182,7 +200,7 @@ local function buildCard(self)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(CARD_WIDTH, LOADING_HEIGHT),
 		BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 16),
-		BackgroundTransparency = theme.WindowTransparency or 0.1,
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		GroupTransparency = 1,
 		Parent = gui,
@@ -190,11 +208,11 @@ local function buildCard(self)
 	self._card = card
 
 	new("UIScale", { Scale = cardScale, Parent = card })
-	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = card })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = card })
 	local stroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		-- Floored at 0.85: some themes ship a heavier border that reads too bright on this card.
-		Transparency = math.max(theme.StrokeTransparency or 0.85, 0.85),
+		-- Pinned at 0.7; the open/close fade returns it to this base instead of zero.
+		Transparency = 0.7,
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = card,
@@ -217,7 +235,7 @@ local function buildCard(self)
 		ZIndex = 0,
 		Parent = card,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = clip })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = clip })
 	self._aurora = Aurora.new(clip, { Theme = theme, Transparency = 0.35 })
 
 	-- Drag frame mirrors the window: Instant follows the cursor, Smooth tweens.
@@ -299,7 +317,7 @@ local function buildCard(self)
 	local brandTile = new("Frame", {
 		Name = UUID.Static("BrandTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(CONTENT_PAD, HEADER_HEIGHT / 2 - 4),
+		Position = UDim2.fromOffset(18, 35),
 		Size = UDim2.fromOffset(34, 34),
 		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
 		BorderSizePixel = 0,
@@ -307,22 +325,23 @@ local function buildCard(self)
 		Parent = headerGroup,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandTile })
-	new("ImageLabel", {
+	local brandIcon = new("ImageLabel", {
 		Name = UUID.Static("BrandIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(18, 18),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Image = Icons["sparkles"] or Icons["key"],
+		Image = "rbxassetid://92458734285074",
 		ImageColor3 = Color3.new(1, 1, 1),
 		ZIndex = 4,
 		Parent = brandTile,
 	})
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandIcon })
 
 	local title = new("TextLabel", {
 		Name = UUID.Static("Title"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(CONTENT_PAD + 44, HEADER_HEIGHT / 2 - 10),
+		Position = UDim2.fromOffset(62, 25),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 18),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
@@ -337,7 +356,7 @@ local function buildCard(self)
 	local subtitle = new("TextLabel", {
 		Name = UUID.Static("Subtitle"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(CONTENT_PAD + 44, HEADER_HEIGHT / 2 + 8),
+		Position = UDim2.fromOffset(62, 45),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 12),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
@@ -356,7 +375,8 @@ local function buildCard(self)
 	local execChip = new("Frame", {
 		Name = UUID.Static("ExecutorChip"),
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -CONTENT_PAD, 0.5, -4),
+		-- Inset past the close button so the chip never slides under it.
+		Position = UDim2.new(1, -(CONTENT_PAD + 22), 0.5, -4),
 		Size = UDim2.fromOffset(execWidth, 24),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02,
@@ -391,6 +411,31 @@ local function buildCard(self)
 		ZIndex = 4,
 		Parent = execChip,
 	})
+
+	-- Direct child of the card, above the drag frame, so the click never starts a drag.
+	local closeButton = new("ImageButton", {
+		Name = UUID.Static("CloseButton"),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 9),
+		Size = UDim2.fromOffset(14, 14),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = Icons["x"] or "rbxassetid://110786993356448",
+		ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		ImageTransparency = 0.35,
+		ZIndex = 6,
+		Parent = card,
+	})
+	closeButton.MouseEnter:Connect(function()
+		Tween.Play(closeButton, "HoverIn", { ImageTransparency = 0, Size = UDim2.fromOffset(16, 16) })
+	end)
+	closeButton.MouseLeave:Connect(function()
+		Tween.Play(closeButton, "HoverOut", { ImageTransparency = 0.35, Size = UDim2.fromOffset(14, 14) })
+	end)
+	closeButton.MouseButton1Click:Connect(function()
+		self:_dismiss()
+	end)
+	self._closeButton = closeButton
 
 	self._title = title
 	self._subtitle = subtitle
@@ -651,6 +696,7 @@ local function buildLoading(self)
 		textSize = 11,
 		height = 14,
 		alignment = Enum.HorizontalAlignment.Right,
+		textColor = theme.PrimaryTextColor,
 	})
 	percent:snap("0%")
 
@@ -665,7 +711,7 @@ end
 
 local function setStepState(self, index, state)
 	local row = self._stepRows[index]
-	if not row then
+	if not row or not self._card then
 		return
 	end
 	local theme = self._theme
@@ -696,6 +742,9 @@ local function setStepState(self, index, state)
 end
 
 local function setProgress(self, fraction, label)
+	if not self._card then
+		return
+	end
 	fraction = math.clamp(fraction, 0, 1)
 	Tween.Play(self._barFill, "Smooth", { Size = UDim2.fromScale(fraction, 1) })
 	self._percent:to(math.floor(fraction * 100 + 0.5) .. "%", true)
@@ -809,7 +858,7 @@ local function buildKeyPhase(self)
 	new("ImageLabel", {
 		Name = UUID.Static("KeyIcon"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, PAD + 1, 0.5, 0),
+		Position = UDim2.new(0, -25, 0.5, 0),
 		Size = UDim2.fromOffset(15, 15),
 		BackgroundTransparency = 1,
 		Image = Icons["key"] or Icons["link"],
@@ -1265,6 +1314,9 @@ function KeyScreen:_phaseIn(body, targets)
 end
 
 function KeyScreen:_showKeyPhase()
+	if not self._card then
+		return
+	end
 	self._subtitle.Text = "Enter your key to continue"
 	Tween.Play(self._card, "Smooth", { Size = UDim2.fromOffset(CARD_WIDTH, KEY_HEIGHT) })
 	self:_phaseOut(self._loadingBody)
@@ -1272,6 +1324,9 @@ function KeyScreen:_showKeyPhase()
 end
 
 function KeyScreen:_showSuccess(message)
+	if not self._card then
+		return
+	end
 	if self._successLabel then
 		self._successLabel.Text = message or "Key accepted"
 	end
@@ -1283,7 +1338,7 @@ function KeyScreen:_showSuccess(message)
 end
 
 function KeyScreen:_submitKey()
-	if self._checking then
+	if self._checking or not self._card then
 		return
 	end
 	local key = self._field.Text
@@ -1340,6 +1395,10 @@ function KeyScreen:_submitKey()
 end
 
 function KeyScreen:_finish(message)
+	-- Access is granted, so the card can no longer be dismissed early.
+	if self._closeButton then
+		self._closeButton.Visible = false
+	end
 	self:_showSuccess(message)
 	task.delay(SUCCESS_HOLD, function()
 		if not self._gui then
@@ -1353,6 +1412,22 @@ function KeyScreen:_finish(message)
 				self._resolve(true)
 			end
 		end)
+	end)
+end
+
+-- Close button: abort the gate so CreateWindow returns nil instead of building.
+function KeyScreen:_dismiss()
+	if self._closing or not self._card then
+		return
+	end
+	self._closing = true
+	Sound.Play("KeySystemClose")
+	self:_fadeCard(1, FADE_OUT)
+	task.delay(FADE_OUT + 0.05, function()
+		self:_destroy()
+		if self._resolve then
+			self._resolve(false)
+		end
 	end)
 end
 
@@ -1385,6 +1460,7 @@ function KeyScreen:_destroy()
 		-- resolve(false) over an already-resolved gate
 		self._gui = nil
 		self._card = nil
+		self._closeButton = nil
 		gui:Destroy()
 	end
 end
@@ -1401,6 +1477,10 @@ function KeyScreen:_runSteps()
 
 	local doneWeight = 0
 	for index, step in ipairs(self._steps) do
+		-- The close button can dismiss mid-run; stop touching the dead card.
+		if not self._card then
+			return
+		end
 		setStepState(self, index, "active")
 		self._currentLabel.Text = step.Label .. "..."
 
@@ -1479,10 +1559,25 @@ function KeyScreen.Run(keyConfig, opts)
 
 	self._steps = {
 		{
-			Label = "Resolving theme",
-			Weight = 1,
+			Label = "Loading assets",
+			Weight = 2,
 			Run = function(report)
-				report(1)
+				local list, seen = {}, {}
+				for _, id in ipairs(PRELOAD_IMAGES) do
+					if type(id) == "string" and not seen[id] then
+						seen[id] = true
+						table.insert(list, id)
+					end
+				end
+				if #list == 0 then
+					report(1)
+					return
+				end
+				local loaded = 0
+				ContentProvider:PreloadAsync(list, function()
+					loaded += 1
+					report(loaded / #list)
+				end)
 			end,
 		},
 		{
@@ -1517,8 +1612,12 @@ function KeyScreen.Run(keyConfig, opts)
 		self._theme = theme
 		self._title.TextColor3 = theme.TitleTextColor or Color3.new(1, 1, 1)
 		self._subtitle.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		if self._closeButton then
+			self._closeButton.ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		end
 		self._card.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 16)
-		self._card.BackgroundTransparency = theme.WindowTransparency or 0.1
+		-- Card opacity is pinned at build; only the colour follows the theme.
+		self._card.BackgroundTransparency = 0
 		self._stroke.Color = theme.StrokeColor or Color3.new(1, 1, 1)
 		self._barGradient.Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, theme.AccentColor or Color3.fromRGB(14, 45, 178)),
@@ -1580,7 +1679,7 @@ function KeyScreen.Run(keyConfig, opts)
 	end
 
 	self:_showKeyPhase()
-	if self._savedValid == false then
+	if self._savedValid == false and self._card then
 		Notification.new(self._notifHolder, {
 			Type = "Alert",
 			Title = "Saved key expired",

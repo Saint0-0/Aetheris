@@ -67,7 +67,8 @@ local function digitMetrics(font, size)
 	return cached
 end
 
--- opts: { textSize, height, alignment, transparency, duration, weight }
+-- opts: { textSize, height, alignment, transparency, duration, weight, textColor }
+-- textColor seeds the glyphs before any theme binding has applied (e.g. the pre-window key screen).
 function Odometer.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({
@@ -76,6 +77,7 @@ function Odometer.new(parent, opts)
 		transparency = opts.transparency or 0,
 		duration = opts.duration or 0.55,
 		weight = opts.weight or Enum.FontWeight.SemiBold,
+		textColor = opts.textColor,
 		slots = {}, -- [indexFromRight] = { reel = reelData?, static = label? }
 		length = 0,
 		_lastText = nil,
@@ -142,6 +144,9 @@ function Odometer:_reel(index)
 		lbl.TextTransparency = self.transparency
 		lbl.ZIndex = zIndex
 		lbl.Parent = strip
+		if self.textColor then
+			lbl.TextColor3 = self.textColor
+		end
 		ThemeManager.BindColor(lbl, "TextColor3", "PrimaryTextColor")
 	end
 
@@ -170,6 +175,9 @@ function Odometer:_static(index)
 	label.TextTransparency = self.transparency
 	label.ZIndex = self.parent.ZIndex + 1
 	label.Parent = self.parent
+	if self.textColor then
+		label.TextColor3 = self.textColor
+	end
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 
 	slot.static = label

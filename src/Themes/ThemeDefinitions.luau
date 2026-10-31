@@ -2854,8 +2854,10 @@ for _, t in pairs(ThemeDefinitions) do
 		t.NotificationDismissColor = t.SecondaryTextColor or Color3.fromRGB(203, 213, 225)
 		t.NotificationActionButtonColor = t.InputBackgroundColor or t.PopupNeutralColor or Color3.fromRGB(51, 65, 85)
 		t.NotificationActionButtonTextColor = t.PopupTextColor or Color3.fromRGB(241, 245, 249)
-		t.NotificationAlertAccent = Color3.fromRGB(249, 115, 22)
-		t.NotificationErrorAccent = Color3.fromRGB(226, 42, 42)
+		-- Alert/Error keep their warning and danger read, tinted toward each theme's accent.
+		local notifAccent = t.AccentColor or t.PrimaryColor or Color3.new(1, 1, 1)
+		t.NotificationAlertAccent = Color3.fromRGB(249, 115, 22):Lerp(notifAccent, 0.25)
+		t.NotificationErrorAccent = Color3.fromRGB(226, 42, 42):Lerp(notifAccent, 0.25)
 		t.NotificationVariableAccent = t.PrimaryColor or Color3.fromRGB(74, 200, 120)
 	end
 end

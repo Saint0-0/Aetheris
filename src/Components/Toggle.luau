@@ -85,33 +85,6 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = thumb
 
-	local sheen = Instance.new("ImageLabel")
-	sheen.Name = UUID.Static("BackImage")
-	sheen.BorderSizePixel = 0
-	sheen.BackgroundTransparency = 1
-	sheen.Image = theme.Wallpaper or "rbxassetid://11094025229"
-	sheen:SetAttribute(UUID.Static("IsThemeSheen"), true)
-	sheen.ImageTransparency = 1
-	sheen.AnchorPoint = Vector2.new(0.5, 0.5)
-	sheen.Position = UDim2.fromScale(0.5, 0.5)
-	sheen.Size = UDim2.fromScale(1, 1)
-	sheen.Parent = thumb
-	local sheenCorner = Instance.new("UICorner")
-	sheenCorner.CornerRadius = UDim.new(1, 0)
-	sheenCorner.Parent = sheen
-	local sheenGradient = Instance.new("UIGradient")
-	sheenGradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.000, 1),
-		NumberSequenceKeypoint.new(0.324, 0.80625),
-		NumberSequenceKeypoint.new(0.600, 0.6875),
-		NumberSequenceKeypoint.new(0.726, 0.55),
-		NumberSequenceKeypoint.new(0.844, 0.36875),
-		NumberSequenceKeypoint.new(1.000, 0),
-	})
-	sheenGradient.Parent = sheen
-	sheenGradient.Rotation = 0
-	Tween.StartSpin(sheenGradient, { Rotation = 360 }, "SpinIdle")
-
 	local state = default
 	local offPos = UDim2.new(0, -6, 0.5, 0)
 	local onPos = UDim2.new(0, 41, 0.5, 0)
@@ -160,9 +133,6 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			Tween.Play(track, "Fast", {
 				BackgroundTransparency = targetTrackTransparency,
 			})
-			Tween.Play(sheen, "Fast", {
-				ImageTransparency = state and 0 or 1,
-			})
 		else
 			thumb:SetAttribute(UUID.Static("IsOn"), state)
 			thumb.Position = targetPos
@@ -170,11 +140,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			stroke.Transparency = targetStrokeTransparency
 			label.TextTransparency = targetLabelTransparency
 			track.BackgroundTransparency = targetTrackTransparency
-			sheen.ImageTransparency = state and 0 or 1
 		end
-		-- The sheen is invisible while OFF, so pause the spin there; it resumes
-		-- from the frozen angle the next time the toggle turns on.
-		Tween.SetSpinWanted(sheenGradient, state)
 		if fireCallback and Settings.Callback then
 			Settings.Callback(state)
 		end
@@ -193,14 +159,11 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 				thumb.BackgroundTransparency = 1
 				stroke.Transparency = 1
 				track.BackgroundTransparency = 1
-				sheen.ImageTransparency = 1
 			else
 				Tween.Play(thumb, "Fast", { Position = offPos, BackgroundTransparency = 1 })
 				Tween.Play(stroke, "Fast", { Transparency = 1 })
 				Tween.Play(track, "Fast", { BackgroundTransparency = 1 })
-				Tween.Play(sheen, "Fast", { ImageTransparency = 1 })
 			end
-			Tween.SetSpinWanted(sheenGradient, false)
 		else
 			applyState(state, true, false)
 		end
@@ -294,12 +257,10 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			unregisterTheme()
 			unregisterTheme = nil
 		end
-		Tween.StopSpin(sheenGradient)
 		Tween.CancelAll(thumb)
 		Tween.CancelAll(track)
 		Tween.CancelAll(stroke)
 		Tween.CancelAll(label)
-		Tween.CancelAll(sheen)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(thumb)
 		ThemeManager.UnbindInstance(track)
