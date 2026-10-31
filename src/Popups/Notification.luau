@@ -92,6 +92,13 @@ local ACCENT_KEY = {
 	Variable = "NotificationVariableAccent",
 }
 
+-- The card wash uses the aurora keys so Alert/Error read as themed colours first, warning/danger second.
+local WASH_KEY = {
+	Alert = "NotificationAlertAurora",
+	Error = "NotificationErrorAurora",
+	Variable = "NotificationVariableAccent",
+}
+
 -- Per-type fallbacks so a theme missing its Notification*Accent keys still colour-matches each flavour.
 local FALLBACK_ACCENT = {
 	Alert = Color3.fromRGB(249, 115, 22),
@@ -125,7 +132,7 @@ function Notification.new(container, Settings, theme)
 
 	local accent = theme[ACCENT_KEY[ntype]] or FALLBACK_ACCENT[ntype] or FALLBACK_ACCENT.Alert
 	local iconColor = Settings.IconColor or accent
-	local washColor = Settings.GradientColor or accent
+	local washColor = Settings.GradientColor or theme[WASH_KEY[ntype]] or accent
 
 	-- Sized by syncHeight from the row below, not AutomaticSize: scale(1,1) wash frames measured against this card and grew it every pass.
 	local root = new("CanvasGroup", {
@@ -169,7 +176,7 @@ function Notification.new(container, Settings, theme)
 	-- Accent bloom wash clipped to the toast; ColorKey binds it to the live theme accent unless the caller overrode the gradient.
 	local wash = Aurora.Wash(root, {
 		Color = washColor,
-		ColorKey = (Settings.GradientColor == nil) and ACCENT_KEY[ntype] or nil,
+		ColorKey = (Settings.GradientColor == nil) and WASH_KEY[ntype] or nil,
 		CornerRadius = UDim.new(1, 1),
 		Intensity = 0.1,
 	})
@@ -479,7 +486,7 @@ function Notification:ApplyTheme(themeInput)
 	local accent = theme[ACCENT_KEY[self._type]] or FALLBACK_ACCENT[self._type] or self._accent
 	self._accent = accent
 	local iconColor = self._iconOverride or accent
-	local washColor = self._washOverride or accent
+	local washColor = self._washOverride or theme[WASH_KEY[self._type]] or accent
 
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency

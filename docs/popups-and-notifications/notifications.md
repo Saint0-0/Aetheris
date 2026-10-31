@@ -40,7 +40,7 @@ Clicking an action runs its callback and closes the toast. The timer bar along t
 
 ## Colours
 
-Alerts are amber, errors are red, toasts are green — but the exact shade comes from the theme. `NotificationAlertAccent`, `NotificationErrorAccent` and `NotificationVariableAccent` are tinted toward each theme's accent, so a toast in Gruvbox doesn't look identical to one in Alpine. The rim, glow, icon and timer bar all match the flavour accent, and everything recolours live if the theme switches while the toast is up.
+Alerts are amber, errors are red, toasts are green — but the exact shade comes from the theme. `NotificationAlertAccent`, `NotificationErrorAccent` and `NotificationVariableAccent` are tinted toward each theme's accent, so a toast in Gruvbox doesn't look identical to one in Alpine. The card's bloom wash uses `NotificationAlertAurora` and `NotificationErrorAurora`, which sit deeper in the theme so an alert reads as themed first and alarming second. The rim, glow, icon and timer bar all match the flavour accent, and everything recolours live if the theme switches while the toast is up.
 
 ## The confirm dialog
 

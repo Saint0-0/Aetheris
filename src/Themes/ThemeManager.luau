@@ -134,6 +134,8 @@ ThemeManager.THEME_KEYS = {
 	"NotificationAlertAccent",
 	"NotificationErrorAccent",
 	"NotificationVariableAccent",
+	"NotificationAlertAurora",
+	"NotificationErrorAurora",
 }
 
 local THEME_KEY_SET = {}

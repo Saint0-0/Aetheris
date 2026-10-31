@@ -88,6 +88,9 @@ ThemeDefinitions.Base = {
 	NotificationAlertAccent = Color3.fromRGB(249, 115, 22),
 	NotificationErrorAccent = Color3.fromRGB(226, 42, 42),
 	NotificationVariableAccent = Color3.fromRGB(74, 200, 120),
+	-- Aurora wash colours: tinted further toward the accent than the accents so they match the theme.
+	NotificationAlertAurora = Color3.fromRGB(249, 115, 22),
+	NotificationErrorAurora = Color3.fromRGB(226, 42, 42),
 
 	Wallpaper = nil,
 	WallpaperEnabled = true,
@@ -2858,6 +2861,9 @@ for _, t in pairs(ThemeDefinitions) do
 		local notifAccent = t.AccentColor or t.PrimaryColor or Color3.new(1, 1, 1)
 		t.NotificationAlertAccent = Color3.fromRGB(249, 115, 22):Lerp(notifAccent, 0.25)
 		t.NotificationErrorAccent = Color3.fromRGB(226, 42, 42):Lerp(notifAccent, 0.25)
+		-- The card washes sit deeper in the theme so alerts feel themed first and alarming second.
+		t.NotificationAlertAurora = Color3.fromRGB(249, 115, 22):Lerp(notifAccent, 0.6)
+		t.NotificationErrorAurora = Color3.fromRGB(226, 42, 42):Lerp(notifAccent, 0.6)
 		t.NotificationVariableAccent = t.PrimaryColor or Color3.fromRGB(74, 200, 120)
 	end
 end
