@@ -27,6 +27,7 @@ local Aurora = require("../Utils/Aurora")
 local Odometer = require("../Utils/Odometer")
 local Security = require("../Utils/Security")
 local ThemeManager = require("../Themes/ThemeManager")
+local ThemeDefinitions = require("../Themes/ThemeDefinitions")
 local KeyServices = require("../Core/KeyServices")
 local SettingsStore = require("../Core/Settings/SettingsStore")
 local Notification = require("./Notification")
@@ -415,8 +416,9 @@ local function buildCard(self)
 	-- Direct child of the card, above the drag frame, so the click never starts a drag.
 	local closeButton = new("ImageButton", {
 		Name = UUID.Static("CloseButton"),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 9),
+		AnchorPoint = Vector2.new(1, 0.5),
+		-- Centred on the header row so it lines up with the executor chip.
+		Position = UDim2.new(1, -10, 0, HEADER_HEIGHT / 2 - 4),
 		Size = UDim2.fromOffset(14, 14),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -1567,6 +1569,14 @@ function KeyScreen.Run(keyConfig, opts)
 					if type(id) == "string" and not seen[id] then
 						seen[id] = true
 						table.insert(list, id)
+					end
+				end
+				-- Theme wallpapers: warming them here keeps the Themes tab from hitching on first open.
+				for _, def in pairs(ThemeDefinitions) do
+					local wallpaper = def.Wallpaper
+					if type(wallpaper) == "string" and not seen[wallpaper] then
+						seen[wallpaper] = true
+						table.insert(list, wallpaper)
 					end
 				end
 				if #list == 0 then

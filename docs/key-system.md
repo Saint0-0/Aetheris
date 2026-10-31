@@ -62,7 +62,7 @@ Without a file API the record can't be stored, so the key is asked for every lau
 
 The loading phase does real work and reports it on the progress bar:
 
-1. **Loading assets** — preloads the icons and images the UI paints with.
+1. **Loading assets** — preloads the icons, images and theme wallpapers the UI paints with, so opening the Themes tab later doesn't hitch.
 2. **Loading sounds** — preloads every UI sound.
 3. **Starting key services** — initialises each entry in `API`.
 4. **Checking saved key** — re-validates a stored key, if any.
