@@ -153,9 +153,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			callback(selectedItems)
 		end
 	end
-	self.UpdateName = function(_, newName)
-		label.Text = newName
-	end
 	self.OpenPopup = openPopup
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
@@ -163,9 +160,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
 	self.Destroy = function()
 		-- close any open popup so it can't dangle
 		if popupInstance and popupInstance.IsOpen then

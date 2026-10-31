@@ -10,6 +10,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -188,13 +189,13 @@ function Status.new(parent, Settings, theme)
 	self.Holder = holder
 	self.StatusLabels = statusLabels
 	self.Entries = entries
-	-- Public API
-	self._name = name
-	self.SetName = function(me, newName)
-		me._name = newName
-		label.Text = newName
-	end
-	self.UpdateName = self.SetName
+	ComponentAPI.Apply(self, {
+		Root = function(me)
+			return me.Frame
+		end,
+		Label = label,
+		Name = name,
+	})
 	self.SetEntries = function(me, newEntries)
 		for _, lbl in ipairs(statusLabels) do
 			ThemeManager.UnbindInstance(lbl)
@@ -260,13 +261,6 @@ function Status.new(parent, Settings, theme)
 	end
 	self.GetEntries = function(me)
 		return copyEntries(me.Entries)
-	end
-	self.SetVisible = function(me, visible)
-		me.Frame.Visible = visible
-	end
-	self.SetVisibility = self.SetVisible
-	self.GetVisible = function(me)
-		return me.Frame.Visible
 	end
 	self.Destroy = function(me)
 		for _, lbl in ipairs(statusLabels) do

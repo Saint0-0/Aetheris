@@ -221,14 +221,10 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 			applyState(newState, true, true)
 		end
 	end
+	-- Alias so every switch-style component reads SetState/GetState.
+	self.SetState = self.UpdateState
 	self.GetState = function(_self)
 		return state
-	end
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
-	self.UpdateName = function(_self, newName)
-		label.Text = newName
 	end
 	-- A theme switch cancels applyState's transparencies tweens, so re-stamp
 	-- the resting state to avoid a half-faded toggle.

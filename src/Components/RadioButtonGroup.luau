@@ -9,6 +9,7 @@
 ]]
 
 local ThemeManager = require("../Themes/ThemeManager")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local RadioButton = require("./RadioButton")
 local RadioButtonGroup = {}
 RadioButtonGroup.__index = RadioButtonGroup
@@ -20,6 +21,12 @@ function RadioButtonGroup.new(parent, theme)
 	self.Selected = nil
 	self._hasSelection = false
 	self._theme = theme
+	-- No root of its own: visibility fans out to every button in the group.
+	ComponentAPI.Apply(self, {
+		Children = function(me)
+			return me.Buttons
+		end,
+	})
 	return self
 end
 function RadioButtonGroup:RadioButton(Settings)
@@ -44,21 +51,6 @@ function RadioButtonGroup:Select(button)
 end
 function RadioButtonGroup:GetSelected()
 	return self.Selected
-end
-
-function RadioButtonGroup:SetVisible(visible)
-	for _, button in ipairs(self.Buttons) do
-		if button.SetVisible then
-			button:SetVisible(visible)
-		end
-	end
-end
-
-RadioButtonGroup.SetVisibility = RadioButtonGroup.SetVisible
-
-function RadioButtonGroup:GetVisible()
-	local first = self.Buttons[1]
-	return first ~= nil and first:GetVisible() or false
 end
 
 function RadioButtonGroup:Destroy()

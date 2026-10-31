@@ -12,6 +12,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local Tween = require("../Utils/Tween")
 local Odometer = require("../Utils/Odometer")
 local Constants = require("../Constants")
@@ -117,6 +118,18 @@ function LiveStat.new(parent, Settings, theme)
 	if self._spinningEnabled then
 		self:_startSpin()
 	end
+
+	ComponentAPI.Apply(self, {
+		Root = function(me)
+			return me._main
+		end,
+		OnName = function(me, newName)
+			if me._title then
+				me._title.Text = newName
+			end
+		end,
+	})
+
 	return self
 end
 
@@ -477,29 +490,6 @@ end
 
 function LiveStat:Get()
 	return self._value
-end
-
-function LiveStat:SetName(newName)
-	self._name = newName
-	if self._title then
-		self._title.Text = newName
-	end
-end
-
-function LiveStat:UpdateName(newName)
-	self:SetName(newName)
-end
-
-function LiveStat:SetVisible(visible)
-	if self._main then
-		self._main.Visible = visible
-	end
-end
-
-LiveStat.SetVisibility = LiveStat.SetVisible
-
-function LiveStat:GetVisible()
-	return self._main ~= nil and self._main.Visible or false
 end
 
 function LiveStat:Destroy()

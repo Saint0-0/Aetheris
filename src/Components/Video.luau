@@ -105,9 +105,6 @@ function Video.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	self.SetVisibility = function(_self, visible)
-		frame.Visible = visible
-	end
 	-- pause the moment the page is switched away, resume when it returns (no
 	-- Gate: pausing off-page is always on, saving decode while invisible)
 	PageAwareness.Register(frame, {

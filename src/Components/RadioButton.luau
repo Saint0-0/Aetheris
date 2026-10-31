@@ -257,12 +257,6 @@ function RadioButton.new(parent, group, Settings, theme)
 	self.GetSelected = function(me)
 		return me.IsSelected
 	end
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
-	self.UpdateName = function(_self, newName)
-		label.Text = newName
-	end
 	self.EnableSpinning = function(_self, enabled)
 		if enabled then
 			startSpin()

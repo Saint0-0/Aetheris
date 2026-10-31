@@ -91,9 +91,6 @@ function Paragraph.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(titleLabel, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
-	self.SetVisibility = function(_self, visible)
-		container.Visible = visible
-	end
 	self.Destroy = function(_self)
 		if container and container.Parent then
 			container:Destroy()

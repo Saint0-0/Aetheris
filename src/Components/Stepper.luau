@@ -11,6 +11,7 @@
 
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
+local ComponentAPI = require("../Utils/ComponentAPI")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
 local ValueReadout = require("./ValueReadout")
@@ -162,18 +163,7 @@ function Stepper.new(parent, Settings, theme)
 	self.SetStep = function(me, newStep)
 		me.Step = newStep
 	end
-	self.SetName = function(me, newName)
-		me._name = newName
-		label.Text = newName
-	end
-	self.UpdateName = self.SetName
-	self.SetVisible = function(me, visible)
-		me.Row.Visible = visible
-	end
-	self.SetVisibility = self.SetVisible
-	self.GetVisible = function(me)
-		return me.Row.Visible
-	end
+	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
 	-- the chip runs its own theme pass (accent card, state alphas, colours)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")

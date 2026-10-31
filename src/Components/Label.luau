@@ -163,9 +163,6 @@ function Label.new(parent, Settings, theme)
 			stroke.Transparency = 1
 		end
 	end
-	self.SetVisibility = function(_self, visible)
-		container.Visible = visible
-	end
 	self.Destroy = function(_self)
 		-- Drop the bindings so a destroyed label leaves nothing in the ThemeManager registry.
 		ThemeManager.UnbindInstance(label)

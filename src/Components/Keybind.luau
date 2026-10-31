@@ -277,12 +277,6 @@ function Keybind.new(parent, Settings, theme)
 	self.SetBind = function(_, key)
 		setKey(key)
 	end
-	self.SetVisibility = function(_, visible)
-		row.Visible = visible
-	end
-	self.UpdateName = function(_, newName)
-		label.Text = newName
-	end
 	-- drop the input listeners so nothing fires on a dead UI
 	local function disconnectAll()
 		if pressToken then

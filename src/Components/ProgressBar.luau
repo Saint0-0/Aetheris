@@ -183,9 +183,6 @@ function ProgressBar.new(parent, Settings, theme)
 		self.Color = newColor
 		ThemeManager.SetColorOverride(self.Visual, "BackgroundColor3", newColor)
 	end
-	self.UpdateName = function(_, newName)
-		self.Label.Text = newName
-	end
 	self.EnableSpinning = function(_, enabled)
 		if enabled then
 			startSpin()
@@ -202,9 +199,6 @@ function ProgressBar.new(parent, Settings, theme)
 	ThemeManager.Bind(backImage, "Image", "Wallpaper")
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
 	self.Destroy = function(me)
 		stopSpin()
 		Tween.CancelAll(me.Visual)

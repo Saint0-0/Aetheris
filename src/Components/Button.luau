@@ -127,9 +127,6 @@ function Button.new(parent, Settings, theme)
 		self.Callback()
 	end
 	row.MouseButton1Click:Connect(performClick)
-	self.UpdateName = function(_, newName)
-		label.Text = newName
-	end
 	self.Click = function()
 		performClick()
 	end
@@ -148,9 +145,6 @@ function Button.new(parent, Settings, theme)
 	end
 	local unregisterTheme = ThemeManager.OnThemeApplied(restampInteractionBases, row)
 
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
 	self.Destroy = function(_self)
 		if unregisterTheme then
 			unregisterTheme()

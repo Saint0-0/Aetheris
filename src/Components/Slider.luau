@@ -461,14 +461,10 @@ function Slider.new(parent, Settings, theme)
 	self.UpdateValue = function(_, newValue)
 		updateSlider(newValue, true)
 	end
+	-- Alias so every value component reads SetValue/GetValue.
+	self.SetValue = self.UpdateValue
 	self.GetValue = function()
 		return currentValue
-	end
-	self.SetVisibility = function(_, visible)
-		row.Visible = visible
-	end
-	self.UpdateName = function(_, newName)
-		label.Text = newName
 	end
 	self.EnableSpinning = function(_, enabled)
 		if enabled then

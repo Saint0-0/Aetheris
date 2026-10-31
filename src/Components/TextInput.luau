@@ -316,10 +316,6 @@ function TextInput.new(parent, Settings, theme)
 			flash()
 		end
 	end
-	self.UpdateName = function(_, newName)
-		label.Text = newName
-		sizeBox(false)
-	end
 	self.SetPlaceholder = function(_, newPlaceholder)
 		placeholder = newPlaceholder
 		field.PlaceholderText = newPlaceholder
@@ -353,9 +349,6 @@ function TextInput.new(parent, Settings, theme)
 		sizeBox(false) -- after the first layout pass, once AbsoluteSize is real
 	end)
 
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
 	self.Destroy = function(_self)
 		Tween.CancelAll(field)
 		Tween.CancelAll(stroke)

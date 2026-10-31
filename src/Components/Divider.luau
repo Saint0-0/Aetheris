@@ -66,9 +66,6 @@ function Divider.new(parent, Settings, theme)
 		transparencyBinding:SetEnabled(false)
 		frame.BackgroundTransparency = newTransparency
 	end
-	self.SetVisibility = function(_self, visible)
-		holder.Visible = visible
-	end
 	self.Destroy = function(_self)
 		if holder and holder.Parent then
 			holder:Destroy()

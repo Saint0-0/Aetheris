@@ -141,13 +141,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		me._isOpen = false
 		Tween.Play(me.Chevron, "Smooth", { Rotation = -90 })
 	end
-	self.SetVisibility = function(_self, visible)
-		row.Visible = visible
-	end
-	self.UpdateName = function(me, newName)
-		label.Text = newName
-		me._popupId = newName .. "ColorPicker"
-	end
 	row.MouseButton1Click:Connect(function()
 		self:TogglePopup()
 	end)

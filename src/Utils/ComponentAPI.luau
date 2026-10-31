@@ -3,8 +3,9 @@
 
 	Adds the shared public surface every component exposes: SetName /
 	UpdateName, SetVisible / SetVisibility, GetVisible, and a fallback
-	Destroy. Components with custom name side effects pass OnName; components
-	with custom teardown keep their own Destroy.
+	Destroy. Opts: Root (instance or fn), Label, Name, OnName, Children (fn
+	returning child components for fan-out visibility); custom teardown and
+	name side effects stay with the component.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -23,6 +24,7 @@ function ComponentAPI.Apply(component, opts)
 	local root = opts.Root
 	local label = opts.Label
 	local name = opts.Name
+	local children = opts.Children
 
 	if name ~= nil then
 		component._name = name
@@ -40,6 +42,14 @@ function ComponentAPI.Apply(component, opts)
 	component.UpdateName = setName
 
 	local setVisible = function(me, visible)
+		if children then
+			for _, child in ipairs(resolve(me, children) or {}) do
+				if child.SetVisible then
+					child:SetVisible(visible)
+				end
+			end
+			return
+		end
 		local target = resolve(me, root)
 		if target then
 			target.Visible = visible
@@ -48,6 +58,10 @@ function ComponentAPI.Apply(component, opts)
 	component.SetVisible = setVisible
 	component.SetVisibility = setVisible
 	component.GetVisible = function(me)
+		if children then
+			local first = (resolve(me, children) or {})[1]
+			return first ~= nil and first:GetVisible() or false
+		end
 		local target = resolve(me, root)
 		return target ~= nil and target.Visible or false
 	end
