@@ -46,7 +46,7 @@ section:Toggle({
 
 | Method | Description |
 | --- | --- |
-| `:UpdateState(bool)` | Set the state. Animates like a normal click. |
+| `:UpdateState(bool)` | Set the state. Animates like a normal click. Alias `:SetState`. |
 | `:GetState()` | Returns the current state. |
 | `:UpdateName(string)` | Change the label. |
 | `:SetName(string)` | Same as `UpdateName`. |

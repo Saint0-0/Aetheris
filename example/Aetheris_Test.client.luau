@@ -73,7 +73,7 @@ local window = Aetheris:CreateWindow({
 			AccentColor = Color3.fromRGB(149, 255, 188),
 		},
 	},
-	Theme = "Umbral", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
+	Theme = "Gruvbox", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
 	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
 	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl",

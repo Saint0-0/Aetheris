@@ -34,7 +34,7 @@ section:Slider({
 
 | Method | Description |
 | --- | --- |
-| `:UpdateValue(number)` | Set the value. |
+| `:UpdateValue(number)` | Set the value. Alias `:SetValue`. |
 | `:GetValue()` | Returns the current value. |
 | `:UpdateName(string)` | Change the label. |
 | `:SetName(string)` | Same as `UpdateName`. |

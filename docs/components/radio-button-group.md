@@ -43,6 +43,7 @@ The first button is selected automatically unless another one sets `Default = tr
 | `:GetSelected()` | Returns the selected button handle, or `nil`. |
 | `:SetVisible(bool)` | Show or hide every button in the group. |
 | `:GetVisible()` | Returns whether the group is showing. |
+| `:SetName(string)` | Name the group. |
 | `:Destroy()` | Remove the group and its buttons. |
 
 To read the current choice, keep the handles yourself: `local a = group:RadioButton({ Name = "A" })`, then compare `group:GetSelected() == a`.
