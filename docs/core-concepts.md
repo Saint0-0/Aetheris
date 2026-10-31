@@ -1,68 +1,63 @@
 # Core Concepts
 
-Aetheris is organised around four things: the **window**, **tabs**, **sections**, and **components**. Once that hierarchy clicks, everything else is just options on the individual pieces.
-
-## The hierarchy
-
-```
-Window
- └─ Tab
-     └─ Section
-         └─ Component
-```
-
-- A **Window** is the whole UI shell — title bar, sidebar, content area and settings pages.
-- A **Tab** is a page in the sidebar. Each tab owns its own content area.
-- A **Section** is a card inside a tab's column. It groups related components.
-- A **Component** is a single control (toggle, slider, button, and so on).
+Four ideas: the window, tabs, sections, and the theme that paints all of them.
 
 ## Window
 
-Created once with `Aetheris:CreateWindow(settings)`. The settings control the title, description, starting theme, the minimize keybind, and which pages show up in the settings tab.
+`Aetheris:CreateWindow(settings)` builds everything at runtime with `Instance.new` and returns one object that owns the gui, the settings store and the popups. Nothing is pre-built, so there are no image assets to import beyond the icon ids.
 
 ```lua
-local window = Aetheris:CreateWindow({
-    Title = "Aetheris",
-    Description = "v1.0",
-    Theme = "Default",
-    AnimationStyle = "Smooth",
-    DragStyle = "Smooth",
-    MinimizeKey = "LeftControl",
-    SettingsPages = {
-        { Name = "Keybinds", Icon = Aetheris.Icons["keyboard"] },
-    },
-    DefaultSettingsPage = "Themes",
-})
+local window = Aetheris:CreateWindow({ Title = "My Script" })
 ```
 
 ## Tabs
 
-Add a tab with `window:Tab(name, icon)`. A `window:Divider()` puts a separator in the sidebar between groups of tabs.
+Tabs are the sidebar entries. Each one is a page with its own sections and its own search filter.
 
 ```lua
-local main = window:Tab("Main", Aetheris.Icons["home"])
-window:Divider()
-local settings = window:Tab("Settings", Aetheris.Icons["settings"])
+local home = window:Tab("Home", Aetheris.Icons.house)
+local combat = window:Tab("Combat", Aetheris.Icons.swords)
+window:Divider() -- thin separator between tabs
 ```
+
+The first tab opens active. Pass `Active = true` to pick a different starting tab.
 
 ## Sections
 
-A section is created on a tab, and you pick which column it sits in (`"Left"` or `"Right"`).
+A section is the card inside a tab that holds your components. Tabs have two columns, so a section takes `Side = "Left"` (default) or `"Right"`.
 
 ```lua
-local section = main:Section({ Name = "Combat", Side = "Left" })
+local section = home:Section({ Name = "Combat" })
 ```
+
+Sections can opt out of config saving with `NoSave = true`, which is what the settings pages do so game configs never capture UI state.
 
 ## Components
 
-Every component is a method on a section. They all follow the same shape — a settings table with a `Name` and a `Callback` at minimum.
+Rows go into sections: toggles, sliders, keybinds, dropdowns, and the rest. See [Components](components.md) for the full list with options and methods.
 
 ```lua
-section:Toggle({
-    Name = "Enable Aimbot",
-    Default = true,
-    Callback = function(state) print(state) end,
-})
+section:Toggle({ Name = "Auto farm", Callback = function(on) end })
 ```
 
-See the **Components** section of the docs for each one's full options.
+Two shared rules hold everywhere:
+
+- Every component exposes `:SetName()` (alias `:UpdateName`), `:SetVisibility()` (alias `:SetVisible`), `:GetVisible()` and `:Destroy()`.
+- Values you set in code and values the player changes both live in memory. Window-level settings (theme, scale, volume) persist between sessions; per-component values do not persist yet.
+
+## Themes
+
+One theme table drives the whole window. Changing it repaints every component with a colour fade instead of a rebuild.
+
+```lua
+window:SetTheme("Gruvbox")
+```
+
+Custom themes merge over `Base`, so you only define the keys you want to change. See [Theming](theming.md).
+
+## The rest
+
+- [Window](window.md) for the frame, its options and methods.
+- [Popups & Notifications](popups-and-notifications.md) for toasts, dialogs and tooltips.
+- [Utilities](utilities.md) for the modules underneath: tween, sound, icons, odometer.
+- [API Reference](api-reference.md) for what `require`ing Aetheris exposes.

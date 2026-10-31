@@ -1,11 +1,13 @@
 # Button
 
-A clickable button.
+A row you click. Nothing else to it.
 
 ```lua
 section:Button({
-    Name = "Do the thing",
-    Callback = function() print("clicked") end,
+	Name = "Reset",
+	Callback = function()
+		print("clicked")
+	end,
 })
 ```
 
@@ -13,5 +15,20 @@ section:Button({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Button label. |
-| `Callback` | function | Called on click. |
+| `Name` | string | Label on the button. |
+| `Callback` | function | Runs on click. |
+
+## Methods
+
+| Method | Description |
+| --- | --- |
+| `:Click()` | Fire the callback as if the player clicked. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the button. |
+
+## Screenshot
+
+![Button](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Button.png)

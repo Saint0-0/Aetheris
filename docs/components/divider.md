@@ -1,14 +1,30 @@
 # Divider
 
-A horizontal rule, used to separate items inside a section or group tabs in the sidebar.
+A thin horizontal line to break a section into groups.
 
 ```lua
-section:Divider()
-section:Divider({ Color = Color3.fromRGB(108, 140, 255) })
+section:Divider({
+	Thickness = 1,
+	Padding = 6,
+})
 ```
 
 ## Options
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Color` | Color3 | Optional tint. Defaults to the theme. |
+| `Name` | string | Optional label, mostly for your own reading. |
+| `Color` | Color3 | Line colour. Section divider colour if omitted. |
+| `Transparency` | number | `0` to `1`. Theme default if omitted. |
+| `Thickness` | number | Height of the line. Defaults to `1`. |
+| `Padding` | number | Space above and below. Defaults to `1`. |
+
+## Methods
+
+| Method | Description |
+| --- | --- |
+| `:SetColor(Color3)` | Change the colour. |
+| `:SetTransparency(number)` | Fade the line. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the divider. |

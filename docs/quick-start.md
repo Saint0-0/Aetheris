@@ -1,43 +1,59 @@
 # Quick Start
 
-## Loading the library
+Load the library, create a window, add a tab and a section, then put components in it. That is the whole shape of an Aetheris script.
 
-Aetheris is distributed as a single file. Load it however you normally run scripts:
+## Load
+
+Grab `Aetheris.luau` from the [latest release](https://github.com/Saint0-0/Aetheris/releases/latest) and run it:
 
 ```lua
-loadstring(game:HttpGet("<raw url to dist/Aetheris.luau>"))()
+local Aetheris = loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau"))()
 ```
 
-In Studio, you can instead require the module directly if you have the source synced into `ReplicatedStorage.Aetheris`.
+In Studio, drop the `Aetheris.rbxm` model into `ReplicatedStorage` instead and use `require(ReplicatedStorage.Aetheris.Init)`.
 
 ## Your first window
 
-The only entry point you need is `CreateWindow`. It returns a window you build tabs and sections on.
-
 ```lua
-local Aetheris = require(game.ReplicatedStorage.Aetheris.Init)
-
 local window = Aetheris:CreateWindow({
-    Title = "Aetheris",
-    Description = "my first window",
-    Theme = "Default",
-    MinimizeKey = "LeftControl",
+	Title = "My Script",
+	Theme = "Umbral",
+	MinimizeKey = "LeftControl",
 })
-```
 
-## Adding a tab and a toggle
-
-```lua
-local tab = window:Tab("Main", Aetheris.Icons["home"])
-local section = tab:Section({ Name = "General", Side = "Left" })
+local home = window:Tab("Home", Aetheris.Icons.house)
+local section = home:Section({ Name = "Combat" })
 
 section:Toggle({
-    Name = "Enable feature",
-    Default = true,
-    Callback = function(state)
-        print("toggled:", state)
-    end,
+	Name = "Auto farm",
+	Default = false,
+	Callback = function(on)
+		print("toggled", on)
+	end,
+})
+
+section:Slider({
+	Name = "Walk speed",
+	Min = 16,
+	Max = 100,
+	Default = 16,
+	Precision = 1,
+	Callback = function(value) end,
+})
+
+section:Button({
+	Name = "Reset",
+	Callback = function() end,
 })
 ```
 
-That's the whole pattern: create a window, add tabs, add sections to those tabs, then add components to the sections. Everything else in these docs is just detail on each piece.
+`CreateWindow` waits for the optional key system and loading screen before it builds, so everything after it runs with the window already on screen.
+
+## A few things worth knowing
+
+- Icons are a table of asset ids: `Aetheris.Icons.home`, `Aetheris.Icons.sliders-horizontal`, and so on. Pass a raw `rbxassetid://` string if you want your own.
+- Sections take `Side = "Left"` (default) or `Side = "Right"` to fill two columns.
+- `window:SetTheme("Gruvbox")` repaints everything live, mid-session.
+- `window:Toast({ Title = "Ready" })` shows a small self-dismissing message.
+
+From here, [Core Concepts](core-concepts.md) explains how the window, tabs and sections fit together, and [Components](components.md) covers every row you can add.

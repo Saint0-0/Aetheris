@@ -1,15 +1,13 @@
 # Code View
 
-A syntax-highlighted code block with line numbers and an optional edit mode.
+A code block with syntax highlighting, a line-number gutter, and optionally inline editing.
 
 ```lua
 section:CodeView({
-    Name = "Snippet",
-    Height = 190,
-    Language = "lua",
-    Text = "local x = 1",
-    Editable = true,
-    OnCopy = function(content) end,
+	Name = "Snippet",
+	Language = "lua",
+	Text = "local part = Instance.new(\"Part\")",
+	Height = 220,
 })
 ```
 
@@ -17,27 +15,25 @@ section:CodeView({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Header label (hidden when nil/empty). |
-| `Text` | string | The code content. |
-| `Language` | string | `"lua"` (default), `"javascript"`, `"python"` or `"json"` — aliases `luau`/`js`/`py` work; unknown values fall back to Lua rules. |
-| `Height` | number | Panel height in pixels (min 72, default 140). |
-| `Editable` | bool | `true` lets a click swap in a multiline TextBox for editing. |
-| `OnCopy` | function | Called with `(content, component)` when the header's Copy button is clicked. |
+| `Name` | string | Title on the block. |
+| `Text` | string | The code shown. |
+| `Language` | string | Highlighting rules to use, e.g. `"lua"`. |
+| `Height` | number | Block height in pixels. |
+| `Editable` | boolean | Let the player type in the block. Off by default. |
+| `OnCopy` | function | Runs when the copy button is used. |
+
+With `Editable = true` the block becomes a real editor with a caret and undo-friendly edits, and `:GetContent()` returns whatever is in it now.
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetText(string)` | Replace the content and re-highlight. |
-| `:GetContent()` | Returns the current text (live box text while editing). |
-| `:SetLanguage(string)` | Switch language and re-highlight. |
-| `:SetOnCopy(function)` | Attach/replace the copy handler later. |
-| `:SetVisibility(bool)` | Show or hide the component. |
-
-## Notes
-
-Highlighting is theme-tinted: every token class is a hue offset from the theme accent, and the panel's luminance picks bright or dark values — so colours shift with the theme without collapsing into one another. Plain identifiers ride the theme's primary text colour; operators, punctuation and comments are the secondary text colour dimmed toward the panel.
-
-View mode renders one RichText row per line with the line number inline; editing swaps in a plain multiline TextBox (click the code when `Editable`) and re-highlights on blur. The Copy button is a clipboard icon (it flashes to a checkmark for 0.5s on copy, with the Button component's hover/press motion); it is inert until `OnCopy` is provided — wire `setclipboard(content)` there from an executor.
-
-JSON is the fourth tokenizer language: quoted runs followed by `:` highlight as keys (distinct palette hue), with numbers, `true`/`false`/`null` and string values colour-coded — the Configs page uses it to preview saved config files.
+| `:GetContent()` | Returns the current code. |
+| `:SetText(string)` | Replace the code. |
+| `:SetLanguage(string)` | Change the highlight rules. |
+| `:SetOnCopy(function)` | Replace the copy hook. |
+| `:SetName(string)` | Change the title. |
+| `:UpdateName(string)` | Same as `SetName`. |
+| `:SetVisible(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the block. |

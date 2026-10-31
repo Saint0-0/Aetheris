@@ -1,15 +1,17 @@
 # Slider
 
-A numeric range control.
+A draggable value bar with a readout. Click anywhere on the track to jump, or drag the thumb.
 
 ```lua
 section:Slider({
-    Name = "Smoothness",
-    Min = 0,
-    Max = 100,
-    Default = 50,
-    Precision = 1,
-    Callback = function(value) print(value) end,
+	Name = "Walk speed",
+	Min = 16,
+	Max = 100,
+	Default = 16,
+	Precision = 1,
+	Callback = function(value)
+		print(value)
+	end,
 })
 ```
 
@@ -17,22 +19,30 @@ section:Slider({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label. |
-| `Min` | number | Lowest value. |
-| `Max` | number | Highest value. |
-| `Default` | number | Starting value. |
-| `Precision` | number | Decimal places. `0` for whole numbers. |
-| `Callback` | function | Called with the new value as you drag. |
-| `Flag` | string | Optional id for config save/load. |
+| `Name` | string | Label above the track. |
+| `Min` | number | Low end of the range. Defaults to `0`. |
+| `Max` | number | High end of the range. Defaults to `100`. |
+| `Increment` | number | Amount per step. `Step` works as an alias. Defaults to `1`. |
+| `Default` | number | Starting value. Defaults to `50`. |
+| `Precision` | number | Decimal places shown. Defaults to the increment's decimals. |
+| `Callback` | function | Fires with the value while dragging. |
+| `SpinningEnabled` | boolean | Animated gradient inside the fill. On by default. |
+
+`Precision = 0` gives whole numbers, `Precision = 1` gives one decimal place. The callback fires as the player drags, so keep it light or gate the expensive work behind your own debounce.
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetValue(number)` | Set the value programmatically. |
+| `:UpdateValue(number)` | Set the value. |
 | `:GetValue()` | Returns the current value. |
-| `:SetVisibility(bool)` | Show or hide the component. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:EnableSpinning(bool)` | Turn the fill animation on or off. |
+| `:Destroy()` | Remove the slider and its bindings. |
 
-## Notes
+## Screenshot
 
-While its page is off screen the slider collapses to zero fill, then tweens back to its value when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).
+![Slider](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Slider.png)

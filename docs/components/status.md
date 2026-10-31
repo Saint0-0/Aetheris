@@ -1,28 +1,45 @@
 # Status
 
-A list of labelled status entries, each with a colour.
+A small readout panel: a heading plus up to eight coloured lines. Handy for live API or server state.
 
 ```lua
-section:Status({
-    Name = "System Status",
-    Entries = {
-        { "info",  "All systems nominal", "green" },
-        { "alert", "CPU usage high",      "orange" },
-        { "error", "Critical failure",    "red" },
-        { "custom", "Custom colour",      Color3.fromRGB(255, 200, 100) },
-    },
+local status = section:Status({
+	Name = "API status",
+	Entries = {
+		{ "main", "Connected", "green" },
+		{ "ping", "84ms", "orange" },
+	},
 })
+
+status:SetEntry("ping", "42ms", "green")
 ```
 
-## Entry format
+## Options
 
-Each entry is `{ kind, text, colour }` where colour is a named colour (`"green"`, `"orange"`, `"red"`) or a `Color3`. An empty `kind` renders the text without the `kind:` prefix.
+| Key | Type | Description |
+| --- | --- | --- |
+| `Name` | string | Heading above the lines. |
+| `Entries` | table | Array of `{ key, text, colour }` entries. |
 
-## API
+Each entry is a plain array: the `key` is what you use to update it later, the `text` is the line itself, and the colour is one of `"green"`, `"orange"`, `"red"`, a hex string like `"#FF0000"`, or a `Color3`. Lines are rich text, so `<b>` and `<font>` tags work.
+
+Eight entries is the cap. Anything past that is dropped.
+
+## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetEntry(key, text, colour?)` | Update an existing entry, or append it when the key is new. |
-| `:AddEntry(key, text, colour?)` | Always append a new line (empty `key` = unkeyed); returns `nil` past the 8-entry cap. |
-| `:GetEntry(key)` | Current text for `key`, or `nil`. |
-| `:SetEntries(entries)` | Replace all entries. |
+| `:SetEntries(table)` | Replace every line. |
+| `:SetEntry(key, text, colour)` | Update the line with that key. |
+| `:AddEntry(key, text, colour)` | Append a line. Pass `""` for no key. |
+| `:GetEntry(key)` | Returns one entry. |
+| `:GetEntries()` | Returns a copy of all entries. |
+| `:SetName(string)` | Change the heading. |
+| `:UpdateName(string)` | Same as `SetName`. |
+| `:SetVisible(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the panel. |
+
+## Screenshot
+
+![Status](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/StatusText.png)

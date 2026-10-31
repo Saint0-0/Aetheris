@@ -1,26 +1,45 @@
 # Video
 
-Embeds a Roblox `VideoFrame` with the library's styling.
+An inline `VideoFrame` in a section, for previews and loops.
 
 ```lua
-section:Video({
-    VideoId = "rbxassetid://5670794788",
-    Loop = true,
-    Height = 90,
+local video = section:Video({
+	Name = "Preview",
+	VideoId = "rbxassetid://5670794788",
+	Height = 140,
 })
+
+video:Play()
 ```
 
 ## Options
 
 | Key | Type | Description |
 | --- | --- | --- |
+| `Name` | string | Label above the video. |
 | `VideoId` | string | The video asset id. |
-| `Loop` | bool | Loop playback. |
-| `Height` | number | Height in pixels. |
-| `Volume` | number | Playback volume 0–1 (`:SetVolume` / `:GetVolume` change it live). |
+| `Loop` | boolean | Restart when it ends. On by default. |
+| `Height` | number | Frame height in pixels. Defaults to `100`. |
+| `Volume` | number | `0` to `1`. |
 
-## Notes
+The video starts playing on its own and fades with the page like every other component.
 
-The video fades with the rest of the UI (minimize, tab switch, theme switch) via a gradient handle — so it dims and restores in step with everything else instead of popping.
+## Methods
 
-The video pauses the moment its page is switched away (and resumes only if it was playing) — this is always on, independent of the **Page Animations** setting.
+| Method | Description |
+| --- | --- |
+| `:Play()` | Start playback. |
+| `:Pause()` | Pause it. |
+| `:Stop()` | Stop and rewind. |
+| `:SetVideo(string)` | Swap the video asset. |
+| `:SetVolume(number)` | Change the volume. |
+| `:GetVolume()` | Returns the current volume. |
+| `:SetLoop(bool)` | Turn looping on or off. |
+| `:SetHeight(number)` | Resize the frame. |
+| `:SetFade(number, duration?)` | Fade the gradient overlay. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:Destroy()` | Remove the video. |
+
+## Screenshot
+
+![Video](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Video.png)

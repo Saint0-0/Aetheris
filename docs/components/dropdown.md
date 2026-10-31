@@ -1,34 +1,55 @@
 # Dropdown
 
-A selectable list. Can be single-select or multi-select, with an optional cap.
+A closed row that opens a popup of choices. Set `MaxItemsChoosable = 1` for a plain select, or leave it high for multi-select.
 
 ```lua
+local items = {
+	{ name = "Apple", value = "apple" },
+	{ name = "Banana", value = "banana" },
+	{ name = "Orange", value = "orange" },
+}
+
 section:Dropdown({
-    Name = "Fruit",
-    Items = {
-        { name = "Apple", icon = Icons["apple"], value = "apple" },
-        { name = "Banana", value = "banana" },
-    },
-    Default = { "apple" },
-    MaxItemsChoosable = 1, -- 1 = single select
-    Placeholder = "Pick one...",
-    Callback = function(selected)
-        for _, item in ipairs(selected) do print(item.name) end
-    end,
-}, showDropdown)
+	Name = "Favourite fruit",
+	Items = items,
+	Default = { "apple" },
+	MaxItemsChoosable = 1,
+	Callback = function(selected)
+		if selected[1] then
+			print(selected[1].name)
+		end
+	end,
+})
 ```
 
 ## Options
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label. |
-| `Items` | array | `{ name, value, icon? }` entries. |
-| `Default` | array | Values selected at start. |
-| `MaxItemsChoosable` | number | Cap on selection. Omit for unlimited. |
-| `Placeholder` | string | Text shown when nothing is selected. |
-| `Callback` | function | Called with an array of selected items. |
+| `Name` | string | Label for the row, also the popup title. |
+| `Items` | table | Array of `{ name, value }` tables. `icon` is optional. |
+| `Default` | table | Array of values to preselect. |
+| `MaxItemsChoosable` | number | Selection limit. `1` makes it single-select. |
+| `Callback` | function | Fires with the selection after the player confirms. |
 
-## The second argument
+Each item is a table, not a string: `{ name = "Apple", value = "apple" }`. Adding `icon = Aetheris.Icons.apple` puts a glyph next to it in the popup. The callback runs on confirm, not per click, so cancelling leaves everything untouched.
 
-The second argument to `section:Dropdown` is the popup factory — in the demo it's `window:DropdownPopUp` (wrapped as `showDropdown`). It renders the list popup and keeps it themed.
+The callback receives an array of the same `{ name, value }` tables, in the order the player picked them.
+
+## Methods
+
+| Method | Description |
+| --- | --- |
+| `:SetItems(table)` | Replace the item list and clear the selection. |
+| `:SetValues(table, keepSelection?)` | Replace the list, optionally keeping selections that still exist. |
+| `:SetValue(valueOrList, silent?)` | Select by value. Pass `true` to skip the callback. |
+| `:GetSelected()` | Returns the selected `{ name, value }` entries. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the dropdown and its popup hookups. |
+
+## Screenshot
+
+![Dropdown](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Dropdowns(Closed).png)

@@ -4,9 +4,11 @@ An on/off switch with a label.
 
 ```lua
 section:Toggle({
-    Name = "Enable feature",
-    Default = true,
-    Callback = function(state) print(state) end,
+	Name = "Auto farm",
+	Default = false,
+	Callback = function(on)
+		print(on)
+	end,
 })
 ```
 
@@ -15,40 +17,43 @@ section:Toggle({
 | Key | Type | Description |
 | --- | --- | --- |
 | `Name` | string | Label shown next to the switch. |
-| `Default` | bool | Starting state. Defaults to `false`. |
-| `Callback` | function | Called with the new state when toggled. |
-| `Flag` | string | Optional id for config save/load. |
-| `Confirm` | table | Optional confirmation dialog (see below). |
+| `Default` | boolean | Starting state. Defaults to `false`. |
+| `Callback` | function | Runs with the new state whenever it flips. |
+| `Confirm` | table | Ask before changing. See below. |
 
-## Confirmation dialog
+## Confirm dialog
 
-Pass a `Confirm` table to make the toggle ask before changing. Handy for anything risky.
+Pass a `Confirm` table for anything risky. It shows the same modal as `window:UINotification()` and only flips the toggle if the player confirms.
 
 ```lua
 section:Toggle({
-    Name = "Dangerous toggle",
-    Confirm = {
-        Enabled = true,
-        Title = "Are you sure?",
-        Description = "This may cause issues.",
-        ConfirmText = "Yes",
-        CancelText = "No",
-    },
-    Callback = function(state) print(state) end,
-}, notify)
+	Name = "Delete save",
+	Confirm = {
+		Enabled = true,
+		Title = "Are you sure?",
+		Description = "This wipes your progress.",
+		TitleColor = Color3.fromRGB(255, 100, 100),
+		ConfirmText = "Yes, do it",
+		CancelText = "No, cancel",
+	},
+	Callback = function(on) end,
+})
 ```
 
-The second argument to `section:Toggle` is the notification function used to render the confirmation — in the demo it's `window:UINotification`.
+`Enabled` switches the whole thing on, `TitleColor` tints the heading, and the two text keys label the buttons. Everything else is optional.
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:UpdateState(bool)` | Set the state (animates). |
+| `:UpdateState(bool)` | Set the state. Animates like a normal click. |
 | `:GetState()` | Returns the current state. |
-| `:SetVisibility(bool)` | Show or hide the component. |
 | `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the toggle and its bindings. |
 
-## Notes
+## Screenshot
 
-While its page is off screen the switch fades to zero and its thumb parks at the off position, then tweens back when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).
+![Toggle](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Toggles.png)

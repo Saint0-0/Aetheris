@@ -1,25 +1,23 @@
 # Live Switching
 
-Switching themes at runtime is smooth — Aetheris crossfades the colours rather than snapping them.
+`window:SetTheme(nameOrTable)` repaints the whole UI while it's on screen. Nothing is rebuilt — every colour property is re-resolved in place.
 
-## How it works
+What happens on a switch:
 
-1. Every element's current colours are snapshotted.
-2. The new theme's values are applied instantly.
-3. Any element whose colour changed is restored to its old colour and tweened to the new one.
+* Colours crossfade over about 0.7 seconds instead of snapping.
+* In-flight tweens under the window are cancelled first, so a tween started by the old theme can't finish late and overwrite the new colours.
+* Spinning gradients pause during the switch and restart after it.
+* Toast notifications already on screen recolour in place, including their accent rim and glow.
+* Page decorations (strokes, dividers) restore to their resting transparency once the switch lands.
+* The new theme is saved, so the next launch starts on it.
 
-So a theme switch reads as the whole UI fading from the old theme into the new one — no dim overlay, no flash.
-
-## What else happens on a switch
-
-- Spinning gradients (tab backdrops, slider fills, progress bars) are restarted, since the switch cancels in-flight tweens.
-- Cached popups are dropped so they rebuild with the new theme.
-- Page-fade caches are re-primed so the next tab switch restores the correct values.
-
-## Timing
-
-The crossfade duration is controlled by `ColorFadeTime` on the theme manager (default `0.35`). You can change it at runtime:
+Components hold their on/off state across a switch — a toggle that was on stays on and keeps its "on" colour under the new theme.
 
 ```lua
-Aetheris.ThemeManager.ColorFadeTime = 0.5
+window:SetTheme("Ember")
+
+-- or a custom table, same call
+window:SetTheme(myThemeTable)
 ```
+
+The key screen follows the same rules if it's still up when the theme changes.

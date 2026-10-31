@@ -1,12 +1,14 @@
 # Keybind
 
-Captures a keyboard key.
+A row that captures a keyboard key. Click the box, press a key, done.
 
 ```lua
 section:Keybind({
-    Name = "Primary Key",
-    Default = "G",
-    Callback = function(key) print(key) end,
+	Name = "Menu key",
+	Default = "G",
+	Callback = function(key)
+		print("pressed", key)
+	end,
 })
 ```
 
@@ -14,15 +16,27 @@ section:Keybind({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label. |
-| `Default` | string | Starting key. |
-| `Callback` | function | Called with the captured key. |
-| `Flag` | string | Optional id for config save/load. |
+| `Name` | string | Label for the row. |
+| `Default` | string | Starting key, as an `Enum.KeyCode` name. Empty by default. |
+| `Callback` | function | Fires when the key is pressed during play. |
+| `OnRebind` | function | Fires with the new key whenever the bind changes. |
+
+`Callback` and `OnRebind` do different jobs: the first is "the player pressed the key", the second is "the player chose a different key". All rows share one input listener, so ten keybinds still cost a single `InputBegan`.
+
+Long names are shortened for display (`LeftControl` shows as `LtCtrl`); the value passed to your callbacks stays the full name.
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetKey(string)` | Set the key programmatically. |
-| `:GetKey()` | Returns the current key. |
-| `:SetVisibility(bool)` | Show or hide the component. |
+| `:GetBind()` | Returns the current key name. |
+| `:SetBind(string)` | Set the key without recording a press. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the row and its bindings. |
+
+## Screenshot
+
+![Keybind](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Keybind.png)

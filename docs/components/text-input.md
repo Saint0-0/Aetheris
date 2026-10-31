@@ -1,13 +1,14 @@
 # Text Input
 
-A single-line text field.
+A single-line text field with a label.
 
 ```lua
 section:TextInput({
-    Name = "Player Name",
-    Placeholder = "Enter a name...",
-    Default = "",
-    Callback = function(text) print(text) end,
+	Name = "Player name",
+	Placeholder = "Enter a name...",
+	Callback = function(text)
+		print(text)
+	end,
 })
 ```
 
@@ -15,16 +16,26 @@ section:TextInput({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label. |
-| `Placeholder` | string | Greyed-out hint text. |
+| `Name` | string | Label for the row. |
+| `Placeholder` | string | Grey hint text. Defaults to `[...]`. |
 | `Default` | string | Starting text. |
-| `Callback` | function | Called with the text as it changes / on submit. |
-| `Flag` | string | Optional id for config save/load. |
+| `Numeric` | boolean | Digits only. Off by default. |
+| `ClearOnFocus` | boolean | Empty the field when clicked. Off by default. |
+| `Callback` | function | Fires with the text whenever it changes. |
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetText(string)` | Set the text programmatically. |
 | `:GetText()` | Returns the current text. |
-| `:SetVisibility(bool)` | Show or hide the component. |
+| `:SetText(string, flash?)` | Set the text. Pass `true` to skip the flash. |
+| `:SetPlaceholder(string)` | Change the hint text. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Same as `UpdateName`. |
+| `:SetVisibility(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the field and its bindings. |
+
+## Screenshot
+
+![Text Input](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/TextInput.png)

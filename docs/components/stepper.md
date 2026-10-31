@@ -1,16 +1,17 @@
 # Stepper
 
-A numeric field with increment/decrement buttons.
+A number with a minus and plus button. Good for values you set in small fixed steps.
 
 ```lua
 section:Stepper({
-    Name = "Ammo Count",
-    Min = 0,
-    Max = 100,
-    Default = 30,
-    Step = 5,
-    Integer = true,
-    Callback = function(value) print(value) end,
+	Name = "Repeat count",
+	Min = 1,
+	Max = 50,
+	Default = 5,
+	Step = 1,
+	Callback = function(value)
+		print(value)
+	end,
 })
 ```
 
@@ -18,23 +19,30 @@ section:Stepper({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label. |
-| `Min` | number | Lowest value. |
-| `Max` | number | Highest value. |
-| `Default` | number | Starting value. |
-| `Step` | number | Amount added/removed per click. |
-| `Integer` | bool | Force whole numbers. |
-| `Callback` | function | Called with the new value. |
-| `Flag` | string | Optional id for config save/load. |
+| `Name` | string | Label for the row. |
+| `Min` | number | Lowest value. Defaults to `0`. |
+| `Max` | number | Highest value. Defaults to `100`. |
+| `Default` | number | Starting value. Defaults to `50`. |
+| `Step` | number | Amount per click. Defaults to `1`. |
+| `Integer` | boolean | Keep values whole. On by default. |
+| `Callback` | function | Runs with the new value on every step. |
+
+Set `Integer = false` and a `Step` under `1` for fine values, for example `Step = 0.1`.
 
 ## Methods
 
 | Method | Description |
 | --- | --- |
-| `:SetValue(number)` | Set the value programmatically. |
+| `:SetValue(number, noCallback?)` | Set the value. Pass `true` to skip the callback. |
 | `:GetValue()` | Returns the current value. |
-| `:SetVisibility(bool)` | Show or hide the component. |
+| `:SetMin(number)` | Move the lower bound. |
+| `:SetMax(number)` | Move the upper bound. |
+| `:SetStep(number)` | Change the step size. |
+| `:UpdateName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
+| `:GetVisible()` | Returns whether it is showing. |
+| `:Destroy()` | Remove the stepper and its bindings. |
 
-## Notes
+## Screenshot
 
-While its page is off screen the whole control (value chip, odometer digits, step buttons) fades to transparent, then tweens back when the page regains focus — controlled by the **Page Animations** setting in UI Settings (on by default).
+![Stepper](https://raw.githubusercontent.com/Saint0-0/Aetheris/main/assets/screenshots/Stepper.png)
