@@ -654,9 +654,10 @@ function Window.new(Settings)
 	NameContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	NameContainerLayout.Parent = NameContainer
 
-	local Username = Instance.new("TextLabel")
+	local Username = Instance.new("TextButton")
 	Username.Name = UUID.Static("Username")
 	Username.TextTruncate = Enum.TextTruncate.SplitWord
+	Username.AutoButtonColor = false
 	Username.BorderSizePixel = 0
 	Username.TextSize = 12
 	Username.TextXAlignment = Enum.TextXAlignment.Left
@@ -674,6 +675,7 @@ function Window.new(Settings)
 
 	local DisplayName = Instance.new("TextButton")
 	DisplayName.Name = UUID.Static("DisplayName")
+	DisplayName.AutoButtonColor = false
 	DisplayName.BorderSizePixel = 0
 	DisplayName.TextXAlignment = Enum.TextXAlignment.Left
 	DisplayName.TextTransparency = 0.3
@@ -687,18 +689,27 @@ function Window.new(Settings)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
 
-	-- Mask Display Name drives both lines; the toggle sets the opening state and
-	-- can flip it live. Clicking the name no longer toggles it directly — it
-	-- shows a toast with a quick action to turn auto-mask off/on instead.
+	-- Mask Display Name drives both lines. Auto-mask (persisted) hides the
+	-- names from startup and, while on, a click only explains itself with a
+	-- toast and a quick action — it never unmasks directly. With auto-mask off
+	-- the names are free to mask/unmask by clicking, as often as wanted, with
+	-- no toast at all.
 	local originalDisplayName = DisplayName.Text
 	local originalUsername = Username.Text
 	local function maskOf(text)
 		return string.rep("*", utf8.len(text) or #text)
 	end
-	local masked = SettingsStore.Get("MaskDisplayName") == true
+	local autoMask = SettingsStore.Get("MaskDisplayName") == true
+	-- Session-only fallback used while auto-mask is off; the store only ever
+	-- holds auto-mask, so a fresh UI starts with the names visible when it's off.
+	local manualMask = false
+	local function isMasked()
+		return autoMask or manualMask
+	end
 	local maskFading = false
 
 	local function applyMask(animate)
+		local showMask = isMasked()
 		if animate then
 			maskFading = true
 			Tween.Play(DisplayName, "Fast", { TextTransparency = 1 })
@@ -707,28 +718,32 @@ function Window.new(Settings)
 				if not DisplayName.Parent then
 					return
 				end
-				DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
-				Username.Text = masked and maskOf(originalUsername) or originalUsername
+				DisplayName.Text = showMask and maskOf(originalDisplayName) or originalDisplayName
+				Username.Text = showMask and maskOf(originalUsername) or originalUsername
 				Tween.Play(DisplayName, "Smooth", { TextTransparency = 0.3 })
 				Tween.Play(Username, "Smooth", { TextTransparency = 0.7 })
 				maskFading = false
 			end)
 		else
-			DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
-			Username.Text = masked and maskOf(originalUsername) or originalUsername
+			DisplayName.Text = showMask and maskOf(originalDisplayName) or originalDisplayName
+			Username.Text = showMask and maskOf(originalUsername) or originalUsername
 		end
 	end
+	-- Startup paint: auto-mask on means both lines open already masked.
 	applyMask(false)
 
-	-- Single source of truth for the masked state: writes the setting, syncs the
-	-- UI Settings toggle, and repaints the name lines. Idempotent so a toggle
-	-- callback that routes back here is a no-op, not a loop. Local here (self
-	-- isn't built yet); attached to the window right after setmetatable.
+	-- Single source of truth for auto-mask: writes the setting, syncs the UI
+	-- Settings toggle, drops any leftover manual mask and repaints the name
+	-- lines. Idempotent so a toggle callback that routes back here is a no-op,
+	-- not a loop. Local here (self isn't built yet); attached right after
+	-- setmetatable.
 	local function setMaskEnabled(on, animate)
-		if masked == on then
+		on = on == true
+		if autoMask == on and not manualMask then
 			return
 		end
-		masked = on
+		autoMask = on
+		manualMask = false
 		SettingsStore.Set("MaskDisplayName", on)
 		if self and self._maskToggle and self._maskToggle.GetState and self._maskToggle:GetState() ~= on then
 			-- UpdateState fires the toggle callback, which re-enters here and early-returns.
@@ -737,11 +752,12 @@ function Window.new(Settings)
 		applyMask(animate ~= false)
 	end
 
-	DisplayName.MouseButton1Click:Connect(function()
+	local function onNameClick()
 		if maskFading then
 			return
 		end
-		if masked then
+		if autoMask then
+			-- Auto-mask owns the state, so explain instead of unmasking.
 			self:Toast({
 				Title = "Auto-mask is on",
 				Description = "Your display name is hidden automatically.",
@@ -756,21 +772,13 @@ function Window.new(Settings)
 				},
 			})
 		else
-			self:Toast({
-				Title = "Auto-mask is off",
-				Description = "Turn it on to hide your display name.",
-				Duration = 5,
-				Actions = {
-					{
-						Text = "Turn on",
-						Callback = function()
-							self:SetMaskEnabled(true, true)
-						end,
-					},
-				},
-			})
+			-- Auto-mask off: a plain mask/unmask toggle, no toast.
+			manualMask = not manualMask
+			applyMask(true)
 		end
-	end)
+	end
+	DisplayName.MouseButton1Click:Connect(onNameClick)
+	Username.MouseButton1Click:Connect(onNameClick)
 
 	local TimeLabel = Instance.new("TextLabel")
 	TimeLabel.Name = UUID.Static("TimeLabel")

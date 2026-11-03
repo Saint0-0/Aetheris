@@ -49,7 +49,7 @@ SettingsStore.Defaults = {
 	CompactMode = "auto", -- "auto" (by width) | "always" | "never"
 	PageAnimations = true, -- toggle/slider/stepper focus animations on page switch
 	Font = nil, -- nil = built-in Aetheris font (see Constants.FontChoices)
-	MaskDisplayName = false, -- start new windows with display name / username masked
+	MaskDisplayName = false, -- auto-mask on: display name / username open masked
 	AutoSaveConfigs = false, -- auto-save the active config on component change
 }
 

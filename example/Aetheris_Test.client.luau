@@ -31,7 +31,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local Aetheris = loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau"))()
+local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init)
 local Icons = Aetheris.Icons
 
 -- A missing icon key falls back to the crosshair icon so a typo'd name can't crash the demo.
@@ -687,8 +687,9 @@ mediaSection:Button({
 --     popup recolors live without reopening it.
 --   * Settings > Configs: "Loaded: <name>" updates the moment you press Load,
 --     and loaded values reach your callbacks without switching tabs.
---   * Click the display name in the window header: the auto-mask toast offers
---     a Turn off/on action that masks both name lines immediately.
+--   * Mask Display Name on: both name lines open masked and clicking either
+--     shows the toast with a Turn off action. Off: click either line to
+--     mask/unmask as often as you like, no toast.
 local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
 settingsSection:Paragraph({
 	Title = "Settings",

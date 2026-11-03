@@ -76,9 +76,10 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- Decides the opening state; the row stays clickable to flip it live. The
-	-- callback routes through Window:SetMaskEnabled so the store, the toggle and
-	-- the name lines stay in sync from one place.
+	-- Decides auto-mask: on means the name lines open masked and clicks only
+	-- toast, off means free clicking with no toast. The callback routes through
+	-- Window:SetMaskEnabled so the store, the toggle and the name lines stay
+	-- in sync from one place.
 	local maskToggle = interfaceSection:Toggle({
 		Name = "Mask Display Name",
 		Default = SettingsStore.Get("MaskDisplayName"),
