@@ -31,7 +31,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init)
+local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init) or loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau"))()
 local Icons = Aetheris.Icons
 
 -- A missing icon key falls back to the crosshair icon so a typo'd name can't crash the demo.
