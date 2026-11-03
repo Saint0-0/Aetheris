@@ -18,6 +18,9 @@ PageFade.TIME = 0.2
 -- A preset name (not a TweenInfo) so it routes through Tween.Play's registry.
 PageFade.PRESET = "Fast"
 
+-- Window open/close/minimize uses a slower, more deliberate fade than page swaps.
+PageFade.WINDOW_PRESET = "WindowFade"
+
 function PageFade.Layer(parent, name)
 	local cg = Instance.new("CanvasGroup")
 	cg.Name = name or UUID.Generate("PageFadeLayer")
@@ -68,7 +71,7 @@ local function getDecorations(group)
 	return entry.list
 end
 
-function PageFade.FadeDecorations(group, hidden, instant)
+function PageFade.FadeDecorations(group, hidden, instant, preset)
 	if not group then
 		return
 	end
@@ -95,20 +98,21 @@ function PageFade.FadeDecorations(group, hidden, instant)
 			Tween.CancelProperty(d, "Transparency")
 			d.Transparency = target
 		else
-			Tween.Play(d, PageFade.PRESET, { Transparency = target })
+			Tween.Play(d, preset or PageFade.PRESET, { Transparency = target })
 		end
 	end
 end
 
 -- `instant` snaps; `onComplete` fires only on a normal finish, never on a superseded fade.
-function PageFade.Show(layer, instant, onComplete)
+-- `preset` overrides the fade preset (e.g. the slower WINDOW_PRESET for the shell).
+function PageFade.Show(layer, instant, onComplete, preset)
 	if not layer then
 		if onComplete then
 			onComplete()
 		end
 		return
 	end
-	PageFade.FadeDecorations(layer, false, instant)
+	PageFade.FadeDecorations(layer, false, instant, preset)
 	if instant then
 		Tween.CancelAll(layer)
 		layer.GroupTransparency = 0
@@ -116,7 +120,7 @@ function PageFade.Show(layer, instant, onComplete)
 			onComplete()
 		end
 	else
-		local h = Tween.Play(layer, PageFade.PRESET, { GroupTransparency = 0 })
+		local h = Tween.Play(layer, preset or PageFade.PRESET, { GroupTransparency = 0 })
 		if h and h.Tween and onComplete then
 			h.Tween.Completed:Connect(function(state)
 				if state == Enum.PlaybackState.Completed then
@@ -130,14 +134,14 @@ function PageFade.Show(layer, instant, onComplete)
 end
 
 -- `instant` snaps; `onComplete` fires only on a normal finish.
-function PageFade.Hide(layer, instant, onComplete)
+function PageFade.Hide(layer, instant, onComplete, preset)
 	if not layer then
 		if onComplete then
 			onComplete()
 		end
 		return
 	end
-	PageFade.FadeDecorations(layer, true, instant)
+	PageFade.FadeDecorations(layer, true, instant, preset)
 	if instant then
 		Tween.CancelAll(layer)
 		layer.GroupTransparency = 1
@@ -145,7 +149,7 @@ function PageFade.Hide(layer, instant, onComplete)
 			onComplete()
 		end
 	else
-		local h = Tween.Play(layer, PageFade.PRESET, { GroupTransparency = 1 })
+		local h = Tween.Play(layer, preset or PageFade.PRESET, { GroupTransparency = 1 })
 		if h and h.Tween and onComplete then
 			h.Tween.Completed:Connect(function(state)
 				if state == Enum.PlaybackState.Completed then

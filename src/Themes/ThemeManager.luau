@@ -16,7 +16,7 @@ local UUID = require("../Utils/UUID")
 local ThemeManager = {}
 
 -- Must be a number before ApplyTheme runs: TweenInfo.new errors on a nil time at the first animated binding.
-ThemeManager.ColorFadeTime = 0.7
+ThemeManager.ColorFadeTime = 0.6
 
 -- Independent of the merge base (Base), which only fills in the keys a theme omits.
 ThemeManager.DefaultTheme = "Umbral"
@@ -164,12 +164,24 @@ local function compactBindings()
 	end
 end
 
+-- TweenInfo is immutable; reuse one per duration instead of allocating a fresh
+-- object for every animated binding on each theme switch.
+local tweenInfoCache = {}
+local function TweenInfoCache(duration)
+	local info = tweenInfoCache[duration]
+	if not info then
+		info = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		tweenInfoCache[duration] = info
+	end
+	return info
+end
+
 local function applyEntry(entry, theme, animate)
 	local inst = entry.instance
 	if not inst or entry.dropped or entry.disabled then
 		return
 	end
-	if inst:GetAttribute(UUID.Static("ThemeOverride_" .. entry.property)) ~= nil then
+	if inst:GetAttribute(entry.overrideAttr) ~= nil then
 		return
 	end
 	-- A literal is a state-map entry of the form { value = <any> }; it stays constant across theme switches.
@@ -187,21 +199,14 @@ local function applyEntry(entry, theme, animate)
 	end
 	-- PageFade's decoration pass reads this authoritative resting value instead of guessing from a mid-tween property.
 	if entry.opts.live or entry.kind == "color" or entry.kind == "number" then
-		inst:SetAttribute(UUID.Static("ThemeLive_" .. entry.property), value)
+		inst:SetAttribute(entry.liveAttr, value)
 	end
 	local current = inst[entry.property]
 	if current == value then
 		return
 	end
 	if animate and not entry.opts.instant and (entry.kind == "color" or entry.kind == "number") then
-		-- Capture-then-restore so the crossfade starts from the current look; the central Tween registry then owns the tween.
-		inst[entry.property] = value
-		inst[entry.property] = current
-		local info = TweenInfo.new(
-			entry.opts.duration or ThemeManager.ColorFadeTime,
-			Enum.EasingStyle.Quad,
-			Enum.EasingDirection.Out
-		)
+		local info = entry.tweenInfo or TweenInfoCache(entry.opts.duration or ThemeManager.ColorFadeTime)
 		Tween.Play(inst, info, { [entry.property] = value })
 	else
 		inst[entry.property] = value
@@ -334,6 +339,14 @@ local function bind(instance, property, themeKey, kind, opts)
 		stateName = initialStateName,
 		kind = kind,
 		opts = opts,
+		-- Precomputed attribute names + a shared TweenInfo: applyEntry runs once
+		-- per binding on every theme switch, so avoid per-call string concat and
+		-- TweenInfo allocation (the main source of theme-switch hitching).
+		overrideAttr = UUID.Static("ThemeOverride_" .. property),
+		liveAttr = UUID.Static("ThemeLive_" .. property),
+		tweenInfo = (kind == "color" or kind == "number") and TweenInfoCache(
+			opts.duration or ThemeManager.ColorFadeTime
+		) or nil,
 	}
 	byProp[property] = entry
 	bindings[#bindings + 1] = entry
@@ -418,6 +431,13 @@ function ThemeManager.OnThemeApplied(fn, ownerInstance)
 end
 
 local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
+-- Precomputed override attribute names for the re-stamp loop, so it doesn't
+-- concat + hash a key per descendant per property on every theme switch.
+local COLOR_PROP_ATTRS = {}
+for _, p in ipairs(COLOR_PROPS) do
+	COLOR_PROP_ATTRS[p] = UUID.Static("ThemeOverride_" .. p)
+end
+local STROKE_OVERRIDE_ATTR = UUID.Static("ThemeOverride_Color")
 
 -- Only named (string/nil) results are memoized; custom tables are caller-owned and merged fresh each time.
 local themeMemo = {}
@@ -478,6 +498,24 @@ function ThemeManager.SyncTheme(target, theme)
 	end
 end
 
+-- Elements under a hidden ancestor (an inactive tab's FadeLayer, a minimized
+-- window) can't be seen, so their values snap on a theme switch instead of
+-- spawning tweens nobody watches. Visible elements still crossfade.
+local function isHidden(inst)
+	local node = inst
+	while node and node ~= game do
+		if node:IsA("CanvasGroup") then
+			if (node.GroupTransparency or 0) >= 1 then
+				return true
+			end
+		elseif node:IsA("GuiObject") and not node.Visible then
+			return true
+		end
+		node = node.Parent
+	end
+	return false
+end
+
 function ThemeManager.ApplyTheme(window, themeInput)
 	local theme = ThemeManager.GetTheme(themeInput)
 
@@ -487,7 +525,6 @@ function ThemeManager.ApplyTheme(window, themeInput)
 
 	-- Cancel in-flight tweens first, or one started by the old theme can finish after this pass and overwrite the new values.
 	Tween.CancelAllUnder(window.Base)
-	local descendants = window.Base:GetDescendants()
 
 	-- Window shell colors are declarative bindings created in Window.new; the bindings pass below re-resolves them.
 	window._theme = theme
@@ -514,9 +551,10 @@ function ThemeManager.ApplyTheme(window, themeInput)
 
 	-- Re-stamp overrides after every pass so component theme colors can't clobber a pinned custom color.
 	if overrideCount > 0 then
+		local descendants = window.Base:GetDescendants()
 		for _, d in ipairs(descendants) do
 			for _, p in ipairs(COLOR_PROPS) do
-				local v = d:GetAttribute(UUID.Static("ThemeOverride_" .. p))
+				local v = d:GetAttribute(COLOR_PROP_ATTRS[p])
 				if typeof(v) == "Color3" then
 					pcall(function()
 						d[p] = v
@@ -524,7 +562,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 				end
 			end
 			if d:IsA("UIStroke") then
-				local sv = d:GetAttribute(UUID.Static("ThemeOverride_Color"))
+				local sv = d:GetAttribute(STROKE_OVERRIDE_ATTR)
 				if typeof(sv) == "Color3" then
 					pcall(function()
 						d.Color = sv
@@ -540,8 +578,9 @@ function ThemeManager.ApplyTheme(window, themeInput)
 	local scopeRoot = window.Base
 	for _, entry in ipairs(bindings) do
 		local inst = entry.instance
-		if inst and (inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
-			applyEntry(entry, theme, true)
+		if inst and (entry.scopeRoot == scopeRoot or inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
+			entry.scopeRoot = scopeRoot
+			applyEntry(entry, theme, not isHidden(inst))
 		end
 	end
 

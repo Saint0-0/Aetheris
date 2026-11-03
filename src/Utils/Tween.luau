@@ -31,11 +31,13 @@ TweenUtil.Presets = {
 	Hover = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	OnOff = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
 	PageSwap = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-	FadeOut = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+	FadeOut = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 	Minimize = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	MinimizeSnappy = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	WindowToggle = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-	WindowToggleSnappy = TweenInfo.new(0.12, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	WindowToggle = TweenInfo.new(0.38, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	WindowToggleSnappy = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- Window open/close/minimize fade: smoother pacing so the shell doesn't feel rushed.
+	WindowFade = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 }
 
 -- Weak keys: a destroyed instance's tween bookkeeping must not keep it alive.
@@ -170,12 +172,11 @@ function TweenUtil.CancelProperty(instance, propertyName)
 	end
 end
 
--- Cancel every tween under root by scanning the registry, not the GUI tree.
+-- Cancel every tween under root by scanning the registry, preserving infinite spins.
 function TweenUtil.CancelAllUnder(root)
 	if not root then
 		return
 	end
-	-- Snapshot first; CancelAll mutates the registry.
 	local snapshot = {}
 	for instance in pairs(activeTweens) do
 		if instance == root or instance:IsDescendantOf(root) then
@@ -183,7 +184,18 @@ function TweenUtil.CancelAllUnder(root)
 		end
 	end
 	for _, instance in ipairs(snapshot) do
-		TweenUtil.CancelAll(instance)
+		local bucket = activeTweens[instance]
+		if bucket then
+			for key, handle in pairs(bucket) do
+				if not handle.isSpin then
+					handle.Tween:Cancel()
+					bucket[key] = nil
+				end
+			end
+			if next(bucket) == nil then
+				activeTweens[instance] = nil
+			end
+		end
 	end
 end
 
@@ -228,6 +240,9 @@ local function launchSpinSegment(instance, data)
 		end)
 	end
 	local handle = TweenUtil.Play(instance, data.preset or "SpinIdle", data.properties)
+	if handle then
+		handle.isSpin = true
+	end
 	data.handle = handle
 end
 

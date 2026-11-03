@@ -508,9 +508,13 @@ function Themes.Build(window, tab)
 		if tab._activeThemeName == newName then
 			return
 		end
+		local oldName = tab._activeThemeName
 		tab._activeThemeName = newName
-		for name, state in pairs(tab._themeCards) do
-			state.setActive(name == newName)
+		if oldName and tab._themeCards[oldName] then
+			tab._themeCards[oldName].setActive(false)
+		end
+		if tab._themeCards[newName] then
+			tab._themeCards[newName].setActive(true)
 		end
 		currentText.Text = "<b>Current theme:</b> " .. newName
 		window:SetTheme(newName)
