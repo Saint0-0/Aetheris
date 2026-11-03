@@ -687,34 +687,89 @@ function Window.new(Settings)
 	DisplayName.Text = player and player.DisplayName or "Guest"
 	DisplayName.Parent = NameContainer
 
-	-- Clicking the display name swaps both lines to asterisks behind a quick fade; Mask Display Name picks the opening state.
+	-- Mask Display Name drives both lines; the toggle sets the opening state and
+	-- can flip it live. Clicking the name no longer toggles it directly — it
+	-- shows a toast with a quick action to turn auto-mask off/on instead.
 	local originalDisplayName = DisplayName.Text
 	local originalUsername = Username.Text
 	local function maskOf(text)
 		return string.rep("*", utf8.len(text) or #text)
 	end
 	local masked = SettingsStore.Get("MaskDisplayName") == true
-	DisplayName.Text = if masked then maskOf(originalDisplayName) else originalDisplayName
-	Username.Text = if masked then maskOf(originalUsername) else originalUsername
 	local maskFading = false
+
+	local function applyMask(animate)
+		if animate then
+			maskFading = true
+			Tween.Play(DisplayName, "Fast", { TextTransparency = 1 })
+			Tween.Play(Username, "Fast", { TextTransparency = 1 })
+			task.delay(0.2, function()
+				if not DisplayName.Parent then
+					return
+				end
+				DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
+				Username.Text = masked and maskOf(originalUsername) or originalUsername
+				Tween.Play(DisplayName, "Smooth", { TextTransparency = 0.3 })
+				Tween.Play(Username, "Smooth", { TextTransparency = 0.7 })
+				maskFading = false
+			end)
+		else
+			DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
+			Username.Text = masked and maskOf(originalUsername) or originalUsername
+		end
+	end
+	applyMask(false)
+
+	-- Single source of truth for the masked state: writes the setting, syncs the
+	-- UI Settings toggle, and repaints the name lines. Idempotent so a toggle
+	-- callback that routes back here is a no-op, not a loop. Local here (self
+	-- isn't built yet); attached to the window right after setmetatable.
+	local function setMaskEnabled(on, animate)
+		if masked == on then
+			return
+		end
+		masked = on
+		SettingsStore.Set("MaskDisplayName", on)
+		if self and self._maskToggle and self._maskToggle.GetState and self._maskToggle:GetState() ~= on then
+			-- UpdateState fires the toggle callback, which re-enters here and early-returns.
+			self._maskToggle:UpdateState(on)
+		end
+		applyMask(animate ~= false)
+	end
+
 	DisplayName.MouseButton1Click:Connect(function()
 		if maskFading then
 			return
 		end
-		maskFading = true
-		masked = not masked
-		Tween.Play(DisplayName, "Fast", { TextTransparency = 1 })
-		Tween.Play(Username, "Fast", { TextTransparency = 1 })
-		task.delay(0.2, function()
-			if not DisplayName.Parent then
-				return
-			end
-			DisplayName.Text = masked and maskOf(originalDisplayName) or originalDisplayName
-			Username.Text = masked and maskOf(originalUsername) or originalUsername
-			Tween.Play(DisplayName, "Smooth", { TextTransparency = 0.3 })
-			Tween.Play(Username, "Smooth", { TextTransparency = 0.7 })
-			maskFading = false
-		end)
+		if masked then
+			self:Toast({
+				Title = "Auto-mask is on",
+				Description = "Your display name is hidden automatically.",
+				Duration = 5,
+				Actions = {
+					{
+						Text = "Turn off",
+						Callback = function()
+							self:SetMaskEnabled(false, true)
+						end,
+					},
+				},
+			})
+		else
+			self:Toast({
+				Title = "Auto-mask is off",
+				Description = "Turn it on to hide your display name.",
+				Duration = 5,
+				Actions = {
+					{
+						Text = "Turn on",
+						Callback = function()
+							self:SetMaskEnabled(true, true)
+						end,
+					},
+				},
+			})
+		end
 	end)
 
 	local TimeLabel = Instance.new("TextLabel")
@@ -993,6 +1048,7 @@ function Window.new(Settings)
 	self.DragStyle = dragStyle
 	self.MainFrameShadow = MainFrameShadow
 	self.Aurora = aurora
+	self.SetMaskEnabled = setMaskEnabled
 
 	-- Stored before settings pages/scripts build so they don't fall back to Default.
 	self._theme = theme
@@ -1800,7 +1856,7 @@ function Window.new(Settings)
 			applyPillShadow()
 			applyPillStroke()
 			minimizeState = "hidden"
-		end)
+		end, PageFade.WINDOW_PRESET)
 	end
 
 	restoreWindow = function()
@@ -1817,7 +1873,7 @@ function Window.new(Settings)
 		PageFade.Show(MainFrame, false, function()
 			self._windowFaded = false
 			minimizeState = "shown"
-		end)
+		end, PageFade.WINDOW_PRESET)
 		-- Fade the pill out in parallel with the window fading in, then hide it.
 		pillHovered = false
 		applyPillShadow()
@@ -2029,7 +2085,7 @@ function Window.new(Settings)
 	-- Fade the whole window in from hidden: snap the single GroupTransparency to fully transparent, then tween it back to 0.
 	Sound.Play("UIStart")
 	PageFade.Snap(MainFrame, 1)
-	PageFade.Show(MainFrame, false)
+	PageFade.Show(MainFrame, false, nil, PageFade.WINDOW_PRESET)
 
 	-- The page the sidebar search should filter: the active settings page while settings are shown, else the active tab's content.
 	self.GetActivePage = function(me)
@@ -2113,6 +2169,47 @@ function Window.new(Settings)
 		if tooltip and tooltip.SetTheme then
 			tooltip:SetTheme(t)
 		end
+
+		-- Recolor cached popups live: they live outside the window tree, so ApplyTheme doesn't reach them.
+		local function refreshPopups(popups)
+			if not popups then
+				return
+			end
+			for id, popup in pairs(popups) do
+				if popup.ApplyTheme then
+					popup:ApplyTheme(t)
+				elseif popup.Destroy then
+					popup:Destroy()
+					popups[id] = nil
+				end
+			end
+		end
+		refreshPopups(me._dropdownPopups)
+		refreshPopups(me._colorPickerPopups)
+
+		-- Recolor the cached dialog in place (same ApplyTheme path); drop it if it ever lacks ApplyTheme.
+		if me._notification then
+			if me._notification.ApplyTheme then
+				me._notification:ApplyTheme(t)
+			else
+				me._notification:Destroy()
+				me._notification = nil
+			end
+		end
+
+		-- Live-recolor toasts still on screen (they sit outside the window tree); prune ones whose Root is gone.
+		if me._toasts then
+			for i = #me._toasts, 1, -1 do
+				local toast = me._toasts[i]
+				if toast and toast.Root then
+					if toast.ApplyTheme then
+						toast:ApplyTheme(t)
+					end
+				else
+					table.remove(me._toasts, i)
+				end
+			end
+		end
 	end
 
 	-- Run the shell's own theme pass now that it exists (the earlier ApplyTheme call skipped it).
@@ -2132,49 +2229,8 @@ function Window:SetTheme(themeInput)
 		-- Persist named themes so the choice survives sessions; a custom table is session-only.
 		SettingsStore.Set("Theme", themeInput)
 	end
-	-- ThemeManager.ApplyTheme crossfades colors old -> new.
+	-- ThemeManager.UpdateTheme crossfades colors old -> new, invoking Window:ApplyTheme.
 	ThemeManager.UpdateTheme(self, themeInput)
-
-	-- Recolor cached popups live: they live outside the window tree, so ApplyTheme doesn't reach them. One without ApplyTheme is dropped so its create-on-open path rebuilds it.
-	local function refreshPopups(popups)
-		if not popups then
-			return
-		end
-		for id, popup in pairs(popups) do
-			if popup.ApplyTheme then
-				popup:ApplyTheme(self._theme)
-			elseif popup.Destroy then
-				popup:Destroy()
-				popups[id] = nil
-			end
-		end
-	end
-	refreshPopups(self._dropdownPopups)
-	refreshPopups(self._colorPickerPopups)
-
-	-- Recolor the cached dialog in place (same ApplyTheme path); drop it if it ever lacks ApplyTheme.
-	if self._notification then
-		if self._notification.ApplyTheme then
-			self._notification:ApplyTheme(self._theme)
-		else
-			self._notification:Destroy()
-			self._notification = nil
-		end
-	end
-
-	-- Live-recolor toasts still on screen (they sit outside the window tree); prune ones whose Root is gone.
-	if self._toasts then
-		for i = #self._toasts, 1, -1 do
-			local toast = self._toasts[i]
-			if toast and toast.Root then
-				if toast.ApplyTheme then
-					toast:ApplyTheme(self._theme)
-				end
-			else
-				table.remove(self._toasts, i)
-			end
-		end
-	end
 end
 
 -- Swap the UI font family live: re-Font.new's every FontFace matching the current family, then persists the choice (nil = built-in).
@@ -2216,7 +2272,7 @@ function Window:Destroy()
 		return
 	end
 
-	local closePreset = self.AnimationStyle == "Snappy" and "FadeOut" or "Smooth"
+	local closePreset = self.AnimationStyle == "Snappy" and "FadeOut" or "WindowFade"
 
 	-- UIClose is the real close sound ("WindowClose" was never in Sound.Assets).
 	Sound.Play("UIClose")

@@ -11,6 +11,7 @@
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
+local ActiveTheme = require("../Themes/ActiveTheme")
 local SearchFilter = require("../Core/SearchFilter")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
@@ -497,7 +498,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				Tween.Play(itemObj.nameLabel, "Fast", { TextTransparency = 0 })
 			end
 			if itemObj.icon then
-				itemObj.icon.ImageColor3 = (theme and theme.ActiveTabIconColor) or itemObj.icon.ImageColor3
+				-- me._theme is updated live by ApplyTheme; the closure `theme` goes stale on a theme switch.
+				local live = me._theme or theme
+				itemObj.icon.ImageColor3 = (live and live.ActiveTabIconColor) or itemObj.icon.ImageColor3
 				Tween.Play(itemObj.icon, "Fast", { ImageTransparency = 0 })
 			end
 			if itemObj.stroke then
@@ -522,7 +525,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				Tween.Play(itemObj.nameLabel, "Fast", { TextTransparency = 0.6 })
 			end
 			if itemObj.icon then
-				itemObj.icon.ImageColor3 = (theme and theme.InactiveTabIconColor) or itemObj.icon.ImageColor3
+				local live = me._theme or theme
+				itemObj.icon.ImageColor3 = (live and live.InactiveTabIconColor) or itemObj.icon.ImageColor3
 				Tween.Play(itemObj.icon, "Fast", { ImageTransparency = 0.9 })
 			end
 			if itemObj.stroke then
@@ -653,6 +657,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 		self._itemObjects = {}
 		self._selectedValues = {}
+		local liveTheme = self._theme or ActiveTheme.theme or theme
 		for _, itemData in ipairs(self.Items) do
 			local name = itemData.name or "Item"
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
@@ -663,7 +668,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			button.TextTransparency = 1
 			button.AutoButtonColor = false
 			-- Theme-driven background; starts transparent, selected items get a subtle fill in _setItemSelected.
-			button.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(255, 255, 255)
+			button.BackgroundColor3 = (liveTheme and liveTheme.AccentColor) or Color3.fromRGB(255, 255, 255)
 			button.BackgroundTransparency = 1
 			button.Size = UDim2.new(1, 0, 0, 40)
 			button.Parent = self.List
@@ -674,7 +679,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local selectionStatus = Instance.new("Frame")
 			selectionStatus.Name = UUID.Static("SelectionStatus")
 			selectionStatus.BorderSizePixel = 0
-			selectionStatus.BackgroundColor3 = (theme and theme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
+			selectionStatus.BackgroundColor3 = (liveTheme and liveTheme.SecondaryColor) or Color3.fromRGB(255, 255, 255)
 			selectionStatus.BackgroundTransparency = 1
 			selectionStatus.AnchorPoint = Vector2.new(0, 0.5)
 			selectionStatus.Size = UDim2.fromOffset(2, 0)
@@ -687,7 +692,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemImage.AnchorPoint = Vector2.new(0.5, 0.5)
 			itemImage.Image = icon
 			-- Icons use the sidebar tab icon theme keys for selected/deselected.
-			itemImage.ImageColor3 = (theme and theme.InactiveTabIconColor) or Color3.fromRGB(255, 255, 255)
+			itemImage.ImageColor3 = (liveTheme and liveTheme.InactiveTabIconColor) or Color3.fromRGB(255, 255, 255)
 			itemImage.Size = UDim2.fromOffset(18, 18)
 			itemImage.BackgroundTransparency = 1
 			itemImage.Position = UDim2.new(0, 20, 0.5, 0)
@@ -704,7 +709,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemName.TextTransparency = 0.6
 			itemName.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			itemName.FontFace = Constants.Font(Enum.FontWeight.Medium)
-			itemName.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
+			itemName.TextColor3 = (liveTheme and liveTheme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 			itemName.BackgroundTransparency = 1
 			itemName.AnchorPoint = Vector2.new(0, 0.5)
 			itemName.Size = UDim2.fromScale(0.48591, 0.71359)
@@ -715,11 +720,11 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			local stroke = Instance.new("UIStroke")
 			stroke.Transparency = 0.95
 			stroke.Thickness = 0.7
-			stroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
+			stroke.Color = (liveTheme and liveTheme.StrokeColor) or Color3.fromRGB(255, 255, 255)
 			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			stroke.Parent = button
 			local itemShadow = Instance.new("UIShadow")
-			itemShadow.Color = (theme and theme.ComponentShadowColor) or Color3.fromRGB(0, 0, 0)
+			itemShadow.Color = (liveTheme and liveTheme.ComponentShadowColor) or Color3.fromRGB(0, 0, 0)
 			itemShadow.Transparency = 1
 			itemShadow.BlurRadius = UDim.new(0, 20)
 			itemShadow.Parent = button

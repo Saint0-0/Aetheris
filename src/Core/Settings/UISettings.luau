@@ -76,14 +76,21 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- decides the initial state only; the row stays clickable to toggle live
-	interfaceSection:Toggle({
+	-- Decides the opening state; the row stays clickable to flip it live. The
+	-- callback routes through Window:SetMaskEnabled so the store, the toggle and
+	-- the name lines stay in sync from one place.
+	local maskToggle = interfaceSection:Toggle({
 		Name = "Mask Display Name",
 		Default = SettingsStore.Get("MaskDisplayName"),
 		Callback = function(state)
-			SettingsStore.Set("MaskDisplayName", state)
+			if window.SetMaskEnabled then
+				window:SetMaskEnabled(state, true)
+			else
+				SettingsStore.Set("MaskDisplayName", state)
+			end
 		end,
 	})
+	window._maskToggle = maskToggle
 
 	local compactSection = tab:Section({ Name = "Compact Mode" })
 	local currentCompact = SettingsStore.Get("CompactMode") or "auto"

@@ -10,6 +10,7 @@
 
 local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
+local ActiveTheme = require("../Themes/ActiveTheme")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
 local UUID = require("../Utils/UUID")
@@ -91,7 +92,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			Items = items,
 			Default = defaultValues,
 			MaxItemsChoosable = maxItems,
-			Theme = self._theme,
+			Theme = ActiveTheme.theme or self._theme,
 			OnConfirm = function(selected)
 				selectedItems = selected
 				if callback then
@@ -110,50 +111,6 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	interact.MouseButton1Click:Connect(function()
 		openPopup()
 	end)
-	self.SetItems = function(_, newItems)
-		items = newItems
-		selectedItems = {}
-	end
-	self.GetSelected = function()
-		return selectedItems
-	end
-	-- Replace the item list. Selections whose values vanish are dropped when
-	-- keepSelection is set; otherwise the selection clears (same as SetItems).
-	self.SetValues = function(_, newItems, keepSelection)
-		items = type(newItems) == "table" and newItems or {}
-		if not keepSelection then
-			selectedItems = {}
-			return
-		end
-		local valid = {}
-		for _, sel in ipairs(selectedItems) do
-			for _, item in ipairs(items) do
-				if item.value == sel.value then
-					table.insert(valid, { name = item.name, value = item.value })
-					break
-				end
-			end
-		end
-		selectedItems = valid
-	end
-	-- Set the selection by value (single value or array of values). Silent
-	-- skips the callback - used by config load, where the value comes from disk.
-	self.SetValue = function(_, value, silent)
-		local wanted = type(value) == "table" and value or { value }
-		selectedItems = {}
-		for _, item in ipairs(items) do
-			for _, w in ipairs(wanted) do
-				if item.value == w then
-					table.insert(selectedItems, { name = item.name, value = item.value })
-					break
-				end
-			end
-		end
-		if not silent and callback then
-			callback(selectedItems)
-		end
-	end
-	self.OpenPopup = openPopup
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	-- the row's stroke is created and bound by ComponentRow (Stroke = true)
@@ -176,7 +133,49 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			row:Destroy()
 		end
 	end
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			GetSelected = function()
+				return selectedItems
+			end,
+			SetValues = function(_, newItems, keepSelection)
+				items = type(newItems) == "table" and newItems or {}
+				if not keepSelection then
+					selectedItems = {}
+					return
+				end
+				local valid = {}
+				for _, sel in ipairs(selectedItems) do
+					for _, item in ipairs(items) do
+						if item.value == sel.value then
+							table.insert(valid, { name = item.name, value = item.value })
+							break
+						end
+					end
+				end
+				selectedItems = valid
+			end,
+			SetValue = function(_, value, silent)
+				local wanted = type(value) == "table" and value or { value }
+				selectedItems = {}
+				for _, item in ipairs(items) do
+					for _, w in ipairs(wanted) do
+						if item.value == w then
+							table.insert(selectedItems, { name = item.name, value = item.value })
+							break
+						end
+					end
+				end
+				if not silent and callback then
+					callback(selectedItems)
+				end
+			end,
+			OpenPopup = openPopup,
+		},
+	})
 	return self
 end
 return Dropdown
