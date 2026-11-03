@@ -63,7 +63,7 @@ local Parsers = {
 		end,
 		Load = function(comp, value)
 			if type(value) == "string" then
-				comp:SetText(value, true) -- silent: no focus flash on load
+				comp:SetText(value)
 			end
 		end,
 	},
@@ -77,7 +77,7 @@ local Parsers = {
 		end,
 		Load = function(comp, value)
 			if type(value) == "table" then
-				comp:SetValue(value, true) -- silent: no callback on load
+				comp:SetValue(value)
 			end
 		end,
 	},
@@ -87,7 +87,7 @@ local Parsers = {
 		end,
 		Load = function(comp, value)
 			if value ~= nil then
-				comp:SetValue(value, true) -- noCallback
+				comp:SetValue(value)
 			end
 		end,
 	},
@@ -105,7 +105,7 @@ local Parsers = {
 		end,
 		Load = function(comp, value)
 			if type(value) == "table" and #value == 3 then
-				comp:SetColor(Color3.fromRGB(value[1] or 0, value[2] or 0, value[3] or 0), true)
+				comp:SetColor(Color3.fromRGB(value[1] or 0, value[2] or 0, value[3] or 0))
 			end
 		end,
 	},
@@ -276,13 +276,18 @@ function ConfigManager:Load(name)
 	if not okDecode or type(data) ~= "table" then
 		return false, "decode failed"
 	end
+	-- Callbacks fire while _loading is set so user scripts receive the loaded
+	-- values immediately; the guard keeps those callbacks from triggering an
+	-- auto-save of the config we're in the middle of loading.
+	self._loading = true
+	self.Active = name
 	for _, entry in ipairs(self._entries) do
 		local value = data[entry.key]
 		if value ~= nil then
 			pcall(entry.parser.Load, entry.comp, value)
 		end
 	end
-	self.Active = name
+	self._loading = false
 	return true
 end
 
@@ -320,7 +325,7 @@ end
 -- Debounced auto-save: writes land ~0.5s after the last change, only on the
 -- active config.
 function ConfigManager:NotifyChanged()
-	if not self._autoSave or not self.Active then
+	if self._loading or not self._autoSave or not self.Active then
 		return
 	end
 	if self._pendingSave then

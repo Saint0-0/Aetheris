@@ -70,6 +70,7 @@ function Configs.Build(window, tab)
 			local ok, err = manager:Load(selectedName)
 			if ok then
 				window:Toast({ Title = "Config loaded", Description = selectedName, Duration = 3 })
+				refreshAll()
 			else
 				window:Error({ Title = "Load failed", Description = err or "Unknown error", Duration = 4 })
 			end
@@ -93,6 +94,11 @@ function Configs.Build(window, tab)
 				window:Error({ Title = "Delete failed", Description = err or "Unknown error", Duration = 4 })
 			end
 		end,
+	})
+	-- Shows which config is currently loaded; refreshed on load/save/delete.
+	local currentLabel = loadSection:Label({
+		Text = "No config loaded",
+		NoSave = true,
 	})
 
 	local optionsSection = tab:Section({ Name = "Options" })
@@ -141,6 +147,10 @@ function Configs.Build(window, tab)
 			end
 		end
 		refreshPreview(selectedName)
+		if currentLabel then
+			local active = manager.Active
+			currentLabel:SetName(active and ("Loaded: " .. active) or "No config loaded")
+		end
 	end
 
 	-- deferred so it runs after Window.new's current thread
