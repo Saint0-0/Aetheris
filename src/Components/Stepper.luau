@@ -118,21 +118,6 @@ function Stepper.new(parent, Settings, theme)
 		local displayValue = isInteger and math.round(value) or value
 		readout:SetValue(tostring(displayValue), up)
 	end
-	self.SetValue = function(me, value, noCallback)
-		local oldValue = me._currentValue
-		local clamped = math.clamp(value, me.Min, me.Max)
-		if me.IsInteger then
-			clamped = math.round(clamped)
-		end
-		if clamped == oldValue then
-			return
-		end
-		me._currentValue = clamped
-		updateDisplay(clamped, clamped > oldValue)
-		if not noCallback then
-			me.Callback(clamped)
-		end
-	end
 	local function stepValue(delta)
 		local newValue = self._currentValue + delta * self.Step
 		self:SetValue(newValue, false)
@@ -149,21 +134,54 @@ function Stepper.new(parent, Settings, theme)
 	end
 	updateDisplay(self._currentValue)
 
-	self.GetValue = function(me)
-		return me._currentValue
-	end
-	self.SetMin = function(me, newMin)
-		me.Min = newMin
-		me:SetValue(me._currentValue, true)
-	end
-	self.SetMax = function(me, newMax)
-		me.Max = newMax
-		me:SetValue(me._currentValue, true)
-	end
-	self.SetStep = function(me, newStep)
-		me.Step = newStep
-	end
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			SetValue = function(me, value, noCallback)
+				local oldValue = me._currentValue
+				local clamped = math.clamp(value, me.Min, me.Max)
+				if me.IsInteger then
+					clamped = math.round(clamped)
+				end
+				if clamped == oldValue then
+					return
+				end
+				me._currentValue = clamped
+				updateDisplay(clamped, clamped > oldValue)
+				if not noCallback then
+					me.Callback(clamped)
+				end
+			end,
+			GetValue = function(me)
+				return me._currentValue
+			end,
+			SetMin = function(me, newMin)
+				me.Min = newMin
+				me:SetValue(me._currentValue, true)
+			end,
+			SetMax = function(me, newMax)
+				me.Max = newMax
+				me:SetValue(me._currentValue, true)
+			end,
+			SetStep = function(me, newStep)
+				me.Step = newStep
+			end,
+			Destroy = function(me)
+				Tween.CancelAll(stepUp)
+				Tween.CancelAll(stepDown)
+				readout:Destroy()
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(stepUp)
+				ThemeManager.UnbindInstance(stepDown)
+				ThemeManager.UnbindInstance(controls)
+				if me.Row and me.Row.Parent then
+					me.Row:Destroy()
+				end
+			end,
+		},
+	})
 	-- the chip runs its own theme pass (accent card, state alphas, colours)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
@@ -191,18 +209,6 @@ function Stepper.new(parent, Settings, theme)
 		end,
 	})
 
-	self.Destroy = function(me)
-		Tween.CancelAll(stepUp)
-		Tween.CancelAll(stepDown)
-		readout:Destroy()
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(stepUp)
-		ThemeManager.UnbindInstance(stepDown)
-		ThemeManager.UnbindInstance(controls)
-		if me.Row and me.Row.Parent then
-			me.Row:Destroy()
-		end
-	end
 	return self
 end
 return Stepper

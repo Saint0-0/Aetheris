@@ -258,33 +258,6 @@ function Viewport.new(parent, Settings, theme)
 		end)
 	end
 
-	self.SetPlayer = function(_, player)
-		bindPlayer(player or Players.LocalPlayer)
-	end
-	self.SetRotate = function(_, enabled)
-		rotating = enabled == true
-		if rotating and not renderConn then
-			renderConn = RunService.RenderStepped:Connect(function(deltaTime)
-				if not self._pageActive then
-					return
-				end
-				if not frame.Visible then
-					return
-				end
-				yaw += deltaTime * ORBIT_SPEED
-				applyCamera()
-			end)
-		elseif not rotating and renderConn then
-			renderConn:Disconnect()
-			renderConn = nil
-		end
-	end
-	self.SetFraming = function(_, mode)
-		if FRAMING[mode] then
-			framing = mode
-			applyCamera()
-		end
-	end
 	-- pause the orbit while the page is off screen (always on, no Gate: it
 	-- saves per-frame camera math on a hidden view)
 	PageAwareness.Register(frame, {
@@ -298,21 +271,6 @@ function Viewport.new(parent, Settings, theme)
 	if not PageAwareness.IsActive(frame) then
 		self._pageActive = false
 	end
-	-- the orbit and respawn connections outlive the instance tree unless
-	-- disconnected here
-	self.Destroy = function(_self)
-		if renderConn then
-			renderConn:Disconnect()
-			renderConn = nil
-		end
-		if charAddedConn then
-			charAddedConn:Disconnect()
-			charAddedConn = nil
-		end
-		if frame and frame.Parent then
-			frame:Destroy()
-		end
-	end
 
 	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
@@ -325,7 +283,54 @@ function Viewport.new(parent, Settings, theme)
 		ThemeManager.BindTransparency(value, "TextTransparency", "PrimaryTextTransparency")
 	end
 
-	ComponentAPI.Apply(self, { Root = frame, Name = Settings.Name })
+	ComponentAPI.Apply(self, {
+		Root = frame,
+		Name = Settings.Name,
+		Methods = {
+			SetPlayer = function(_, player)
+				bindPlayer(player or Players.LocalPlayer)
+			end,
+			SetRotate = function(_, enabled)
+				rotating = enabled == true
+				if rotating and not renderConn then
+					renderConn = RunService.RenderStepped:Connect(function(deltaTime)
+						if not self._pageActive then
+							return
+						end
+						if not frame.Visible then
+							return
+						end
+						yaw += deltaTime * ORBIT_SPEED
+						applyCamera()
+					end)
+				elseif not rotating and renderConn then
+					renderConn:Disconnect()
+					renderConn = nil
+				end
+			end,
+			SetFraming = function(_, mode)
+				if FRAMING[mode] then
+					framing = mode
+					applyCamera()
+				end
+			end,
+			Destroy = function(_self)
+				-- the orbit and respawn connections outlive the instance tree
+				-- unless disconnected here
+				if renderConn then
+					renderConn:Disconnect()
+					renderConn = nil
+				end
+				if charAddedConn then
+					charAddedConn:Disconnect()
+					charAddedConn = nil
+				end
+				if frame and frame.Parent then
+					frame:Destroy()
+				end
+			end,
+		},
+	})
 	bindPlayer(Settings.Player or Players.LocalPlayer)
 	return self
 end

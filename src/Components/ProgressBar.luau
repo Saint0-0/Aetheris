@@ -139,23 +139,6 @@ function ProgressBar.new(parent, Settings, theme)
 			stats.Text = ""
 		end
 	end
-	self.SetValue = function(me, value, noAnimate)
-		value = math.clamp(value, me.MinValue, me.MaxValue)
-		me._currentValue = value
-		local percentage = (value - me.MinValue) / (me.MaxValue - me.MinValue)
-		local targetSize = UDim2.fromScale(percentage, 1)
-		local animateProgress = (noAnimate == nil) and me.Animate or not noAnimate
-		if animateProgress then
-			Tween.Play(me.Visual, "Smooth", { Size = targetSize })
-		else
-			me.Visual.Size = targetSize
-		end
-		updateStats(value)
-		if Settings.Callback then
-			Settings.Callback(value)
-		end
-	end
-	self:SetValue(currentValue, true)
 
 	local function startSpin()
 		self.Gradient.Rotation = 0
@@ -168,28 +151,6 @@ function ProgressBar.new(parent, Settings, theme)
 	if spinEnabled then
 		startSpin()
 	end
-	self.GetValue = function()
-		return self._currentValue
-	end
-	self.SetMin = function(_, newMin)
-		self.MinValue = newMin
-		self:SetValue(self._currentValue, true)
-	end
-	self.SetMax = function(_, newMax)
-		self.MaxValue = newMax
-		self:SetValue(self._currentValue, true)
-	end
-	self.SetColor = function(_, newColor)
-		self.Color = newColor
-		ThemeManager.SetColorOverride(self.Visual, "BackgroundColor3", newColor)
-	end
-	self.EnableSpinning = function(_, enabled)
-		if enabled then
-			startSpin()
-		else
-			stopSpin()
-		end
-	end
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(stats, "TextColor3", "PrimaryTextColor")
@@ -199,20 +160,66 @@ function ProgressBar.new(parent, Settings, theme)
 	ThemeManager.Bind(backImage, "Image", "Wallpaper")
 	ThemeManager.Bind(backImage, "Visible", "WallpaperEnabled")
 	ThemeManager.BindColor(holderShadow, "Color", "ComponentShadowColor")
-	self.Destroy = function(me)
-		stopSpin()
-		Tween.CancelAll(me.Visual)
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(stats)
-		ThemeManager.UnbindInstance(holder)
-		ThemeManager.UnbindInstance(visual)
-		ThemeManager.UnbindInstance(backImage)
-		ThemeManager.UnbindInstance(holderShadow)
-		if row and row.Parent then
-			row:Destroy()
-		end
-	end
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			SetValue = function(me, value, noAnimate)
+				value = math.clamp(value, me.MinValue, me.MaxValue)
+				me._currentValue = value
+				local percentage = (value - me.MinValue) / (me.MaxValue - me.MinValue)
+				local targetSize = UDim2.fromScale(percentage, 1)
+				local animateProgress = (noAnimate == nil) and me.Animate or not noAnimate
+				if animateProgress then
+					Tween.Play(me.Visual, "Smooth", { Size = targetSize })
+				else
+					me.Visual.Size = targetSize
+				end
+				updateStats(value)
+				if Settings.Callback then
+					Settings.Callback(value)
+				end
+			end,
+			GetValue = function()
+				return self._currentValue
+			end,
+			SetMin = function(_, newMin)
+				self.MinValue = newMin
+				self:SetValue(self._currentValue, true)
+			end,
+			SetMax = function(_, newMax)
+				self.MaxValue = newMax
+				self:SetValue(self._currentValue, true)
+			end,
+			SetColor = function(_, newColor)
+				self.Color = newColor
+				ThemeManager.SetColorOverride(self.Visual, "BackgroundColor3", newColor)
+			end,
+			EnableSpinning = function(_, enabled)
+				if enabled then
+					startSpin()
+				else
+					stopSpin()
+				end
+			end,
+			Destroy = function(me)
+				stopSpin()
+				Tween.CancelAll(me.Visual)
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(stats)
+				ThemeManager.UnbindInstance(holder)
+				ThemeManager.UnbindInstance(visual)
+				ThemeManager.UnbindInstance(backImage)
+				ThemeManager.UnbindInstance(holderShadow)
+				if row and row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
+	})
+	-- first paint now that the methods exist
+	self:SetValue(currentValue, true)
 	return self
 end
 return ProgressBar

@@ -1,11 +1,13 @@
 --[[
 	Aetheris/Utils/ComponentAPI.luau
 
-	Adds the shared public surface every component exposes: SetName /
-	UpdateName, SetVisible / SetVisibility, GetVisible, and a fallback
-	Destroy. Opts: Root (instance or fn), Label, Name, OnName, Children (fn
-	returning child components for fan-out visibility); custom teardown and
-	name side effects stay with the component.
+	Adds the shared public surface every component exposes: SetName,
+	SetVisible, GetVisible, and a fallback Destroy. Opts: Root (instance or fn), Label, Name, OnName, Children (fn
+	returning child components for fan-out visibility), and Methods (a table of
+	component-unique public methods, e.g. Viewport's SetPlayer). Methods is the
+	single assembly point for a component's API surface so each component file
+	declares everything in one place. Custom teardown and name side effects stay
+	with the component.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -39,7 +41,6 @@ function ComponentAPI.Apply(component, opts)
 		end
 	end
 	component.SetName = setName
-	component.UpdateName = setName
 
 	local setVisible = function(me, visible)
 		if children then
@@ -56,7 +57,6 @@ function ComponentAPI.Apply(component, opts)
 		end
 	end
 	component.SetVisible = setVisible
-	component.SetVisibility = setVisible
 	component.GetVisible = function(me)
 		if children then
 			local first = (resolve(me, children) or {})[1]
@@ -72,6 +72,16 @@ function ComponentAPI.Apply(component, opts)
 			if target and target.Parent then
 				target:Destroy()
 			end
+		end
+	end
+
+	-- Component-unique methods (SetPlayer, SetVideo, ...): merged last so a
+	-- component can override a shared name if it needs to. Keeps each file's
+	-- whole public surface in one table instead of scattered self.X assignments.
+	local methods = opts.Methods
+	if methods then
+		for key, fn in pairs(methods) do
+			component[key] = fn
 		end
 	end
 

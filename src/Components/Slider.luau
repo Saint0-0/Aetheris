@@ -78,7 +78,7 @@ function Slider.new(parent, Settings, theme)
 	local name = Settings.Name or "Slider"
 	local min = Settings.Min or 0
 	local max = Settings.Max or 100
-	local increment = Settings.Increment or Settings.Step or 1
+	local increment = Settings.Increment or 1
 	local default = Settings.Default or 50
 	local precision = Settings.Precision or decimalsOf(increment)
 
@@ -458,37 +458,6 @@ function Slider.new(parent, Settings, theme)
 		end,
 	})
 
-	self.UpdateValue = function(_, newValue)
-		updateSlider(newValue, true)
-	end
-	-- Alias so every value component reads SetValue/GetValue.
-	self.SetValue = self.UpdateValue
-	self.GetValue = function()
-		return currentValue
-	end
-	self.EnableSpinning = function(_, enabled)
-		if enabled then
-			startSpin()
-		else
-			stopSpin()
-		end
-	end
-	self.Destroy = function()
-		disconnectAll()
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(holder)
-		ThemeManager.UnbindInstance(visual)
-		ThemeManager.UnbindInstance(resetBtn)
-		ThemeManager.UnbindInstance(percentLabel)
-		readout:Destroy()
-		ThemeManager.UnbindInstance(holderShadow)
-		ThemeManager.UnbindInstance(thumb)
-		ThemeManager.UnbindInstance(thumbStroke)
-		if row.Parent then
-			row:Destroy()
-		end
-	end
-
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(holder, "BackgroundColor3", "Undercolor")
@@ -510,19 +479,52 @@ function Slider.new(parent, Settings, theme)
 		end,
 	})
 
-	self.ApplyTheme = function(me, newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		me._theme = theme
-		holder.BackgroundTransparency = 0
-		visual.BackgroundTransparency = 0
-		resetBtn.ImageTransparency = 0
-		thumb.BackgroundTransparency = 0
-		backImage.ImageTransparency = 0.5
-		updateVisibility()
-	end
-
 	ThemeManager.Register(row, self)
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			UpdateValue = function(_, newValue)
+				updateSlider(newValue, true)
+			end,
+			GetValue = function()
+				return currentValue
+			end,
+			EnableSpinning = function(_, enabled)
+				if enabled then
+					startSpin()
+				else
+					stopSpin()
+				end
+			end,
+			ApplyTheme = function(me, newTheme)
+				theme = ThemeManager.GetTheme(newTheme)
+				me._theme = theme
+				holder.BackgroundTransparency = 0
+				visual.BackgroundTransparency = 0
+				resetBtn.ImageTransparency = 0
+				thumb.BackgroundTransparency = 0
+				backImage.ImageTransparency = 0.5
+				updateVisibility()
+			end,
+			Destroy = function()
+				disconnectAll()
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(holder)
+				ThemeManager.UnbindInstance(visual)
+				ThemeManager.UnbindInstance(resetBtn)
+				ThemeManager.UnbindInstance(percentLabel)
+				readout:Destroy()
+				ThemeManager.UnbindInstance(holderShadow)
+				ThemeManager.UnbindInstance(thumb)
+				ThemeManager.UnbindInstance(thumbStroke)
+				if row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 

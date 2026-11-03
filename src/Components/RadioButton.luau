@@ -239,31 +239,6 @@ function RadioButton.new(parent, group, Settings, theme)
 	end
 	startSpin()
 
-	self.SetSelected = function(me, selected)
-		me.IsSelected = selected
-		me.Button:SetAttribute(UUID.Static("IsSelected"), selected)
-		if me._strokeHandle then
-			me._strokeHandle:SetState(selected and "Selected" or "Unselected")
-		end
-		if selected then
-			playOn()
-			if callback then
-				callback(me)
-			end
-		else
-			playOff()
-		end
-	end
-	self.GetSelected = function(me)
-		return me.IsSelected
-	end
-	self.EnableSpinning = function(_self, enabled)
-		if enabled then
-			startSpin()
-		else
-			stopSpin()
-		end
-	end
 	if default then
 		self._default = true
 	end
@@ -282,48 +257,77 @@ function RadioButton.new(parent, group, Settings, theme)
 		{ Selected = { value = 1 }, Unselected = "StrokeTransparency" },
 		{ state = "Unselected" }
 	)
-	-- only the wallpaper and the selection-driven stroke stay imperative:
-	-- Image/Visible aren't bindable types, and selection hides the stroke
-	self.ApplyTheme = function(me, newTheme)
-		theme = ThemeManager.GetTheme(newTheme)
-		me._theme = theme
-		if me._strokeHandle then
-			me._strokeHandle:SetState(me.IsSelected and "Selected" or "Unselected")
-		end
-		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), holderStroke.Transparency)
-		backImage.Image = theme.Wallpaper or FallbackImage
-		backImage.Visible = not (theme.WallpaperEnabled == false)
-		-- re-apply the selected state directly: ApplyTheme cancels in-flight
-		-- tweens, which could leave a just-selected button looking unselected
-		if me.IsSelected then
-			button.BackgroundTransparency = 0
-			activatedImage.ImageTransparency = 0
-			activatedImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
-			backImage.ImageTransparency = 0
-		else
-			button.BackgroundTransparency = 1
-			activatedImage.ImageTransparency = 1
-			backImage.ImageTransparency = 1
-		end
-	end
 	ThemeManager.Register(row, self)
-	self.Destroy = function(_self)
-		stopSpin()
-		Tween.CancelAll(label)
-		Tween.CancelAll(button)
-		Tween.CancelAll(activatedImage)
-		Tween.CancelAll(backImage)
-		Tween.CancelAll(holderStroke)
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(button)
-		ThemeManager.UnbindInstance(holder)
-		ThemeManager.UnbindInstance(holderStroke)
-		ThemeManager.Unregister(row)
-		if row and row.Parent then
-			row:Destroy()
-		end
-	end
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			SetSelected = function(me, selected)
+				me.IsSelected = selected
+				me.Button:SetAttribute(UUID.Static("IsSelected"), selected)
+				if me._strokeHandle then
+					me._strokeHandle:SetState(selected and "Selected" or "Unselected")
+				end
+				if selected then
+					playOn()
+					if callback then
+						callback(me)
+					end
+				else
+					playOff()
+				end
+			end,
+			GetSelected = function(me)
+				return me.IsSelected
+			end,
+			EnableSpinning = function(_self, enabled)
+				if enabled then
+					startSpin()
+				else
+					stopSpin()
+				end
+			end,
+			ApplyTheme = function(me, newTheme)
+				theme = ThemeManager.GetTheme(newTheme)
+				me._theme = theme
+				if me._strokeHandle then
+					me._strokeHandle:SetState(me.IsSelected and "Selected" or "Unselected")
+				end
+				holderStroke:SetAttribute(UUID.Static("PageFadeBase"), holderStroke.Transparency)
+				backImage.Image = theme.Wallpaper or FallbackImage
+				backImage.Visible = not (theme.WallpaperEnabled == false)
+				-- re-apply the selected state directly: ApplyTheme cancels in-flight
+				-- tweens, which could leave a just-selected button looking unselected
+				if me.IsSelected then
+					button.BackgroundTransparency = 0
+					activatedImage.ImageTransparency = 0
+					activatedImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+					backImage.ImageTransparency = 0
+				else
+					button.BackgroundTransparency = 1
+					activatedImage.ImageTransparency = 1
+					backImage.ImageTransparency = 1
+				end
+			end,
+			Destroy = function(_self)
+				stopSpin()
+				Tween.CancelAll(label)
+				Tween.CancelAll(button)
+				Tween.CancelAll(activatedImage)
+				Tween.CancelAll(backImage)
+				Tween.CancelAll(holderStroke)
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(button)
+				ThemeManager.UnbindInstance(holder)
+				ThemeManager.UnbindInstance(holderStroke)
+				ThemeManager.Unregister(row)
+				if row and row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 return RadioButton

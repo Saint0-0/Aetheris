@@ -127,9 +127,6 @@ function Button.new(parent, Settings, theme)
 		self.Callback()
 	end
 	row.MouseButton1Click:Connect(performClick)
-	self.Click = function()
-		performClick()
-	end
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
@@ -162,7 +159,16 @@ function Button.new(parent, Settings, theme)
 		end
 	end
 
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			Click = function()
+				performClick()
+			end,
+		},
+	})
 	return self
 end
 return Button

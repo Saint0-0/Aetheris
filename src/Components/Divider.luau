@@ -57,21 +57,26 @@ function Divider.new(parent, Settings, theme)
 	end
 	self.Holder = holder
 	self.Frame = frame
-	self.SetColor = function(_self, newColor)
-		hasCustomColor = true
-		ThemeManager.SetColorOverride(frame, "BackgroundColor3", newColor)
-	end
-	self.SetTransparency = function(_self, newTransparency)
-		hasCustomTransparency = true
-		transparencyBinding:SetEnabled(false)
-		frame.BackgroundTransparency = newTransparency
-	end
 	self.Destroy = function(_self)
 		if holder and holder.Parent then
 			holder:Destroy()
 		end
 	end
-	ComponentAPI.Apply(self, { Root = holder, Name = Settings.Name })
+	ComponentAPI.Apply(self, {
+		Root = holder,
+		Name = Settings.Name,
+		Methods = {
+			SetColor = function(_self, newColor)
+				hasCustomColor = true
+				ThemeManager.SetColorOverride(frame, "BackgroundColor3", newColor)
+			end,
+			SetTransparency = function(_self, newTransparency)
+				hasCustomTransparency = true
+				transparencyBinding:SetEnabled(false)
+				frame.BackgroundTransparency = newTransparency
+			end,
+		},
+	})
 	return self
 end
 return Divider

@@ -1,9 +1,9 @@
 --[[
 	Aetheris/Components/Paragraph.luau
 
-	Container with a title and a wrapped description body. Accepts Title (or
-	Name) and Description (or Text); themed properties are declarative bindings
-	so a theme switch re-resolves them with no ApplyTheme body to maintain.
+	Container with a title and a wrapped description body. Accepts Title and
+	Description; themed properties are declarative bindings so a theme switch
+	re-resolves them with no ApplyTheme body to maintain.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -19,8 +19,8 @@ function Paragraph.new(parent, Settings, theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Paragraph)
 	self._theme = theme
-	local title = Settings.Title or Settings.Name or "Paragraph"
-	local description = Settings.Description or Settings.Text or ""
+	local title = Settings.Title or "Paragraph"
+	local description = Settings.Description or ""
 	local container = Instance.new("Frame")
 	container.Name = UUID.Generate("Paragraph")
 	container.BorderSizePixel = 0
@@ -77,12 +77,6 @@ function Paragraph.new(parent, Settings, theme)
 	self.Container = container
 	self.TitleLabel = titleLabel
 	self.DescLabel = descLabel
-	self.SetTitle = function(_, newTitle)
-		titleLabel.Text = newTitle
-	end
-	self.SetDescription = function(_, newDesc)
-		descLabel.Text = newDesc
-	end
 	ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
@@ -91,12 +85,24 @@ function Paragraph.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(titleLabel, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(descLabel, "TextColor3", "SecondaryTextColor")
 	ThemeManager.BindTransparency(descLabel, "TextTransparency", "SecondaryTextTransparency")
-	self.Destroy = function(_self)
-		if container and container.Parent then
-			container:Destroy()
-		end
-	end
-	ComponentAPI.Apply(self, { Root = container, Label = titleLabel, Name = title })
+	ComponentAPI.Apply(self, {
+		Root = container,
+		Label = titleLabel,
+		Name = title,
+		Methods = {
+			SetTitle = function(_, newTitle)
+				titleLabel.Text = newTitle
+			end,
+			SetDescription = function(_, newDesc)
+				descLabel.Text = newDesc
+			end,
+			Destroy = function(_self)
+				if container and container.Parent then
+					container:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 return Paragraph

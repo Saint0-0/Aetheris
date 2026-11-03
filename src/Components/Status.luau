@@ -195,88 +195,90 @@ function Status.new(parent, Settings, theme)
 		end,
 		Label = label,
 		Name = name,
-	})
-	self.SetEntries = function(me, newEntries)
-		for _, lbl in ipairs(statusLabels) do
-			ThemeManager.UnbindInstance(lbl)
-			lbl:Destroy()
-		end
-		statusLabels = {}
-		entryByKey = {}
-		local copy = copyEntries(newEntries or {})
-		me.Entries = copy
-		for _, entry in ipairs(copy) do
-			local textLabel = makeLabel(me.Holder, entry)
-			table.insert(statusLabels, textLabel)
-			local key = tostring(entry[1] or "")
-			if key ~= "" then
+		Methods = {
+			SetEntries = function(me, newEntries)
+				for _, lbl in ipairs(statusLabels) do
+					ThemeManager.UnbindInstance(lbl)
+					lbl:Destroy()
+				end
+				statusLabels = {}
+				entryByKey = {}
+				local copy = copyEntries(newEntries or {})
+				me.Entries = copy
+				for _, entry in ipairs(copy) do
+					local textLabel = makeLabel(me.Holder, entry)
+					table.insert(statusLabels, textLabel)
+					local key = tostring(entry[1] or "")
+					if key ~= "" then
+						entryByKey[key] = { label = textLabel, entry = entry }
+					end
+				end
+				me.StatusLabels = statusLabels
+				return me
+			end,
+			SetEntry = function(me, key, text, color)
+				key = tostring(key)
+				local record = entryByKey[key]
+				if record then
+					record.entry[2] = text
+					if color ~= nil then
+						record.entry[3] = color
+					end
+					applyEntryText(record.label, record.entry)
+					return record.label
+				end
+				if #me.Entries >= Status.MAX_ENTRIES then
+					return nil
+				end
+				local entry = { key, text or "", color }
+				table.insert(me.Entries, entry)
+				local textLabel = makeLabel(me.Holder, entry)
+				table.insert(statusLabels, textLabel)
 				entryByKey[key] = { label = textLabel, entry = entry }
-			end
-		end
-		me.StatusLabels = statusLabels
-		return me
-	end
-	self.SetEntry = function(me, key, text, color)
-		key = tostring(key)
-		local record = entryByKey[key]
-		if record then
-			record.entry[2] = text
-			if color ~= nil then
-				record.entry[3] = color
-			end
-			applyEntryText(record.label, record.entry)
-			return record.label
-		end
-		if #me.Entries >= Status.MAX_ENTRIES then
-			return nil
-		end
-		local entry = { key, text or "", color }
-		table.insert(me.Entries, entry)
-		local textLabel = makeLabel(me.Holder, entry)
-		table.insert(statusLabels, textLabel)
-		entryByKey[key] = { label = textLabel, entry = entry }
-		me.StatusLabels = statusLabels
-		return textLabel
-	end
-	-- Append-only: never updates an existing line, unlike SetEntry. key = ""
-	-- (or nil) for an unkeyed line; returns nil once MAX_ENTRIES is reached.
-	self.AddEntry = function(me, key, text, color)
-		key = tostring(key or "")
-		if #me.Entries >= Status.MAX_ENTRIES then
-			return nil
-		end
-		local entry = { key, text or "", color }
-		table.insert(me.Entries, entry)
-		local textLabel = makeLabel(me.Holder, entry)
-		table.insert(statusLabels, textLabel)
-		if key ~= "" then
-			entryByKey[key] = { label = textLabel, entry = entry }
-		end
-		me.StatusLabels = statusLabels
-		return textLabel
-	end
-	self.GetEntry = function(_, key)
-		local record = entryByKey[tostring(key)]
-		return record and record.entry[2] or nil
-	end
-	self.GetEntries = function(me)
-		return copyEntries(me.Entries)
-	end
-	self.Destroy = function(me)
-		for _, lbl in ipairs(statusLabels) do
-			ThemeManager.UnbindInstance(lbl)
-		end
-		if me.Frame then
-			for _, descendant in ipairs(me.Frame:GetDescendants()) do
-				ThemeManager.UnbindInstance(descendant)
-			end
-			ThemeManager.UnbindInstance(me.Frame)
-			me.Frame:Destroy()
-			me.Frame = nil
-		end
-		statusLabels = {}
-		entryByKey = {}
-	end
+				me.StatusLabels = statusLabels
+				return textLabel
+			end,
+			-- Append-only: never updates an existing line, unlike SetEntry. key = ""
+			-- (or nil) for an unkeyed line; returns nil once MAX_ENTRIES is reached.
+			AddEntry = function(me, key, text, color)
+				key = tostring(key or "")
+				if #me.Entries >= Status.MAX_ENTRIES then
+					return nil
+				end
+				local entry = { key, text or "", color }
+				table.insert(me.Entries, entry)
+				local textLabel = makeLabel(me.Holder, entry)
+				table.insert(statusLabels, textLabel)
+				if key ~= "" then
+					entryByKey[key] = { label = textLabel, entry = entry }
+				end
+				me.StatusLabels = statusLabels
+				return textLabel
+			end,
+			GetEntry = function(_, key)
+				local record = entryByKey[tostring(key)]
+				return record and record.entry[2] or nil
+			end,
+			GetEntries = function(me)
+				return copyEntries(me.Entries)
+			end,
+			Destroy = function(me)
+				for _, lbl in ipairs(statusLabels) do
+					ThemeManager.UnbindInstance(lbl)
+				end
+				if me.Frame then
+					for _, descendant in ipairs(me.Frame:GetDescendants()) do
+						ThemeManager.UnbindInstance(descendant)
+					end
+					ThemeManager.UnbindInstance(me.Frame)
+					me.Frame:Destroy()
+					me.Frame = nil
+				end
+				statusLabels = {}
+				entryByKey = {}
+			end,
+		},
+	})
 	return self
 end
 return Status

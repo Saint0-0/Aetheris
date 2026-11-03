@@ -34,7 +34,7 @@ function Label.new(parent, Settings, theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Label)
 	self._theme = theme
-	local text = Settings.Text or Settings.Name or "Label"
+	local text = Settings.Text or "Label"
 	local showContainer = (Settings.ShowContainer == nil) and true or Settings.ShowContainer
 	local showStroke = ((Settings.ShowStroke == nil) and true or Settings.ShowStroke) and showContainer
 	local fontWeight = getFontWeight(Settings.FontWeight or "Regular")
@@ -124,55 +124,58 @@ function Label.new(parent, Settings, theme)
 	if customTextTransparency ~= nil then
 		textTransBinding:SetEnabled(false)
 	end
-	self.SetText = function(_, newText)
-		label.Text = newText
-	end
-	self.SetTextTransparency = function(_, transparency)
-		self._hasCustomTextTransparency = (transparency ~= nil)
-		if transparency ~= nil then
-			textTransBinding:SetEnabled(false)
-			label.TextTransparency = transparency
-		else
-			textTransBinding:SetEnabled(true)
-		end
-	end
-	self.SetFontWeight = function(_, weight)
-		local newWeight = getFontWeight(weight)
-		self._fontWeight = newWeight
-		label.FontFace = Constants.Font(newWeight)
-	end
-	self.SetShowContainer = function(_, show)
-		self._showContainer = show
-		if show then
-			container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), nil)
-			bgTransBinding:SetEnabled(true)
-		else
-			bgTransBinding:SetEnabled(false)
-			container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
-			container.BackgroundTransparency = 1
-		end
-	end
-	self.SetShowStroke = function(_, show)
-		self._showStroke = show
-		if show then
-			stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), nil)
-			strokeTransBinding:SetEnabled(true)
-		else
-			strokeTransBinding:SetEnabled(false)
-			stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
-			stroke.Transparency = 1
-		end
-	end
-	self.Destroy = function(_self)
-		-- Drop the bindings so a destroyed label leaves nothing in the ThemeManager registry.
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(container)
-		ThemeManager.UnbindInstance(stroke)
-		if container and container.Parent then
-			container:Destroy()
-		end
-	end
-	ComponentAPI.Apply(self, { Root = container, Label = label, Name = Settings.Text })
+	ComponentAPI.Apply(self, {
+		Root = container,
+		Label = label,
+		Name = Settings.Text,
+		Methods = {
+			SetTextTransparency = function(_, transparency)
+				self._hasCustomTextTransparency = (transparency ~= nil)
+				if transparency ~= nil then
+					textTransBinding:SetEnabled(false)
+					label.TextTransparency = transparency
+				else
+					textTransBinding:SetEnabled(true)
+				end
+			end,
+			SetFontWeight = function(_, weight)
+				local newWeight = getFontWeight(weight)
+				self._fontWeight = newWeight
+				label.FontFace = Constants.Font(newWeight)
+			end,
+			SetShowContainer = function(_, show)
+				self._showContainer = show
+				if show then
+					container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), nil)
+					bgTransBinding:SetEnabled(true)
+				else
+					bgTransBinding:SetEnabled(false)
+					container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
+					container.BackgroundTransparency = 1
+				end
+			end,
+			SetShowStroke = function(_, show)
+				self._showStroke = show
+				if show then
+					stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), nil)
+					strokeTransBinding:SetEnabled(true)
+				else
+					strokeTransBinding:SetEnabled(false)
+					stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
+					stroke.Transparency = 1
+				end
+			end,
+			Destroy = function(_self)
+				-- Drop the bindings so a destroyed label leaves nothing in the ThemeManager registry.
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(container)
+				ThemeManager.UnbindInstance(stroke)
+				if container and container.Parent then
+					container:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 return Label

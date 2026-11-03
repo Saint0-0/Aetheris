@@ -211,21 +211,6 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	-- Apply the default look without firing the callback during construction.
 	applyState(default, false, false)
 
-	self.UpdateState = function(_self, newState)
-		if typeof(newState) ~= "boolean" then
-			warn("[Toggle] UpdateState expected a boolean, got:", typeof(newState))
-			return
-		end
-		-- Programmatic updates bypass confirmation; that is only for user clicks.
-		if newState ~= state then
-			applyState(newState, true, true)
-		end
-	end
-	-- Alias so every switch-style component reads SetState/GetState.
-	self.SetState = self.UpdateState
-	self.GetState = function(_self)
-		return state
-	end
 	-- A theme switch cancels applyState's transparencies tweens, so re-stamp
 	-- the resting state to avoid a half-faded toggle.
 	local unregisterTheme = ThemeManager.OnThemeApplied(function()
@@ -248,24 +233,43 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		end,
 	})
 
-	self.Destroy = function(_self)
-		if unregisterTheme then
-			unregisterTheme()
-			unregisterTheme = nil
-		end
-		Tween.CancelAll(thumb)
-		Tween.CancelAll(track)
-		Tween.CancelAll(stroke)
-		Tween.CancelAll(label)
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(thumb)
-		ThemeManager.UnbindInstance(track)
-		ThemeManager.UnbindInstance(stroke)
-		if row and row.Parent then
-			row:Destroy()
-		end
-	end
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			UpdateState = function(_self, newState)
+				if typeof(newState) ~= "boolean" then
+					warn("[Toggle] UpdateState expected a boolean, got:", typeof(newState))
+					return
+				end
+				-- Programmatic updates bypass confirmation; that is only for user clicks.
+				if newState ~= state then
+					applyState(newState, true, true)
+				end
+			end,
+			GetState = function(_self)
+				return state
+			end,
+			Destroy = function(_self)
+				if unregisterTheme then
+					unregisterTheme()
+					unregisterTheme = nil
+				end
+				Tween.CancelAll(thumb)
+				Tween.CancelAll(track)
+				Tween.CancelAll(stroke)
+				Tween.CancelAll(label)
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(thumb)
+				ThemeManager.UnbindInstance(track)
+				ThemeManager.UnbindInstance(stroke)
+				if row and row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 return Toggle

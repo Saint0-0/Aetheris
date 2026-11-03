@@ -99,48 +99,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		displayShadow.Color = color
 		displayShadow.Transparency = SHADOW_TRANSPARENCY
 	end
-	self.SetColor = function(me, newColor, noCallback)
-		if typeof(newColor) ~= "Color3" then
-			return
-		end
-		if newColor == me._currentColor then
-			return
-		end
-		me._currentColor = newColor
-		updateDisplay(newColor)
-		if not noCallback then
-			me.Callback(newColor)
-		end
-	end
-	self.GetColor = function(me)
-		return me._currentColor
-	end
-	self.TogglePopup = function(me)
-		me._isOpen = not me._isOpen
-		local targetRotation = me._isOpen and 0 or -90
-		Tween.Play(me.Chevron, "Smooth", { Rotation = targetRotation })
-		if me._isOpen and me.ShowPopup then
-			-- kept so clicking the row again can close it
-			me._popup = me.ShowPopup(me._popupId, {
-				Title = me.Label.Text,
-				CurrentColor = me._currentColor,
-				OnConfirm = function(newColor)
-					me:SetColor(newColor, false)
-					me:ClosePopup()
-				end,
-				OnCancel = function()
-					me:ClosePopup()
-				end,
-			})
-		elseif me._popup and me._popup.Close then
-			-- row clicked again while open: actually close it, don't just flip the flag
-			me._popup:Close()
-		end
-	end
-	self.ClosePopup = function(me)
-		me._isOpen = false
-		Tween.Play(me.Chevron, "Smooth", { Rotation = -90 })
-	end
 	row.MouseButton1Click:Connect(function()
 		self:TogglePopup()
 	end)
@@ -171,6 +129,50 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 			label.Text = newName
 			me._popupId = newName .. "ColorPicker"
 		end,
+		Methods = {
+			SetColor = function(me, newColor, noCallback)
+				if typeof(newColor) ~= "Color3" then
+					return
+				end
+				if newColor == me._currentColor then
+					return
+				end
+				me._currentColor = newColor
+				updateDisplay(newColor)
+				if not noCallback then
+					me.Callback(newColor)
+				end
+			end,
+			GetColor = function(me)
+				return me._currentColor
+			end,
+			TogglePopup = function(me)
+				me._isOpen = not me._isOpen
+				local targetRotation = me._isOpen and 0 or -90
+				Tween.Play(me.Chevron, "Smooth", { Rotation = targetRotation })
+				if me._isOpen and me.ShowPopup then
+					-- kept so clicking the row again can close it
+					me._popup = me.ShowPopup(me._popupId, {
+						Title = me.Label.Text,
+						CurrentColor = me._currentColor,
+						OnConfirm = function(newColor)
+							me:SetColor(newColor, false)
+							me:ClosePopup()
+						end,
+						OnCancel = function()
+							me:ClosePopup()
+						end,
+					})
+				elseif me._popup and me._popup.Close then
+					-- row clicked again while open: actually close it, don't just flip the flag
+					me._popup:Close()
+				end
+			end,
+			ClosePopup = function(me)
+				me._isOpen = false
+				Tween.Play(me.Chevron, "Smooth", { Rotation = -90 })
+			end,
+		},
 	})
 	return self
 end

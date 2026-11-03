@@ -305,24 +305,6 @@ function TextInput.new(parent, Settings, theme)
 		sizeBox(false)
 	end)
 
-	self.GetText = function()
-		return field.Text
-	end
-	self.SetText = function(_, newText, silent)
-		newText = tostring(newText or "")
-		default = newText
-		field.Text = newText
-		if not silent then
-			flash()
-		end
-	end
-	self.SetPlaceholder = function(_, newPlaceholder)
-		placeholder = newPlaceholder
-		field.PlaceholderText = newPlaceholder
-		sizeBox(true)
-	end
-	self.Flash = flash
-
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(field, "BackgroundColor3", "InputBackgroundColor")
@@ -349,19 +331,6 @@ function TextInput.new(parent, Settings, theme)
 		sizeBox(false) -- after the first layout pass, once AbsoluteSize is real
 	end)
 
-	self.Destroy = function(_self)
-		Tween.CancelAll(field)
-		Tween.CancelAll(stroke)
-		Tween.CancelAll(glow)
-		ThemeManager.UnbindInstance(label)
-		ThemeManager.UnbindInstance(field)
-		ThemeManager.UnbindInstance(stroke)
-		ThemeManager.UnbindInstance(glow)
-		if row and row.Parent then
-			row:Destroy()
-		end
-	end
-
 	ComponentAPI.Apply(self, {
 		Root = row,
 		Label = label,
@@ -370,6 +339,37 @@ function TextInput.new(parent, Settings, theme)
 			label.Text = newName
 			sizeBox(false)
 		end,
+		Methods = {
+			GetText = function()
+				return field.Text
+			end,
+			SetText = function(_, newText, silent)
+				newText = tostring(newText or "")
+				default = newText
+				field.Text = newText
+				if not silent then
+					flash()
+				end
+			end,
+			SetPlaceholder = function(_, newPlaceholder)
+				placeholder = newPlaceholder
+				field.PlaceholderText = newPlaceholder
+				sizeBox(true)
+			end,
+			Flash = flash,
+			Destroy = function(_self)
+				Tween.CancelAll(field)
+				Tween.CancelAll(stroke)
+				Tween.CancelAll(glow)
+				ThemeManager.UnbindInstance(label)
+				ThemeManager.UnbindInstance(field)
+				ThemeManager.UnbindInstance(stroke)
+				ThemeManager.UnbindInstance(glow)
+				if row and row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
 	})
 	return self
 end

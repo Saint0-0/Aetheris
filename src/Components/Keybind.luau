@@ -271,12 +271,6 @@ function Keybind.new(parent, Settings, theme)
 	end)
 	setKey(default)
 
-	self.GetBind = function()
-		return currentKey
-	end
-	self.SetBind = function(_, key)
-		setKey(key)
-	end
 	-- drop the input listeners so nothing fires on a dead UI
 	local function disconnectAll()
 		if pressToken then
@@ -288,12 +282,6 @@ function Keybind.new(parent, Settings, theme)
 		end
 	end
 	row.Destroying:Connect(disconnectAll)
-	self.Destroy = function()
-		disconnectAll()
-		if row.Parent then
-			row:Destroy()
-		end
-	end
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(inputBox, "TextColor3", "SecondaryTextColor")
@@ -302,7 +290,25 @@ function Keybind.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(inputBox, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	ComponentAPI.Apply(self, { Root = row, Label = label, Name = name })
+	ComponentAPI.Apply(self, {
+		Root = row,
+		Label = label,
+		Name = name,
+		Methods = {
+			GetBind = function()
+				return currentKey
+			end,
+			SetBind = function(_, key)
+				setKey(key)
+			end,
+			Destroy = function()
+				disconnectAll()
+				if row.Parent then
+					row:Destroy()
+				end
+			end,
+		},
+	})
 	return self
 end
 return Keybind

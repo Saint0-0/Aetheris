@@ -68,39 +68,6 @@ function Video.new(parent, Settings, theme)
 	-- true while the creator intends playback: page switches pause off-page
 	-- and resume on-page only if this is set, so an explicit Pause() sticks
 	self._wantPlay = true
-	self.SetVideo = function(_, newVideoId)
-		videoFrame.Video = newVideoId
-		self._wantPlay = true
-		videoFrame:Play()
-	end
-	self.Play = function()
-		self._wantPlay = true
-		videoFrame:Play()
-	end
-	self.Pause = function()
-		self._wantPlay = false
-		videoFrame:Pause()
-	end
-	self.Stop = function()
-		self._wantPlay = false
-		videoFrame:Stop()
-	end
-	self.SetVolume = function(_, volume)
-		videoFrame.Volume = volume
-	end
-	self.GetVolume = function()
-		return videoFrame.Volume
-	end
-	self.SetLoop = function(_, loopState)
-		videoFrame.Looped = loopState
-	end
-	self.SetHeight = function(_, newHeight)
-		frame.Size = UDim2.new(1, 0, 0, newHeight)
-	end
-	-- fades the video in (0) or out (1) via its gradient
-	self.SetFade = function(_, value, duration)
-		VideoFade.fade(fadeGradient, value, duration)
-	end
 	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
@@ -129,7 +96,46 @@ function Video.new(parent, Settings, theme)
 			frame:Destroy()
 		end
 	end
-	ComponentAPI.Apply(self, { Root = frame, Name = Settings.Name })
+	-- Public surface lives in one Methods table so the whole API reads at a glance.
+	ComponentAPI.Apply(self, {
+		Root = frame,
+		Name = Settings.Name,
+		Methods = {
+			SetVideo = function(_, newVideoId)
+				videoFrame.Video = newVideoId
+				self._wantPlay = true
+				videoFrame:Play()
+			end,
+			Play = function()
+				self._wantPlay = true
+				videoFrame:Play()
+			end,
+			Pause = function()
+				self._wantPlay = false
+				videoFrame:Pause()
+			end,
+			Stop = function()
+				self._wantPlay = false
+				videoFrame:Stop()
+			end,
+			SetVolume = function(_, volume)
+				videoFrame.Volume = volume
+			end,
+			GetVolume = function()
+				return videoFrame.Volume
+			end,
+			SetLoop = function(_, loopState)
+				videoFrame.Looped = loopState
+			end,
+			SetHeight = function(_, newHeight)
+				frame.Size = UDim2.new(1, 0, 0, newHeight)
+			end,
+			-- fades the video in (0) or out (1) via its gradient
+			SetFade = function(_, value, duration)
+				VideoFade.fade(fadeGradient, value, duration)
+			end,
+		},
+	})
 	return self
 end
 return Video
