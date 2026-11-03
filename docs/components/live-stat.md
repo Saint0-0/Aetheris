@@ -41,7 +41,6 @@ The change line reads the difference since the last value (`previous`) or since 
 | `:Set(value)` | Set the value. Rolls the digits and updates the change line. |
 | `:Get()` | Returns the current value. |
 | `:SetName(string)` | Change the label. |
-| `:UpdateName(string)` | Same as `SetName`. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the stat. |

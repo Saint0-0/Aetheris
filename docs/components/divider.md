@@ -25,6 +25,6 @@ section:Divider({
 | --- | --- |
 | `:SetColor(Color3)` | Change the colour. |
 | `:SetTransparency(number)` | Fade the line. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the divider. |

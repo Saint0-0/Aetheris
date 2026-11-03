@@ -46,11 +46,10 @@ section:Toggle({
 
 | Method | Description |
 | --- | --- |
-| `:UpdateState(bool)` | Set the state. Animates like a normal click. Alias `:SetState`. |
+| `:UpdateState(bool)` | Set the state. Animates like a normal click. |
 | `:GetState()` | Returns the current state. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the toggle and its bindings. |
 

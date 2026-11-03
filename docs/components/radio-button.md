@@ -27,9 +27,8 @@ section:RadioButton({
 | --- | --- |
 | `:SetSelected(bool)` | Select or deselect. |
 | `:GetSelected()` | Returns whether it is selected. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:EnableSpinning(bool)` | Turn the fill animation on or off. |
 | `:Destroy()` | Remove the button and its bindings. |

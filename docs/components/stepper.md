@@ -38,7 +38,7 @@ Set `Integer = false` and a `Step` under `1` for fine values, for example `Step 
 | `:SetMin(number)` | Move the lower bound. |
 | `:SetMax(number)` | Move the upper bound. |
 | `:SetStep(number)` | Change the step size. |
-| `:UpdateName(string)` | Change the label. |
+| `:SetName(string)` | Change the label. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the stepper and its bindings. |

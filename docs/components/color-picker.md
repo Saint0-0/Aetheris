@@ -30,9 +30,8 @@ The popup holds a saturation square, a hue bar, an alpha bar and a hex field. It
 | `:SetColor(Color3, silent?)` | Set the colour. Pass `true` to skip the callback. |
 | `:TogglePopup()` | Open or close the picker programmatically. |
 | `:ClosePopup()` | Close it if open. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the picker and its popup hookups. |
 

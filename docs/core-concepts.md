@@ -42,7 +42,7 @@ section:Toggle({ Name = "Auto farm", Callback = function(on) end })
 
 Two shared rules hold everywhere:
 
-- Every component exposes `:SetName()` (alias `:UpdateName`), `:SetVisibility()` (alias `:SetVisible`), `:GetVisible()` and `:Destroy()`.
+- Every component exposes `:SetName()`, `:SetVisible()`, `:GetVisible()` and `:Destroy()`.
 - Values you set in code and values the player changes both live in memory. Window-level settings (theme, scale, volume) persist between sessions; per-component values do not persist yet.
 
 ## Themes

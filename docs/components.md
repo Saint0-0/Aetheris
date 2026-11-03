@@ -2,7 +2,7 @@
 
 Everything you can add to a section. Each page lists the options, the methods, and a short example.
 
-Most components also share four methods: `:SetName(string)` (alias `:UpdateName`), `:SetVisibility(bool)` (alias `:SetVisible`), `:GetVisible()`, and `:Destroy()`. Only the extras are listed on each page.
+Most components also share four methods: `:SetName(string)`, `:SetVisible(bool)`, `:GetVisible()`, and `:Destroy()`. Only the extras are listed on each page.
 
 | Component | What it does |
 | --- | --- |

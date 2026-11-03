@@ -37,7 +37,7 @@ The video starts playing on its own and fades with the page like every other com
 | `:SetLoop(bool)` | Turn looping on or off. |
 | `:SetHeight(number)` | Resize the frame. |
 | `:SetFade(number, duration?)` | Fade the gradient overlay. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:Destroy()` | Remove the video. |
 
 ## Screenshot

@@ -35,7 +35,6 @@ With `Follow` on, the panel stays pinned to the newest line and lets go the mome
 | `:Clear()` | Empty the buffer. |
 | `:SetHeight(number)` | Resize the panel. |
 | `:SetName(string)` | Change the title. |
-| `:UpdateName(string)` | Same as `SetName`. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the console. |

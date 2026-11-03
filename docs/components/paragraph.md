@@ -14,9 +14,7 @@ section:Paragraph({
 | Key | Type | Description |
 | --- | --- | --- |
 | `Title` | string | Heading line. |
-| `Name` | string | Alias for `Title`. |
 | `Description` | string | Body text. |
-| `Text` | string | Alias for `Description`. |
 
 `Description` accepts rich text, so you can bold or colour parts of it with `<font>` and `<b>` tags.
 
@@ -26,7 +24,7 @@ section:Paragraph({
 | --- | --- |
 | `:SetTitle(string)` | Change the heading. |
 | `:SetDescription(string)` | Change the body text. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the paragraph. |
 

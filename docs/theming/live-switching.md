@@ -4,7 +4,7 @@
 
 What happens on a switch:
 
-* Colours crossfade over about 0.7 seconds instead of snapping.
+* Colours crossfade over about 0.6 seconds instead of snapping.
 * In-flight tweens under the window are cancelled first, so a tween started by the old theme can't finish late and overwrite the new colours.
 * Spinning gradients pause during the switch and restart after it.
 * Toast notifications already on screen recolour in place, including their accent rim and glow.

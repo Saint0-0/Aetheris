@@ -4,7 +4,7 @@ One line of text in a container. Use it for short readouts you want visually sep
 
 ```lua
 section:Label({
-	Name = "Status: ready",
+	Text = "Status: ready",
 	TextSize = 14,
 })
 ```
@@ -13,8 +13,7 @@ section:Label({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | The text shown. |
-| `Text` | string | Same as `Name`, wins if both are set. |
+| `Text` | string | The text shown. |
 | `TextSize` | number | Font size. Defaults to `14`. |
 | `FontWeight` | Enum.FontWeight | Font weight of the text. |
 | `Padding` | number | Inner padding of the container. |
@@ -28,12 +27,12 @@ Setting `ShowContainer = false` leaves just the bare text, which reads better ov
 
 | Method | Description |
 | --- | --- |
-| `:SetText(string)` | Change the text. |
+| `:SetName(string)` | Change the text. |
 | `:SetTextTransparency(number)` | Fade the text in or out. |
 | `:SetFontWeight(Enum.FontWeight)` | Change the weight. |
 | `:SetShowContainer(bool)` | Show or hide the box. |
 | `:SetShowStroke(bool)` | Show or hide the border. |
-| `:SetVisibility(bool)` | Show or hide the whole row. |
+| `:SetVisible(bool)` | Show or hide the whole row. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the label. |
 

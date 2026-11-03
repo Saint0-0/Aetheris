@@ -31,9 +31,8 @@ Long names are shortened for display (`LeftControl` shows as `LtCtrl`); the valu
 | --- | --- |
 | `:GetBind()` | Returns the current key name. |
 | `:SetBind(string)` | Set the key without recording a press. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the row and its bindings. |
 

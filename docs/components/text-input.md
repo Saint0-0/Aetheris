@@ -30,9 +30,8 @@ section:TextInput({
 | `:GetText()` | Returns the current text. |
 | `:SetText(string, flash?)` | Set the text. Pass `true` to skip the flash. |
 | `:SetPlaceholder(string)` | Change the hint text. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the field and its bindings. |
 

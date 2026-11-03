@@ -31,6 +31,6 @@ The camera follows the framing you pick: `"Full"` shows the whole character, the
 | `:SetPlayer(Player)` | Show a different player. |
 | `:SetFraming(string)` | Change the camera framing. |
 | `:SetRotate(bool)` | Turn the rotation on or off. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the viewport. |

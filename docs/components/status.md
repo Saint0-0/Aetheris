@@ -35,7 +35,6 @@ Eight entries is the cap. Anything past that is dropped.
 | `:GetEntry(key)` | Returns one entry. |
 | `:GetEntries()` | Returns a copy of all entries. |
 | `:SetName(string)` | Change the heading. |
-| `:UpdateName(string)` | Same as `SetName`. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the panel. |

@@ -17,8 +17,8 @@
                  Button, Label, Paragraph, Divider, Video, LiveStat, Console,
                  CodeView
     Security   : AETHERIS_SECUREMODE (gethui/CoreGui parenting + UUID rename)
-    API        : SetName/UpdateName, SetVisible/SetVisibility/GetVisible,
-                 Destroy, and Status:AddEntry/SetEntry/SetEntries
+    API        : SetName, SetVisible/GetVisible, Destroy,
+                 and Status:AddEntry/SetEntry/SetEntries
 
   How to run
   ----------
@@ -252,10 +252,10 @@ actionSection:Button({
 --  3a. SECURE MODE / COMPONENT API
 -- =========================================================================
 -- Every component shares the same public surface:
---   SetName / UpdateName        - change the displayed label
---   SetVisible / SetVisibility  - show or hide the component's root
---   GetVisible                  - current visibility
---   Destroy                     - tear the component down
+--   SetName      - change the displayed label
+--   SetVisible   - show or hide the component's root
+--   GetVisible   - current visibility
+--   Destroy      - tear the component down
 -- Status also exposes per-entry updates: AddEntry / SetEntry / SetEntries.
 local apiSection = homeTab:Section({ Name = "Secure Mode / API", Side = "Right" })
 
@@ -276,13 +276,6 @@ apiSection:Button({
 	Name = "Rename (SetName)",
 	Callback = function()
 		apiLabel:SetName("SetName @ " .. os.date("%H:%M:%S"))
-	end,
-})
-
-apiSection:Button({
-	Name = "Rename (UpdateName alias)",
-	Callback = function()
-		apiLabel:UpdateName("UpdateName @ " .. os.date("%H:%M:%S"))
 	end,
 })
 
@@ -689,6 +682,13 @@ mediaSection:Button({
 -- =========================================================================
 --  8. SETTINGS TAB  -  live theme switcher
 -- =========================================================================
+-- Manual checks while you're here:
+--   * The theme dropdown crossfades the whole window in 0.6s; an open dropdown
+--     popup recolors live without reopening it.
+--   * Settings > Configs: "Loaded: <name>" updates the moment you press Load,
+--     and loaded values reach your callbacks without switching tabs.
+--   * Click the display name in the window header: the auto-mask toast offers
+--     a Turn off/on action that masks both name lines immediately.
 local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
 settingsSection:Paragraph({
 	Title = "Settings",
@@ -849,7 +849,7 @@ print(
 	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console, CodeView."
 )
 print(
-	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName/UpdateName, SetVisible/SetVisibility/GetVisible, Destroy, Status:AddEntry."
+	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName, SetVisible/GetVisible, Destroy, Status:AddEntry."
 )
 
 -- =========================================================================

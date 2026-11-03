@@ -39,9 +39,8 @@ end)
 | `:SetMin(number)` | Move the lower bound. |
 | `:SetMax(number)` | Move the upper bound. |
 | `:SetColor(Color3)` | Change the fill colour. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:EnableSpinning(bool)` | Turn the gradient animation on or off. |
 | `:Destroy()` | Remove the bar and its bindings. |
 

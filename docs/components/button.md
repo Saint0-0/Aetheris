@@ -23,9 +23,8 @@ section:Button({
 | Method | Description |
 | --- | --- |
 | `:Click()` | Fire the callback as if the player clicked. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the button. |
 

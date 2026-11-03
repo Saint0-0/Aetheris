@@ -33,7 +33,6 @@ With `Editable = true` the block becomes a real editor with a caret and undo-fri
 | `:SetLanguage(string)` | Change the highlight rules. |
 | `:SetOnCopy(function)` | Replace the copy hook. |
 | `:SetName(string)` | Change the title. |
-| `:UpdateName(string)` | Same as `SetName`. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the block. |

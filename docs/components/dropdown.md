@@ -40,13 +40,11 @@ The callback receives an array of the same `{ name, value }` tables, in the orde
 
 | Method | Description |
 | --- | --- |
-| `:SetItems(table)` | Replace the item list and clear the selection. |
 | `:SetValues(table, keepSelection?)` | Replace the list, optionally keeping selections that still exist. |
 | `:SetValue(valueOrList, silent?)` | Select by value. Pass `true` to skip the callback. |
 | `:GetSelected()` | Returns the selected `{ name, value }` entries. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:Destroy()` | Remove the dropdown and its popup hookups. |
 

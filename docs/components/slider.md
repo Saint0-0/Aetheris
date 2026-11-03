@@ -22,7 +22,7 @@ section:Slider({
 | `Name` | string | Label above the track. |
 | `Min` | number | Low end of the range. Defaults to `0`. |
 | `Max` | number | High end of the range. Defaults to `100`. |
-| `Increment` | number | Amount per step. `Step` works as an alias. Defaults to `1`. |
+| `Increment` | number | Amount per step. Defaults to `1`. |
 | `Default` | number | Starting value. Defaults to `50`. |
 | `Precision` | number | Decimal places shown. Defaults to the increment's decimals. |
 | `Callback` | function | Fires with the value while dragging. |
@@ -34,11 +34,10 @@ section:Slider({
 
 | Method | Description |
 | --- | --- |
-| `:UpdateValue(number)` | Set the value. Alias `:SetValue`. |
+| `:UpdateValue(number)` | Set the value. |
 | `:GetValue()` | Returns the current value. |
-| `:UpdateName(string)` | Change the label. |
-| `:SetName(string)` | Same as `UpdateName`. |
-| `:SetVisibility(bool)` | Show or hide. |
+| `:SetName(string)` | Change the label. |
+| `:SetVisible(bool)` | Show or hide. |
 | `:GetVisible()` | Returns whether it is showing. |
 | `:EnableSpinning(bool)` | Turn the fill animation on or off. |
 | `:Destroy()` | Remove the slider and its bindings. |
