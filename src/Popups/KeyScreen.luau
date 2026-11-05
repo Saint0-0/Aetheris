@@ -414,25 +414,29 @@ local function buildCard(self)
 	})
 
 	-- Direct child of the card, above the drag frame, so the click never starts a drag.
+	-- The bare X was near-invisible over the header, so it sits on a small chip:
+	-- muted at rest, brighter with the icon popping forward on hover.
 	local closeButton = new("ImageButton", {
 		Name = UUID.Static("CloseButton"),
 		AnchorPoint = Vector2.new(1, 0.5),
 		-- Centred on the header row so it lines up with the executor chip.
 		Position = UDim2.new(1, -10, 0, HEADER_HEIGHT / 2 - 4),
-		Size = UDim2.fromOffset(14, 14),
-		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundColor3 = theme.PopupNeutralColor or Color3.fromRGB(46, 46, 46),
+		BackgroundTransparency = 0.35,
 		BorderSizePixel = 0,
 		Image = Icons["x"] or "rbxassetid://110786993356448",
-		ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
-		ImageTransparency = 0.35,
+		ImageColor3 = theme.PopupTextColor or theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		ImageTransparency = 0.15,
 		ZIndex = 6,
 		Parent = card,
 	})
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = closeButton })
 	closeButton.MouseEnter:Connect(function()
-		Tween.Play(closeButton, "HoverIn", { ImageTransparency = 0, Size = UDim2.fromOffset(16, 16) })
+		Tween.Play(closeButton, "HoverIn", { BackgroundTransparency = 0.05, ImageTransparency = 0 })
 	end)
 	closeButton.MouseLeave:Connect(function()
-		Tween.Play(closeButton, "HoverOut", { ImageTransparency = 0.35, Size = UDim2.fromOffset(14, 14) })
+		Tween.Play(closeButton, "HoverOut", { BackgroundTransparency = 0.35, ImageTransparency = 0.15 })
 	end)
 	closeButton.MouseButton1Click:Connect(function()
 		self:_dismiss()
