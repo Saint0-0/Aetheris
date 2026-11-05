@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local ThemeManager = require("../Themes/ThemeManager")
+local Tween = require("../Utils/Tween")
 local ComponentAPI = require("../Utils/ComponentAPI")
 local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
@@ -35,6 +36,19 @@ local INFO_ROWS = {
 
 local STATIC_YAW = math.rad(-20) -- slight 3/4 angle when not rotating.
 local ORBIT_SPEED = 0.35 -- radians per second (~20°/s: a calm ~18s revolution).
+
+-- Health bar ramp: red -> yellow -> green as the bound humanoid heals, so a
+-- glance reads the state like the classic health bar. Not theme-bound on purpose.
+local HEALTH_LOW = Color3.fromRGB(226, 70, 70)
+local HEALTH_MID = Color3.fromRGB(245, 195, 75)
+local HEALTH_HIGH = Color3.fromRGB(85, 220, 110)
+local function healthColour(ratio)
+	ratio = math.clamp(ratio, 0, 1)
+	if ratio < 0.5 then
+		return HEALTH_LOW:Lerp(HEALTH_MID, ratio * 2)
+	end
+	return HEALTH_MID:Lerp(HEALTH_HIGH, (ratio - 0.5) * 2)
+end
 
 local function newCorner(parent, radius)
 	local corner = Instance.new("UICorner")
@@ -144,7 +158,7 @@ function Viewport.new(parent, Settings, theme)
 	healthFill.AnchorPoint = Vector2.new(0, 1)
 	healthFill.Position = UDim2.fromScale(0, 1)
 	healthFill.Size = UDim2.fromScale(1, 1)
-	healthFill.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(108, 140, 255)
+	healthFill.BackgroundColor3 = healthColour(1)
 	healthFill.Parent = healthTrack
 	newCorner(healthFill, 2)
 
@@ -249,6 +263,7 @@ function Viewport.new(parent, Settings, theme)
 			local max = humanoid.MaxHealth
 			local ratio = if max > 0 then math.clamp(humanoid.Health / max, 0, 1) else 0
 			healthFill.Size = UDim2.fromScale(1, ratio)
+			Tween.Play(healthFill, "Fast", { BackgroundColor3 = healthColour(ratio) })
 		end
 		update()
 		healthConn = humanoid.HealthChanged:Connect(update)
@@ -372,7 +387,7 @@ function Viewport.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(viewport, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(healthTrack, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindTransparency(healthTrack, "BackgroundTransparency", "InputBackgroundTransparency")
-	ThemeManager.BindColor(healthFill, "BackgroundColor3", "AccentColor")
+	-- healthFill's colour is driven by the bound humanoid's ratio, never by the theme.
 	ThemeManager.BindColor(healthStroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(healthStroke, "Transparency", "StrokeTransparency")
 	for _, value in ipairs(valueLabels) do

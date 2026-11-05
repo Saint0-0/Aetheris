@@ -24,7 +24,7 @@ section:Viewport({
 | `ShowInfo` | boolean | Show the info column next to the viewport. On by default; `false` leaves just the viewport, centred and widened into the freed space. |
 | `Info` | table | The info rows themselves, see below. |
 
-The camera follows the framing you pick: `"Full"` shows the whole character, the others push in. If the character dies or respawns, the viewport tracks it, and the health bar tracks the character's humanoid.
+The camera follows the framing you pick: `"Full"` shows the whole character, the others push in. If the character dies or respawns, the viewport tracks it, and the health bar tracks the character's humanoid — it fills from the bottom and shifts red to yellow to green as health drops.
 
 ## Custom info rows
 

@@ -686,6 +686,48 @@ mediaSection:Button({
 	end,
 })
 
+-- Three more variants so the card's options are easy to compare.
+local viewportVariants = mediaTab:Section({ Name = "Viewport Variants", Side = "Right" })
+
+viewportVariants:Paragraph({
+	Title = "Health bar",
+	Description = "The bar beside each viewport fills from the bottom and shifts red to yellow to green with the bound character's humanoid health.",
+})
+
+-- Viewport-only: ShowInfo drops the label column, so the view widens and
+-- centres into the freed space. The health bar still hugs its right edge.
+viewportVariants:Viewport({
+	Name = "Viewport only",
+	Player = Players.LocalPlayer,
+	Framing = "Full",
+	Rotate = true,
+	ShowInfo = false,
+	Height = 170,
+})
+
+-- Static 3/4 head shot, fixed text rows plus a suffixed live value.
+viewportVariants:Viewport({
+	Name = "Static + custom rows",
+	Player = Players.LocalPlayer,
+	Framing = "Head",
+	Rotate = false,
+	Height = 150,
+	Info = {
+		{ Caption = "USERNAME", Key = "Name" },
+		{ Caption = "ACCOUNT AGE", Key = "AccountAge", Suffix = " days" },
+		{ Caption = "STATUS", Text = "in lobby" },
+	},
+})
+
+-- Short card with the default four rows (Name, DisplayName, UserId, AccountAge).
+viewportVariants:Viewport({
+	Name = "Compact card",
+	Player = Players.LocalPlayer,
+	Framing = "Torso",
+	Rotate = true,
+	Height = 120,
+})
+
 -- =========================================================================
 --  8. SETTINGS TAB  -  live theme switcher
 -- =========================================================================
