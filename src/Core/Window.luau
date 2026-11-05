@@ -886,7 +886,10 @@ function Window.new(Settings)
 	ScriptName.Size = UDim2.fromScale(1.36294, 0.44828)
 	ScriptName.RichText = true
 	ScriptName.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	ScriptName.Text = "Aetheris | Jailbreak"
+	-- Secure mode shows no default title (the library name would fingerprint
+	-- the UI); callers pass Settings.Title, and the close prompt falls back to
+	-- "the UI" when it's empty.
+	ScriptName.Text = if secureMode then "" else "Aetheris | Jailbreak"
 	ScriptName.LayoutOrder = 1
 	ScriptName.AutomaticSize = Enum.AutomaticSize.XY
 	ScriptName.Position = UDim2.fromScale(0, 0)

@@ -24,14 +24,28 @@ end
 function Security.ParentHidden(gui, player)
 	-- selene: allow(global_usage)
 	local globals = _G
-	local gethui = globals.gethui
-	if type(gethui) == "function" then
-		local ok, container = pcall(gethui)
-		if ok and typeof(container) == "Instance" and pcall(function()
-			gui.Parent = container
-		end) then
-			return true
+	-- Executors expose these as plain environment globals more often than as
+	-- _G entries; a _G-only lookup missed gethui and silently degraded to
+	-- CoreGui parenting. Bare reads are nil in Studio, everything's pcall'd.
+	local function tryContainer(containerFn)
+		if type(containerFn) ~= "function" then
+			return false
 		end
+		local ok, container = pcall(containerFn)
+		if not ok or typeof(container) ~= "Instance" then
+			return false
+		end
+		return pcall(function()
+			gui.Parent = container
+		end)
+	end
+	-- selene: allow(undefined_variable)
+	if tryContainer(globals.gethui or gethui) then
+		return true
+	end
+	-- selene: allow(undefined_variable)
+	if tryContainer(globals.get_hidden_ui or get_hidden_ui) then
+		return true
 	end
 
 	if pcall(function()
@@ -58,11 +72,15 @@ function Security.Protect(gui)
 	if syn and type(syn.protect_gui) == "function" then
 		pcall(syn.protect_gui, gui)
 	end
-	local protect = globals.protect_gui
+	-- Bare reads catch executors that only define the hook as an environment
+	-- global rather than mirroring it into _G.
+	-- selene: allow(undefined_variable)
+	local protect = globals.protect_gui or protect_gui
 	if type(protect) == "function" then
 		pcall(protect, gui)
 	end
-	local protectGui = globals.protectgui
+	-- selene: allow(undefined_variable)
+	local protectGui = globals.protectgui or protectgui
 	if type(protectGui) == "function" then
 		pcall(protectGui, gui)
 	end
