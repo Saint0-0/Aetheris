@@ -127,14 +127,16 @@ function ProgressBar.new(parent, Settings, theme)
 	self._spinTween = nil
 	self._currentValue = nil
 	local function updateStats(value)
+		-- Read the live bounds: SetMin/SetMax move them after construction.
+		local lo, hi = self.MinValue, self.MaxValue
+		local span = hi - lo
+		local percent = if span > 0 then (value - lo) / span * 100 else 0
 		if showPercentage and showFraction then
-			local percent = (value - minValue) / (maxValue - minValue) * 100
-			stats.Text = string.format("<b>%d%%</b> | %d/%d", math.round(percent), value, maxValue)
+			stats.Text = string.format("<b>%d%%</b> | %d/%d", math.round(percent), value, hi)
 		elseif showPercentage then
-			local percent = (value - minValue) / (maxValue - minValue) * 100
 			stats.Text = string.format("<b>%d%%</b>", math.round(percent))
 		elseif showFraction then
-			stats.Text = string.format("%d/%d", value, maxValue)
+			stats.Text = string.format("%d/%d", value, hi)
 		else
 			stats.Text = ""
 		end
@@ -166,6 +168,12 @@ function ProgressBar.new(parent, Settings, theme)
 		Name = name,
 		Methods = {
 			SetValue = function(me, value, noAnimate)
+				-- A value past the current max means the bound target changed
+				-- (a stronger NPC, a new XP tier): grow the max so the bar
+				-- rescales instead of clamping into a permanent 100%.
+				if value > me.MaxValue then
+					me.MaxValue = value
+				end
 				value = math.clamp(value, me.MinValue, me.MaxValue)
 				me._currentValue = value
 				local percentage = (value - me.MinValue) / (me.MaxValue - me.MinValue)

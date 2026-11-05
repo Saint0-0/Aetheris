@@ -34,7 +34,7 @@ end)
 
 | Method | Description |
 | --- | --- |
-| `:SetValue(number, noAnimate?)` | Set the value. Pass `true` to snap instead of tweening. |
+| `:SetValue(number, noAnimate?)` | Set the value. Pass `true` to snap instead of tweening. A value above the current max grows the max, so re-targeting the bar rescales it. |
 | `:GetValue()` | Returns the current value. |
 | `:SetMin(number)` | Move the lower bound. |
 | `:SetMax(number)` | Move the upper bound. |
