@@ -645,11 +645,18 @@ mediaSection:Paragraph({
 })
 
 -- Viewport: renders a live character clone; Framing picks the camera crop.
+-- ShowInfo = false hides the side labels (viewport centres and widens into
+-- the freed space); the health bar hugs the viewport's right edge either way.
 local viewportDemo = mediaSection:Viewport({
 	Player = Players.LocalPlayer,
 	Rotate = true,
 	Framing = "UpperBody",
 	Height = 170,
+	Info = {
+		{ Caption = "USERNAME", Key = "Name" },
+		{ Caption = "USER ID", Key = "UserId" },
+		{ Caption = "SESSION", Text = "live" },
+	},
 })
 
 local framingModes = { "Full", "UpperBody", "Torso", "Head" }
@@ -687,9 +694,9 @@ mediaSection:Button({
 --     popup recolors live without reopening it.
 --   * Settings > Configs: "Loaded: <name>" updates the moment you press Load,
 --     and loaded values reach your callbacks without switching tabs.
---   * Mask Display Name on: both name lines open masked and clicking either
---     shows the toast with a Turn off action. Off: click either line to
---     mask/unmask as often as you like, no toast.
+--   * Auto Mask User/Display Name on: both name lines open masked and clicking
+--     either asks via toast (Turn off unmasks, Leave on dismisses). Off: click
+--     either line to mask/unmask as often as you like, no toast.
 local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
 settingsSection:Paragraph({
 	Title = "Settings",

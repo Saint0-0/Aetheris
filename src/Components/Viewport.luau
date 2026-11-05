@@ -2,8 +2,8 @@
 	Aetheris/Components/Viewport.luau
 
 	Player card: a ViewportFrame rendering a live character clone (slow orbit or
-	static 3/4 view) beside four info rows. Framing picks the camera crop;
-	SetPlayer swaps the subject in place.
+	static 3/4 view) beside customisable info rows and a slim health bar.
+	Framing picks the camera crop; SetPlayer swaps the subject in place.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -56,6 +56,18 @@ function Viewport.new(parent, Settings, theme)
 	local height = Settings.Height or 160
 	local framing = FRAMING[Settings.Framing] and Settings.Framing or "Full"
 	local rotating = Settings.Rotate ~= false
+	-- Info rows default to the four player fields; pass `Info` to customise
+	-- captions/sources, `ShowInfo = false` for a viewport-only card.
+	local showInfo = Settings.ShowInfo ~= false
+	local infoRows = {}
+	for _, entry in ipairs(if type(Settings.Info) == "table" then Settings.Info else INFO_ROWS) do
+		table.insert(infoRows, {
+			caption = entry.Caption or entry.caption or "",
+			key = entry.Key or entry.key,
+			text = entry.Text or entry.text,
+			suffix = entry.Suffix or entry.suffix,
+		})
+	end
 
 	local frame = Instance.new("Frame")
 	frame.Name = UUID.Static("Viewport")
@@ -74,25 +86,67 @@ function Viewport.new(parent, Settings, theme)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 
+	-- The holder owns the viewport + health-bar pair and is scale-positioned,
+	-- so the pair sits correctly without width-dependent offset maths. With no
+	-- info column it takes over the whole row (ShowInfo = false).
+	local holder = Instance.new("Frame")
+	holder.Name = UUID.Static("ViewportHolder")
+	holder.BorderSizePixel = 0
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = if showInfo then Vector2.new(0, 0.5) else Vector2.new(0.5, 0.5)
+	holder.Position = if showInfo then UDim2.new(0, 8, 0.5, 0) else UDim2.fromScale(0.5, 0.5)
+	holder.Size = if showInfo then UDim2.fromScale(0.55, 0.9) else UDim2.fromScale(0.94, 0.9)
+	holder.Parent = frame
+	if showInfo then
+		-- The viewport's old 150px cap, now on the holder (150 + 3 gap + 4 bar).
+		local holderConstraint = Instance.new("UISizeConstraint")
+		holderConstraint.MaxSize = Vector2.new(157, math.huge)
+		holderConstraint.Parent = holder
+	end
+
 	-- input-well tint keeps it recessed and themed like a Keybind/TextInput
-	-- field; `side` is recomputed by relayout so the info labels never clip
+	-- field; the -7 right margin leaves 3px gap + 4px health bar
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
 	viewport.BorderSizePixel = 0
 	viewport.BackgroundColor3 = (theme and theme.InputBackgroundColor) or Color3.fromRGB(28, 33, 44)
 	viewport.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
-	viewport.AnchorPoint = Vector2.new(0, 0.5)
-	viewport.Position = UDim2.new(0, 8, 0.5, 0)
-	viewport.Size = UDim2.fromScale(0.55, 0.9)
+	viewport.AnchorPoint = Vector2.new(0, 0)
+	viewport.Position = UDim2.fromScale(0, 0)
+	viewport.Size = UDim2.new(1, -7, 1, 0)
 	viewport.Ambient = Color3.fromRGB(126, 126, 134)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-1, -1.2, -0.8).Unit
-	viewport.Parent = frame
+	viewport.Parent = holder
 	newCorner(viewport, 4)
 
-	local viewportConstraint = Instance.new("UISizeConstraint")
-	viewportConstraint.MaxSize = Vector2.new(150, math.huge)
-	viewportConstraint.Parent = viewport
+	-- Slim vertical health bar hugging the viewport's right edge (3px away),
+	-- filled from the bottom by the bound character's humanoid health.
+	local healthTrack = Instance.new("Frame")
+	healthTrack.Name = UUID.Static("HealthTrack")
+	healthTrack.BorderSizePixel = 0
+	healthTrack.AnchorPoint = Vector2.new(0, 0)
+	healthTrack.Position = UDim2.new(1, -4, 0, 0)
+	healthTrack.Size = UDim2.new(0, 4, 1, 0)
+	healthTrack.BackgroundColor3 = (theme and theme.InputBackgroundColor) or Color3.fromRGB(28, 33, 44)
+	healthTrack.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
+	healthTrack.Parent = holder
+	newCorner(healthTrack, 2)
+	local healthStroke = Instance.new("UIStroke")
+	healthStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
+	healthStroke.Color = (theme and theme.StrokeColor)
+	healthStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	healthStroke.Parent = healthTrack
+
+	local healthFill = Instance.new("Frame")
+	healthFill.Name = UUID.Static("HealthFill")
+	healthFill.BorderSizePixel = 0
+	healthFill.AnchorPoint = Vector2.new(0, 1)
+	healthFill.Position = UDim2.fromScale(0, 1)
+	healthFill.Size = UDim2.fromScale(1, 1)
+	healthFill.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(108, 140, 255)
+	healthFill.Parent = healthTrack
+	newCorner(healthFill, 2)
 
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 60
@@ -102,64 +156,68 @@ function Viewport.new(parent, Settings, theme)
 	local worldModel = Instance.new("WorldModel")
 	worldModel.Parent = viewport
 
-	-- caption over value, four rows
-	local infoColumn = Instance.new("Frame")
-	infoColumn.Name = UUID.Static("InfoColumn")
-	infoColumn.BorderSizePixel = 0
-	infoColumn.BackgroundTransparency = 1
-	infoColumn.AnchorPoint = Vector2.new(1, 0.5)
-	infoColumn.Position = UDim2.new(1, -8, 0.5, 0)
-	infoColumn.Size = UDim2.new(0, 100, 0.9, 0)
-	infoColumn.Parent = frame
-	local layout = Instance.new("UIListLayout")
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 2)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Parent = infoColumn
-
+	-- caption over value rows; skipped entirely when ShowInfo = false so the
+	-- viewport can take the freed space
 	local valueLabels = {}
-	for index, spec in ipairs(INFO_ROWS) do
-		local row = Instance.new("Frame")
-		row.Name = UUID.Static("InfoRow")
-		row.BorderSizePixel = 0
-		row.BackgroundTransparency = 1
-		row.Size = UDim2.new(1, 0, 0, 32)
-		row.LayoutOrder = index
-		row.Parent = infoColumn
-		local caption = Instance.new("TextLabel")
-		caption.Name = UUID.Static("Caption")
-		caption.BackgroundTransparency = 1
-		caption.BorderSizePixel = 0
-		caption.AnchorPoint = Vector2.new(0, 0)
-		caption.Position = UDim2.fromOffset(0, 0)
-		caption.Size = UDim2.new(1, 0, 0, 12)
-		caption.FontFace = Constants.Font(Enum.FontWeight.Bold)
-		caption.TextSize = 10
-		caption.TextXAlignment = Enum.TextXAlignment.Right
-		caption.Text = spec.caption
-		ThemeManager.BindColor(caption, "TextColor3", "TertiaryColor")
-		caption.Parent = row
+	if showInfo then
+		local infoColumn = Instance.new("Frame")
+		infoColumn.Name = UUID.Static("InfoColumn")
+		infoColumn.BorderSizePixel = 0
+		infoColumn.BackgroundTransparency = 1
+		infoColumn.AnchorPoint = Vector2.new(1, 0.5)
+		infoColumn.Position = UDim2.new(1, -8, 0.5, 0)
+		infoColumn.Size = UDim2.new(0, 100, 0.9, 0)
+		infoColumn.Parent = frame
+		local layout = Instance.new("UIListLayout")
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 2)
+		layout.VerticalAlignment = Enum.VerticalAlignment.Center
+		layout.Parent = infoColumn
 
-		local value = Instance.new("TextLabel")
-		value.Name = UUID.Static("Value")
-		value.BackgroundTransparency = 1
-		value.BorderSizePixel = 0
-		value.AnchorPoint = Vector2.new(0, 0)
-		value.Position = UDim2.fromOffset(0, 13)
-		value.Size = UDim2.new(1, 0, 0, 17)
-		value.FontFace = Constants.Font(Enum.FontWeight.Medium)
-		value.TextSize = 13
-		value.TextXAlignment = Enum.TextXAlignment.Right
-		value.TextTruncate = Enum.TextTruncate.AtEnd
-		value.Text = ""
-		value.Parent = row
-		valueLabels[index] = value
+		for index, spec in ipairs(infoRows) do
+			local row = Instance.new("Frame")
+			row.Name = UUID.Static("InfoRow")
+			row.BorderSizePixel = 0
+			row.BackgroundTransparency = 1
+			row.Size = UDim2.new(1, 0, 0, 32)
+			row.LayoutOrder = index
+			row.Parent = infoColumn
+			local caption = Instance.new("TextLabel")
+			caption.Name = UUID.Static("Caption")
+			caption.BackgroundTransparency = 1
+			caption.BorderSizePixel = 0
+			caption.AnchorPoint = Vector2.new(0, 0)
+			caption.Position = UDim2.fromOffset(0, 0)
+			caption.Size = UDim2.new(1, 0, 0, 12)
+			caption.FontFace = Constants.Font(Enum.FontWeight.Bold)
+			caption.TextSize = 10
+			caption.TextXAlignment = Enum.TextXAlignment.Right
+			caption.Text = spec.caption
+			ThemeManager.BindColor(caption, "TextColor3", "TertiaryColor")
+			caption.Parent = row
+
+			local value = Instance.new("TextLabel")
+			value.Name = UUID.Static("Value")
+			value.BackgroundTransparency = 1
+			value.BorderSizePixel = 0
+			value.AnchorPoint = Vector2.new(0, 0)
+			value.Position = UDim2.fromOffset(0, 13)
+			value.Size = UDim2.new(1, 0, 0, 17)
+			value.FontFace = Constants.Font(Enum.FontWeight.Medium)
+			value.TextSize = 13
+			value.TextXAlignment = Enum.TextXAlignment.Right
+			value.TextTruncate = Enum.TextTruncate.AtEnd
+			-- Static rows carry their own text; Key rows fill in on bind.
+			value.Text = if spec.text ~= nil then tostring(spec.text) .. (spec.suffix or "") else ""
+			value.Parent = row
+			valueLabels[index] = value
+		end
 	end
 
 	local yaw = STATIC_YAW
 	local boxCF, boxSize -- bounding box; nil until a clone exists
 	local clone
-	local renderConn, charAddedConn
+	local renderConn, charAddedConn, healthConn
 	local bindToken = 0
 
 	local function applyCamera()
@@ -174,6 +232,26 @@ function Viewport.new(parent, Settings, theme)
 		-- the front; elevation adds a touch of top-down perspective
 		local camPos = focus + rotation:VectorToWorldSpace(Vector3.new(0, boxSize.Y * 0.05, -distance))
 		camera.CFrame = CFrame.lookAt(camPos, focus)
+	end
+
+	-- Health bar reads the SOURCE character's humanoid (live, unlike the
+	-- stripped clone); a swap or respawn just moves the connection.
+	local function bindHealth(character)
+		if healthConn then
+			healthConn:Disconnect()
+			healthConn = nil
+		end
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+		local function update()
+			local max = humanoid.MaxHealth
+			local ratio = if max > 0 then math.clamp(humanoid.Health / max, 0, 1) else 0
+			healthFill.Size = UDim2.fromScale(1, ratio)
+		end
+		update()
+		healthConn = humanoid.HealthChanged:Connect(update)
 	end
 
 	local function attach(character)
@@ -208,6 +286,7 @@ function Viewport.new(parent, Settings, theme)
 		end
 		clone.Parent = worldModel
 		boxCF, boxSize = clone:GetBoundingBox()
+		bindHealth(character)
 		applyCamera()
 	end
 
@@ -218,11 +297,24 @@ function Viewport.new(parent, Settings, theme)
 			charAddedConn:Disconnect()
 			charAddedConn = nil
 		end
-		for index, spec in ipairs(INFO_ROWS) do
-			local raw = player and player[spec.key]
-			valueLabels[index].Text = (raw ~= nil and tostring(raw) or "") .. (spec.suffix or "")
+		for index, spec in ipairs(infoRows) do
+			-- Static `text` rows never change; Key rows read the player live.
+			local label = valueLabels[index]
+			if label and spec.key then
+				local raw
+				if player then
+					local ok, value = pcall(function()
+						return player[spec.key]
+					end)
+					if ok then
+						raw = value
+					end
+				end
+				label.Text = (raw ~= nil and tostring(raw) or "") .. (spec.suffix or "")
+			end
 		end
 		if not player then
+			bindHealth(nil)
 			if clone then
 				clone:Destroy()
 				clone = nil
@@ -278,6 +370,11 @@ function Viewport.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(viewport, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindTransparency(viewport, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(healthTrack, "BackgroundColor3", "InputBackgroundColor")
+	ThemeManager.BindTransparency(healthTrack, "BackgroundTransparency", "InputBackgroundTransparency")
+	ThemeManager.BindColor(healthFill, "BackgroundColor3", "AccentColor")
+	ThemeManager.BindColor(healthStroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(healthStroke, "Transparency", "StrokeTransparency")
 	for _, value in ipairs(valueLabels) do
 		ThemeManager.BindColor(value, "TextColor3", "PrimaryTextColor")
 		ThemeManager.BindTransparency(value, "TextTransparency", "PrimaryTextTransparency")
@@ -315,8 +412,8 @@ function Viewport.new(parent, Settings, theme)
 				end
 			end,
 			Destroy = function(_self)
-				-- the orbit and respawn connections outlive the instance tree
-				-- unless disconnected here
+				-- the orbit, respawn and health connections outlive the instance
+				-- tree unless disconnected here
 				if renderConn then
 					renderConn:Disconnect()
 					renderConn = nil
@@ -324,6 +421,10 @@ function Viewport.new(parent, Settings, theme)
 				if charAddedConn then
 					charAddedConn:Disconnect()
 					charAddedConn = nil
+				end
+				if healthConn then
+					healthConn:Disconnect()
+					healthConn = nil
 				end
 				if frame and frame.Parent then
 					frame:Destroy()
