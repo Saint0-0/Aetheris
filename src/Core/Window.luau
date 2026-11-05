@@ -757,10 +757,10 @@ function Window.new(Settings)
 			return
 		end
 		if autoMask then
-			-- Auto-mask owns the state, so explain instead of unmasking.
+			-- Auto-mask owns the state, so ask instead of unmasking.
 			self:Toast({
 				Title = "Auto-mask is on",
-				Description = "Your display name is hidden automatically.",
+				Description = "Turn auto-mask off to show your name?",
 				Duration = 5,
 				Actions = {
 					{
@@ -768,6 +768,10 @@ function Window.new(Settings)
 						Callback = function()
 							self:SetMaskEnabled(false, true)
 						end,
+					},
+					{
+						Text = "Leave on",
+						Callback = function() end,
 					},
 				},
 			})
@@ -1056,7 +1060,11 @@ function Window.new(Settings)
 	self.DragStyle = dragStyle
 	self.MainFrameShadow = MainFrameShadow
 	self.Aurora = aurora
-	self.SetMaskEnabled = setMaskEnabled
+	-- Attach as a real method: call sites use colon syntax, and the closure
+	-- takes (on, animate) directly rather than (self, on, animate).
+	self.SetMaskEnabled = function(_me, on, animate)
+		setMaskEnabled(on, animate)
+	end
 
 	-- Stored before settings pages/scripts build so they don't fall back to Default.
 	self._theme = theme

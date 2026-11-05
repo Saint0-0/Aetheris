@@ -81,7 +81,7 @@ function UISettings.Build(window, tab)
 	-- Window:SetMaskEnabled so the store, the toggle and the name lines stay
 	-- in sync from one place.
 	local maskToggle = interfaceSection:Toggle({
-		Name = "Mask Display Name",
+		Name = "Auto Mask User/Display Name",
 		Default = SettingsStore.Get("MaskDisplayName"),
 		Callback = function(state)
 			if window.SetMaskEnabled then
