@@ -107,11 +107,11 @@ local THEME_DESCRIPTIONS = {
 	Mint = "Light mint",
 	Lilac = "Pale violet",
 	Linen = "Warm grey",
-	Slate = "Storm blue-grey",
-	Onyx = "Midnight blue",
-	Ash = "Smoke & violet",
-	Gunmetal = "Deep teal steel",
-	Charcoal = "Warm ember",
+	Slate = "Storm grey",
+	Onyx = "Obsidian black",
+	Ash = "Soft smoke",
+	Gunmetal = "Dark steel",
+	Charcoal = "Warm charcoal",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)
