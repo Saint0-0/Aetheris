@@ -58,6 +58,11 @@ local THEME_ORDER = {
 	"Mint",
 	"Lilac",
 	"Linen",
+	"Slate",
+	"Onyx",
+	"Ash",
+	"Gunmetal",
+	"Charcoal",
 }
 
 -- short enough to fit a card without wrapping
@@ -102,6 +107,11 @@ local THEME_DESCRIPTIONS = {
 	Mint = "Light mint",
 	Lilac = "Pale violet",
 	Linen = "Warm grey",
+	Slate = "Storm grey",
+	Onyx = "Obsidian black",
+	Ash = "Soft smoke",
+	Gunmetal = "Dark steel",
+	Charcoal = "Warm charcoal",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)

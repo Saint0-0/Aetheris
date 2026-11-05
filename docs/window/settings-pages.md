@@ -6,7 +6,7 @@ The settings window opens from the gear in the title bar. It always ships with t
 
 | Page | What it does |
 | --- | --- |
-| **Themes** | Browse and switch between the 40 built-in themes. |
+| **Themes** | Browse and switch between the 45 built-in themes. |
 | **UI Settings** | Window scale, minimize key, pill position, compact mode, volume, page animations, font and confirm-on-close. |
 | **Configs** | Save and load per-game configs. See [Configs](../configs.md). |
 

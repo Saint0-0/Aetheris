@@ -74,7 +74,7 @@ KeySystem = {
 }
 ```
 
-**Theming** - 40 built-in themes, every component repaints live on switch. Custom themes merge over `Base`, so one key is enough to restyle everything. `Aetheris.SetAuroraTexture(id)` swaps the window glow.
+**Theming** - 45 built-in themes, every component repaints live on switch. Custom themes merge over `Base`, so one key is enough to restyle everything. `Aetheris.SetAuroraTexture(id)` swaps the window glow.
 
 **Extras** - per-game config manager, saved user settings (theme, font, volume, pill position), custom settings pages, custom font families, UI scale, and `AETHERIS_SECUREMODE` for hidden `gethui`/CoreGui parenting with UUID-renamed instances.
 

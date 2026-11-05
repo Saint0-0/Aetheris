@@ -1,10 +1,10 @@
 # Themes
 
-Aetheris ships with 40 hand-tuned themes. Every component follows the active one automatically — you never theme a component by hand.
+Aetheris ships with 45 hand-tuned themes. Every component follows the active one automatically — you never theme a component by hand.
 
 ## The roster
 
-Umbral, Ember, Vesper, Duskfall, Canopy, Tidewater, Nocturne, Solace, Cielo, Honey, Dawn, Alpine, Peony, Sakura, Blush, Cinder, Mauve, Iris, Sundown, Twilight, Nebula, Monterey, Sonoma, Ventura, Vermilion, Grove, Prism, Sage, Blossom, Petal, Frost, Amber, Rosa, Gruvbox, Graphite, Mint, Lilac, Crimson, Umber, Linen.
+Umbral, Ember, Vesper, Duskfall, Canopy, Tidewater, Nocturne, Solace, Cielo, Honey, Dawn, Alpine, Peony, Sakura, Blush, Cinder, Mauve, Iris, Sundown, Twilight, Nebula, Monterey, Sonoma, Ventura, Vermilion, Grove, Prism, Sage, Blossom, Petal, Frost, Amber, Rosa, Gruvbox, Graphite, Mint, Lilac, Crimson, Umber, Linen, Slate, Onyx, Ash, Gunmetal, Charcoal.
 
 `Umbral` is the default. `"Default"` in code always means the launch theme, whatever that ends up being.
 

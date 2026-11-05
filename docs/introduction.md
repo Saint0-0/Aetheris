@@ -8,12 +8,12 @@
 
 Aetheris is a UI library for Roblox with a clean, modern look. It takes inspiration from **WinUI3**, **maclib**, **Rayfield Gen 2** and **Fluent**. You build the whole interface from code.
 
-It ships with a theming engine and 40 themes, live theme switching with a smooth colour fade, a full set of components, popups and notifications, a key system, and per-game config saving. It runs in Studio and inside a script executor.
+It ships with a theming engine and 45 themes, live theme switching with a smooth colour fade, a full set of components, popups and notifications, a key system, and per-game config saving. It runs in Studio and inside a script executor.
 
 ## What's inside
 
 * Every element is created with `Instance.new` — nothing extra to download.
-* 40 built-in themes, all switchable at runtime, and every component follows the active theme.
+* 45 built-in themes, all switchable at runtime, and every component follows the active theme.
 * Components: toggles, sliders, steppers, keybinds, text inputs, dropdowns, colour pickers, radio groups, progress bars, status lists, buttons, labels, paragraphs, dividers, video, console, live stats, code views and viewports.
 * Popups and notifications: dropdowns, colour pickers, tooltips and toasts (alert, error and variable).
 * A key system with a loading screen, Platoboost and Panda validators, or your own check function.
