@@ -1427,6 +1427,15 @@ function Window.new(Settings)
 				TabList.Position = UDim2.new(0.5, 0, 0, 60)
 				Tween.Play(TabList, "Smooth", { Position = UDim2.new(0.5, 0, 0, 65) })
 			else
+				-- A rapid full -> compact -> full flip left the entry tweens running;
+				-- they finished after this restore and parked Content and the tab row
+				-- at their compact positions until the next resize. Kill them first,
+				-- and treat a restore with nothing captured as a no-op.
+				Tween.CancelProperty(Content, "Position")
+				Tween.CancelProperty(TabList, "Position")
+				if not saved then
+					return
+				end
 				Sidebar.Visible = saved.sidebarVisible
 				TabList.Parent = saved.tabListParent
 				TabList.ZIndex = saved.tabListZ
@@ -1480,12 +1489,21 @@ function Window.new(Settings)
 					self.TabGroup:SetCompact(false)
 				end
 				MainFrameSizeConstraint.MinSize = saved.minSize
+				-- Re-capture on the next enter so restores always use the layout
+				-- as it stands now, not the one from the first toggle ever.
+				saved = nil
 			end
 		end
 
 		self.SetCompact = function(_self, on)
-			compact = on and true or false
-			applyCompact(compact)
+			local want = on and true or false
+			-- Same-state calls are no-ops; a double-enter used to re-run the
+			-- whole compact build over an already compact layout.
+			if want == compact then
+				return
+			end
+			compact = want
+			applyCompact(want)
 		end
 
 		local function resolveAndApply()
