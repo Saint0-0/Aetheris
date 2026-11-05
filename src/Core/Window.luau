@@ -1975,15 +1975,16 @@ function Window.new(Settings)
 	MaximizeButton.MouseButton1Click:Connect(function()
 		-- Decide from the actual size, not a flag: a manual resize while maximized left the flag stale.
 		local isFull = MainFrame.Size.X.Scale >= 0.999 and MainFrame.Size.Y.Scale >= 0.999
+		-- Fast (0.2s), not the window toggle preset: expanding to fullscreen felt sluggish at 0.38s.
 		if isFull then
-			Tween.Play(MainFrame, minimizePreset(), {
+			Tween.Play(MainFrame, "Fast", {
 				Size = preMaxSize,
 				Position = preMaxPosition,
 			})
 		else
 			preMaxSize = MainFrame.Size
 			preMaxPosition = MainFrame.Position
-			Tween.Play(MainFrame, minimizePreset(), {
+			Tween.Play(MainFrame, "Fast", {
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0, 0),
 			})

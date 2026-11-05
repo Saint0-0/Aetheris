@@ -36,8 +36,8 @@ TweenUtil.Presets = {
 	MinimizeSnappy = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	WindowToggle = TweenInfo.new(0.38, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	WindowToggleSnappy = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	-- Window open/close/minimize fade: smoother pacing so the shell doesn't feel rushed.
-	WindowFade = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- Window open/close/minimize shell fade: quick, so toggling the window feels immediate.
+	WindowFade = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 }
 
 -- Weak keys: a destroyed instance's tween bookkeeping must not keep it alive.
