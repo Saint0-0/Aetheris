@@ -32,6 +32,9 @@ end
 
 -- Stamping ThemeOverride_<Property> makes the theme system skip that property, so custom colors survive theme switches.
 local overrideCount = 0
+-- Instances with pinned colours, tracked so a theme switch re-stamps only
+-- them; walking GetDescendants() over the whole window instead froze executors.
+local overrideProps = setmetatable({}, { __mode = "k" })
 
 function ThemeManager.SetColorOverride(instance, property, color)
 	if not instance or not property then
@@ -42,11 +45,24 @@ function ThemeManager.SetColorOverride(instance, property, color)
 	if color then
 		instance:SetAttribute(attr, color)
 		instance[property] = color
+		local props = overrideProps[instance]
+		if not props then
+			props = {}
+			overrideProps[instance] = props
+		end
+		props[property] = true
 		if not had then
 			overrideCount += 1
 		end
 	else
 		instance:SetAttribute(attr, nil)
+		local props = overrideProps[instance]
+		if props then
+			props[property] = nil
+			if next(props) == nil then
+				overrideProps[instance] = nil
+			end
+		end
 		if had then
 			overrideCount -= 1
 		end
@@ -58,6 +74,13 @@ function ThemeManager.ClearColorOverride(instance, property)
 		local attr = UUID.Static("ThemeOverride_" .. property)
 		if instance:GetAttribute(attr) ~= nil then
 			instance:SetAttribute(attr, nil)
+			local props = overrideProps[instance]
+			if props then
+				props[property] = nil
+				if next(props) == nil then
+					overrideProps[instance] = nil
+				end
+			end
 			overrideCount -= 1
 		end
 	end
@@ -439,6 +462,13 @@ for _, p in ipairs(COLOR_PROPS) do
 end
 local STROKE_OVERRIDE_ATTR = UUID.Static("ThemeOverride_Color")
 
+local function overrideAttrFor(property)
+	if property == "Color" then
+		return STROKE_OVERRIDE_ATTR
+	end
+	return COLOR_PROP_ATTRS[property] or UUID.Static("ThemeOverride_" .. property)
+end
+
 -- Only named (string/nil) results are memoized; custom tables are caller-owned and merged fresh each time.
 local themeMemo = {}
 
@@ -549,24 +579,20 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Re-stamp overrides after every pass so component theme colors can't clobber a pinned custom color.
+	-- Re-stamp pinned colors after every pass so component theme colors can't
+	-- clobber a pinned custom color. Iterate the override registry (a handful
+	-- of entries) instead of GetDescendants() over the whole window — that
+	-- walk was the multi-second freeze on executors.
 	if overrideCount > 0 then
-		local descendants = window.Base:GetDescendants()
-		for _, d in ipairs(descendants) do
-			for _, p in ipairs(COLOR_PROPS) do
-				local v = d:GetAttribute(COLOR_PROP_ATTRS[p])
-				if typeof(v) == "Color3" then
-					pcall(function()
-						d[p] = v
-					end)
-				end
-			end
-			if d:IsA("UIStroke") then
-				local sv = d:GetAttribute(STROKE_OVERRIDE_ATTR)
-				if typeof(sv) == "Color3" then
-					pcall(function()
-						d.Color = sv
-					end)
+		for inst, props in pairs(overrideProps) do
+			if inst.Parent then
+				for p in pairs(props) do
+					local v = inst:GetAttribute(overrideAttrFor(p))
+					if typeof(v) == "Color3" then
+						pcall(function()
+							inst[p] = v
+						end)
+					end
 				end
 			end
 		end
@@ -576,11 +602,25 @@ function ThemeManager.ApplyTheme(window, themeInput)
 	compactBindings()
 	-- bindings is module-global, so scope the pass to this window's tree or a second window's ApplyTheme would re-theme the first.
 	local scopeRoot = window.Base
+	-- One visibility climb per instance per switch, and only for bindings that
+	-- would actually tween: instant/direct bindings skip the ancestor walk.
+	local hiddenCache = {}
+	local function shouldAnimate(inst, entry)
+		if entry.opts.instant or (entry.kind ~= "color" and entry.kind ~= "number") then
+			return false
+		end
+		local cached = hiddenCache[inst]
+		if cached == nil then
+			cached = isHidden(inst)
+			hiddenCache[inst] = cached
+		end
+		return not cached
+	end
 	for _, entry in ipairs(bindings) do
 		local inst = entry.instance
 		if inst and (entry.scopeRoot == scopeRoot or inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
 			entry.scopeRoot = scopeRoot
-			applyEntry(entry, theme, not isHidden(inst))
+			applyEntry(entry, theme, shouldAnimate(inst, entry))
 		end
 	end
 

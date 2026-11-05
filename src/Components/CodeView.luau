@@ -651,7 +651,26 @@ function CodeView:_applyTheme(liveTheme)
 	if self._editing then
 		self:_scheduleRelayout()
 	else
+		self:_rerenderRows()
+	end
+end
+
+-- Only the highlighted text carries palette colours, so a theme switch
+-- re-renders each row in place instead of destroying and rebuilding them.
+function CodeView:_rerenderRows()
+	if #self._rows == 0 then
 		self:_buildRows()
+		return
+	end
+	local rich = splitLines(SyntaxHighlight.Render(self._text, self._language, self._palette))
+	for index, row in ipairs(self._rows) do
+		local code = row:FindFirstChild(UUID.Static("CodeLine"))
+		if not code then
+			self:_buildRows()
+			return
+		end
+		local line = rich[index]
+		code.Text = if line ~= nil and line ~= "" then line else " "
 	end
 end
 

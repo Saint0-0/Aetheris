@@ -367,6 +367,37 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	end)
 
 	-- Re-apply every theme color without rebuilding, so a cached/open dropdown recolors live.
+	-- Re-tint every item row (bg accent, name + icon follow selection state).
+	-- Shared by ApplyTheme (live switch) and SetContent (reopen), so rows can't
+	-- keep construction-time colours after a switch.
+	self._retintItems = function(me, t)
+		if not t then
+			return
+		end
+		for _, obj in ipairs(me._itemObjects) do
+			if obj.button then
+				obj.button.BackgroundColor3 = t.AccentColor or obj.button.BackgroundColor3
+			end
+			if obj.nameLabel then
+				obj.nameLabel.TextColor3 = t.PopupTextColor or obj.nameLabel.TextColor3
+			end
+			if obj.icon then
+				obj.icon.ImageColor3 = obj.selected and (t.ActiveTabIconColor or obj.icon.ImageColor3)
+					or (t.InactiveTabIconColor or obj.icon.ImageColor3)
+			end
+			if obj.stroke then
+				obj.stroke.Color = t.StrokeColor or obj.stroke.Color
+			end
+			if obj.shadow then
+				obj.shadow.Color = t.ComponentShadowColor or obj.shadow.Color
+			end
+			-- Item sheen follows the theme; rows recolor in place rather than rebuild.
+			if obj.selectionStatus then
+				obj.selectionStatus.BackgroundColor3 = t.SecondaryColor or obj.selectionStatus.BackgroundColor3
+			end
+		end
+	end
+
 	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
 			return
@@ -394,29 +425,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		me.SelectAllShadow.Color = t.AccentColor or me.SelectAllShadow.Color
 		me.SelectAllIcon.ImageColor3 = t.PopupTextColor or me.SelectAllIcon.ImageColor3
 		me.List.ScrollBarImageColor3 = t.TertiaryColor or me.List.ScrollBarImageColor3
-		-- Re-tint every item row (bg accent, name + icon follow selection state).
-		for _, obj in ipairs(me._itemObjects) do
-			if obj.button then
-				obj.button.BackgroundColor3 = t.AccentColor or obj.button.BackgroundColor3
-			end
-			if obj.nameLabel then
-				obj.nameLabel.TextColor3 = t.PopupTextColor or obj.nameLabel.TextColor3
-			end
-			if obj.icon then
-				obj.icon.ImageColor3 = obj.selected and (t.ActiveTabIconColor or obj.icon.ImageColor3)
-					or (t.InactiveTabIconColor or obj.icon.ImageColor3)
-			end
-			if obj.stroke then
-				obj.stroke.Color = t.StrokeColor or obj.stroke.Color
-			end
-			if obj.shadow then
-				obj.shadow.Color = t.ComponentShadowColor or obj.shadow.Color
-			end
-			-- Item sheen follows the theme; rows recolor in place rather than rebuild.
-			if obj.selectionStatus then
-				obj.selectionStatus.BackgroundColor3 = t.SecondaryColor or obj.selectionStatus.BackgroundColor3
-			end
-		end
+		me:_retintItems(t)
 	end
 
 	self._flashDivider = function(_self)
@@ -657,7 +666,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		end
 		self._itemObjects = {}
 		self._selectedValues = {}
-		local liveTheme = self._theme or ActiveTheme.theme or theme
+		-- ActiveTheme is republished on every switch, so rebuilt rows can't
+		-- pick up a stale construction-time theme.
+		local liveTheme = ActiveTheme.theme or self._theme or theme
 		for _, itemData in ipairs(self.Items) do
 			local name = itemData.name or "Item"
 			local icon = itemData.icon or Icons["circle"] or "rbxassetid://130359823580534"
@@ -822,6 +833,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		local newTitle = contentSettings.Title or "Select Items"
 		-- Read the LIVE theme; SetContent runs on every reopen, so a construction-time theme would be stale.
 		local liveTheme = ThemeManager.GetTheme(contentSettings.Theme or self._theme)
+		-- Sync the cached popup to the live theme so a rebuild below and any
+		-- later reopen use current colours, not the construction-time ones.
+		self._theme = liveTheme
 		local newTitleColor = contentSettings.TitleColor
 			or (liveTheme and liveTheme.PopupTextColor)
 			or Color3.fromRGB(255, 255, 255)
@@ -840,6 +854,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if not itemsEqual(oldItems, newItems) then
 			self:_buildItems()
 		end
+		-- Rows that survived the rebuild keep colours from the last switch;
+		-- retint them from the live theme on every reopen.
+		self:_retintItems(liveTheme)
 		self:SetSelection(newDefault)
 		self:_updateSelectedText()
 		self._resolved = false
