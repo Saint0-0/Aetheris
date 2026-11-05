@@ -40,16 +40,45 @@ function Configs.Build(window, tab)
 			local ok, err = manager:Save(name)
 			if ok then
 				window:Toast({ Title = "Config saved", Description = name, Duration = 3 })
+				selectedName = name
 				refreshAll()
 			else
 				window:Error({ Title = "Save failed", Description = err or "Unknown error", Duration = 4 })
 			end
 		end,
 	})
+	-- Saves straight over the loaded config so a quick tweak doesn't need the
+	-- name retyped (Save Config with the same name does the same thing).
+	saveSection:Button({
+		Name = "Overwrite Config",
+		NoSave = true,
+		Callback = function()
+			local target = manager.Active
+			if not target then
+				window:Error({ Title = "No config loaded", Description = "Load a config first.", Duration = 4 })
+				return
+			end
+			local ok, err = manager:Save(target)
+			if ok then
+				window:Toast({ Title = "Config overwritten", Description = target, Duration = 3 })
+				selectedName = target
+				refreshAll()
+			else
+				window:Error({ Title = "Overwrite failed", Description = err or "Unknown error", Duration = 4 })
+			end
+		end,
+	})
 
 	local loadSection = tab:Section({ Name = "Load" })
+	-- Shows which config is currently loaded; sits above the dropdown, bare
+	-- text with no container.
+	local currentLabel = loadSection:Label({
+		Text = "No config loaded",
+		ShowContainer = false,
+		NoSave = true,
+	})
 	local configDropdown = loadSection:Dropdown({
-		Name = "Config",
+		Name = "Config Files",
 		Items = {},
 		MaxItemsChoosable = 1,
 		Placeholder = "No configs yet",
@@ -95,12 +124,6 @@ function Configs.Build(window, tab)
 			end
 		end,
 	})
-	-- Shows which config is currently loaded; refreshed on load/save/delete.
-	local currentLabel = loadSection:Label({
-		Text = "No config loaded",
-		NoSave = true,
-	})
-
 	local optionsSection = tab:Section({ Name = "Options" })
 	optionsSection:Toggle({
 		Name = "Auto-Save",
@@ -126,6 +149,8 @@ function Configs.Build(window, tab)
 			preview:SetText("{}")
 			return
 		end
+		-- Flush any pending auto-save so the preview shows what's on disk now.
+		manager:Flush()
 		local content = manager:Preview(name)
 		preview:SetText(content or "{}")
 	end

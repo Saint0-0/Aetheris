@@ -2247,6 +2247,11 @@ function Window:SetTheme(themeInput)
 	end
 	-- ThemeManager.UpdateTheme crossfades colors old -> new, invoking Window:ApplyTheme.
 	ThemeManager.UpdateTheme(self, themeInput)
+	-- The theme travels with a config, so a manual switch joins the same
+	-- debounced auto-save as any component change (no-ops while loading one).
+	if self.ConfigManager then
+		self.ConfigManager:NotifyChanged()
+	end
 end
 
 -- Swap the UI font family live: re-Font.new's every FontFace matching the current family, then persists the choice (nil = built-in).

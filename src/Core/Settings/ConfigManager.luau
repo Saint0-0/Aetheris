@@ -18,6 +18,9 @@ local SettingsStore = require("./SettingsStore")
 
 local ROOT = "Aetheris"
 local GAMES = ROOT .. "/Games"
+-- Reserved key (component keys are "Section.Component") so the saved theme
+-- travels with the config instead of living only in UI settings.
+local THEME_KEY = "_theme"
 
 local hasFileAPI = (type(writefile) == "function" and type(readfile) == "function")
 
@@ -199,6 +202,10 @@ end
 
 function ConfigManager:Serialize()
 	local data = {}
+	local themeName = self._window and self._window._themeName
+	if type(themeName) == "string" then
+		data[THEME_KEY] = themeName
+	end
 	for _, entry in ipairs(self._entries) do
 		local ok, value = pcall(entry.parser.Save, entry.comp)
 		if ok and value ~= nil then
@@ -281,6 +288,12 @@ function ConfigManager:Load(name)
 	-- auto-save of the config we're in the middle of loading.
 	self._loading = true
 	self.Active = name
+	local themeName = data[THEME_KEY]
+	if type(themeName) == "string" and self._window and self._window.SetTheme then
+		pcall(function()
+			self._window:SetTheme(themeName)
+		end)
+	end
 	for _, entry in ipairs(self._entries) do
 		local value = data[entry.key]
 		if value ~= nil then
