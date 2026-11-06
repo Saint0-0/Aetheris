@@ -731,14 +731,6 @@ viewportVariants:Viewport({
 -- =========================================================================
 --  8. SETTINGS TAB  -  live theme switcher
 -- =========================================================================
--- Manual checks while you're here:
---   * The theme dropdown crossfades the whole window in 0.6s; an open dropdown
---     popup recolors live without reopening it.
---   * Settings > Configs: "Loaded: <name>" updates the moment you press Load,
---     and loaded values reach your callbacks without switching tabs.
---   * Auto Mask User/Display Name on: both name lines open masked and clicking
---     either asks via toast (Turn off unmasks, Leave on dismisses). Off: click
---     either line to mask/unmask as often as you like, no toast.
 local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
 settingsSection:Paragraph({
 	Title = "Settings",

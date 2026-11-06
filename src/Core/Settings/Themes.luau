@@ -63,6 +63,11 @@ local THEME_ORDER = {
 	"Ash",
 	"Gunmetal",
 	"Charcoal",
+	"Void",
+	"Volt",
+	"Bone",
+	"Merlot",
+	"Khaki",
 }
 
 -- short enough to fit a card without wrapping
@@ -112,6 +117,11 @@ local THEME_DESCRIPTIONS = {
 	Ash = "Soft smoke",
 	Gunmetal = "Dark steel",
 	Charcoal = "Warm charcoal",
+	Void = "Pure black",
+	Volt = "Neon charge",
+	Bone = "Warm cream",
+	Merlot = "Wine cellar",
+	Khaki = "Field olive",
 }
 
 local function makeCard(parent, name, theme, active, onActivate)
