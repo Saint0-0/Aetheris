@@ -21,8 +21,8 @@ section:Viewport({
 | `Height` | number | Frame height in pixels. Defaults to `160`. |
 | `Framing` | string | `"Full"`, `"UpperBody"`, `"Torso"` or `"Head"`. |
 | `Rotate` | boolean | Slowly turn the model. On by default. |
-| `ShowInfo` | boolean | Show the info column next to the viewport. On by default; `false` leaves just the viewport, centred and widened into the freed space. |
-| `Info` | table | The info rows themselves, see below. |
+| `Info` | table | The info column and its rows (see below). Omit it for a viewport-only card; `{}` shows the default four player fields. |
+| `HealthBar` | boolean | The slim vertical bar beside the viewport. On by default; `false` drops it and the view takes the extra width. |
 
 The camera follows the framing you pick: `"Full"` shows the whole character, the others push in. If the character dies or respawns, the viewport tracks it, and the health bar tracks the character's humanoid — it fills from the bottom and shifts red to yellow to green as health drops.
 

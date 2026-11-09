@@ -70,17 +70,25 @@ function Viewport.new(parent, Settings, theme)
 	local height = Settings.Height or 160
 	local framing = FRAMING[Settings.Framing] and Settings.Framing or "Full"
 	local rotating = Settings.Rotate ~= false
-	-- Info rows default to the four player fields; pass `Info` to customise
-	-- captions/sources, `ShowInfo = false` for a viewport-only card.
-	local showInfo = Settings.ShowInfo ~= false
+	-- `Info` is the opt-in for the info column: pass a table to show it (its
+	-- entries customise the rows, an empty one keeps the default player
+	-- fields), omit it for a viewport-only card. HealthBar = false drops the
+	-- slim side bar.
+	local showInfo = type(Settings.Info) == "table"
+	local healthBar = Settings.HealthBar ~= false
+	-- 3px gap to the side bar, + 4px for the bar itself when present.
+	local viewportRight = if healthBar then 7 else 3
 	local infoRows = {}
-	for _, entry in ipairs(if type(Settings.Info) == "table" then Settings.Info else INFO_ROWS) do
-		table.insert(infoRows, {
-			caption = entry.Caption or entry.caption or "",
-			key = entry.Key or entry.key,
-			text = entry.Text or entry.text,
-			suffix = entry.Suffix or entry.suffix,
-		})
+	if showInfo then
+		local specs = if #Settings.Info > 0 then Settings.Info else INFO_ROWS
+		for _, entry in ipairs(specs) do
+			table.insert(infoRows, {
+				caption = entry.Caption or entry.caption or "",
+				key = entry.Key or entry.key,
+				text = entry.Text or entry.text,
+				suffix = entry.Suffix or entry.suffix,
+			})
+		end
 	end
 
 	local frame = Instance.new("Frame")
@@ -102,7 +110,7 @@ function Viewport.new(parent, Settings, theme)
 
 	-- The holder owns the viewport + health-bar pair and is scale-positioned,
 	-- so the pair sits correctly without width-dependent offset maths. With no
-	-- info column it takes over the whole row (ShowInfo = false).
+	-- info column it takes over the whole row (no `Info` table).
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("ViewportHolder")
 	holder.BorderSizePixel = 0
@@ -112,14 +120,14 @@ function Viewport.new(parent, Settings, theme)
 	holder.Size = if showInfo then UDim2.fromScale(0.55, 0.9) else UDim2.fromScale(0.94, 0.9)
 	holder.Parent = frame
 	if showInfo then
-		-- The viewport's old 150px cap, now on the holder (150 + 3 gap + 4 bar).
+		-- The viewport's old 150px cap, now on the holder (150 + margin).
 		local holderConstraint = Instance.new("UISizeConstraint")
-		holderConstraint.MaxSize = Vector2.new(157, math.huge)
+		holderConstraint.MaxSize = Vector2.new(150 + viewportRight, math.huge)
 		holderConstraint.Parent = holder
 	end
 
 	-- input-well tint keeps it recessed and themed like a Keybind/TextInput
-	-- field; the -7 right margin leaves 3px gap + 4px health bar
+	-- field; the right margin leaves the 3px gap (+4px health bar when on)
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
 	viewport.BorderSizePixel = 0
@@ -127,7 +135,7 @@ function Viewport.new(parent, Settings, theme)
 	viewport.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
 	viewport.AnchorPoint = Vector2.new(0, 0)
 	viewport.Position = UDim2.fromScale(0, 0)
-	viewport.Size = UDim2.new(1, -7, 1, 0)
+	viewport.Size = UDim2.new(1, -viewportRight, 1, 0)
 	viewport.Ambient = Color3.fromRGB(126, 126, 134)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-1, -1.2, -0.8).Unit
@@ -136,31 +144,35 @@ function Viewport.new(parent, Settings, theme)
 
 	-- Slim vertical health bar hugging the viewport's right edge (3px away),
 	-- filled from the bottom by the bound character's humanoid health.
-	local healthTrack = Instance.new("Frame")
-	healthTrack.Name = UUID.Static("HealthTrack")
-	healthTrack.BorderSizePixel = 0
-	healthTrack.AnchorPoint = Vector2.new(0, 0)
-	healthTrack.Position = UDim2.new(1, -4, 0, 0)
-	healthTrack.Size = UDim2.new(0, 4, 1, 0)
-	healthTrack.BackgroundColor3 = (theme and theme.InputBackgroundColor) or Color3.fromRGB(28, 33, 44)
-	healthTrack.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
-	healthTrack.Parent = holder
-	newCorner(healthTrack, 2)
-	local healthStroke = Instance.new("UIStroke")
-	healthStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
-	healthStroke.Color = (theme and theme.StrokeColor)
-	healthStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	healthStroke.Parent = healthTrack
+	-- HealthBar = false skips the whole bar (track, fill and its binds).
+	local healthTrack, healthStroke, healthFill
+	if healthBar then
+		healthTrack = Instance.new("Frame")
+		healthTrack.Name = UUID.Static("HealthTrack")
+		healthTrack.BorderSizePixel = 0
+		healthTrack.AnchorPoint = Vector2.new(0, 0.5)
+		healthTrack.Position = UDim2.new(1, -4, 0.5, 0)
+		healthTrack.Size = UDim2.new(0, 4, 1, -5)
+		healthTrack.BackgroundColor3 = (theme and theme.InputBackgroundColor) or Color3.fromRGB(28, 33, 44)
+		healthTrack.BackgroundTransparency = (theme and theme.InputBackgroundTransparency) or 0
+		healthTrack.Parent = holder
+		newCorner(healthTrack, 2)
+		healthStroke = Instance.new("UIStroke")
+		healthStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
+		healthStroke.Color = (theme and theme.StrokeColor)
+		healthStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		healthStroke.Parent = healthTrack
 
-	local healthFill = Instance.new("Frame")
-	healthFill.Name = UUID.Static("HealthFill")
-	healthFill.BorderSizePixel = 0
-	healthFill.AnchorPoint = Vector2.new(0, 1)
-	healthFill.Position = UDim2.fromScale(0, 1)
-	healthFill.Size = UDim2.fromScale(1, 1)
-	healthFill.BackgroundColor3 = healthColour(1)
-	healthFill.Parent = healthTrack
-	newCorner(healthFill, 2)
+		healthFill = Instance.new("Frame")
+		healthFill.Name = UUID.Static("HealthFill")
+		healthFill.BorderSizePixel = 0
+		healthFill.AnchorPoint = Vector2.new(0, 1)
+		healthFill.Position = UDim2.fromScale(0, 1)
+		healthFill.Size = UDim2.fromScale(1, 1)
+		healthFill.BackgroundColor3 = healthColour(1)
+		healthFill.Parent = healthTrack
+		newCorner(healthFill, 2)
+	end
 
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 60
@@ -170,7 +182,7 @@ function Viewport.new(parent, Settings, theme)
 	local worldModel = Instance.new("WorldModel")
 	worldModel.Parent = viewport
 
-	-- caption over value rows; skipped entirely when ShowInfo = false so the
+	-- caption over value rows; skipped entirely without an `Info` table so the
 	-- viewport can take the freed space
 	local valueLabels = {}
 	if showInfo then
@@ -251,6 +263,9 @@ function Viewport.new(parent, Settings, theme)
 	-- Health bar reads the SOURCE character's humanoid (live, unlike the
 	-- stripped clone); a swap or respawn just moves the connection.
 	local function bindHealth(character)
+		if not healthFill then
+			return
+		end
 		if healthConn then
 			healthConn:Disconnect()
 			healthConn = nil
@@ -385,11 +400,13 @@ function Viewport.new(parent, Settings, theme)
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(viewport, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindTransparency(viewport, "BackgroundTransparency", "InputBackgroundTransparency")
-	ThemeManager.BindColor(healthTrack, "BackgroundColor3", "InputBackgroundColor")
-	ThemeManager.BindTransparency(healthTrack, "BackgroundTransparency", "InputBackgroundTransparency")
-	-- healthFill's colour is driven by the bound humanoid's ratio, never by the theme.
-	ThemeManager.BindColor(healthStroke, "Color", "StrokeColor")
-	ThemeManager.BindTransparency(healthStroke, "Transparency", "StrokeTransparency")
+	if healthBar then
+		ThemeManager.BindColor(healthTrack, "BackgroundColor3", "InputBackgroundColor")
+		ThemeManager.BindTransparency(healthTrack, "BackgroundTransparency", "InputBackgroundTransparency")
+		-- healthFill's colour is driven by the bound humanoid's ratio, never by the theme.
+		ThemeManager.BindColor(healthStroke, "Color", "StrokeColor")
+		ThemeManager.BindTransparency(healthStroke, "Transparency", "StrokeTransparency")
+	end
 	for _, value in ipairs(valueLabels) do
 		ThemeManager.BindColor(value, "TextColor3", "PrimaryTextColor")
 		ThemeManager.BindTransparency(value, "TextTransparency", "PrimaryTextTransparency")

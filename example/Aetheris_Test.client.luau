@@ -645,8 +645,9 @@ mediaSection:Paragraph({
 })
 
 -- Viewport: renders a live character clone; Framing picks the camera crop.
--- ShowInfo = false hides the side labels (viewport centres and widens into
--- the freed space); the health bar hugs the viewport's right edge either way.
+-- Omitting `Info` hides the side labels (viewport centres and widens into the
+-- freed space); the health bar hugs the viewport's right edge unless
+-- HealthBar = false.
 local viewportDemo = mediaSection:Viewport({
 	Player = Players.LocalPlayer,
 	Rotate = true,
@@ -691,27 +692,28 @@ local viewportVariants = mediaTab:Section({ Name = "Viewport Variants", Side = "
 
 viewportVariants:Paragraph({
 	Title = "Health bar",
-	Description = "The bar beside each viewport fills from the bottom and shifts red to yellow to green with the bound character's humanoid health.",
+	Description = "The bar beside each viewport fills from the bottom and shifts red to yellow to green with the bound character's humanoid health. HealthBar = false drops it entirely.",
 })
 
--- Viewport-only: ShowInfo drops the label column, so the view widens and
--- centres into the freed space. The health bar still hugs its right edge.
+-- Viewport-only: no `Info` table, so the label column is skipped and the view
+-- widens and centres into the freed space. The health bar still hugs its edge.
 viewportVariants:Viewport({
 	Name = "Viewport only",
 	Player = Players.LocalPlayer,
 	Framing = "Full",
 	Rotate = true,
-	ShowInfo = false,
 	Height = 170,
 })
 
--- Static 3/4 head shot, fixed text rows plus a suffixed live value.
+-- Static 3/4 head shot, fixed text rows plus a suffixed live value, and no
+-- side bar (HealthBar = false).
 viewportVariants:Viewport({
 	Name = "Static + custom rows",
 	Player = Players.LocalPlayer,
 	Framing = "Head",
 	Rotate = false,
 	Height = 150,
+	HealthBar = false,
 	Info = {
 		{ Caption = "USERNAME", Key = "Name" },
 		{ Caption = "ACCOUNT AGE", Key = "AccountAge", Suffix = " days" },
@@ -719,13 +721,15 @@ viewportVariants:Viewport({
 	},
 })
 
--- Short card with the default four rows (Name, DisplayName, UserId, AccountAge).
+-- Short card with the default four rows (Name, DisplayName, UserId, AccountAge):
+-- an empty `Info` table keeps the standard fields.
 viewportVariants:Viewport({
 	Name = "Compact card",
 	Player = Players.LocalPlayer,
 	Framing = "Torso",
 	Rotate = true,
 	Height = 120,
+	Info = {},
 })
 
 -- =========================================================================
