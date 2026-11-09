@@ -39,10 +39,9 @@ Thumbs.db
 # Local working plan (review copy, not committed)
 /plan.md
 
-# Wallpaper scratch / derived artifacts
-assets/wallpapers/*.zip
-assets/wallpapers/_backup_pre_upscale/
-assets/wallpapers/_archive/
+# Local-only upload assets (wallpapers/aurora are pushed to Roblox by hand)
+/assets/wallpapers/
+/assets/aurora/
 
 # Lint / format scratch output
 /lint-*.txt
