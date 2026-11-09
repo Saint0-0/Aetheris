@@ -74,6 +74,23 @@ local window = Aetheris:CreateWindow({
 		},
 	},
 	Theme = "Gruvbox", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
+	-- Shown in the changelog popup; the stored ChangelogVersion decides whether
+	-- the popup auto-opens (it stamps itself the first time it actually shows).
+	Version = "1.1.0",
+	Changelog = {
+		{
+			Title = "Locale applies live",
+			Description = "Spanish and Portuguese now switch every chrome string the moment you pick them in UI Settings, no relaunch.",
+		},
+		{
+			Title = "Changelog popup",
+			Description = "New Version + Changelog keys in CreateWindow: the popup opens once per version, and Settings > Show changelog re-opens it any time.",
+		},
+		{
+			Title = "Viewport options",
+			Description = "HealthBar = false drops the side bar, and an Info table is now the opt-in for the info column (ShowInfo is gone).",
+		},
+	},
 	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
 	DragStyle = "Smooth", -- "Smooth" (glides) | "Instant" (snaps)
 	MinimizeKey = "LeftControl",
@@ -739,6 +756,19 @@ local settingsSection = settingsTab:Section({ Name = "General", Side = "Left" })
 settingsSection:Paragraph({
 	Title = "Settings",
 	Description = "The Settings tab also hosts the Themes card grid that the library builds automatically. Use the dropdown opposite to switch themes live and watch every element crossfade.",
+})
+
+-- Re-opens the changelog on demand: the popup only auto-opens once per
+-- stored version, so this is how you preview it again while testing.
+settingsSection:Button({
+	Name = "Show changelog",
+	Callback = function()
+		if window.Changelog then
+			window.Changelog:Show()
+		else
+			window:Toast({ Title = "Changelog", Description = "No Changelog entries were passed to CreateWindow." })
+		end
+	end,
 })
 
 local themeSection = settingsTab:Section({ Name = "Theme Switcher", Side = "Right" })
