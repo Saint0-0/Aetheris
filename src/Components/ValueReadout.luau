@@ -1,10 +1,10 @@
 --[[
 	Aetheris/Components/ValueReadout.luau
 
-	The numeric chip shared by Slider and Stepper: at rest it renders the value
-	through an odometer on an accent card (the LiveStat look); focusing swaps
-	the card for a themed text field. Focus loss commits the typed number
-	through OnCommit(value), then the chip snaps back.
+	The numeric readout shared by Slider and Stepper: at rest the value
+	renders through an odometer with no card behind it (the bare percentage-
+	readout look); focusing swaps in a themed text field. Focus loss commits
+	the typed number through OnCommit(value), then the readout snaps back.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -43,7 +43,8 @@ function ValueReadout.new(parent, opts)
 	local weight = opts.Weight or Enum.FontWeight.Medium
 	local cornerRadius = opts.CornerRadius or 4
 
-	-- child layers paint the chip above the text, so focus crossfades the card over it
+	-- child layers paint above the TextBox's own text, so the odometer reel
+	-- wins over it and focus crossfades reel vs typed text
 	local box = Instance.new("TextBox")
 	box.Name = UUID.Generate("ValueReadout")
 	box.AnchorPoint = opts.AnchorPoint or Vector2.new(0, 0)
@@ -71,43 +72,9 @@ function ValueReadout.new(parent, opts)
 	corner.CornerRadius = UDim.new(0, cornerRadius)
 	corner.Parent = box
 
-	-- accent card + the LiveStat diagonal sheen, in miniature
-	local chip = Instance.new("Frame")
-	chip.Name = UUID.Static("Chip")
-	chip.BorderSizePixel = 0
-	chip.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(96, 165, 250)
-	chip.BackgroundTransparency = 0
-	chip.Size = UDim2.fromScale(1, 1)
-	chip.ZIndex = box.ZIndex
-	chip.Parent = box
-
-	local chipCorner = Instance.new("UICorner")
-	chipCorner.CornerRadius = UDim.new(0, cornerRadius)
-	chipCorner.Parent = chip
-
-	local sheen = Instance.new("Frame")
-	sheen.Name = UUID.Static("Sheen")
-	sheen.BorderSizePixel = 0
-	sheen.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(96, 165, 250)
-	sheen.BackgroundTransparency = 0
-	sheen.Size = UDim2.fromScale(1, 1)
-	sheen.ZIndex = box.ZIndex
-	sheen.Parent = chip
-
-	local sheenCorner = Instance.new("UICorner")
-	sheenCorner.CornerRadius = UDim.new(0, cornerRadius)
-	sheenCorner.Parent = sheen
-
-	local gradient = Instance.new("UIGradient")
-	gradient.Rotation = -55
-	gradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
-	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(1, 0.12),
-	})
-	gradient.Parent = sheen
-
-	-- above the card, hidden while the text field is showing
+	-- At rest the digits sit bare on the row (matching the percentage
+	-- readout); the box's own input well is what shows up on focus.
+	-- above the text, hidden while the text field is showing
 	local reel = Instance.new("Frame")
 	reel.Name = UUID.Static("Reel")
 	reel.BackgroundTransparency = 1
@@ -144,25 +111,20 @@ function ValueReadout.new(parent, opts)
 	self._text = ""
 
 	-- glyph transparencies snap so odometer and typed text never overlap;
-	-- card, field and stroke fade
+	-- field and stroke fade
 	local function sync(animate)
 		local live = ActiveTheme.theme or theme
 		local strokeColor = live.StrokeColor or STROKE_COLOR
 		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or restStrokeAlpha(live))
-		local chipAlpha = (focused or dimmed) and 1 or 0
 		local boxAlpha = focused and (live.InputBackgroundTransparency or 0.5) or 1
 		local textAlpha = focused and (live.SecondaryTextTransparency or 0.4) or 1
 
 		box.TextTransparency = textAlpha
 		odo:setTransparency((focused or dimmed) and 1 or 0)
 		if animate then
-			Tween.Play(chip, "Fast", { BackgroundTransparency = chipAlpha })
-			Tween.Play(sheen, "Fast", { BackgroundTransparency = chipAlpha })
 			Tween.Play(box, "Fast", { BackgroundTransparency = boxAlpha })
 			Tween.Play(stroke, "Fast", { Color = strokeColor, Transparency = strokeAlpha })
 		else
-			chip.BackgroundTransparency = chipAlpha
-			sheen.BackgroundTransparency = chipAlpha
 			box.BackgroundTransparency = boxAlpha
 			stroke.Color = strokeColor
 			stroke.Transparency = strokeAlpha
@@ -230,8 +192,6 @@ function ValueReadout.new(parent, opts)
 	self.Destroy = function()
 		Tween.CancelAllUnder(box)
 		ThemeManager.UnbindInstance(box)
-		ThemeManager.UnbindInstance(chip)
-		ThemeManager.UnbindInstance(sheen)
 		ThemeManager.UnbindInstance(stroke)
 		ThemeManager.UnbindInstance(reel)
 		for _, descendant in ipairs(reel:GetDescendants()) do
@@ -246,8 +206,6 @@ function ValueReadout.new(parent, opts)
 	-- every theme apply instead (owner = box auto-unregisters on destroy)
 	ThemeManager.BindColor(box, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindColor(box, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindColor(chip, "BackgroundColor3", "AccentColor")
-	ThemeManager.BindColor(sheen, "BackgroundColor3", "AccentColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		theme = liveTheme or theme
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
