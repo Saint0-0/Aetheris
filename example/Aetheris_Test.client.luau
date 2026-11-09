@@ -78,17 +78,25 @@ local window = Aetheris:CreateWindow({
 	-- the popup auto-opens (it stamps itself the first time it actually shows).
 	Version = "1.1.0",
 	Changelog = {
+		-- Optional per entry: Icon (Icons key) and Tint
+		-- (blue/purple/teal/orange/red/yellow); entries cycle tints when omitted.
 		{
 			Title = "Locale applies live",
 			Description = "Spanish and Portuguese now switch every chrome string the moment you pick them in UI Settings, no relaunch.",
+			Icon = "languages",
+			Tint = "blue",
 		},
 		{
 			Title = "Changelog popup",
 			Description = "New Version + Changelog keys in CreateWindow: the popup opens once per version, and Settings > Show changelog re-opens it any time.",
+			Icon = "rocket",
+			Tint = "purple",
 		},
 		{
 			Title = "Viewport options",
 			Description = "HealthBar = false drops the side bar, and an Info table is now the opt-in for the info column (ShowInfo is gone).",
+			Icon = "list-checks",
+			Tint = "teal",
 		},
 	},
 	AnimationStyle = "Smooth", -- "Smooth" | "Snappy"
