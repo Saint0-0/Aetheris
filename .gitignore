@@ -43,6 +43,12 @@ Thumbs.db
 /assets/wallpapers/
 /assets/aurora/
 
+# Third-party UI reference material (never shipped)
+/inspiration/
+
+# Local design-notes (review copy, not committed)
+/design-notes.md
+
 # Lint / format scratch output
 /lint-*.txt
 /selene-quiet*.txt
