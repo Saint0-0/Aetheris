@@ -19,18 +19,15 @@ local UUID = require("../Utils/UUID")
 local ValueReadout = {}
 ValueReadout.__index = ValueReadout
 
--- same stroke family as Keybind/TextInput; the resting alpha doubles as the
--- PageFade base so a page fade can never restore a transient brighten
-local DEFAULT_REST_STROKE = 0.95
+-- Bare at rest: no outline until the pointer or focus lands on it, so the
+-- chip reads like the percentage stat. The resting alpha doubles as the
+-- PageFade base so a page fade can never restore a transient brighten.
+local REST_STROKE = 1
 local HOVER_STROKE = 0.45
 local FOCUS_STROKE = 0.3
 
 local STROKE_THICKNESS = 0.7
 local STROKE_COLOR = Color3.fromRGB(80, 80, 80)
-
-local function restStrokeAlpha(live)
-	return live.StrokeTransparency or DEFAULT_REST_STROKE
-end
 
 -- opts: Theme, Size or Width/Height, Position, AnchorPoint, LayoutOrder,
 --       TextSize, OdometerHeight, CornerRadius, Weight, ClearTextOnFocus
@@ -95,12 +92,12 @@ function ValueReadout.new(parent, opts)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = theme.StrokeColor or STROKE_COLOR
-	stroke.Transparency = restStrokeAlpha(theme)
+	stroke.Transparency = REST_STROKE
 	stroke.Thickness = STROKE_THICKNESS
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = box
 	-- page fades restore the resting alpha, never a hover/focus brighten
-	stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
+	stroke:SetAttribute(UUID.Static("PageFadeBase"), REST_STROKE)
 	self.Stroke = stroke
 
 	local focused = false
@@ -115,7 +112,7 @@ function ValueReadout.new(parent, opts)
 	local function sync(animate)
 		local live = ActiveTheme.theme or theme
 		local strokeColor = live.StrokeColor or STROKE_COLOR
-		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or restStrokeAlpha(live))
+		local strokeAlpha = focused and FOCUS_STROKE or (hovered and HOVER_STROKE or REST_STROKE)
 		local boxAlpha = focused and (live.InputBackgroundTransparency or 0.5) or 1
 		local textAlpha = focused and (live.SecondaryTextTransparency or 0.4) or 1
 
@@ -208,7 +205,7 @@ function ValueReadout.new(parent, opts)
 	ThemeManager.BindColor(box, "TextColor3", "SecondaryTextColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)
 		theme = liveTheme or theme
-		stroke:SetAttribute(UUID.Static("PageFadeBase"), restStrokeAlpha(theme))
+		stroke:SetAttribute(UUID.Static("PageFadeBase"), REST_STROKE)
 		sync(true)
 	end, box)
 
