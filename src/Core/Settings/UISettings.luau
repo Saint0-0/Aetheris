@@ -13,6 +13,7 @@ local Sound = require("../../Utils/Sound")
 local SettingsStore = require("./SettingsStore")
 local PageAwareness = require("../../Utils/PageAwareness")
 local Constants = require("../../Constants")
+local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
 
 local UISettings = {}
@@ -73,6 +74,39 @@ function UISettings.Build(window, tab)
 			if window.SetFont then
 				window:SetFont(value)
 			end
+		end,
+	})
+
+	-- chrome locale: applied live -- setActive + refresh re-resolves every
+	-- stamped string in place, so the change lands now, not on the next launch
+	local localeItems = {
+		{ name = "English", value = "en" },
+		{ name = "Español", value = "es" },
+		{ name = "Português", value = "pt" },
+	}
+	local localeDefault = { "en" }
+	for _, item in ipairs(localeItems) do
+		if item.value == Locale.current then
+			localeDefault = { item.value }
+		end
+	end
+	interfaceSection:Dropdown({
+		Name = "Locale",
+		Items = localeItems,
+		Default = localeDefault,
+		MaxItemsChoosable = 1,
+		Callback = function(selected)
+			local pick = selected[1]
+			local value = (pick and pick.value) or "en"
+			Locale.setActive(value)
+			SettingsStore.Set("Locale", value)
+			-- Re-resolve the live UI in place: chrome strings are stamped with
+			-- their source, so every label swaps language on this frame.
+			Locale.refresh()
+			window:Toast({
+				Title = Locale.resolve("Locale"),
+				Description = Locale.resolve("Locale applied."),
+			})
 		end,
 	})
 

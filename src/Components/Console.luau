@@ -14,6 +14,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -64,7 +65,7 @@ function Console.new(parent, Settings, theme)
 		end,
 		OnName = function(me, newName)
 			if me._title then
-				me._title.Text = newName
+				Locale.set(me._title, "Text", newName)
 				me._title.Visible = newName ~= nil and newName ~= ""
 			end
 		end,
@@ -133,7 +134,7 @@ function Console:_build()
 		title.Name = UUID.Static("Title")
 		title.BorderSizePixel = 0
 		title.BackgroundTransparency = 1
-		title.Text = self._name
+		Locale.set(title, "Text", self._name)
 		title.TextSize = 14
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.TextTruncate = Enum.TextTruncate.AtEnd

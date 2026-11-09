@@ -19,6 +19,8 @@ local Security = require("../Utils/Security")
 local Icons = require("../Assets/Icons")
 local TabGroup = require("./TabGroup")
 local UINotification = require("../Popups/UINotification")
+local Changelog = require("../Popups/Changelog")
+local Locale = require("../Utils/Locale")
 local DropdownPopUp = require("../Popups/DropdownPopUp")
 local ColorPickerPopUp = require("../Popups/ColorPickerPopUp")
 local Tooltip = require("../Popups/Tooltip")
@@ -44,6 +46,8 @@ function Window.new(Settings)
 
 	-- Persisted user settings win; CreateWindow's own Theme/MinimizeKey are the fallback.
 	SettingsStore.Load()
+	-- Chrome locale must be active before any page, popup or key screen builds.
+	Locale.setActive(SettingsStore.Get("Locale"))
 	local savedTheme = SettingsStore.Get("Theme")
 	local savedKey = SettingsStore.Get("MinimizeKey")
 	if savedTheme ~= nil then
@@ -492,7 +496,7 @@ function Window.new(Settings)
 	SearchBox.TextColor3 = theme.PrimaryTextColor
 	SearchBox.BackgroundTransparency = 1
 	SearchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	SearchBox.PlaceholderText = "Search..."
+	Locale.set(SearchBox, "PlaceholderText", "Search...")
 	SearchBox.Size = UDim2.fromScale(0.7921, 1)
 	SearchBox.Position = UDim2.fromScale(0.17991, 0)
 	SearchBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -2074,13 +2078,16 @@ function Window.new(Settings)
 			return
 		end
 		-- Name the prompt after the script (Settings.Title) so it reads "Close <name>?".
-		local appName = (ScriptName.Text ~= "" and ScriptName.Text) or "the UI"
+		local appName = (ScriptName.Text ~= "" and ScriptName.Text) or Locale.resolve("the UI")
 		self:UINotification({
-			Title = "Close " .. appName .. "?",
-			Description = 'Are you sure you want to <font color="#FF0000">close</font> ' .. appName .. "?",
+			Title = string.format(Locale.resolve("Close %s?"), appName),
+			Description = string.format(
+				Locale.resolve('Are you sure you want to <font color="#FF0000">close</font> %s?'),
+				appName
+			),
 			TitleColor = Color3.fromRGB(255, 0, 0),
-			ConfirmText = "Yes, close it",
-			CancelText = "No, keep it open",
+			ConfirmText = Locale.resolve("Yes, close it"),
+			CancelText = Locale.resolve("No, keep it open"),
 			OnConfirm = doClose,
 		})
 	end)
@@ -2253,6 +2260,51 @@ function Window.new(Settings)
 	-- Run the shell's own theme pass now that it exists (the earlier ApplyTheme call skipped it).
 	self:ApplyTheme(theme)
 
+	-- Changelog: built whenever the script ships entries so
+	-- Window.Changelog:Show() always exists (button-triggerable); the version
+	-- stamp and the automatic opening only happen when a version was given.
+	do
+		local win = self
+		local entries = Settings.Changelog
+		if type(entries) == "table" and entries[1] ~= nil then
+			local version = Settings.Version
+			if type(version) ~= "string" then
+				version = ""
+			end
+
+			local changelog = Changelog.new(PopUpsFolder, {
+				Theme = theme,
+				Version = version,
+				Entries = entries,
+			})
+			self._changelog = changelog
+			self.Changelog = changelog
+
+			-- Method-syntax `self` here would shadow the window's, so the
+			-- changelog instance arrives as `me` (same convention as OnName).
+			function changelog.Show(me)
+				if me.IsOpen or not me.Popup or not me.Popup.Parent then
+					return
+				end
+				if version ~= "" then
+					-- Stamp the moment it actually opens, so a popup dismissed
+					-- during startup doesn't burn the notification for later runs.
+					SettingsStore.Set("ChangelogVersion", version)
+				end
+				me:Open()
+			end
+
+			-- First run on a new version: pop it up once the window has settled.
+			if version ~= "" and SettingsStore.Get("ChangelogVersion") ~= version then
+				task.delay(1, function()
+					if win._changelog == changelog then
+						changelog:Show()
+					end
+				end)
+			end
+		end
+	end
+
 	return self
 end
 
@@ -2319,6 +2371,14 @@ function Window:Destroy()
 
 	-- UIClose is the real close sound ("WindowClose" was never in Sound.Assets).
 	Sound.Play("UIClose")
+
+	-- Drop the changelog popup first: its outside-click connection and theme
+	-- callback would otherwise outlive the tree being torn down.
+	if self._changelog then
+		self._changelog:Destroy()
+		self._changelog = nil
+		self.Changelog = nil
+	end
 
 	if self._teardown then
 		self._teardown()

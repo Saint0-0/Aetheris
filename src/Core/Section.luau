@@ -30,6 +30,7 @@ local Console = require("../Components/Console")
 local CodeView = require("../Components/CodeView")
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 
 local Section = {}
@@ -107,7 +108,7 @@ function Section.new(parent, Settings, theme, window, noSave)
 		title.Name = UUID.Static("SectionTitle")
 		title.BackgroundTransparency = 1
 		title.BorderSizePixel = 0
-		title.Text = Settings.Name
+		Locale.set(title, "Text", Settings.Name)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.TextYAlignment = Enum.TextYAlignment.Center
 		title.TextSize = 12

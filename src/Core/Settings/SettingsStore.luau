@@ -51,6 +51,7 @@ SettingsStore.Defaults = {
 	Font = nil, -- nil = built-in Aetheris font (see Constants.FontChoices)
 	MaskDisplayName = false, -- auto-mask on: display name / username open masked
 	AutoSaveConfigs = false, -- auto-save the active config on component change
+	Locale = "en", -- active UI locale id (see Utils/Locale)
 }
 
 SettingsStore.Data = {}
@@ -60,7 +61,8 @@ end
 
 -- nil defaults (Theme / MinimizeKey / Font) can't round-trip through a Lua
 -- table or the saved JSON on their own; list them so Load keeps them.
-SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font" }
+-- ChangelogVersion is nil until the script's changelog has been shown once.
+SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font", "ChangelogVersion" }
 
 function SettingsStore.Load()
 	if not hasFileAPI then

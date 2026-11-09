@@ -21,6 +21,7 @@ local ActiveTheme = require("../Themes/ActiveTheme")
 local Constants = require("../Constants")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 
 local TextInput = {}
@@ -336,7 +337,7 @@ function TextInput.new(parent, Settings, theme)
 		Label = label,
 		Name = name,
 		OnName = function(_, newName)
-			label.Text = newName
+			Locale.set(label, "Text", newName)
 			sizeBox(false)
 		end,
 		Methods = {

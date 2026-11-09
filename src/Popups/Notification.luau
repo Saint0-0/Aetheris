@@ -19,6 +19,7 @@ local FallbackImage = require("../Constants").FallbackImage
 local Icons = require("../Assets/Icons")
 local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 
 local Notification = {}
 Notification.__index = Notification
@@ -126,7 +127,7 @@ function Notification.new(container, Settings, theme)
 	local self = setmetatable({}, Notification)
 
 	local ntype = Settings.Type or "Alert"
-	local title = Settings.Title or DEFAULT_TITLE[ntype] or "Notification"
+	local title = Locale.resolve(Settings.Title or DEFAULT_TITLE[ntype] or "Notification")
 	local description = Settings.Description or ""
 	self.Duration = Settings.Duration or 5
 
@@ -333,7 +334,7 @@ function Notification.new(container, Settings, theme)
 				BackgroundColor3 = baseBg,
 				FontFace = Constants.Font(Enum.FontWeight.Medium),
 				Size = UDim2.fromOffset(60, 20),
-				Text = action.Text or "Click",
+				Text = Locale.resolve(action.Text or "Click"),
 				LayoutOrder = i,
 				ZIndex = 4,
 				Parent = holder,

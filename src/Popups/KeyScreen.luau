@@ -33,6 +33,7 @@ local SettingsStore = require("../Core/Settings/SettingsStore")
 local Notification = require("./Notification")
 local Constants = require("../Constants")
 local Icons = require("../Assets/Icons")
+local Locale = require("../Utils/Locale")
 
 local KeyScreen = {}
 KeyScreen.__index = KeyScreen
@@ -830,7 +831,7 @@ local function buildKeyPhase(self)
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
-		PlaceholderText = "Enter your key",
+		PlaceholderText = Locale.resolve("Enter your key"),
 		PlaceholderColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
 		Text = "",
 		TextSize = 13,
@@ -1131,10 +1132,10 @@ local function buildKeyPhase(self)
 			local last = record.Last and (record.Last .. " " .. agoText(record.LastAt)) or "no checks yet"
 			infoSub.Text =
 				string.format("%d valid · %d rejected · last: %s", record.Valid or 0, record.Rejected or 0, last)
-			infoTitle.Text = "Key history"
+			infoTitle.Text = Locale.resolve("Key history")
 		else
-			infoTitle.Text = "Information"
-			infoSub.Text = "Tap to view"
+			infoTitle.Text = Locale.resolve("Information")
+			infoSub.Text = Locale.resolve("Tap to view")
 		end
 	end)
 	self._infoTitle = infoTitle
@@ -1323,7 +1324,7 @@ function KeyScreen:_showKeyPhase()
 	if not self._card then
 		return
 	end
-	self._subtitle.Text = "Enter your key to continue"
+	self._subtitle.Text = Locale.resolve("Enter your key to continue")
 	Tween.Play(self._card, "Smooth", { Size = UDim2.fromOffset(CARD_WIDTH, KEY_HEIGHT) })
 	self:_phaseOut(self._loadingBody)
 	self:_phaseIn(self._keyBody, self._keyFadeTargets)
@@ -1336,7 +1337,7 @@ function KeyScreen:_showSuccess(message)
 	if self._successLabel then
 		self._successLabel.Text = message or "Key accepted"
 	end
-	self._subtitle.Text = "Access granted"
+	self._subtitle.Text = Locale.resolve("Access granted")
 	self:_phaseOut(self._keyBody, self._keyFadeTargets)
 	self:_phaseOut(self._loadingBody)
 	self:_phaseIn(self._successBody, self._successFadeTargets)
@@ -1365,7 +1366,7 @@ function KeyScreen:_submitKey()
 	task.spawn(function()
 		local valid, reason = self._validator:CheckKey(key)
 		self._checking = nil
-		self._continue.Text = "Continue"
+		self._continue.Text = Locale.resolve("Continue")
 		self._continue.TextTransparency = 0
 		if not self._card then
 			return
@@ -1565,7 +1566,7 @@ function KeyScreen.Run(keyConfig, opts)
 
 	self._steps = {
 		{
-			Label = "Loading assets",
+			Label = Locale.resolve("Loading assets"),
 			Weight = 2,
 			Run = function(report)
 				local list, seen = {}, {}
@@ -1595,7 +1596,7 @@ function KeyScreen.Run(keyConfig, opts)
 			end,
 		},
 		{
-			Label = "Loading sounds",
+			Label = Locale.resolve("Loading sounds"),
 			Weight = 4,
 			Run = function(report)
 				Sound.Preload(function(loaded, total)
@@ -1671,7 +1672,7 @@ function KeyScreen.Run(keyConfig, opts)
 	if not self._card then
 		return signal.Event:Wait()
 	end
-	self._subtitle.Text = "Loading"
+	self._subtitle.Text = Locale.resolve("Loading")
 	self:_phaseOut(self._introBody, self._introFadeTargets)
 	Tween.StopSpin(self._introComet)
 	self._introSpin = nil

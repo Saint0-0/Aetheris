@@ -15,7 +15,20 @@ local SearchFilter = require("./SearchFilter")
 local PageFade = require("../Utils/PageFade")
 local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
+
+-- Medium via a rich-text weight span: <b> would force bold and ignore the
+-- label's FontFace.
+local function titleWrap(resolved)
+	return '<font weight="500">' .. resolved .. "</font>"
+end
+
+-- PageTitle is chrome: stamped with the wrap so a live locale change
+-- re-resolves the title in place instead of leaving the old language up.
+local function setPageTitle(label, tab)
+	Locale.set(label, "Text", tab.Name, titleWrap)
+end
 local TabGroup = {}
 TabGroup.__index = TabGroup
 local TabHandle = {}
@@ -90,7 +103,7 @@ function TabGroup:Tab(Settings)
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
 	TabName.Size = UDim2.fromScale(0.636, 0.714)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	TabName.Text = name
+	Locale.set(TabName, "Text", name)
 	TabName.Position = UDim2.fromScale(0.647, 0.5)
 	TabName.Parent = Button
 	local BackImage = Instance.new("ImageLabel")
@@ -413,7 +426,7 @@ function TabGroup:SetActiveTab(tab)
 		-- settings overwrites it with "Settings | ..." and nothing else does.
 		local title = self.Window and self.Window.PageTitle
 		if title then
-			title.Text = self:_titleText(tab)
+			setPageTitle(title, tab)
 		end
 		return
 	end
@@ -455,7 +468,7 @@ function TabGroup:SetActiveTab(tab)
 			end
 		end
 		if title then
-			title.Text = self:_titleText(tab)
+			setPageTitle(title, tab)
 		end
 		return
 	end
@@ -465,7 +478,7 @@ function TabGroup:SetActiveTab(tab)
 		PageFade.Snap(tab.FadeLayer, 1)
 		PageFade.Show(tab.FadeLayer, false)
 		if title then
-			title.Text = self:_titleText(tab)
+			setPageTitle(title, tab)
 			Tween.Play(title, "Fast", { TextTransparency = 0.4 })
 		end
 		return
@@ -473,7 +486,7 @@ function TabGroup:SetActiveTab(tab)
 
 	tab.FadeLayer.Visible = true
 	if title then
-		title.Text = self:_titleText(tab)
+		setPageTitle(title, tab)
 	end
 	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
 		if previous.FadeLayer then
@@ -482,18 +495,12 @@ function TabGroup:SetActiveTab(tab)
 	end)
 end
 
--- Medium via a rich-text weight span: <b> would force bold and ignore the
--- label's FontFace.
-function TabGroup:_titleText(tab)
-	return '<font weight="500">' .. tab.Name .. "</font>"
-end
-
 -- Rewrite the window title to the active sidebar tab's name; the settings
 -- overlay owns it while open and hands it back on close.
 function TabGroup:SyncTitle()
 	local w = self.Window
 	if w and w.PageTitle and self.ActiveTab then
-		w.PageTitle.Text = self:_titleText(self.ActiveTab)
+		setPageTitle(w.PageTitle, self.ActiveTab)
 	end
 end
 

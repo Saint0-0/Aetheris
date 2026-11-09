@@ -11,6 +11,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
@@ -36,11 +37,11 @@ function UINotification.new(parent, Settings)
 	end
 	local self = setmetatable({}, UINotification)
 	local theme = Settings.Theme
-	local title = Settings.Title or "Notification"
+	local title = Locale.resolve(Settings.Title or "Notification")
 	local description = Settings.Description or ""
 	local titleColor = Settings.TitleColor or (theme and theme.TitleTextColor) or Color3.fromRGB(255, 255, 255)
-	local confirmText = Settings.ConfirmText or "Confirm"
-	local cancelText = Settings.CancelText or "Cancel"
+	local confirmText = Locale.resolve(Settings.ConfirmText or "Confirm")
+	local cancelText = Locale.resolve(Settings.CancelText or "Cancel")
 	local onConfirm = Settings.OnConfirm or function() end
 	local onCancel = Settings.OnCancel or function() end
 	self.IsOpen = false
@@ -403,11 +404,11 @@ function UINotification:SetContent(Settings)
 		warn("[UINotification:SetContent] Settings is not a table, defaulting to empty table")
 		Settings = {}
 	end
-	local title = Settings.Title or "Notification"
+	local title = Locale.resolve(Settings.Title or "Notification")
 	local description = Settings.Description or ""
 	local titleColor = Settings.TitleColor or self.Header.TextColor3 or Color3.fromRGB(255, 255, 255)
-	local confirmText = Settings.ConfirmText or "Confirm"
-	local cancelText = Settings.CancelText or "Cancel"
+	local confirmText = Locale.resolve(Settings.ConfirmText or "Confirm")
+	local cancelText = Locale.resolve(Settings.CancelText or "Cancel")
 	self.OnConfirm = Settings.OnConfirm or function() end
 	self.OnCancel = Settings.OnCancel or function() end
 	self._title = title

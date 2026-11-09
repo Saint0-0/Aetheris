@@ -18,6 +18,10 @@
 				API = { { Type = "platoboost", ServiceId = 1234, Secret = "..." } },
 				Discord = "https://discord.gg/invite",
 			},
+			Version = "1.2.0",          -- optional; bump to re-show the changelog
+			Changelog = {               -- optional; popup on start for a new Version
+				{ Title = "New stuff", Description = "What changed in this release." },
+			},
 			SettingsPages = {
 				{ Name = "Keybinds", Icon = Aetheris.Icons["keyboard"] },
 			},
@@ -29,6 +33,8 @@
 
 local Window = require("./Core/Window")
 local KeyScreen = require("./Popups/KeyScreen")
+local SettingsStore = require("./Core/Settings/SettingsStore")
+local Locale = require("./Utils/Locale")
 local Icons = require("./Assets/Icons")
 local Aurora = require("./Utils/Aurora")
 local ThemeManager = require("./Themes/ThemeManager")
@@ -58,6 +64,10 @@ function Aetheris:CreateWindow(Settings)
 		keyConfig = {}
 	end
 	if type(keyConfig) == "table" then
+		-- The key screen renders before Window.new, so the saved locale has to
+		-- be active by now; Window.new repeats the same load once it builds.
+		SettingsStore.Load()
+		Locale.setActive(SettingsStore.Get("Locale"))
 		local passed = KeyScreen.Run(keyConfig, {
 			Theme = options.Theme,
 			Title = options.Title,

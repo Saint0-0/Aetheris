@@ -12,6 +12,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local PageAwareness = require("../Utils/PageAwareness")
 local UUID = require("../Utils/UUID")
 local Toggle = {}
@@ -180,11 +181,11 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		if confirmEnabled and ShowNotification and intendedState then
 			confirmationPending = true
 			ShowNotification({
-				Title = confirm.Title or "Confirm Action",
-				Description = confirm.Description or "Are you sure you want to change this setting?",
+				Title = Locale.resolve(confirm.Title or "Confirm Action"),
+				Description = Locale.resolve(confirm.Description or "Are you sure you want to change this setting?"),
 				TitleColor = confirm.TitleColor,
-				ConfirmText = confirm.ConfirmText or "Yes",
-				CancelText = confirm.CancelText or "No",
+				ConfirmText = Locale.resolve(confirm.ConfirmText or "Yes"),
+				CancelText = Locale.resolve(confirm.CancelText or "No"),
 				OnConfirm = function()
 					confirmationPending = false
 					-- Apply the state captured when the prompt opened rather than

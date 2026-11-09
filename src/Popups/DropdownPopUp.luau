@@ -14,6 +14,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local SearchFilter = require("../Core/SearchFilter")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local DropdownPopUp = {}
@@ -117,7 +118,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.TextTransparency = 1
 	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
 	confirmBtn.TextSize = 12
-	confirmBtn.Text = "Confirm"
+	confirmBtn.Text = Locale.resolve("Confirm")
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor)
@@ -140,7 +141,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.TextTransparency = 1
 	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
 	cancelBtn.TextSize = 12
-	cancelBtn.Text = "Cancel"
+	cancelBtn.Text = Locale.resolve("Cancel")
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor)
@@ -196,7 +197,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectedText.Size = UDim2.new(0.91, 0, 0, 26)
 	selectedText.Position = UDim2.fromScale(0.5, 0.79)
 	selectedText.Parent = popup
-	selectedText.Text = "None selected"
+	selectedText.Text = Locale.resolve("None selected")
 	local selectedPadding = Instance.new("UIPadding")
 	selectedPadding.PaddingTop = UDim.new(0, 3)
 	selectedPadding.PaddingLeft = UDim.new(0, 5)
@@ -231,7 +232,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	searchBox.BackgroundTransparency = 1
 	searchBox.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	searchBox.AnchorPoint = Vector2.new(0.5, 0.5)
-	searchBox.PlaceholderText = "Search..."
+	searchBox.PlaceholderText = Locale.resolve("Search...")
 	searchBox.Size = UDim2.fromScale(0.38996, 1)
 	searchBox.Position = UDim2.fromScale(0.26484, 0.5)
 	searchBox.Parent = searchArea
@@ -635,7 +636,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		if #names > 0 then
 			me.SelectedText.Text = string.format("{ %s }", table.concat(names, ", "))
 		else
-			me.SelectedText.Text = "None selected"
+			me.SelectedText.Text = Locale.resolve("None selected")
 		end
 	end
 	self._Confirm = function(me)

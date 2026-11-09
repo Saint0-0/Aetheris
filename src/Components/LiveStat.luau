@@ -13,6 +13,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local Tween = require("../Utils/Tween")
 local Odometer = require("../Utils/Odometer")
 local Constants = require("../Constants")
@@ -125,7 +126,7 @@ function LiveStat.new(parent, Settings, theme)
 		end,
 		OnName = function(me, newName)
 			if me._title then
-				me._title.Text = newName
+				Locale.set(me._title, "Text", newName)
 			end
 		end,
 	})
@@ -200,7 +201,7 @@ function LiveStat:_buildFull()
 	end
 
 	local title = Instance.new("TextLabel")
-	title.Text = self._name
+	Locale.set(title, "Text", self._name)
 	title.Size = UDim2.fromOffset(300, 19)
 	title.BackgroundTransparency = 1
 	title.BorderSizePixel = 0
@@ -303,7 +304,7 @@ function LiveStat:_buildCompact()
 	end
 
 	local title = Instance.new("TextLabel")
-	title.Text = self._name
+	Locale.set(title, "Text", self._name)
 	title.AnchorPoint = Vector2.new(0, 0.5)
 	title.Position = UDim2.new(0, pad, 0.5, 0)
 	title.Size = UDim2.new(0.6, -pad, 0, 16)

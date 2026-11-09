@@ -13,6 +13,7 @@
 ]]
 
 local ComponentAPI = {}
+local Locale = require("./Locale")
 
 local function resolve(me, value)
 	if type(value) == "function" then
@@ -25,6 +26,10 @@ function ComponentAPI.Apply(component, opts)
 	opts = opts or {}
 	local root = opts.Root
 	local label = opts.Label
+	-- Names are copy: stored as the raw source (not the resolved copy) so a
+	-- live locale change can re-resolve them, and stamped onto the label here
+	-- so every component's chrome and dev-supplied element names localize
+	-- together.
 	local name = opts.Name
 	local children = opts.Children
 
@@ -37,10 +42,16 @@ function ComponentAPI.Apply(component, opts)
 		if opts.OnName then
 			opts.OnName(me, newName)
 		elseif label then
-			label.Text = newName
+			Locale.set(label, "Text", newName)
 		end
 	end
 	component.SetName = setName
+
+	-- Initial paint for components without a custom OnName handler: their own
+	-- build code set the raw string, so re-assert it stamped.
+	if label and not opts.OnName and name ~= nil then
+		Locale.set(label, "Text", name)
+	end
 
 	local setVisible = function(me, visible)
 		if children then

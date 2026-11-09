@@ -11,13 +11,13 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 
 local ComponentRow = {}
 
 function ComponentRow.new(parent, Settings)
 	Settings = Settings or {}
-	local name = Settings.Name or "Element"
 	local theme = Settings.Theme
 	local height = Settings.Height or 45
 	local clickable = Settings.Clickable == true
@@ -68,7 +68,8 @@ function ComponentRow.new(parent, Settings)
 	label.Name = UUID.Static("ElementName")
 	label.BorderSizePixel = 0
 	label.FontFace = Constants.Font(Enum.FontWeight.Regular)
-	label.Text = name
+	-- Chrome: stamped so a live locale change re-resolves every row label.
+	Locale.set(label, "Text", Settings.Name or "Element")
 	label.TextSize = Settings.LabelTextSize or 14
 	label.TextTruncate = Enum.TextTruncate.AtEnd
 	label.TextWrapped = true

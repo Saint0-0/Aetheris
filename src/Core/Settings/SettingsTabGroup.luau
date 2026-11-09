@@ -15,7 +15,14 @@ local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
 local PageAwareness = require("../../Utils/PageAwareness")
 local Constants = require("../../Constants")
+local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
+
+-- "Settings | " is Medium (weight 500); the page name stays Regular. Stamped
+-- so a live locale change re-resolves both halves in place.
+local function settingsTitleWrap(resolved)
+	return '<font weight="500">' .. Locale.resolve("Settings") .. " | </font>" .. resolved
+end
 
 local SettingsTabGroup = {}
 SettingsTabGroup.__index = SettingsTabGroup
@@ -184,7 +191,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
 	TabName.Size = UDim2.fromScale(0.73078, 0.71359)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	TabName.Text = name
+	Locale.set(TabName, "Text", name)
 	TabName.Position = UDim2.fromScale(0.647, 0.5)
 	TabName.Parent = Button
 
@@ -391,8 +398,8 @@ function SettingsTabGroup:RefreshTitle()
 		return
 	end
 	local name = self.ActiveTab and self.ActiveTab.Name or "Settings"
-	-- "Settings | " is Medium (weight 500); the page name stays Regular.
-	w.PageTitle.Text = '<font weight="500">Settings | </font>' .. name
+	-- Stamped with the wrap so a live locale change re-resolves both halves.
+	Locale.set(w.PageTitle, "Text", name, settingsTitleWrap)
 end
 
 function SettingsTabGroup:SetActiveTab(tab)

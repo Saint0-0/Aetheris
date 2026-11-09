@@ -11,6 +11,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local Paragraph = {}
 Paragraph.__index = Paragraph
@@ -68,7 +69,7 @@ function Paragraph.new(parent, Settings, theme)
 	descLabel.BackgroundTransparency = 1
 	descLabel.Size = UDim2.fromScale(0.91, 0)
 	descLabel.AutomaticSize = Enum.AutomaticSize.Y
-	descLabel.Text = description
+	Locale.set(descLabel, "Text", description)
 	descLabel.Position = UDim2.fromOffset(11, 38)
 	descLabel.Parent = container
 	local descPadding = Instance.new("UIPadding")
@@ -91,10 +92,10 @@ function Paragraph.new(parent, Settings, theme)
 		Name = title,
 		Methods = {
 			SetTitle = function(_, newTitle)
-				titleLabel.Text = newTitle
+				Locale.set(titleLabel, "Text", newTitle)
 			end,
 			SetDescription = function(_, newDesc)
-				descLabel.Text = newDesc
+				Locale.set(descLabel, "Text", newDesc)
 			end,
 			Destroy = function(_self)
 				if container and container.Parent then

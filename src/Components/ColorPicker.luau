@@ -13,6 +13,7 @@ local Icons = require("../Assets/Icons")
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentRow = require("./ComponentRow")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
@@ -126,7 +127,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		Label = label,
 		Name = name,
 		OnName = function(me, newName)
-			label.Text = newName
+			Locale.set(label, "Text", newName)
 			me._popupId = newName .. "ColorPicker"
 		end,
 		Methods = {

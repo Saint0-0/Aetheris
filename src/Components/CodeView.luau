@@ -13,6 +13,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local SyntaxHighlight = require("../Utils/SyntaxHighlight")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Locale = require("../Utils/Locale")
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local UUID = require("../Utils/UUID")
@@ -118,7 +119,7 @@ function CodeView.new(parent, Settings, theme)
 		end,
 		Name = Settings.Name,
 		OnName = function(me, newName)
-			me._title.Text = tostring(newName or "")
+			Locale.set(me._title, "Text", tostring(newName or ""))
 			me._title.Visible = newName ~= nil and newName ~= ""
 		end,
 	})
@@ -159,7 +160,7 @@ function CodeView:_build()
 	title.Name = UUID.Static("Title")
 	title.BorderSizePixel = 0
 	title.BackgroundTransparency = 1
-	title.Text = tostring(self._name or "")
+	Locale.set(title, "Text", tostring(self._name or ""))
 	title.TextSize = 14
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextYAlignment = Enum.TextYAlignment.Center
