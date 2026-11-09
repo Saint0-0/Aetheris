@@ -620,7 +620,15 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		local inst = entry.instance
 		if inst and (entry.scopeRoot == scopeRoot or inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
 			entry.scopeRoot = scopeRoot
-			applyEntry(entry, theme, shouldAnimate(inst, entry))
+			-- Isolate each binding: a throw here used to abort the rest of the
+			-- pass (and the spin/callback passes below), stranding every later
+			-- binding on the old theme until the next switch.
+			local ok, err = pcall(function()
+				applyEntry(entry, theme, shouldAnimate(inst, entry))
+			end)
+			if not ok then
+				warn("[ThemeManager] theme bind failed for " .. tostring(inst) .. ": " .. tostring(err))
+			end
 		end
 	end
 
