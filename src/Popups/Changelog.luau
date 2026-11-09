@@ -116,7 +116,9 @@ function Changelog.new(parent, Settings)
 		pillCorner.Parent = pill
 	end
 
-	local closeBtn = Instance.new("TextButton")
+	-- ImageButton, not TextButton: the icon lives on the image layer, which
+	-- TextButton doesn't expose.
+	local closeBtn = Instance.new("ImageButton")
 	closeBtn.Name = UUID.Static("Close")
 	closeBtn.BorderSizePixel = 0
 	closeBtn.BackgroundTransparency = 1
