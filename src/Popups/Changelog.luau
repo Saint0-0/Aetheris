@@ -358,27 +358,13 @@ function Changelog.new(parent, Settings)
 	scroll.ZIndex = 13
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
-	-- Library scrollbar: hairline in TertiaryColor, hidden at rest.
+	-- Scrollbar never shows: the scroll-fade edges already read as the
+	-- scroll affordance, so the bar itself stays fully transparent.
 	scroll.ScrollBarThickness = 1
-	scroll.ScrollBarImageColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(120, 132, 150)
 	scroll.ScrollBarImageTransparency = 1
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.Parent = popup
 	attachScrollFade(scroll)
-
-	-- Reveal on scroll, fade back after 1.5 s (TabGroup/SettingsTabGroup pattern).
-	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-		Tween.Play(scroll, "Fast", { ScrollBarImageTransparency = 0.5 })
-		if self._scrollbarTimer then
-			task.cancel(self._scrollbarTimer)
-		end
-		self._scrollbarTimer = task.delay(1.5, function()
-			self._scrollbarTimer = nil
-			if scroll.Parent then
-				Tween.Play(scroll, "Fast", { ScrollBarImageTransparency = 1 })
-			end
-		end)
-	end)
 
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -546,7 +532,6 @@ function Changelog.new(parent, Settings)
 	ThemeManager.BindColor(popup, "BackgroundColor3", "PopupBackgroundColor")
 	ThemeManager.BindColor(header, "TextColor3", "PopupTextColor")
 	ThemeManager.BindColor(closeIcon, "ImageColor3", "PopupTextColor")
-	ThemeManager.BindColor(scroll, "ScrollBarImageColor3", "TertiaryColor")
 	ThemeManager.OnThemeApplied(function(applied)
 		self._popupTransparency = applied.PopupBackgroundTransparency or 0.07
 		self._cardBase = applied.PopupNeutralColor or FALLBACK_NEUTRAL
@@ -683,10 +668,6 @@ function Changelog:Destroy()
 	if self._hideTimer then
 		task.cancel(self._hideTimer)
 		self._hideTimer = nil
-	end
-	if self._scrollbarTimer then
-		task.cancel(self._scrollbarTimer)
-		self._scrollbarTimer = nil
 	end
 	if self.Popup then
 		self.Popup:Destroy()
