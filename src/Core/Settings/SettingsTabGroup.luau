@@ -5,6 +5,8 @@
 	It mirrors Core/TabGroup without the two-column split, and owns tab
 	creation, the active/inactive theme bindings, and page crossfades.
 	Inactive tabs collapse to the icon; the active tab expands to its label.
+	Hovering grows the button (pill presets) and names it via the shared
+	tooltip; the selection bar sits in the gap left of the active tab.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -27,6 +29,7 @@ local TAB_W_COLLAPSED = 30 -- 6 pad + 12 icon + 12 gap
 local TAB_TEXT_X = 26 -- icon (6 + 12) + 8 gap
 local TAB_W_PAD = 12 -- right padding after the label
 local TAB_TEXT_HIDDEN_X = 40 -- inactive: label starts past the clip edge
+local TAB_HOVER_SCALE = 1.1 -- pill-style hover grow (the pill uses 1.18 on 40px circles)
 
 -- "Settings | " is Medium (weight 500); the page name stays Regular. Stamped
 -- so a live locale change re-resolves both halves in place.
@@ -119,12 +122,14 @@ function SettingsTabGroup.new(window, theme)
 	local BarLayout = Instance.new("UIListLayout")
 	BarLayout.Padding = UDim.new(0, 12)
 	BarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	BarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	BarLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	BarLayout.FillDirection = Enum.FillDirection.Horizontal
 	BarLayout.Parent = self.Bar
 
 	local BarPadding = Instance.new("UIPadding")
 	BarPadding.PaddingLeft = UDim.new(0, 7)
+	BarPadding.PaddingRight = UDim.new(0, 7)
 	BarPadding.Parent = self.Bar
 
 	-- Content container below the tab bar
@@ -172,23 +177,39 @@ function SettingsTabGroup:Tab(Settings)
 	local isFirst = #self.Tabs == 0
 	local theme = self._theme or {}
 
-	-- Tab button. Collapsed width by default; the active state expands it.
+	-- Holder: arranged by the bar and never clips, so the -5px selection
+	-- bar can sit in the inter-tab gap (the original design) while the
+	-- button inside still clips its label. The width tween lives here (a
+	-- layout property); the button fills it and owns the hover scale.
+	local Holder = Instance.new("Frame")
+	Holder.Name = UUID.Generate()
+	Holder.BorderSizePixel = 0
+	Holder.BackgroundTransparency = 1
+	Holder.Size = UDim2.new(0, TAB_W_COLLAPSED, 0.83, 0)
+	Holder.LayoutOrder = #self.Tabs + 1
+	Holder.Parent = self.Bar
+
 	local Button = Instance.new("TextButton")
 	Button.Name = UUID.Generate()
 	Button.BorderSizePixel = 0
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
 	Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
-	Button.Size = UDim2.new(0, TAB_W_COLLAPSED, 0.83, 0)
+	Button.Size = UDim2.fromScale(1, 1)
 	Button.ClipsDescendants = true -- clip the label during the collapse/expand tween
 	Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Button.Text = ""
-	Button.LayoutOrder = #self.Tabs + 1
-	Button.Parent = self.Bar
+	Button.Parent = Holder
 
 	local ButtonCorner = Instance.new("UICorner")
 	ButtonCorner.CornerRadius = UDim.new(0, 4)
 	ButtonCorner.Parent = Button
+
+	-- Pill-style hover: one UIScale grows the whole button (same presets as
+	-- the floating pill). Button width stays state-owned; this scales it.
+	local buttonScale = Instance.new("UIScale")
+	buttonScale.Scale = 1
+	buttonScale.Parent = Button
 
 	local TabName = Instance.new("TextLabel")
 	TabName.Name = UUID.Static("TabName")
@@ -206,7 +227,8 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.Size = UDim2.fromScale(0, 0.71359)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Locale.set(TabName, "Text", name)
-	TabName.Position = UDim2.new(0, TAB_TEXT_X, 0.5, 0)
+	-- Starts parked past the clip edge; the first activation slides it in.
+	TabName.Position = UDim2.new(0, TAB_TEXT_HIDDEN_X, 0.5, 0)
 	TabName.Parent = Button
 
 	local BackImage = Instance.new("ImageLabel")
@@ -258,6 +280,8 @@ function SettingsTabGroup:Tab(Settings)
 	TabImage.Position = UDim2.new(0, 6, 0.5, 0)
 	TabImage.Parent = Button
 
+	-- Selection bar: a sibling of the button inside the unclipped holder,
+	-- so -5px into the gap survives the button's ClipsDescendants.
 	local SelectionStatus = Instance.new("Frame")
 	SelectionStatus.Name = UUID.Static("SelectionStatus")
 	SelectionStatus.BorderSizePixel = 0
@@ -265,11 +289,9 @@ function SettingsTabGroup:Tab(Settings)
 	SelectionStatus.BackgroundTransparency = 1
 	SelectionStatus.AnchorPoint = Vector2.new(0.5, 0.5)
 	SelectionStatus.Size = UDim2.fromOffset(2, 0)
-	-- Flush with the left edge now: the button clips, so the old -5 offset
-	-- (which sat in the inter-tab gap) would be cut away.
-	SelectionStatus.Position = UDim2.new(0, 1, 0.5, 0)
+	SelectionStatus.Position = UDim2.new(0, -5, 0.5, 0)
 	SelectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	SelectionStatus.Parent = Button
+	SelectionStatus.Parent = Holder
 
 	-- Simple page frame for this settings page (no automatic scroller)
 	local Page = Instance.new("Frame")
@@ -289,6 +311,7 @@ function SettingsTabGroup:Tab(Settings)
 	local tab = setmetatable({
 		Window = self.Window,
 		Name = name,
+		Holder = Holder,
 		Button = Button,
 		TabName = TabName,
 		BackImage = BackImage,
@@ -346,13 +369,43 @@ function SettingsTabGroup:Tab(Settings)
 		self:SetActiveTab(tab)
 	end)
 
-	-- Live re-measure: a locale change rewrites TabName.Text, which moves its
-	-- automatic width; the active tab retweens to the new width. The first
-	-- layout pass lands here too (build-time AbsoluteSize is still 0).
-	TabName:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		if self.ActiveTab == tab then
+	-- Live re-measure: the active width follows TabName's measured text,
+	-- which moves on locale, font and the first layout pass (build-time
+	-- bounds read 0). TextBounds rather than AbsoluteSize so the hover
+	-- UIScale can't inflate the target while the button is grown.
+	local measured = false
+	local function remeasure()
+		if self.ActiveTab == tab and not tab._hovered then
 			self:_setTabWidth(tab, true)
 		end
+	end
+	TabName:GetPropertyChangedSignal("TextBounds"):Connect(remeasure)
+	TabName:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if not measured and TabName.AbsoluteSize.X > 0 then
+			measured = true
+			remeasure()
+		end
+	end)
+
+	-- Pill-style hover grow + shared tooltip (names the tab even while its
+	-- label is collapsed out of view).
+	Button.MouseEnter:Connect(function()
+		tab._hovered = true
+		Tween.Play(buttonScale, "HoverIn", { Scale = TAB_HOVER_SCALE })
+		local tip = self.Window and self.Window.Tooltip
+		if tip then
+			tip:ShowAt(Button, TabName.Text, "Bottom", 11)
+		end
+	end)
+	Button.MouseLeave:Connect(function()
+		tab._hovered = false
+		Tween.Play(buttonScale, "HoverOut", { Scale = 1 })
+		local tip = self.Window and self.Window.Tooltip
+		if tip then
+			tip:Hide()
+		end
+		-- The grow may have inflated measurements; re-assert once settled.
+		task.delay(0.3, remeasure)
 	end)
 
 	table.insert(self.Tabs, tab)
@@ -364,16 +417,17 @@ function SettingsTabGroup:Tab(Settings)
 	return tab
 end
 
--- Button width for a tab: icon-only when collapsed, icon + full label when
--- active. Label width comes from TabName's AutomaticSize.X measurement,
--- with TextBounds as a pre-layout fallback (first paint can read 0).
+-- Width for a tab's holder: icon-only when collapsed, icon + full label
+-- when active. Label width comes from TabName.TextBounds - the measured
+-- text, which (unlike AbsoluteSize) doesn't react to the hover UIScale.
+-- The tween lands on the holder: it is the element the bar arranges, and
+-- the button inside just fills it.
 function SettingsTabGroup:_setTabWidth(t, active)
 	local width = TAB_W_COLLAPSED
 	if active then
-		local textW = math.max(t.TabName.AbsoluteSize.X, t.TabName.TextBounds.X)
-		width = TAB_TEXT_X + math.ceil(textW) + TAB_W_PAD
+		width = TAB_TEXT_X + math.ceil(t.TabName.TextBounds.X) + TAB_W_PAD
 	end
-	Tween.Play(t.Button, "Fast", { Size = UDim2.new(0, width, 0.83, 0) })
+	Tween.Play(t.Holder, "Fast", { Size = UDim2.new(0, width, 0.83, 0) })
 end
 
 function SettingsTabGroup:_applyActiveVisuals(t)
