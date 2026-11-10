@@ -114,13 +114,26 @@ local function darkTint(color)
 end
 
 -- Height is measured from the row (which converges on offset content), not auto-sized.
-local function syncHeight(root, content, row)
-	local height = math.max(TOAST_MIN_HEIGHT, row.AbsoluteSize.Y + ROW_TOP_INSET + TOAST_EXTRA_HEIGHT)
+-- While the shell grows, root.Size belongs to the open tween, so this retargets that
+-- tween instead of snapping: wrapped text converges a layout pass after build, and
+-- freezing the pass (the old guard) left the card short until the grow finished.
+-- During close the shrink tween owns root.Size, so the pass is skipped entirely.
+function Notification:_syncHeight()
+	local root = self.Root
+	if not root or self._closing then
+		return
+	end
+	local height = math.max(TOAST_MIN_HEIGHT, self._row.AbsoluteSize.Y + ROW_TOP_INSET + TOAST_EXTRA_HEIGHT)
 	local size = UDim2.fromOffset(TOAST_WIDTH, height)
-	root.Size = size
-	-- Content keeps the final measured size even while the shell grows around it,
-	-- so the text never reflows (and jumps) mid-animation.
-	content.Size = size
+	-- Content width never changes, so updating it mid-open only moves the vertical
+	-- rhythm (progress track, bottom band) — no horizontal reflow of the text.
+	self._content.Size = size
+	self._fullSize = size
+	if self._openTweening then
+		Tween.Play(root, TweenInfo.new(OPEN_GROW, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = size })
+	else
+		root.Size = size
+	end
 end
 
 local ACCENT_KEY = {
@@ -167,7 +180,7 @@ function Notification.new(container, Settings, theme)
 	local description = Settings.Description or ""
 	self.Duration = Settings.Duration or 5
 	self._hovered = false
-	self._animating = false
+	self._openTweening = false
 	self._bodyShown = false
 
 	local accent = theme[ACCENT_KEY[ntype]] or FALLBACK_ACCENT[ntype] or FALLBACK_ACCENT.Alert
@@ -569,11 +582,12 @@ function Notification.new(container, Settings, theme)
 		self._hovered = false
 	end)
 
-	-- Re-sync on reflow so text changes and font/theme swaps resize the card too.
-	syncHeight(root, content, row)
+	-- Re-sync on reflow so text changes and font/theme swaps resize the card too;
+	-- mid-open this retargets the grow tween (see _syncHeight) instead of being dropped.
+	self:_syncHeight()
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		if root.Parent and not self._animating then
-			syncHeight(root, content, row)
+		if root.Parent then
+			self:_syncHeight()
 		end
 	end)
 
@@ -590,8 +604,8 @@ function Notification:ApplyTheme(themeInput)
 	-- A theme switch sweeps CancelAllUnder the ScreenGui; if it lands mid-open the
 	-- grow tweens die, so snap the card to its final open state first (the recolour
 	-- below then overwrites anything this restored).
-	if self._animating and not self._closing then
-		self._animating = false
+	if self._openTweening and not self._closing then
+		self._openTweening = false
 		self.Root.GroupTransparency = 0
 		for _, t in ipairs(self._shellFade) do
 			t[1][t[2]] = t[3]
@@ -605,7 +619,7 @@ function Notification:ApplyTheme(themeInput)
 				t[1][t[2]] = t[3]
 			end
 		end
-		syncHeight(self.Root, self._content, self._row)
+		self:_syncHeight()
 	end
 
 	local accent = theme[ACCENT_KEY[self._type]] or FALLBACK_ACCENT[self._type] or self._accent
@@ -713,9 +727,9 @@ function Notification:Show()
 	end
 
 	-- Open: the shell starts as a small square pill and grows/rounds out to the
-	-- measured card while syncHeight is frozen (it would snap the size back the
-	-- moment the row reflowed against the growing width).
-	self._animating = true
+	-- measured card. _openTweening hands Size to the tween: reflows during the grow
+	-- retarget it (see _syncHeight) rather than snapping the card mid-animation.
+	self._openTweening = true
 	local full = root.Size
 	root.Size = UDim2.fromOffset(math.min(full.X.Offset, OPEN_W), OPEN_H)
 	for _, corner in ipairs(self._corners) do
@@ -758,8 +772,8 @@ function Notification:Show()
 		if self._closing or not self.Root then
 			return
 		end
-		self._animating = false
-		syncHeight(self.Root, self._content, self._row)
+		self._openTweening = false
+		self:_syncHeight()
 	end)
 
 	self:_runTimer()
@@ -771,7 +785,6 @@ function Notification:Close()
 		return
 	end
 	self._closing = true
-	self._animating = true -- freeze syncHeight so it can't fight the shrink tween
 	local root = self.Root
 	if not root then
 		return
