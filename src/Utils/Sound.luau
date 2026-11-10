@@ -16,14 +16,29 @@ local UUID = require("../Utils/UUID")
 local SoundUtil = {}
 
 -- Every sound the UI can play, keyed by name; Preload walks this table.
+-- Ids adopted from the Novoline reference (open/close clip, boot); one clip
+-- serves open/close/toast, separated by Tuning below.
 SoundUtil.Assets = {
-	UIStart = "rbxassetid://82845990304289",
-	Notification = "rbxassetid://17208361335",
-	UIOpen = "rbxassetid://103088360945885",
-	UIClose = "rbxassetid://110295449838315",
-	UIShutdown = "rbxassetid://110807507368078",
-	KeySystemOpen = "rbxassetid://624706518",
-	KeySystemClose = "rbxassetid://231731980",
+	UIStart = "rbxassetid://6958727243",
+	Notification = "rbxassetid://255881176",
+	UIOpen = "rbxassetid://255881176",
+	UIClose = "rbxassetid://255881176",
+	UIShutdown = "rbxassetid://255881176",
+	KeySystemOpen = "rbxassetid://255881176",
+	KeySystemClose = "rbxassetid://255881176",
+}
+
+-- Novoline's per-use tuning for those ids: open plays faster than close,
+-- the toast plays quieter. Applied on build and re-applied on every Play,
+-- so a call-site override in `properties` still wins for that one play.
+SoundUtil.Tuning = {
+	UIStart = { Volume = 1 },
+	UIOpen = { Volume = 0.8, PlaybackSpeed = 0.9 },
+	UIClose = { Volume = 0.8, PlaybackSpeed = 0.7 },
+	UIShutdown = { Volume = 0.8, PlaybackSpeed = 0.7 },
+	Notification = { Volume = 0.6 },
+	KeySystemOpen = { Volume = 0.8, PlaybackSpeed = 0.9 },
+	KeySystemClose = { Volume = 0.8, PlaybackSpeed = 0.7 },
 }
 
 -- One reusable Sound per name, built once so repeated plays don't allocate.
@@ -65,6 +80,15 @@ local function countAssets()
 	return n
 end
 
+local function applyTuning(name, sound)
+	local tuning = SoundUtil.Tuning[name]
+	if tuning then
+		for prop, value in pairs(tuning) do
+			sound[prop] = value
+		end
+	end
+end
+
 local function buildSoundInstances()
 	for name, assetId in pairs(SoundUtil.Assets) do
 		if not sounds[name] then
@@ -73,6 +97,7 @@ local function buildSoundInstances()
 			s.SoundId = assetId
 			s.SoundGroup = getSoundGroup()
 			s.Parent = SoundService
+			applyTuning(name, s)
 			sounds[name] = s
 		end
 	end
@@ -156,6 +181,8 @@ function SoundUtil.Play(name, properties)
 		sounds[name] = s
 	end
 
+	-- Tuning first, then the call-site override, so per-play properties win.
+	applyTuning(name, s)
 	if properties then
 		for prop, value in pairs(properties) do
 			s[prop] = value
