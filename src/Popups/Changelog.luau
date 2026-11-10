@@ -45,7 +45,6 @@ local EDGE_FADE_PX = 36
 local CORNER_SHELL = 12
 local CORNER_CARD = 10
 local TILE = 30
-local HIDDEN_SCALE = 0.96
 local LIFT_BOOST = 0.16
 local SHADOW_OPEN = 0.45
 -- How far the aurora's bright corner keypoint pulls toward the entry tint
@@ -413,10 +412,6 @@ function Changelog.new(parent, Settings)
 			card.GroupTransparency = 1
 			card.Parent = scroll
 
-			local cardScale = Instance.new("UIScale")
-			cardScale.Scale = HIDDEN_SCALE
-			cardScale.Parent = card
-
 			local visual = Instance.new("Frame")
 			visual.Name = UUID.Static("CardBody")
 			visual.BorderSizePixel = 0
@@ -509,13 +504,13 @@ function Changelog.new(parent, Settings)
 			-- fill, slide the aurora wash across the card, pop the text.
 			visual.MouseEnter:Connect(function()
 				Tween.Play(visual, LIFT, { BackgroundColor3 = self._cardBase:Lerp(Color3.new(1, 1, 1), LIFT_BOOST) })
-				Tween.Play(cardGradient, LIFT, { Offset = UDim2.fromScale(0.08, 0.08) })
+				Tween.Play(cardGradient, LIFT, { Offset = Vector2.new(0.08, 0.08) })
 				Tween.Play(titleLabel, LIFT, { TextTransparency = 0 })
 				Tween.Play(descLabel, LIFT, { TextTransparency = 0.3 })
 			end)
 			visual.MouseLeave:Connect(function()
 				Tween.Play(visual, LIFT, { BackgroundColor3 = self._cardBase })
-				Tween.Play(cardGradient, LIFT, { Offset = UDim2.fromScale(0, 0) })
+				Tween.Play(cardGradient, LIFT, { Offset = Vector2.zero })
 				Tween.Play(titleLabel, LIFT, { TextTransparency = 0.05 })
 				Tween.Play(descLabel, LIFT, { TextTransparency = 0.45 })
 			end)
@@ -524,7 +519,7 @@ function Changelog.new(parent, Settings)
 			ThemeManager.BindColor(titleLabel, "TextColor3", "PopupTextColor")
 			ThemeManager.BindColor(descLabel, "TextColor3", "PopupTextColor")
 
-			self._cards[#self._cards + 1] = { Group = card, Scale = cardScale }
+			self._cards[#self._cards + 1] = { Group = card }
 		end
 	end
 
@@ -578,15 +573,17 @@ function Changelog.new(parent, Settings)
 	return self
 end
 
--- Stagger the cards in: fade + settle per card, 35 ms apart, capped. The
--- token drops callbacks from a superseded open.
+-- Stagger the cards in: a GroupTransparency fade per card, 35 ms apart,
+-- capped. The token drops callbacks from a superseded open. No per-card
+-- UIScale here: a scale ~= 1 affecting an AutomaticSize frame makes the
+-- engine recompute its height from scaled descendants, so the old 0.96->1
+-- settle re-laid-out every card mid-open ("cards grow after opening").
 function Changelog:_cascade()
 	local token = self._revealToken + 1
 	self._revealToken = token
 	for i, entry in ipairs(self._cards) do
 		if entry.Group.Parent then
 			entry.Group.GroupTransparency = 1
-			entry.Scale.Scale = HIDDEN_SCALE
 		end
 		local delay = CASCADE_LEAD + math.min((i - 1) * CASCADE_STEP, CASCADE_CAP)
 		task.delay(delay, function()
@@ -594,7 +591,6 @@ function Changelog:_cascade()
 				return
 			end
 			Tween.Play(entry.Group, SETTLE, { GroupTransparency = 0 })
-			Tween.Play(entry.Scale, SETTLE, { Scale = 1 })
 		end)
 	end
 end
