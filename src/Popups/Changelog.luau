@@ -1,10 +1,12 @@
 --[[
 	Aetheris/Popups/Changelog.luau
 
-	Startup changelog popup: a rim-lit shell over a scrolling column of
-	gradient cards (falloff fill, faint top-bright rim, accent tint tile,
-	brighten on hover) that cascade in when the popup opens. The design follows
-	the card grammar in design-notes.md (Novoline reference); the code stays on
+	Startup changelog popup: a clean shell over a scrolling column of aurora
+	cards (tinted corner wash on the falloff fill, accent tint tile, hover
+	lift) that cascade in when the popup opens. The design follows the card
+	grammar in design-notes.md (Novoline reference); open/close, click-outside
+	and the scrollbar follow the Dropdown/ColorPicker popup mechanics, so the
+	shell shares their "Fast" fade and 0.35 s hide timer. The code stays on
 	Aetheris idioms - ThemeManager binds, Locale stamps, Tween registry.
 	Version tracking lives in the window - this module only builds and shows
 	the entries it is handed. Entries take optional Icon (Icons key) and Tint
@@ -26,12 +28,10 @@ local Changelog = {}
 Changelog.__index = Changelog
 
 -- Motion (design-notes.md 4): one settle for the cascade, one lift for
--- hovers, one enter/exit for the shell. Tween.Play takes an explicit
--- TweenInfo, so these stay local instead of joining the preset registry.
+-- hovers. The shell itself uses the shared "Fast" fade like every other
+-- popup; Tween.Play takes an explicit TweenInfo for these locals.
 local SETTLE = TweenInfo.new(0.36, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local LIFT = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local ENTER = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local EXIT = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
@@ -46,20 +46,11 @@ local CORNER_SHELL = 12
 local CORNER_CARD = 10
 local TILE = 30
 local HIDDEN_SCALE = 0.96
-local LIFT_BOOST = 0.1
+local LIFT_BOOST = 0.16
 local SHADOW_OPEN = 0.45
-
--- Rim ramps: the top edge catches the most light (design-notes.md 2).
-local SHELL_RIM = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.84),
-	NumberSequenceKeypoint.new(0.5, 0.92),
-	NumberSequenceKeypoint.new(1, 0.78),
-})
-local CARD_RIM = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.86),
-	NumberSequenceKeypoint.new(0.4, 0.96),
-	NumberSequenceKeypoint.new(1, 0.97),
-})
+-- How far the aurora's bright corner keypoint pulls toward the entry tint
+-- (Novoline's BlueCornerGlow adapted to a multiplier gradient).
+local AURORA_TINT = 0.14
 
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
 local FALLBACK_NEUTRAL = Color3.fromRGB(46, 46, 46)
@@ -127,12 +118,21 @@ local function stampShellGradient(gradient, theme)
 	})
 end
 
-local function stampCardGradient(gradient, theme)
+-- The card fill's one gradient carries both jobs: the vertical-ish falloff
+-- and the aurora - a tinted bright corner on Novoline's 35-degree diagonal.
+-- UIGradient.Color multiplies what it paints, so the keypoints are
+-- multipliers rather than literal colours (design-notes.md 10).
+local function stampCardGradient(gradient, theme, tint)
 	local base = (theme and theme.PopupNeutralColor) or FALLBACK_NEUTRAL
 	local bottom = if isDark(base) then 0.72 else 0.9
-	gradient.Rotation = 90
+	local corner = Color3.new(1, 1, 1)
+	if tint then
+		corner = corner:Lerp(tint, AURORA_TINT)
+	end
+	gradient.Rotation = 35
 	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0, corner),
+		ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
 		ColorSequenceKeypoint.new(1, Color3.new(bottom, bottom, bottom)),
 	})
 end
@@ -215,39 +215,37 @@ function Changelog.new(parent, Settings)
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or FALLBACK_POPUP
 	popup.BackgroundTransparency = self._popupTransparency
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	popup.Size = UDim2.new(0.6, 0, 0, 380)
+	-- Height scales with the popup layer (0.72 of Content) so the shell
+	-- always fits the window; the constraint below clamps it in both modes.
+	popup.Size = UDim2.fromScale(0.6, 0.72)
 	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
+	popup.Active = true
 	popup.ZIndex = 12
 	popup.Parent = parent
 
+	-- Shell gradient first, then the rest of the shell: no stroke - the
+	-- popup layer's own z-order (Window PopUpsLayer) keeps it above the
+	-- compact tab row, and the fill plus shadow carry the edge.
 	local shellGradient = Instance.new("UIGradient")
 	stampShellGradient(shellGradient, theme)
 	shellGradient.Parent = popup
 	self._shellGradients[1] = shellGradient
 
 	local shadow = Instance.new("UIShadow")
-	shadow.BlurRadius = UDim.new(0, 26)
-	shadow.Offset = UDim2.fromOffset(0, 10)
+	shadow.BlurRadius = UDim.new(0, 20)
 	shadow.Transparency = 1
-	shadow.Color = (theme and theme.NotificationShadowColor) or (theme and theme.PopupShadowColor)
+	shadow.Color = (theme and theme.PopupShadowColor) or Color3.new(0, 0, 0)
 	shadow.Parent = popup
-
-	local rim = Instance.new("UIStroke")
-	rim.Thickness = 1
-	rim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	rim.Color = (theme and theme.StrokeColor) or Color3.new(1, 1, 1)
-	rim.Transparency = SHELL_RIM
-	rim.Parent = popup
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, CORNER_SHELL)
 	corner.Parent = popup
 
 	local sizeConstraint = Instance.new("UISizeConstraint")
-	sizeConstraint.MinSize = Vector2.new(360, 320)
-	sizeConstraint.MaxSize = Vector2.new(560, 460)
+	sizeConstraint.MinSize = Vector2.new(340, 210)
+	sizeConstraint.MaxSize = Vector2.new(560, 420)
 	sizeConstraint.Parent = popup
 
 	-- Header row: accent tile + title, close button opposite.
@@ -272,6 +270,9 @@ function Changelog.new(parent, Settings)
 	headGlyph.ZIndex = 14
 	headGlyph.Parent = headTile
 	self._tiles[#self._tiles + 1] = { tile = headTile, glyph = headGlyph, baseSlot = "PopupBackgroundColor" }
+	-- Stamp at build too: tint tiles must show immediately, not on the first
+	-- theme switch (they used to stay default-white until OnThemeApplied).
+	restampTile(self._tiles[#self._tiles], theme)
 
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
@@ -358,11 +359,27 @@ function Changelog.new(parent, Settings)
 	scroll.ZIndex = 13
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
-	scroll.ScrollBarThickness = 4
-	scroll.ScrollBarImageColor3 = (theme and theme.AccentColor)
+	-- Library scrollbar: hairline in TertiaryColor, hidden at rest.
+	scroll.ScrollBarThickness = 1
+	scroll.ScrollBarImageColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(120, 132, 150)
+	scroll.ScrollBarImageTransparency = 1
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.Parent = popup
 	attachScrollFade(scroll)
+
+	-- Reveal on scroll, fade back after 1.5 s (TabGroup/SettingsTabGroup pattern).
+	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		Tween.Play(scroll, "Fast", { ScrollBarImageTransparency = 0.5 })
+		if self._scrollbarTimer then
+			task.cancel(self._scrollbarTimer)
+		end
+		self._scrollbarTimer = task.delay(1.5, function()
+			self._scrollbarTimer = nil
+			if scroll.Parent then
+				Tween.Play(scroll, "Fast", { ScrollBarImageTransparency = 1 })
+			end
+		end)
+	end)
 
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -382,7 +399,7 @@ function Changelog.new(parent, Settings)
 				iconId = Icons[entry.Icon]
 			end
 
-			-- CanvasGroup so one GroupTransparency tween reveals fill, rim and
+			-- CanvasGroup so one GroupTransparency tween reveals fill, tile and
 			-- text together; the fill lives on the inner Frame so the gradient
 			-- only paints the background.
 			local card = Instance.new("CanvasGroup")
@@ -413,15 +430,9 @@ function Changelog.new(parent, Settings)
 			visualCorner.CornerRadius = UDim.new(0, CORNER_CARD)
 			visualCorner.Parent = visual
 			local cardGradient = Instance.new("UIGradient")
-			stampCardGradient(cardGradient, theme)
+			stampCardGradient(cardGradient, theme, tint)
 			cardGradient.Parent = visual
-			self._cardGradients[#self._cardGradients + 1] = cardGradient
-			local cardRim = Instance.new("UIStroke")
-			cardRim.Thickness = 1
-			cardRim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-			cardRim.Color = (theme and theme.StrokeColor) or Color3.new(1, 1, 1)
-			cardRim.Transparency = CARD_RIM
-			cardRim.Parent = visual
+			self._cardGradients[#self._cardGradients + 1] = { Gradient = cardGradient, Tint = tint }
 			local cardPad = Instance.new("UIPadding")
 			cardPad.PaddingTop = UDim.new(0, 13)
 			cardPad.PaddingBottom = UDim.new(0, 13)
@@ -458,6 +469,7 @@ function Changelog.new(parent, Settings)
 			glyph.Image = iconId
 			glyph.Parent = tile
 			self._tiles[#self._tiles + 1] = { tile = tile, glyph = glyph, tint = tint, baseSlot = "PopupNeutralColor" }
+			restampTile(self._tiles[#self._tiles], theme)
 
 			local titleLabel = Instance.new("TextLabel")
 			titleLabel.Name = UUID.Static("CardTitle")
@@ -493,17 +505,22 @@ function Changelog.new(parent, Settings)
 			descLabel.Text = description
 			descLabel.Parent = visual
 
-			-- Hover lifts the fill only; the gradient rides along, so the card
-			-- brightens the same 5% a white lift wash would.
+			-- Hover (design-notes.md 4 - one LIFT for all of it): lift the
+			-- fill, slide the aurora wash across the card, pop the text.
 			visual.MouseEnter:Connect(function()
 				Tween.Play(visual, LIFT, { BackgroundColor3 = self._cardBase:Lerp(Color3.new(1, 1, 1), LIFT_BOOST) })
+				Tween.Play(cardGradient, LIFT, { Offset = UDim2.fromScale(0.08, 0.08) })
+				Tween.Play(titleLabel, LIFT, { TextTransparency = 0 })
+				Tween.Play(descLabel, LIFT, { TextTransparency = 0.3 })
 			end)
 			visual.MouseLeave:Connect(function()
 				Tween.Play(visual, LIFT, { BackgroundColor3 = self._cardBase })
+				Tween.Play(cardGradient, LIFT, { Offset = UDim2.fromScale(0, 0) })
+				Tween.Play(titleLabel, LIFT, { TextTransparency = 0.05 })
+				Tween.Play(descLabel, LIFT, { TextTransparency = 0.45 })
 			end)
 
 			ThemeManager.BindColor(visual, "BackgroundColor3", "PopupNeutralColor")
-			ThemeManager.BindColor(cardRim, "Color", "StrokeColor")
 			ThemeManager.BindColor(titleLabel, "TextColor3", "PopupTextColor")
 			ThemeManager.BindColor(descLabel, "TextColor3", "PopupTextColor")
 
@@ -532,10 +549,9 @@ function Changelog.new(parent, Settings)
 	-- Colour follows the theme through Bind; gradients, tiles and the accent
 	-- text need the callback because they are derived, not theme slots.
 	ThemeManager.BindColor(popup, "BackgroundColor3", "PopupBackgroundColor")
-	ThemeManager.BindColor(rim, "Color", "StrokeColor")
 	ThemeManager.BindColor(header, "TextColor3", "PopupTextColor")
 	ThemeManager.BindColor(closeIcon, "ImageColor3", "PopupTextColor")
-	ThemeManager.BindColor(scroll, "ScrollBarImageColor3", "AccentColor")
+	ThemeManager.BindColor(scroll, "ScrollBarImageColor3", "TertiaryColor")
 	ThemeManager.OnThemeApplied(function(applied)
 		self._popupTransparency = applied.PopupBackgroundTransparency or 0.07
 		self._cardBase = applied.PopupNeutralColor or FALLBACK_NEUTRAL
@@ -545,8 +561,8 @@ function Changelog.new(parent, Settings)
 		for _, gradient in ipairs(self._shellGradients) do
 			stampShellGradient(gradient, applied)
 		end
-		for _, gradient in ipairs(self._cardGradients) do
-			stampCardGradient(gradient, applied)
+		for _, entry in ipairs(self._cardGradients) do
+			stampCardGradient(entry.Gradient, applied, entry.Tint)
 		end
 		for _, record in ipairs(self._tiles) do
 			restampTile(record, applied)
@@ -600,9 +616,21 @@ function Changelog:_connectOutsideClick()
 			return
 		end
 		local p = input.Position
+		-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside (Dropdown pattern).
 		local pos = self.Popup.AbsolutePosition
 		local size = self.Popup.AbsoluteSize
 		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+		if not inside then
+			local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
+			if playerGui then
+				for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
+					if obj == self.Popup or obj:IsDescendantOf(self.Popup) then
+						inside = true
+						break
+					end
+				end
+			end
+		end
 		if not inside then
 			self:Close()
 		end
@@ -625,16 +653,12 @@ function Changelog:Open()
 	local popup = self.Popup
 	popup.Visible = true
 	popup.GroupTransparency = 1
-	popup.Position = UDim2.new(0.5, 0, 0.5, 8)
 	self.Scroll.CanvasPosition = Vector2.zero
 	self:_connectOutsideClick()
 	self:_cascade()
-	Tween.Play(popup, ENTER, {
-		GroupTransparency = 0,
-		BackgroundTransparency = self._popupTransparency,
-		Position = UDim2.fromScale(0.5, 0.5),
-	})
-	Tween.Play(self.Shadow, ENTER, { Transparency = SHADOW_OPEN })
+	-- Shared popup mechanics: "Fast" GroupTransparency fade, no slide.
+	Tween.Play(popup, "Fast", { GroupTransparency = 0 })
+	Tween.Play(self.Shadow, "Fast", { Transparency = SHADOW_OPEN })
 end
 
 function Changelog:Close()
@@ -644,21 +668,30 @@ function Changelog:Close()
 	self.IsOpen = false
 	-- Disarm click-outside immediately so a click during the fade-out can't re-trigger it.
 	self:_disconnectOutsideClick()
-	Tween.Play(self.Popup, EXIT, {
-		GroupTransparency = 1,
-		Position = UDim2.new(0.5, 0, 0.5, 14),
-	})
-	Tween.Play(self.Shadow, EXIT, { Transparency = 1 })
-	task.delay(0.55, function()
+	Tween.Play(self.Popup, "Fast", { GroupTransparency = 1 })
+	Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
+	-- Hide after the fade, keep the instance for reuse (Dropdown/ColorPicker pattern).
+	if self._hideTimer then
+		task.cancel(self._hideTimer)
+	end
+	self._hideTimer = task.delay(0.35, function()
+		self._hideTimer = nil
 		if not self.IsOpen and self.Popup and self.Popup.Parent then
 			self.Popup.Visible = false
-			self.Popup.Position = UDim2.fromScale(0.5, 0.5)
 		end
 	end)
 end
 
 function Changelog:Destroy()
 	self:_disconnectOutsideClick()
+	if self._hideTimer then
+		task.cancel(self._hideTimer)
+		self._hideTimer = nil
+	end
+	if self._scrollbarTimer then
+		task.cancel(self._scrollbarTimer)
+		self._scrollbarTimer = nil
+	end
 	if self.Popup then
 		self.Popup:Destroy()
 	end
