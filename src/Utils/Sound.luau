@@ -16,8 +16,8 @@ local UUID = require("../Utils/UUID")
 local SoundUtil = {}
 
 -- Every sound the UI can play, keyed by name; Preload walks this table.
--- Ids adopted from the Novoline reference (open/close clip, boot); one clip
--- serves open/close/toast, separated by Tuning below.
+-- Ids adopted from the Novoline reference (open/close clip, boot, nav-tab
+-- clip for theme switches); per-use Tuning below.
 SoundUtil.Assets = {
 	UIStart = "rbxassetid://6958727243",
 	Notification = "rbxassetid://255881176",
@@ -26,6 +26,7 @@ SoundUtil.Assets = {
 	UIShutdown = "rbxassetid://255881176",
 	KeySystemOpen = "rbxassetid://255881176",
 	KeySystemClose = "rbxassetid://255881176",
+	ThemeChange = "rbxassetid://1180994874",
 }
 
 -- Novoline's per-use tuning for those ids: open plays faster than close,
@@ -39,6 +40,7 @@ SoundUtil.Tuning = {
 	Notification = { Volume = 0.6 },
 	KeySystemOpen = { Volume = 0.8, PlaybackSpeed = 0.9 },
 	KeySystemClose = { Volume = 0.8, PlaybackSpeed = 0.7 },
+	ThemeChange = { Volume = 0.8 },
 }
 
 -- One reusable Sound per name, built once so repeated plays don't allocate.

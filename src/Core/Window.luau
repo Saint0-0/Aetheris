@@ -2333,6 +2333,9 @@ end
 
 -- Apply a theme by name or table
 function Window:SetTheme(themeInput)
+	-- User-triggered only (picker, config load, API): boot applies the
+	-- stored theme through ThemeManager directly, so no beep at startup.
+	Sound.Play("ThemeChange")
 	if type(themeInput) == "string" then
 		self._themeName = themeInput
 		-- Persist named themes so the choice survives sessions; a custom table is session-only.
