@@ -4,6 +4,7 @@
 	Horizontal settings tab bar with a single-column content area per page.
 	It mirrors Core/TabGroup without the two-column split, and owns tab
 	creation, the active/inactive theme bindings, and page crossfades.
+	Inactive tabs collapse to the icon; the active tab expands to its label.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -17,6 +18,15 @@ local PageAwareness = require("../../Utils/PageAwareness")
 local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
+
+-- Tab widths are offsets, not scale: the wallpaper fill child can't live
+-- under an automatic-width parent (a scale child pins the width shut), so
+-- the button tweens between two fixed widths while TabName sizes itself to
+-- the text with AutomaticSize.X.
+local TAB_W_COLLAPSED = 30 -- 6 pad + 12 icon + 12 gap
+local TAB_TEXT_X = 26 -- icon (6 + 12) + 8 gap
+local TAB_W_PAD = 12 -- right padding after the label
+local TAB_TEXT_HIDDEN_X = 40 -- inactive: label starts past the clip edge
 
 -- "Settings | " is Medium (weight 500); the page name stays Regular. Stamped
 -- so a live locale change re-resolves both halves in place.
@@ -162,14 +172,15 @@ function SettingsTabGroup:Tab(Settings)
 	local isFirst = #self.Tabs == 0
 	local theme = self._theme or {}
 
-	-- Tab button
+	-- Tab button. Collapsed width by default; the active state expands it.
 	local Button = Instance.new("TextButton")
 	Button.Name = UUID.Generate()
 	Button.BorderSizePixel = 0
 	Button.AutoButtonColor = false
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
 	Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
-	Button.Size = UDim2.fromScale(0.169, 0.83)
+	Button.Size = UDim2.new(0, TAB_W_COLLAPSED, 0.83, 0)
+	Button.ClipsDescendants = true -- clip the label during the collapse/expand tween
 	Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Button.Text = ""
 	Button.LayoutOrder = #self.Tabs + 1
@@ -188,11 +199,14 @@ function SettingsTabGroup:Tab(Settings)
 	TabName.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	TabName.TextColor3 = theme.InactiveTabTextColor
 	TabName.BackgroundTransparency = 1
-	TabName.AnchorPoint = Vector2.new(0.5, 0.5)
-	TabName.Size = UDim2.fromScale(0.73078, 0.71359)
+	TabName.AnchorPoint = Vector2.new(0, 0.5)
+	-- Sizes itself to the text so long locale names never clip; the button's
+	-- width tween (and its clip) decide how much of it is actually shown.
+	TabName.AutomaticSize = Enum.AutomaticSize.X
+	TabName.Size = UDim2.fromScale(0, 0.71359)
 	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Locale.set(TabName, "Text", name)
-	TabName.Position = UDim2.fromScale(0.647, 0.5)
+	TabName.Position = UDim2.new(0, TAB_TEXT_X, 0.5, 0)
 	TabName.Parent = Button
 
 	local BackImage = Instance.new("ImageLabel")
@@ -251,7 +265,9 @@ function SettingsTabGroup:Tab(Settings)
 	SelectionStatus.BackgroundTransparency = 1
 	SelectionStatus.AnchorPoint = Vector2.new(0.5, 0.5)
 	SelectionStatus.Size = UDim2.fromOffset(2, 0)
-	SelectionStatus.Position = UDim2.new(0, -5, 0.5, 0)
+	-- Flush with the left edge now: the button clips, so the old -5 offset
+	-- (which sat in the inter-tab gap) would be cut away.
+	SelectionStatus.Position = UDim2.new(0, 1, 0.5, 0)
 	SelectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	SelectionStatus.Parent = Button
 
@@ -330,6 +346,15 @@ function SettingsTabGroup:Tab(Settings)
 		self:SetActiveTab(tab)
 	end)
 
+	-- Live re-measure: a locale change rewrites TabName.Text, which moves its
+	-- automatic width; the active tab retweens to the new width. The first
+	-- layout pass lands here too (build-time AbsoluteSize is still 0).
+	TabName:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if self.ActiveTab == tab then
+			self:_setTabWidth(tab, true)
+		end
+	end)
+
 	table.insert(self.Tabs, tab)
 
 	if Settings.Active or isFirst then
@@ -337,6 +362,18 @@ function SettingsTabGroup:Tab(Settings)
 	end
 
 	return tab
+end
+
+-- Button width for a tab: icon-only when collapsed, icon + full label when
+-- active. Label width comes from TabName's AutomaticSize.X measurement,
+-- with TextBounds as a pre-layout fallback (first paint can read 0).
+function SettingsTabGroup:_setTabWidth(t, active)
+	local width = TAB_W_COLLAPSED
+	if active then
+		local textW = math.max(t.TabName.AbsoluteSize.X, t.TabName.TextBounds.X)
+		width = TAB_TEXT_X + math.ceil(textW) + TAB_W_PAD
+	end
+	Tween.Play(t.Button, "Fast", { Size = UDim2.new(0, width, 0.83, 0) })
 end
 
 function SettingsTabGroup:_applyActiveVisuals(t)
@@ -359,6 +396,9 @@ function SettingsTabGroup:_applyActiveVisuals(t)
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState("Active")
 	end
+	-- Expand to the label and slide it back into view.
+	self:_setTabWidth(t, true)
+	Tween.Play(t.TabName, "Fast", { Position = UDim2.new(0, TAB_TEXT_X, 0.5, 0) })
 	-- Non-theme / constant visuals stay imperative.
 	local theme = self._theme or {}
 	t.BackImage.Visible = theme.WallpaperEnabled ~= false
@@ -386,6 +426,10 @@ function SettingsTabGroup:_applyInactiveVisuals(t)
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState("Inactive")
 	end
+	-- Collapse to the icon: shrink the button and slide the label past the
+	-- clip edge (theme transparency alone would leave a stub of text).
+	self:_setTabWidth(t, false)
+	Tween.Play(t.TabName, "Fast", { Position = UDim2.new(0, TAB_TEXT_HIDDEN_X, 0.5, 0) })
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
 	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) })
 	self:_pauseSpin(t.BackImageGradient)
@@ -504,6 +548,8 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 		-- Wallpaper Image/Visible stay imperative (not Color3/number).
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
+		-- A theme switch cancels in-flight tweens; re-assert the state width.
+		self:_setTabWidth(t, t == self.ActiveTab)
 	end
 end
 
