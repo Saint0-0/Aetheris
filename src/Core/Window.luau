@@ -358,19 +358,21 @@ function Window.new(Settings)
 	Content:GetPropertyChangedSignal("Position"):Connect(mirrorPopupsRect)
 	Content:GetPropertyChangedSignal("AnchorPoint"):Connect(mirrorPopupsRect)
 
-	-- Direct ScreenGui child so toasts sit above the window unclipped; stacks bottom-right.
+	-- Direct ScreenGui child so toasts sit above the window unclipped; stacks
+	-- bottom-centre (Novoline-style) on a full-screen pass-through layer.
 	local Notifications = Instance.new("Frame")
 	Notifications.Name = UUID.Static("Notifications")
 	Notifications.BorderSizePixel = 0
 	Notifications.BackgroundTransparency = 1
-	Notifications.AnchorPoint = Vector2.new(1, 1)
-	Notifications.Size = UDim2.new(0, 260, 1, 0)
-	Notifications.Position = UDim2.fromScale(1, 1)
+	Notifications.Active = false -- transparent pass-through layer, like PopUpsLayer
+	Notifications.AnchorPoint = Vector2.new(0.5, 0.5)
+	Notifications.Size = UDim2.fromScale(1, 1)
+	Notifications.Position = UDim2.fromScale(0.5, 0.5)
 	Notifications.ZIndex = 999
 	Notifications.Parent = ScreenGui
 
 	local NotificationsLayout = Instance.new("UIListLayout")
-	NotificationsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	NotificationsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	NotificationsLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 	NotificationsLayout.Padding = UDim.new(0, 8)
 	NotificationsLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -378,7 +380,6 @@ function Window.new(Settings)
 
 	local NotificationsPadding = Instance.new("UIPadding")
 	NotificationsPadding.PaddingBottom = UDim.new(0, 14)
-	NotificationsPadding.PaddingRight = UDim.new(0, 4)
 	NotificationsPadding.Parent = Notifications
 
 	-- Opt-in settings pages: UISettings ships by default, others come from the developer.

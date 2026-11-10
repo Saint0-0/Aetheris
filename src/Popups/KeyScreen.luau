@@ -1142,21 +1142,22 @@ local function buildKeyPhase(self)
 	self._infoSub = infoSub
 
 	----------------------------------------------------------------
-	-- Notifications container (toasts stack above the card)
+	-- Notifications container (toasts stack bottom-centre, like the window)
 	----------------------------------------------------------------
 
 	local notifHolder = new("Frame", {
 		Name = UUID.Static("Notifications"),
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.fromScale(1, 1),
-		Size = UDim2.new(0, 260, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
+		Active = false, -- transparent pass-through layer, like PopUpsLayer
 		ZIndex = 999,
 		Parent = self._gui,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
-		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
@@ -1164,7 +1165,6 @@ local function buildKeyPhase(self)
 	})
 	local notifPadding = new("UIPadding", { Parent = notifHolder })
 	notifPadding.PaddingBottom = UDim.new(0, 14)
-	notifPadding.PaddingRight = UDim.new(0, 14)
 	self._notifHolder = notifHolder
 
 	self._keyFadeTargets = captureFade(body)

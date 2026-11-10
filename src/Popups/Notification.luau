@@ -4,8 +4,12 @@
 	Self-destroying toast notifications in three flavours: Alert (amber),
 	Error (red), and Variable (green; custom icon, colours, background image
 	and up to MAX_ACTIONS action buttons). Created via window:Alert() /
-	window:Error() / window:Toast(); each toast fades in, counts down via
-	TimerFrame, then fades out and destroys itself.
+	window:Error() / window:Toast().
+
+	Motion follows the Novoline toast: the glass shell grows in from a small
+	square pill and rounds out, the body fades in behind it, hovering pauses
+	the countdown while a progress bar drains, then the card shrinks back
+	down and destroys itself.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -25,18 +29,40 @@ local Notification = {}
 Notification.__index = Notification
 
 local MAX_ACTIONS = 2
-local FADE_IN = 0.2
-local FADE_OUT = 0.2
 
 -- Card geometry: height derives from the row's content via syncHeight, so these are the only fixed numbers.
-local TOAST_WIDTH = 233
+local TOAST_WIDTH = 280
 local ROW_TOP_INSET = 17
 local TOAST_MIN_HEIGHT = 40
 -- Extra height below the row so a one-line toast isn't cramped; applied in syncHeight only.
 local TOAST_EXTRA_HEIGHT = 7
--- Top-aligned title box taller than the glyphs, so the title sits level with the dismiss button and clears the divider.
 local HEADER_HEIGHT = 16
-local HEADER_GAP = 10
+-- Novoline tint tile: a 34px pill with the glyph inside, 10px clear of the text column.
+local TILE_SIZE = 34
+local TILE_GAP = 10
+local TEXT_X = 14 + TILE_SIZE + TILE_GAP -- left edge of the text column (58, like the reference)
+local DISMISS_GUTTER = 30
+local CARD_CORNER = 20
+
+-- Open: the shell grows from a small square pill, the body fades in behind it.
+local OPEN_W = 132
+local OPEN_H = 30
+local OPEN_GROW = 0.55
+local OPEN_CORNER_TIME = 0.45
+local OPEN_SHELL_TIME = 0.5
+local BODY_DELAY = 0.12
+local BODY_FADE_TIME = 0.32
+
+-- Close: body out first, then the shell shrinks back toward a pill.
+local CLOSE_W = 120
+local CLOSE_H = 28
+local CLOSE_RADIUS = 14
+local CLOSE_BODY_TIME = 0.16
+local CLOSE_GROW_TIME = 0.34
+local CLOSE_SHELL_TIME = 0.28
+local CLOSE_SHELL_DELAY = 0.08
+local CLOSE_CORNER_TIME = 0.3
+local CLOSE_DESTROY_DELAY = 0.42
 
 local function new(className, props)
 	local inst = Instance.new(className)
@@ -81,10 +107,20 @@ local function tweenAll(targets, value, duration)
 	end
 end
 
+-- Novoline tint recipe: the tile washes to a dark tint of the flavour accent so the bright glyph reads.
+local function darkTint(color)
+	local h, s = color:ToHSV()
+	return Color3.fromHSV(h, math.min(s, 0.75), 0.24)
+end
+
 -- Height is measured from the row (which converges on offset content), not auto-sized.
-local function syncHeight(root, row)
+local function syncHeight(root, content, row)
 	local height = math.max(TOAST_MIN_HEIGHT, row.AbsoluteSize.Y + ROW_TOP_INSET + TOAST_EXTRA_HEIGHT)
-	root.Size = UDim2.fromOffset(TOAST_WIDTH, height)
+	local size = UDim2.fromOffset(TOAST_WIDTH, height)
+	root.Size = size
+	-- Content keeps the final measured size even while the shell grows around it,
+	-- so the text never reflows (and jumps) mid-animation.
+	content.Size = size
 end
 
 local ACCENT_KEY = {
@@ -130,6 +166,9 @@ function Notification.new(container, Settings, theme)
 	local title = Locale.resolve(Settings.Title or DEFAULT_TITLE[ntype] or "Notification")
 	local description = Settings.Description or ""
 	self.Duration = Settings.Duration or 5
+	self._hovered = false
+	self._animating = false
+	self._bodyShown = false
 
 	local accent = theme[ACCENT_KEY[ntype]] or FALLBACK_ACCENT[ntype] or FALLBACK_ACCENT.Alert
 	local iconColor = Settings.IconColor or accent
@@ -151,8 +190,9 @@ function Notification.new(container, Settings, theme)
 	})
 	self.Root = root
 
-	-- Root has no UIPadding: it would inset the scale(1,1) wash and float the timer bar; the row below uses absolute offsets.
-	new("UICorner", { Parent = root, CornerRadius = UDim.new(0, 6) })
+	local rootCorner = new("UICorner", { Parent = root, CornerRadius = UDim.new(0, CARD_CORNER) })
+	self._corners = { rootCorner }
+
 	-- Card chrome colour-matched to the flavour accent; theme keys only tune transparency.
 	local stroke = new("UIStroke", {
 		Parent = root,
@@ -196,7 +236,8 @@ function Notification.new(container, Settings, theme)
 			ZIndex = 0,
 			Parent = root,
 		})
-		new("UICorner", { Parent = bg, CornerRadius = UDim.new(0, 6) })
+		local bgCorner = new("UICorner", { Parent = bg, CornerRadius = UDim.new(0, CARD_CORNER) })
+		table.insert(self._corners, bgCorner)
 		self._background = bg
 		self._backgroundOverride = Settings.BackgroundImage
 		new("UIGradient", {
@@ -215,45 +256,83 @@ function Notification.new(container, Settings, theme)
 		})
 	end
 
-	-- Icon beside one in-flow text column; all-offset children so AutomaticSize.Y converges and syncHeight can copy it (14px left margin, 30px right gutter for the dismiss).
+	-- Shell-only scan: Content does not exist yet, so this captures just the rim and glow.
+	self._shellFade = captureFade(root)
+
+	-- Body layer: fades in behind the shell on open and out before the shrink, so the
+	-- card reads as glass first and text second (Novoline ordering). Fixed-size and
+	-- centre-anchored so it never reflows while the shell grows around it.
+	local content = new("CanvasGroup", {
+		Name = UUID.Static("Content"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		GroupTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(TOAST_WIDTH, TOAST_MIN_HEIGHT),
+		ZIndex = 2,
+		Parent = root,
+	})
+	self._content = content
+
+	-- Tile + one in-flow text column; all-offset children so AutomaticSize.Y converges and syncHeight can copy it (14px left margin, 30px right gutter for the dismiss).
 	local row = new("Frame", {
 		Name = UUID.Static("Row"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -44, 0, 0),
+		Size = UDim2.new(1, -(14 + DISMISS_GUTTER), 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Position = UDim2.fromOffset(14, ROW_TOP_INSET),
 		ZIndex = 2,
-		Parent = root,
+		Parent = content,
 	})
 	new("UIListLayout", {
 		Parent = row,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, TILE_GAP),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		FillDirection = Enum.FillDirection.Horizontal,
 	})
-	-- Bottom band rides in the row's AutomaticSize.Y (root UIPadding would break the wash), so the timer bar clears the description.
+	-- Bottom band rides in the row's AutomaticSize.Y (root UIPadding would break the wash), so the progress track clears the description.
 	new("UIPadding", { Parent = row, PaddingBottom = UDim.new(0, ROW_TOP_INSET) })
 
-	local icon = new("ImageLabel", {
-		Name = UUID.Static("Icon"),
+	local tile = new("Frame", {
+		Name = UUID.Static("Tile"),
 		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
-		ImageColor3 = iconColor,
-		Size = UDim2.fromOffset(22, 22),
+		BackgroundColor3 = darkTint(iconColor),
+		Size = UDim2.fromOffset(TILE_SIZE, TILE_SIZE),
 		LayoutOrder = 1,
 		ZIndex = 2,
-		Image = Settings.Icon or DEFAULT_ICON[ntype] or DEFAULT_ICON.Alert,
 		Parent = row,
 	})
-	new("UIAspectRatioConstraint", { Parent = icon, DominantAxis = Enum.DominantAxis.Height })
+	new("UICorner", { Parent = tile, CornerRadius = UDim.new(1, 0) })
+	new("UIStroke", {
+		Parent = tile,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Color = Color3.new(1, 1, 1),
+		Transparency = 0.9,
+		Thickness = 1,
+	})
+
+	local glyph = new("ImageLabel", {
+		Name = UUID.Static("Glyph"),
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(18, 18),
+		ScaleType = Enum.ScaleType.Fit,
+		ImageColor3 = iconColor,
+		Image = Settings.Icon or DEFAULT_ICON[ntype] or DEFAULT_ICON.Alert,
+		ZIndex = 3,
+		Parent = tile,
+	})
 
 	local col = new("Frame", {
 		Name = UUID.Static("Column"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
-		-- Icon (22) + gap (10); the dismiss button sits outside the row, so no extra reserve.
-		Size = UDim2.new(1, -32, 0, 0),
+		-- Tile (34) + gap (10); the dismiss button sits outside the row, so no extra reserve.
+		Size = UDim2.new(1, -(TILE_SIZE + TILE_GAP), 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = 2,
 		ZIndex = 2,
@@ -270,26 +349,24 @@ function Notification.new(container, Settings, theme)
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		TextTruncate = Enum.TextTruncate.AtEnd,
-		TextSize = ntype == "Variable" and 13 or 15,
+		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTransparency = theme.NotificationHeaderTransparency or 0.3,
 		TextColor3 = theme.NotificationHeaderColor or Color3.fromRGB(255, 255, 255),
-		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
-		-- Top-aligned in a taller box: the title rides the card's top edge and HEADER_GAP becomes room under it.
-		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT + HEADER_GAP),
+		FontFace = Constants.Font(Enum.FontWeight.Bold),
+		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT),
 		LayoutOrder = 1,
 		ZIndex = 2,
 		Text = title,
 		Parent = col,
 	})
-	new("UIPadding", { Parent = header, PaddingBottom = UDim.new(0, 7) })
 	local desc = new("TextLabel", {
 		Name = UUID.Static("Description"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		TextWrapped = true,
-		TextSize = 13,
+		TextSize = 12,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextTransparency = theme.NotificationTextTransparency or 0.5,
@@ -405,7 +482,7 @@ function Notification.new(container, Settings, theme)
 		end
 	end
 
-	-- Right-pinned so hover growth extends into the gutter, aligned with the header line.
+	-- Centre-pinned so hover growth stays centred against the card's right edge.
 	local dismiss = new("ImageButton", {
 		Name = UUID.Static("DismissButton"),
 		BorderSizePixel = 0,
@@ -414,10 +491,10 @@ function Notification.new(container, Settings, theme)
 		Image = CLOSE_ICON,
 		ImageColor3 = theme.NotificationDismissColor or Color3.fromRGB(255, 255, 255),
 		Size = UDim2.fromOffset(16, 16),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 15),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -12, 0.5, 0),
 		ZIndex = 3,
-		Parent = root,
+		Parent = content,
 	})
 	new("UIAspectRatioConstraint", { Parent = dismiss, DominantAxis = Enum.DominantAxis.Height })
 
@@ -440,18 +517,33 @@ function Notification.new(container, Settings, theme)
 		self:Close()
 	end)
 
-	self.TimerFrame = new("Frame", {
-		Name = UUID.Static("TimerFrame"),
+	-- Countdown track: a hairline under the text that drains with the timer.
+	local track = new("Frame", {
+		Name = UUID.Static("ProgressTrack"),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.91,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, TEXT_X, 1, -10),
+		Size = UDim2.new(1, -(TEXT_X + DISMISS_GUTTER), 0, 3),
+		ZIndex = 3,
+		Parent = content,
+	})
+	new("UICorner", { Parent = track, CornerRadius = UDim.new(1, 0) })
+	local fill = new("Frame", {
+		Name = UUID.Static("ProgressFill"),
 		BorderSizePixel = 0,
 		BackgroundColor3 = accent,
-		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.new(0.7, 0, 0, 2),
-		Position = UDim2.fromScale(0.5, 0.97),
-		ZIndex = 3,
-		Parent = root,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+		Parent = track,
 	})
+	new("UICorner", { Parent = fill, CornerRadius = UDim.new(1, 0) })
+	self._fill = fill
 
-	self._fadeTargets = captureFade(root)
+	-- Body scan (tile rim, action glows) captured with everything already inside Content.
+	self._contentFade = captureFade(content)
+
 	self._shown = false
 	self._closing = false
 
@@ -463,15 +555,25 @@ function Notification.new(container, Settings, theme)
 	self._wash = wash
 	self._stroke = stroke
 	self._header = header
-	self._icon = icon
+	self._icon = glyph
+	self._tile = tile
 	self._desc = desc
 	self._dismiss = dismiss
+	self._row = row
+
+	-- Hovering anywhere on the card (children included) pauses the countdown.
+	root.MouseEnter:Connect(function()
+		self._hovered = true
+	end)
+	root.MouseLeave:Connect(function()
+		self._hovered = false
+	end)
 
 	-- Re-sync on reflow so text changes and font/theme swaps resize the card too.
-	syncHeight(root, row)
+	syncHeight(root, content, row)
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		if root.Parent then
-			syncHeight(root, row)
+		if root.Parent and not self._animating then
+			syncHeight(root, content, row)
 		end
 	end)
 
@@ -484,6 +586,28 @@ function Notification:ApplyTheme(themeInput)
 		return
 	end
 	local theme = ThemeManager.GetTheme(themeInput)
+
+	-- A theme switch sweeps CancelAllUnder the ScreenGui; if it lands mid-open the
+	-- grow tweens die, so snap the card to its final open state first (the recolour
+	-- below then overwrites anything this restored).
+	if self._animating and not self._closing then
+		self._animating = false
+		self.Root.GroupTransparency = 0
+		for _, t in ipairs(self._shellFade) do
+			t[1][t[2]] = t[3]
+		end
+		for _, corner in ipairs(self._corners) do
+			corner.CornerRadius = UDim.new(0, CARD_CORNER)
+		end
+		if self._bodyShown then
+			self._content.GroupTransparency = 0
+			for _, t in ipairs(self._contentFade) do
+				t[1][t[2]] = t[3]
+			end
+		end
+		syncHeight(self.Root, self._content, self._row)
+	end
+
 	local accent = theme[ACCENT_KEY[self._type]] or FALLBACK_ACCENT[self._type] or self._accent
 	self._accent = accent
 	local iconColor = self._iconOverride or accent
@@ -518,8 +642,14 @@ function Notification:ApplyTheme(themeInput)
 		end
 	end
 
+	if self._tile then
+		self._tile.BackgroundColor3 = darkTint(iconColor)
+	end
 	if self._icon then
 		self._icon.ImageColor3 = iconColor
+	end
+	if self._fill then
+		self._fill.BackgroundColor3 = accent
 	end
 
 	if self._desc then
@@ -545,36 +675,29 @@ function Notification:ApplyTheme(themeInput)
 		entry.shadow.Color = accent
 	end
 
-	self.TimerFrame.BackgroundColor3 = accent
 	if self._dismiss then
 		self._dismiss.ImageColor3 = theme.NotificationDismissColor or self._dismiss.ImageColor3
 	end
-	self:_resumeTimer()
 end
 
-function Notification:_startTimer()
-	self._timerStarted = os.clock()
-	self._timerTween = Tween.Play(
-		self.TimerFrame,
-		TweenInfo.new(self.Duration, Enum.EasingStyle.Linear),
-		{ Size = UDim2.fromOffset(0, 2) }
-	)
-end
-
--- A theme switch cancels every tween under the ScreenGui; pick the bar back up from wherever the sweep left it.
-function Notification:_resumeTimer()
-	if self._closing or not self._timerStarted then
-		return
-	end
-	local remaining = self.Duration - (os.clock() - self._timerStarted)
-	if remaining <= 0 then
-		return
-	end
-	self._timerTween = Tween.Play(
-		self.TimerFrame,
-		TweenInfo.new(remaining, Enum.EasingStyle.Linear),
-		{ Size = UDim2.fromOffset(0, 2) }
-	)
+-- Frame-step countdown (not a tween) so a theme switch's tween sweep can't kill it;
+-- hovering the card pauses the drain until the mouse leaves.
+function Notification:_runTimer()
+	task.spawn(function()
+		local left = self.Duration
+		while left > 0 and not self._closing do
+			local dt = task.wait()
+			if not self._hovered then
+				left = left - dt
+			end
+			if self._fill and self._fill.Parent then
+				self._fill.Size = UDim2.fromScale(math.clamp(left / self.Duration, 0, 1), 1)
+			end
+		end
+		if not self._closing then
+			self:Close()
+		end
+	end)
 end
 
 function Notification:Show()
@@ -583,21 +706,63 @@ function Notification:Show()
 	end
 	self._shown = true
 	Sound.Play("Notification")
-	setAll(self._fadeTargets, 1)
-	self.Root.Visible = true
-	self.Root.GroupTransparency = 1
+
+	local root = self.Root
+	if not root then
+		return self
+	end
+
+	-- Open: the shell starts as a small square pill and grows/rounds out to the
+	-- measured card while syncHeight is frozen (it would snap the size back the
+	-- moment the row reflowed against the growing width).
+	self._animating = true
+	local full = root.Size
+	root.Size = UDim2.fromOffset(math.min(full.X.Offset, OPEN_W), OPEN_H)
+	for _, corner in ipairs(self._corners) do
+		corner.CornerRadius = UDim.new(0, 0)
+	end
+	root.GroupTransparency = 1
+	setAll(self._shellFade, 1)
+	self._content.GroupTransparency = 1
+	setAll(self._contentFade, 1)
+
+	Tween.Play(root, TweenInfo.new(OPEN_GROW, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = full })
+	for _, corner in ipairs(self._corners) do
+		Tween.Play(
+			corner,
+			TweenInfo.new(OPEN_CORNER_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+			{ CornerRadius = UDim.new(0, CARD_CORNER) }
+		)
+	end
 	Tween.Play(
-		self.Root,
-		TweenInfo.new(FADE_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		root,
+		TweenInfo.new(OPEN_SHELL_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 		{ GroupTransparency = 0 }
 	)
-	tweenAll(self._fadeTargets, nil, FADE_IN)
-	self:_startTimer()
-	self._dismissTask = task.delay(self.Duration, function()
-		-- Clear the handle first: Close() cancels _dismissTask, and cancelling this running thread would abort before the destroy step below is scheduled.
-		self._dismissTask = nil
-		self:Close()
+	tweenAll(self._shellFade, nil, OPEN_SHELL_TIME)
+
+	task.delay(BODY_DELAY, function()
+		if not self._content or self._closing then
+			return
+		end
+		self._bodyShown = true
+		Tween.Play(
+			self._content,
+			TweenInfo.new(BODY_FADE_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+			{ GroupTransparency = 0 }
+		)
+		tweenAll(self._contentFade, nil, BODY_FADE_TIME)
 	end)
+
+	task.delay(OPEN_GROW, function()
+		if self._closing or not self.Root then
+			return
+		end
+		self._animating = false
+		syncHeight(self.Root, self._content, self._row)
+	end)
+
+	self:_runTimer()
 	return self
 end
 
@@ -606,21 +771,38 @@ function Notification:Close()
 		return
 	end
 	self._closing = true
-	if self._timerTween then
-		Tween.Cancel(self._timerTween)
-		self._timerTween = nil
+	self._animating = true -- freeze syncHeight so it can't fight the shrink tween
+	local root = self.Root
+	if not root then
+		return
 	end
-	if self._dismissTask then
-		task.cancel(self._dismissTask)
-		self._dismissTask = nil
-	end
-	tweenAll(self._fadeTargets, 1, FADE_OUT)
+
+	-- Body out first, then the shell shrinks back toward a pill and fades.
 	Tween.Play(
-		self.Root,
-		TweenInfo.new(FADE_OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		self._content,
+		TweenInfo.new(CLOSE_BODY_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{ GroupTransparency = 1 }
 	)
-	task.delay(FADE_OUT, function()
+	tweenAll(self._contentFade, 1, CLOSE_BODY_TIME)
+	Tween.Play(
+		root,
+		TweenInfo.new(CLOSE_GROW_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+		{ Size = UDim2.fromOffset(CLOSE_W, CLOSE_H) }
+	)
+	for _, corner in ipairs(self._corners) do
+		Tween.Play(
+			corner,
+			TweenInfo.new(CLOSE_CORNER_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+			{ CornerRadius = UDim.new(0, CLOSE_RADIUS) }
+		)
+	end
+	Tween.Play(
+		root,
+		TweenInfo.new(CLOSE_SHELL_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, CLOSE_SHELL_DELAY),
+		{ GroupTransparency = 1 }
+	)
+	tweenAll(self._shellFade, 1, CLOSE_SHELL_TIME)
+	task.delay(CLOSE_DESTROY_DELAY, function()
 		if self.Root then
 			self.Root:Destroy()
 			self.Root = nil
