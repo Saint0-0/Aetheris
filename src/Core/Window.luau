@@ -335,9 +335,28 @@ function Window.new(Settings)
 	Content.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Content.Parent = MainFrame
 
-	local PopUpsFolder = Instance.new("Folder")
-	PopUpsFolder.Name = UUID.Static("PopUps")
-	PopUpsFolder.Parent = Content
+	-- Popup layer sits at WINDOW level, not inside Content: with Sibling
+	-- z-behavior the branch top decides, so anything under Content loses to
+	-- the compact tab row (TabList ZIndex 50) no matter its own ZIndex.
+	-- The frame mirrors Content's rect, so popup coordinates stay identical.
+	local PopUpsLayer = Instance.new("Frame")
+	PopUpsLayer.Name = UUID.Static("PopUps")
+	PopUpsLayer.BorderSizePixel = 0
+	PopUpsLayer.BackgroundTransparency = 1
+	PopUpsLayer.Active = false -- transparent pass-through layer, like the old Folder
+	PopUpsLayer.ZIndex = 52 -- above the compact tab row (50), below nothing in-window
+	PopUpsLayer.AnchorPoint = Content.AnchorPoint
+	PopUpsLayer.Size = Content.Size
+	PopUpsLayer.Position = Content.Position
+	PopUpsLayer.Parent = MainFrame
+	local function mirrorPopupsRect()
+		PopUpsLayer.AnchorPoint = Content.AnchorPoint
+		PopUpsLayer.Size = Content.Size
+		PopUpsLayer.Position = Content.Position
+	end
+	Content:GetPropertyChangedSignal("Size"):Connect(mirrorPopupsRect)
+	Content:GetPropertyChangedSignal("Position"):Connect(mirrorPopupsRect)
+	Content:GetPropertyChangedSignal("AnchorPoint"):Connect(mirrorPopupsRect)
 
 	-- Direct ScreenGui child so toasts sit above the window unclipped; stacks bottom-right.
 	local Notifications = Instance.new("Frame")
@@ -1096,7 +1115,7 @@ function Window.new(Settings)
 	self.Notifications = Notifications
 	self.ContentBackground = ContentBackground
 	self.Content = Content
-	self.PopUpsFolder = PopUpsFolder
+	self.PopUpsFolder = PopUpsLayer -- field name kept for API stability
 	self.SettingsPages = SettingsPages
 	self.TabContent = TabContent
 	self.Sidebar = Sidebar
@@ -2272,7 +2291,7 @@ function Window.new(Settings)
 				version = ""
 			end
 
-			local changelog = Changelog.new(PopUpsFolder, {
+			local changelog = Changelog.new(PopUpsLayer, {
 				Theme = theme,
 				Version = version,
 				Entries = entries,
