@@ -264,7 +264,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	desc.Text = THEME_DESCRIPTIONS[name] or "A cool theme"
 	desc.Parent = card
 
-	-- Palette dots over the image, top-right; their rims ride along with the paint.
+	-- Palette swatches over the image, top-right.
 	local dotsHolder = Instance.new("Frame")
 	dotsHolder.Name = UUID.Static("PaletteDots")
 	dotsHolder.BorderSizePixel = 0
@@ -283,7 +283,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	dotsLayout.Parent = dotsHolder
 
 	local dots = {}
-	local dotRims = {}
 	local palette = {
 		theme.PrimaryColor or white,
 		theme.SecondaryColor or white,
@@ -300,17 +299,10 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		dot.Parent = dotsHolder
 
 		local dotCorner = Instance.new("UICorner")
-		dotCorner.CornerRadius = UDim.new(0.5, 0)
+		dotCorner.CornerRadius = UDim.new(0, 4)
 		dotCorner.Parent = dot
 
-		local dotRim = Instance.new("UIStroke")
-		dotRim.Color = white
-		dotRim.Transparency = 0.75
-		dotRim.Thickness = 1
-		dotRim.Parent = dot
-
 		table.insert(dots, dot)
-		table.insert(dotRims, dotRim)
 	end
 
 	-- Hover lift: a white veil that only exists under the cursor.
@@ -387,9 +379,8 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		apply(desc, "TextTransparency", math.max(0, (active and 0.35 or 0.55) - (hovered and 0.1 or 0)))
 		apply(image, "ImageTransparency", math.max(0, (active and 0.2 or 0.4) - (hovered and 0.12 or 0)))
 		local dotT = math.max(0, (active and 0.1 or 0.45) - (hovered and 0.1 or 0))
-		for i, dot in ipairs(dots) do
+		for _, dot in ipairs(dots) do
 			apply(dot, "BackgroundTransparency", dotT)
-			apply(dotRims[i], "Transparency", 0.75)
 		end
 		apply(lift, "BackgroundTransparency", hovered and 0.95 or 1)
 
@@ -421,9 +412,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		desc.TextTransparency = 1
 		for _, dot in ipairs(dots) do
 			dot.BackgroundTransparency = 1
-		end
-		for _, dotRim in ipairs(dotRims) do
-			dotRim.Transparency = 1
 		end
 		lift.BackgroundTransparency = 1
 		stroke.Transparency = 1
@@ -566,18 +554,6 @@ function Themes.Build(window, tab)
 	chipLayout.Padding = UDim.new(0, 6)
 	chipLayout.Parent = chip
 
-	local chipDot = Instance.new("Frame")
-	chipDot.Name = UUID.Static("CurrentThemeDot")
-	chipDot.BorderSizePixel = 0
-	chipDot.BackgroundColor3 = pageTheme.AccentColor or Color3.fromRGB(120, 156, 210)
-	chipDot.Size = UDim2.fromOffset(8, 8)
-	chipDot.LayoutOrder = 1
-	chipDot.Parent = chip
-
-	local chipDotCorner = Instance.new("UICorner")
-	chipDotCorner.CornerRadius = UDim.new(0.5, 0)
-	chipDotCorner.Parent = chipDot
-
 	local chipName = Instance.new("TextLabel")
 	chipName.Name = UUID.Static("CurrentThemeName")
 	chipName.BorderSizePixel = 0
@@ -589,14 +565,7 @@ function Themes.Build(window, tab)
 	chipName.Size = UDim2.fromOffset(0, 14)
 	chipName.AutomaticSize = Enum.AutomaticSize.X
 	chipName.Text = "Umbral"
-	chipName.LayoutOrder = 2
 	chipName.Parent = chip
-
-	local function setChip(name)
-		chipName.Text = name
-		local t = ThemeManager.GetTheme(name)
-		chipDot.BackgroundColor3 = t.AccentColor or t.PrimaryColor or Color3.fromRGB(120, 156, 210)
-	end
 
 	-- scrolling container for the cards; ThemeManager's ScrollingFrame pass
 	-- re-colors its scrollbar on theme switch
@@ -673,7 +642,7 @@ function Themes.Build(window, tab)
 		if tab._themeCards[newName] then
 			tab._themeCards[newName].setActive(true)
 		end
-		setChip(newName)
+		chipName.Text = newName
 		window:SetTheme(newName)
 	end
 
@@ -687,7 +656,7 @@ function Themes.Build(window, tab)
 	end
 
 	-- follows the active theme even when it isn't in the ordered list
-	setChip(tab._activeThemeName)
+	chipName.Text = tab._activeThemeName
 
 	-- Reveal cascade: each visit re-primes the grid and staggers the cards back
 	-- in; leaving mid-cascade bumps the token so stale reveals can't fire.
@@ -737,7 +706,7 @@ function Themes.Build(window, tab)
 			if tab._themeCards[name] then
 				tab._themeCards[name].setActive(true)
 			end
-			setChip(name)
+			chipName.Text = name
 		end
 	end
 	ThemeManager.Register(page, themesPageComponent)
