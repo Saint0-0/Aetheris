@@ -11,6 +11,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
+local Icons = require("../Assets/Icons")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 local ColorPickerPopUp = {}
@@ -18,6 +19,55 @@ ColorPickerPopUp.__index = ColorPickerPopUp
 local function clamp(v, min, max)
 	return math.max(min, math.min(max, v))
 end
+
+-- design-notes 6/10: the shell carries a top-down multiplier wash (no rim
+-- stroke - fill plus shadow edge it, same as the Changelog) at radius 12.
+local CORNER_SHELL = 12
+local CORNER_CARD = 10
+local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
+
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+-- UIGradient.Color multiplies what it paints, so the ramp is a gray
+-- multiplier pair rather than literal colours (design-notes 10).
+local function stampShellGradient(gradient, t)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	local top = if isDark(base) then 0.9 else 0.96
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(top, top, top)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+end
+
+-- Accent-as-text derivation (design-notes 5): hue kept, saturation capped,
+-- value forced up on dark grounds; darkened on light ones.
+local function accentText(color, onDark)
+	if onDark then
+		local h, s, v = color:ToHSV()
+		return Color3.fromHSV(h, math.min(s, 0.75), math.max(v, 0.92))
+	end
+	return color:Lerp(Color3.new(0, 0, 0), 0.3)
+end
+
+-- Tile fills derive from theme slots so they follow light and dark themes
+-- (design-notes 10) instead of copying Novoline's fixed dark tints.
+local function tileFill(tint, base)
+	if isDark(base) then
+		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
+	end
+	return base:Lerp(tint, 0.3)
+end
+
+local function stampHeaderTile(tile, glyph, t)
+	local tint = (t and t.AccentColor) or Color3.fromRGB(96, 165, 250)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	tile.BackgroundColor3 = tileFill(tint, base)
+	glyph.ImageColor3 = accentText(tint, isDark(base))
+end
+
 function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	Settings = Settings or {}
 	local self = setmetatable({}, ColorPickerPopUp)
@@ -37,32 +87,57 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	popup.Active = true
 	popup.ZIndex = 11
 	popup.Parent = parent
+	-- Shell wash first: a top-down multiplier over the whole group (the
+	-- CanvasGroup tints its subtree with it, matching the Changelog shell).
+	local shellGradient = Instance.new("UIGradient")
+	stampShellGradient(shellGradient, theme)
+	shellGradient.Parent = popup
 	local shadow = Instance.new("UIShadow")
 	shadow.Color = (theme and theme.PopupShadowColor)
 	shadow.BlurRadius = UDim.new(0, 20)
 	shadow.Transparency = 1
 	shadow.Parent = popup
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
+	corner.CornerRadius = UDim.new(0, CORNER_SHELL)
 	corner.Parent = popup
 	local scale = Instance.new("UIScale")
 	scale.Scale = 0.9
 	scale.Parent = popup
+	-- Accent tile + left-set title, the Changelog header (design-notes 6).
+	local headTile = Instance.new("Frame")
+	headTile.Name = UUID.Static("HeaderTile")
+	headTile.BorderSizePixel = 0
+	headTile.Size = UDim2.fromOffset(30, 30)
+	headTile.Position = UDim2.fromOffset(16, 14)
+	headTile.Parent = popup
+	local headTileCorner = Instance.new("UICorner")
+	headTileCorner.CornerRadius = UDim.new(0, 10)
+	headTileCorner.Parent = headTile
+	local headGlyph = Instance.new("ImageLabel")
+	headGlyph.Name = UUID.Static("HeaderGlyph")
+	headGlyph.BorderSizePixel = 0
+	headGlyph.BackgroundTransparency = 1
+	headGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	headGlyph.Position = UDim2.fromScale(0.5, 0.5)
+	headGlyph.Size = UDim2.fromOffset(16, 16)
+	headGlyph.Image = Icons["palette"] or Icons.droplet
+	headGlyph.Parent = headTile
+	stampHeaderTile(headTile, headGlyph, theme)
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
-	header.TextSize = 16
+	header.TextSize = 15
 	header.TextXAlignment = Enum.TextXAlignment.Left
+	header.TextYAlignment = Enum.TextYAlignment.Center
+	header.TextTruncate = Enum.TextTruncate.AtEnd
 	header.TextTransparency = (theme and theme.PopupTextTransparency) or 0.4
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = (theme and theme.PopupTextColor)
 	header.BackgroundTransparency = 1
 	header.RichText = true
-	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.fromScale(0.21429, 0.03775)
-	header.AutomaticSize = Enum.AutomaticSize.X
-	header.Position = UDim2.new(0.5, 0, 0, 25)
+	header.Size = UDim2.new(1, -110, 0, 30)
+	header.Position = UDim2.fromOffset(56, 14)
 	header.Parent = popup
 	header.Text = "Color Picker"
 	local colorSquare = Instance.new("TextButton")
@@ -76,7 +151,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorSquare.Position = UDim2.fromScale(0.0506, 0.16117)
 	colorSquare.Parent = popup
 	local squareCorner = Instance.new("UICorner")
-	squareCorner.CornerRadius = UDim.new(0, 4)
+	squareCorner.CornerRadius = UDim.new(0, CORNER_CARD)
 	squareCorner.Parent = colorSquare
 	local squareShadow = Instance.new("UIShadow")
 	squareShadow.Color = (theme and theme.PopupShadowColor)
@@ -89,7 +164,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	satOverlay.Size = UDim2.fromScale(1, 1)
 	satOverlay.Parent = colorSquare
 	local satCorner = Instance.new("UICorner")
-	satCorner.CornerRadius = UDim.new(0, 4)
+	satCorner.CornerRadius = UDim.new(0, CORNER_CARD)
 	satCorner.Parent = satOverlay
 	local satGradient = Instance.new("UIGradient")
 	satGradient.Transparency = NumberSequence.new({
@@ -104,7 +179,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valOverlay.Size = UDim2.fromScale(1, 1)
 	valOverlay.Parent = colorSquare
 	local valCorner = Instance.new("UICorner")
-	valCorner.CornerRadius = UDim.new(0, 4)
+	valCorner.CornerRadius = UDim.new(0, CORNER_CARD)
 	valCorner.Parent = valOverlay
 	local valGradient = Instance.new("UIGradient")
 	valGradient.Rotation = 90
@@ -157,7 +232,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	})
 	valueGradient.Parent = colorValue
 	local valueCorner = Instance.new("UICorner")
-	valueCorner.CornerRadius = UDim.new(0, 6)
+	valueCorner.CornerRadius = UDim.new(0.5, 0) -- h <= 60, so pill (design-notes 1)
 	valueCorner.Parent = colorValue
 	local valueShadow = Instance.new("UIShadow")
 	valueShadow.Color = (theme and theme.PopupShadowColor)
@@ -257,7 +332,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		inputBox.Parent = row
 		local inputCorner = Instance.new("UICorner")
 		inputCorner.Name = UUID.Static("InputBoxUICorner")
-		inputCorner.CornerRadius = UDim.new(0, 4)
+		inputCorner.CornerRadius = UDim.new(0.5, 0) -- field = pill at this height (design-notes 6)
 		inputCorner.Parent = inputBox
 		local inputStroke = Instance.new("UIStroke")
 		inputStroke.Name = UUID.Static("InputBoxUIStroke")
@@ -301,7 +376,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.LayoutOrder = layoutOrder
 		well.Parent = wellParent
 		local wellCorner = Instance.new("UICorner")
-		wellCorner.CornerRadius = UDim.new(0, 6)
+		wellCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip (design-notes 8.10)
 		wellCorner.Parent = well
 		return well
 	end
@@ -317,8 +392,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	interactions.Position = UDim2.fromScale(0.5, 1)
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
-	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
-	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.BottomLeftRadius = UDim.new(0, CORNER_SHELL)
+	interactionsCorner.BottomRightRadius = UDim.new(0, CORNER_SHELL)
 	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
 	interactionsCorner.TopRightRadius = UDim.new(0, 0)
 	interactionsCorner.Parent = interactions
@@ -338,7 +413,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 0.2
 	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-	confirmBtn.TextSize = 12
+	confirmBtn.TextSize = 13
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
@@ -349,7 +424,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Text = "Confirm"
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
-	confirmCorner.CornerRadius = UDim.new(0, 4)
+	confirmCorner.CornerRadius = UDim.new(0.5, 0) -- CTA pill (design-notes 6)
 	confirmCorner.Parent = confirmBtn
 	local confirmShadow = Instance.new("UIShadow")
 	confirmShadow.BlurRadius = UDim.new(0, 20)
@@ -361,7 +436,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
 	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-	cancelBtn.TextSize = 12
+	cancelBtn.TextSize = 13
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
@@ -373,7 +448,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.Text = "Cancel"
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
-	cancelCorner.CornerRadius = UDim.new(0, 4)
+	cancelCorner.CornerRadius = UDim.new(0.5, 0)
 	cancelCorner.Parent = cancelBtn
 	local cancelShadow = Instance.new("UIShadow")
 	cancelShadow.BlurRadius = UDim.new(0, 20)
@@ -383,6 +458,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.Popup = popup
 	self.Shadow = shadow
 	self.Header = header
+	self.HeaderTile = headTile
+	self.HeaderGlyph = headGlyph
+	self._shellGradient = shellGradient
 	self.ColorSquare = colorSquare
 	self.SatOverlay = satOverlay
 	self.ValOverlay = valOverlay
@@ -475,6 +553,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			me.Shadow.Color = newTheme.PopupShadowColor or me.Shadow.Color
 		end
 		me.Header.TextColor3 = newTheme.PopupTextColor or me.Header.TextColor3
+		if me._shellGradient then
+			stampShellGradient(me._shellGradient, newTheme)
+		end
+		if me.HeaderTile and me.HeaderGlyph then
+			stampHeaderTile(me.HeaderTile, me.HeaderGlyph, newTheme)
+		end
 		for _, info in pairs(me.Inputs) do
 			info.Input.TextColor3 = newTheme.PopupTextColor or info.Input.TextColor3
 			info.Input.BackgroundColor3 = newTheme.PopupBackgroundColor or info.Input.BackgroundColor3
@@ -555,6 +639,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.Slide.BackgroundTransparency = 0
 		self.OldWell.BackgroundTransparency = 0
 		self.NewWell.BackgroundTransparency = 0
+		-- Header tile/glyph are chrome, not colour surfaces: restore them too.
+		self.HeaderTile.BackgroundTransparency = 0
+		self.HeaderGlyph.ImageTransparency = 0
 		local openTargetStroke = self.Target:FindFirstChildOfClass("UIStroke")
 		if openTargetStroke then
 			openTargetStroke.Color = Color3.fromRGB(255, 255, 255)
@@ -574,7 +661,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 		Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07, GroupTransparency = 0 })
 		Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
-		Tween.Play(self.Header, "Fast", { TextTransparency = 0.4 })
+		Tween.Play(self.Header, "Fast", { TextTransparency = 0.2 })
 		Tween.Play(self.SatOverlay, "Fast", { BackgroundTransparency = 0 })
 		Tween.Play(self.ValOverlay, "Fast", { BackgroundTransparency = 0 })
 		Tween.Play(self.ColorValue, "Fast", { BackgroundTransparency = 0 })
