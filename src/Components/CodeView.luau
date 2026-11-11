@@ -13,7 +13,6 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local SyntaxHighlight = require("../Utils/SyntaxHighlight")
 local ComponentAPI = require("../Utils/ComponentAPI")
-local ScrollFade = require("../Utils/ScrollFade")
 local Locale = require("../Utils/Locale")
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
@@ -338,8 +337,8 @@ function CodeView:_build()
 	scroll.Parent = panel
 	self._scroll = scroll
 	ThemeManager.BindColor(scroll, "ScrollBarImageColor3", "SecondaryTextColor")
-	-- Code lines melt into the panel at both scroll edges (design-notes 9).
-	ScrollFade.Attach(scroll)
+	-- No scroll edge fade here: the panel's own rim already frames the code,
+	-- and the melt read as a shadow inside the box.
 
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Vertical
