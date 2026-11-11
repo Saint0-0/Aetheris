@@ -33,6 +33,57 @@ local function itemsEqual(a, b)
 	end
 	return true
 end
+
+-- design-notes 6/10: the shell carries a top-down multiplier wash (no rim
+-- stroke - fill plus shadow edge it, same as the Changelog) at radius 12.
+local CORNER_SHELL = 12
+local CORNER_ROW = 10
+local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
+-- Design-notes 1: the hover lift is 0.18s Quint Out both ways.
+local LIFT = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+-- UIGradient.Color multiplies what it paints, so the ramp is a gray
+-- multiplier pair rather than literal colours (design-notes 10).
+local function stampShellGradient(gradient, t)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	local top = if isDark(base) then 0.9 else 0.96
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(top, top, top)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+end
+
+-- Accent-as-text derivation (design-notes 5): hue kept, saturation capped,
+-- value forced up on dark grounds; darkened on light ones.
+local function accentText(color, onDark)
+	if onDark then
+		local h, s, v = color:ToHSV()
+		return Color3.fromHSV(h, math.min(s, 0.75), math.max(v, 0.92))
+	end
+	return color:Lerp(Color3.new(0, 0, 0), 0.3)
+end
+
+-- Tile fills derive from theme slots so they follow light and dark themes
+-- (design-notes 10) instead of copying Novoline's fixed dark tints.
+local function tileFill(tint, base)
+	if isDark(base) then
+		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
+	end
+	return base:Lerp(tint, 0.3)
+end
+
+local function stampHeaderTile(tile, glyph, t)
+	local tint = (t and t.AccentColor) or Color3.fromRGB(96, 165, 250)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	tile.BackgroundColor3 = tileFill(tint, base)
+	glyph.ImageColor3 = accentText(tint, isDark(base))
+end
+
 function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	Settings = Settings or {}
 	local self = setmetatable({}, DropdownPopUp)
@@ -60,31 +111,56 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	popup.ZIndex = 11
 	popup.Active = true
 	popup.Parent = parent
+	-- Shell wash first: a top-down multiplier over the whole group (the
+	-- CanvasGroup tints its subtree with it, matching the Changelog shell).
+	local shellGradient = Instance.new("UIGradient")
+	stampShellGradient(shellGradient, theme)
+	shellGradient.Parent = popup
 	local shadow = Instance.new("UIShadow")
 	shadow.Color = (theme and theme.PopupShadowColor)
 	shadow.BlurRadius = UDim.new(0, 20)
 	shadow.Transparency = 1
 	shadow.Parent = popup
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
+	corner.CornerRadius = UDim.new(0, CORNER_SHELL)
 	corner.Parent = popup
 	local scale = Instance.new("UIScale")
 	scale.Scale = 0.9
 	scale.Parent = popup
+	-- Accent tile + left-set title, the Changelog header (design-notes 6).
+	local headTile = Instance.new("Frame")
+	headTile.Name = UUID.Static("HeaderTile")
+	headTile.BorderSizePixel = 0
+	headTile.Size = UDim2.fromOffset(30, 30)
+	headTile.Position = UDim2.fromOffset(16, 14)
+	headTile.Parent = popup
+	local headTileCorner = Instance.new("UICorner")
+	headTileCorner.CornerRadius = UDim.new(0, 10)
+	headTileCorner.Parent = headTile
+	local headGlyph = Instance.new("ImageLabel")
+	headGlyph.Name = UUID.Static("HeaderGlyph")
+	headGlyph.BorderSizePixel = 0
+	headGlyph.BackgroundTransparency = 1
+	headGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	headGlyph.Position = UDim2.fromScale(0.5, 0.5)
+	headGlyph.Size = UDim2.fromOffset(16, 16)
+	headGlyph.Image = Icons["list-filter"] or Icons.search
+	headGlyph.Parent = headTile
+	stampHeaderTile(headTile, headGlyph, theme)
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
-	header.TextSize = 16
-	header.TextXAlignment = Enum.TextXAlignment.Center
+	header.TextSize = 15
+	header.TextXAlignment = Enum.TextXAlignment.Left
+	header.TextYAlignment = Enum.TextYAlignment.Center
+	header.TextTruncate = Enum.TextTruncate.AtEnd
 	header.TextTransparency = 1
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = titleColor or (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
-	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.fromScale(0.26291, 0.03775)
-	header.AutomaticSize = Enum.AutomaticSize.X
-	header.Position = UDim2.new(0.5, 0, 0, 25)
+	header.Size = UDim2.new(1, -110, 0, 30)
+	header.Position = UDim2.fromOffset(56, 14)
 	header.Parent = popup
 	header.Text = title
 	local interactions = Instance.new("Frame")
@@ -97,8 +173,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	interactions.Position = UDim2.fromScale(0.5, 1)
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
-	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
-	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.BottomLeftRadius = UDim.new(0, CORNER_SHELL)
+	interactionsCorner.BottomRightRadius = UDim.new(0, CORNER_SHELL)
 	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
 	interactionsCorner.TopRightRadius = UDim.new(0, 0)
 	interactionsCorner.Parent = interactions
@@ -118,7 +194,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 1
 	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-	confirmBtn.TextSize = 12
+	confirmBtn.TextSize = 13
 	confirmBtn.Text = Locale.resolve("Confirm")
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
@@ -129,7 +205,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Position = UDim2.fromScale(0, 0)
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
-	confirmCorner.CornerRadius = UDim.new(0, 4)
+	confirmCorner.CornerRadius = UDim.new(0.5, 0) -- CTA pill (design-notes 6)
 	confirmCorner.Parent = confirmBtn
 	local confirmShadow = Instance.new("UIShadow")
 	confirmShadow.BlurRadius = UDim.new(0, 20)
@@ -141,7 +217,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 1
 	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-	cancelBtn.TextSize = 12
+	cancelBtn.TextSize = 13
 	cancelBtn.Text = Locale.resolve("Cancel")
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
@@ -153,7 +229,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.Position = UDim2.fromScale(0.515, 0)
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
-	cancelCorner.CornerRadius = UDim.new(0, 4)
+	cancelCorner.CornerRadius = UDim.new(0.5, 0)
 	cancelCorner.Parent = cancelBtn
 	local cancelShadow = Instance.new("UIShadow")
 	cancelShadow.BlurRadius = UDim.new(0, 20)
@@ -271,7 +347,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearBtn.Position = UDim2.fromScale(0.96018, 0.5)
 	clearBtn.Parent = searchArea
 	local clearCorner = Instance.new("UICorner")
-	clearCorner.CornerRadius = UDim.new(0, 6)
+	clearCorner.CornerRadius = UDim.new(0.5, 0)
 	clearCorner.Parent = clearBtn
 	local clearIcon = Instance.new("ImageLabel")
 	clearIcon.Name = UUID.Static("ButtonImage")
@@ -302,7 +378,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllBtn.Position = UDim2.fromScale(0.83689, 0.5)
 	selectAllBtn.Parent = searchArea
 	local selectAllCorner = Instance.new("UICorner")
-	selectAllCorner.CornerRadius = UDim.new(0, 6)
+	selectAllCorner.CornerRadius = UDim.new(0.5, 0)
 	selectAllCorner.Parent = selectAllBtn
 	local selectAllIcon = Instance.new("ImageLabel")
 	selectAllIcon.Name = UUID.Static("ButtonImage")
@@ -330,6 +406,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	self.Interactions = interactions
 	self.Shadow = shadow
 	self.Header = header
+	self.HeaderTile = headTile
+	self.HeaderGlyph = headGlyph
+	self._shellGradient = shellGradient
 	self.ConfirmBtn = confirmBtn
 	self.ConfirmShadow = confirmShadow
 	self.CancelBtn = cancelBtn
@@ -411,6 +490,12 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		me.Popup.BackgroundColor3 = t.PopupBackgroundColor or me.Popup.BackgroundColor3
 		me.Shadow.Color = t.PopupShadowColor or me.Shadow.Color
 		me.Header.TextColor3 = t.PopupTextColor or me.Header.TextColor3
+		if me._shellGradient then
+			stampShellGradient(me._shellGradient, t)
+		end
+		if me.HeaderTile and me.HeaderGlyph then
+			stampHeaderTile(me.HeaderTile, me.HeaderGlyph, t)
+		end
 		me.ConfirmBtn.TextColor3 = t.PopupTextColor or me.ConfirmBtn.TextColor3
 		me.ConfirmBtn.BackgroundColor3 = t.PrimaryColor or me.ConfirmBtn.BackgroundColor3
 		me.ConfirmShadow.Color = t.PrimaryColor or me.ConfirmShadow.Color
@@ -688,8 +773,20 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			button.Size = UDim2.new(1, 0, 0, 40)
 			button.Parent = self.List
 			local btnCorner = Instance.new("UICorner")
-			btnCorner.CornerRadius = UDim.new(0, 6)
+			btnCorner.CornerRadius = UDim.new(0, CORNER_ROW)
 			btnCorner.Parent = button
+			-- White lift under the row content (design-notes 1): transparent
+			-- at rest, 0.95 on hover, so a row reads as a card without a fill.
+			local lift = Instance.new("Frame")
+			lift.Name = UUID.Static("RowLift")
+			lift.BorderSizePixel = 0
+			lift.BackgroundColor3 = Color3.new(1, 1, 1)
+			lift.BackgroundTransparency = 1
+			lift.Size = UDim2.fromScale(1, 1)
+			lift.Parent = button
+			local liftCorner = Instance.new("UICorner")
+			liftCorner.CornerRadius = UDim.new(0, CORNER_ROW)
+			liftCorner.Parent = lift
 			-- Thin left-edge bar animated like the sidebar tab selection status.
 			local selectionStatus = Instance.new("Frame")
 			selectionStatus.Name = UUID.Static("SelectionStatus")
@@ -745,6 +842,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			itemShadow.Parent = button
 			local obj = {
 				button = button,
+				lift = lift,
 				nameLabel = itemName,
 				selectionStatus = selectionStatus,
 				icon = itemImage,
@@ -759,6 +857,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				self:_toggleItem(obj)
 			end)
 			button.MouseEnter:Connect(function()
+				if obj.lift then
+					Tween.Play(obj.lift, LIFT, { BackgroundTransparency = 0.95 })
+				end
 				if obj.selected then
 					if obj.icon then
 						Tween.Play(obj.icon, "HoverIn", { ImageTransparency = 0.2 })
@@ -773,6 +874,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 				end
 			end)
 			button.MouseLeave:Connect(function()
+				if obj.lift then
+					Tween.Play(obj.lift, LIFT, { BackgroundTransparency = 1 })
+				end
 				local iconTrans = obj.selected and 0.4 or 0.9
 				if obj.icon then
 					Tween.Play(obj.icon, "HoverOut", { ImageTransparency = iconTrans })
@@ -932,6 +1036,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 					obj.selectionStatus.Size = UDim2.fromOffset(2, 0)
 				end
 			end
+			-- Hover lift never carries over from a previous open.
+			if obj.lift then
+				obj.lift.BackgroundTransparency = 1
+			end
 		end
 		-- Snap every chrome element transparent so the fade-in owns all of it.
 		self.Popup.BackgroundTransparency = 1
@@ -980,7 +1088,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
 		end
 		if self.Header then
-			Tween.Play(self.Header, "Fast", { TextTransparency = 0.4 })
+			Tween.Play(self.Header, "Fast", { TextTransparency = 0.2 })
 		end
 		if self.SearchBox then
 			Tween.Play(self.SearchBox, "Fast", { TextTransparency = 0.4 })
@@ -1070,6 +1178,9 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			end
 			if obj.selectionStatus then
 				Tween.Play(obj.selectionStatus, "Fast", { BackgroundTransparency = 1 })
+			end
+			if obj.lift then
+				Tween.Play(obj.lift, "Fast", { BackgroundTransparency = 1 })
 			end
 		end
 		if self.Header then
