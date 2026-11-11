@@ -11,11 +11,59 @@ local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
 local Constants = require("../Constants")
+local Icons = require("../Assets/Icons")
 local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
 UINotification.__index = UINotification
+-- design-notes 6/10: shared popup shell — top-down multiplier wash (no rim
+-- stroke; fill plus shadow edge it) at radius 12, accent header tile + title.
+local CORNER_SHELL = 12
+local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
+
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+-- UIGradient.Color multiplies what it paints, so the ramp is a gray
+-- multiplier pair rather than literal colours (design-notes 10).
+local function stampShellGradient(gradient, t)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	local top = if isDark(base) then 0.9 else 0.96
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(top, top, top)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+end
+
+-- Accent-as-text derivation (design-notes 5): hue kept, saturation capped,
+-- value forced up on dark grounds; darkened on light ones.
+local function accentText(color, onDark)
+	if onDark then
+		local h, s, v = color:ToHSV()
+		return Color3.fromHSV(h, math.min(s, 0.75), math.max(v, 0.92))
+	end
+	return color:Lerp(Color3.new(0, 0, 0), 0.3)
+end
+
+-- Tile fills derive from theme slots so they follow light and dark themes
+-- (design-notes 10).
+local function tileFill(tint, base)
+	if isDark(base) then
+		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
+	end
+	return base:Lerp(tint, 0.3)
+end
+
+local function stampHeaderTile(tile, glyph, t)
+	local tint = (t and t.AccentColor) or Color3.fromRGB(96, 165, 250)
+	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
+	tile.BackgroundColor3 = tileFill(tint, base)
+	glyph.ImageColor3 = accentText(tint, isDark(base))
+end
+
 local function colorToString(color)
 	-- Roblox RichText accepts hex (#RRGGBB) or named colors, NOT rgb(...).
 	if typeof(color) == "string" then
@@ -60,6 +108,11 @@ function UINotification.new(parent, Settings)
 	popup.Visible = false
 	popup.ZIndex = 11
 	popup.Parent = parent
+	-- Shell wash first: a top-down multiplier over the whole CanvasGroup,
+	-- matching the Dropdown/ColorPicker/Changelog shell.
+	local shellGradient = Instance.new("UIGradient")
+	stampShellGradient(shellGradient, theme)
+	shellGradient.Parent = popup
 	local shadow = Instance.new("UIShadow")
 	shadow.BlurRadius = UDim.new(0, 24)
 	shadow.Offset = UDim2.fromOffset(0, 6)
@@ -67,27 +120,50 @@ function UINotification.new(parent, Settings)
 	shadow.Color = (theme and theme.NotificationShadowColor) or (theme and theme.PopupShadowColor)
 	shadow.Parent = popup
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
+	corner.CornerRadius = UDim.new(0, CORNER_SHELL)
 	corner.Parent = popup
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.MinSize = Vector2.new(320, 277)
 	sizeConstraint.MaxSize = Vector2.new(320, 336)
 	sizeConstraint.Parent = popup
+	-- Accent tile + left-set title, the shared popup header (design-notes 6).
+	local headTile = Instance.new("Frame")
+	headTile.Name = UUID.Static("HeaderTile")
+	headTile.BorderSizePixel = 0
+	headTile.Size = UDim2.fromOffset(30, 30)
+	headTile.Position = UDim2.fromOffset(16, 14)
+	headTile.ZIndex = 13
+	headTile.Parent = popup
+	local headTileCorner = Instance.new("UICorner")
+	headTileCorner.CornerRadius = UDim.new(0, 10)
+	headTileCorner.Parent = headTile
+	local headGlyph = Instance.new("ImageLabel")
+	headGlyph.Name = UUID.Static("HeaderGlyph")
+	headGlyph.BorderSizePixel = 0
+	headGlyph.BackgroundTransparency = 1
+	headGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	headGlyph.Position = UDim2.fromScale(0.5, 0.5)
+	headGlyph.Size = UDim2.fromOffset(16, 16)
+	headGlyph.Image = Icons.bell or Icons.info
+	headGlyph.ZIndex = 14
+	headGlyph.Parent = headTile
+	stampHeaderTile(headTile, headGlyph, theme)
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
-	header.TextSize = 16
+	header.TextSize = 15
 	header.TextXAlignment = Enum.TextXAlignment.Left
-	header.TextTransparency = (theme and theme.PopupTextTransparency) or 0.4
+	header.TextYAlignment = Enum.TextYAlignment.Center
+	header.TextTruncate = Enum.TextTruncate.AtEnd
+	header.TextTransparency = 0.2 -- stamped-title rest (design-notes 7)
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.RichText = true
-	header.AnchorPoint = Vector2.new(0.5, 0.5)
-	header.Size = UDim2.fromScale(0.26291, 0.03775)
-	header.AutomaticSize = Enum.AutomaticSize.X
-	header.Position = UDim2.new(0.5, 0, 0, 25)
 	header.TextColor3 = (theme and theme.PopupTextColor)
+	header.Position = UDim2.fromOffset(56, 14)
+	header.Size = UDim2.new(1, -110, 0, 30)
+	header.ZIndex = 13
 	header.Parent = popup
 	header.Text = string.format('<font color="%s">%s</font>', colorToString(titleColor), title)
 	local notifText = Instance.new("TextLabel")
@@ -133,8 +209,8 @@ function UINotification.new(parent, Settings)
 	interactions.ZIndex = 12
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
-	interactionsCorner.BottomLeftRadius = UDim.new(0, 6)
-	interactionsCorner.BottomRightRadius = UDim.new(0, 6)
+	interactionsCorner.BottomLeftRadius = UDim.new(0, CORNER_SHELL)
+	interactionsCorner.BottomRightRadius = UDim.new(0, CORNER_SHELL)
 	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
 	interactionsCorner.TopRightRadius = UDim.new(0, 0)
 	interactionsCorner.Parent = interactions
@@ -202,6 +278,9 @@ function UINotification.new(parent, Settings)
 	self.ConfirmShadow = confirmShadow
 	self.CancelShadow = cancelShadow
 	self.Header = header
+	self._shellGradient = shellGradient
+	self._headTile = headTile
+	self._headGlyph = headGlyph
 	self.NotifText = notifText
 	self.Divider = divider
 	self.Interactions = interactions
@@ -331,7 +410,7 @@ function UINotification:Open()
 		Transparency = 0.5,
 	})
 	Tween.Play(self.Header, "Fast", {
-		TextTransparency = 0.4,
+		TextTransparency = 0.2,
 	})
 	Tween.Play(self.NotifText, "Fast", {
 		TextTransparency = 0.45,
@@ -458,8 +537,14 @@ function UINotification:ApplyTheme(themeInput)
 		self.Popup.BackgroundTransparency = self._popupTransparency
 	end
 	self.Shadow.Color = t.NotificationShadowColor or t.PopupShadowColor or self.Shadow.Color
+	if self._shellGradient then
+		stampShellGradient(self._shellGradient, t)
+	end
+	if self._headTile and self._headGlyph then
+		stampHeaderTile(self._headTile, self._headGlyph, t)
+	end
 	self.Header.TextColor3 = t.PopupTextColor
-	self.Header.TextTransparency = t.PopupTextTransparency or 0.4
+	self.Header.TextTransparency = 0.2 -- stamped-title rest (design-notes 7)
 	if not self._customTitleColor then
 		local colorStr = colorToString(t.PopupTextColor or Color3.fromRGB(255, 255, 255))
 		self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, self._title or "Notification")
