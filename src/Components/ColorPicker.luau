@@ -17,6 +17,9 @@ local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
+-- design-notes 4: icon hover lifts in over 0.15s, settles back over 0.2s.
+local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -57,8 +60,10 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.Text = ""
 	display.Parent = headerBar
 	local displayCorner = Instance.new("UICorner")
-	displayCorner.CornerRadius = UDim.new(0, 6)
+	displayCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip pill (design-notes 8.10)
 	displayCorner.Parent = display
+	local displayScale = Instance.new("UIScale")
+	displayScale.Parent = display
 	local displayStroke = Instance.new("UIStroke")
 	displayStroke.Transparency = 0.8
 	displayStroke.Color = Color3.fromRGB(255, 255, 255)
@@ -75,10 +80,10 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	chevron.ImageTransparency = 0.5
 	chevron.ImageColor3 = (theme and theme.AccentColor)
 	chevron.AnchorPoint = Vector2.new(1, 0.5)
-	chevron.Image = Icons["paintbrush"]
+	chevron.Image = Icons["chevron-down"]
 	chevron.Size = UDim2.fromOffset(20, 20)
 	chevron.Position = UDim2.new(1, -40, 0.5, 0)
-	chevron.Rotation = -90 -- collapsed: pointing right
+	-- Rest points down; open flips it up so the state reads at a glance.
 	chevron.Parent = headerBar
 	self.Row = row
 	self.Label = label
@@ -106,6 +111,22 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.MouseButton1Click:Connect(function()
 		self:TogglePopup()
 	end)
+	-- Icon hover lift + swatch press (design-notes 4).
+	row.MouseEnter:Connect(function()
+		Tween.Play(chevron, ICON_IN, { ImageTransparency = 0 })
+	end)
+	row.MouseLeave:Connect(function()
+		Tween.Play(chevron, ICON_OUT, { ImageTransparency = 0.5 })
+	end)
+	display.MouseButton1Down:Connect(function()
+		Tween.Play(displayScale, "PressIn", { Scale = 0.94 })
+	end)
+	display.MouseButton1Up:Connect(function()
+		Tween.Play(displayScale, "PressOut", { Scale = 1 })
+	end)
+	display.MouseLeave:Connect(function()
+		Tween.Play(displayScale, "PressOut", { Scale = 1 })
+	end)
 	self.Destroy = function(me)
 		if me._isOpen and me._popup and me._popup.Close then
 			me._popup:Close()
@@ -113,6 +134,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(chevron)
 		Tween.CancelAll(chevron)
+		Tween.CancelAll(displayScale)
 		if row.Parent then
 			row:Destroy()
 		end
@@ -149,7 +171,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 			end,
 			TogglePopup = function(me)
 				me._isOpen = not me._isOpen
-				local targetRotation = me._isOpen and 0 or -90
+				local targetRotation = me._isOpen and 180 or 0
 				Tween.Play(me.Chevron, "Smooth", { Rotation = targetRotation })
 				if me._isOpen and me.ShowPopup then
 					-- kept so clicking the row again can close it
@@ -171,7 +193,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 			end,
 			ClosePopup = function(me)
 				me._isOpen = false
-				Tween.Play(me.Chevron, "Smooth", { Rotation = -90 })
+				Tween.Play(me.Chevron, "Smooth", { Rotation = 0 })
 			end,
 		},
 	})

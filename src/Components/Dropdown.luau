@@ -9,6 +9,7 @@
 ]]
 
 local Icons = require("../Assets/Icons")
+local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local ComponentRow = require("./ComponentRow")
@@ -17,6 +18,9 @@ local UUID = require("../Utils/UUID")
 local Dropdown = {}
 Dropdown.__index = Dropdown
 local _counter = 0
+-- design-notes 4: icon hover lifts in over 0.15s, settles back over 0.2s.
+local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 function Dropdown.new(parent, Settings, ShowPopup, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -60,7 +64,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.BackgroundTransparency = 1
 	dropdownImage.ImageTransparency = 0.5
 	dropdownImage.AnchorPoint = Vector2.new(1, 0.5)
-	dropdownImage.Image = Icons["list-tree"]
+	dropdownImage.Image = Icons["chevron-down"]
 	dropdownImage.ImageColor3 = (theme and theme.AccentColor)
 	dropdownImage.Size = UDim2.fromOffset(14, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
@@ -110,6 +114,13 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	-- only the interact button, to avoid double-fire from row.InputBegan
 	interact.MouseButton1Click:Connect(function()
 		openPopup()
+	end)
+	-- Icon hover lift (design-notes 4).
+	interact.MouseEnter:Connect(function()
+		Tween.Play(dropdownImage, ICON_IN, { ImageTransparency = 0 })
+	end)
+	interact.MouseLeave:Connect(function()
+		Tween.Play(dropdownImage, ICON_OUT, { ImageTransparency = 0.5 })
 	end)
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
