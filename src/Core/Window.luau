@@ -200,7 +200,37 @@ function Window.new(Settings)
 	end
 
 	local MainFrameCorner = Instance.new("UICorner")
+	MainFrameCorner.CornerRadius = UDim.new(0, 12) -- shell radius (design-notes 10)
 	MainFrameCorner.Parent = MainFrame
+
+	-- Shell wash + glass rim (design-notes 1/2): a top-down multiplier over
+	-- the whole CanvasGroup (the same idiom as the popup shells) so the fill
+	-- never reads flat, plus a top-lit rim edge. Both are static multipliers
+	-- over the theme fill — no per-theme restamp needed.
+	local shellWash = Instance.new("UIGradient")
+	shellWash.Name = UUID.Static("WindowWash")
+	shellWash.Rotation = 90
+	shellWash.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(0.9, 0.9, 0.9)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+	shellWash.Parent = MainFrame
+
+	local shellRim = Instance.new("UIStroke")
+	shellRim.Name = UUID.Static("WindowRim")
+	shellRim.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
+	shellRim.Transparency = 0
+	shellRim.Thickness = 1
+	shellRim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	shellRim.Parent = MainFrame
+	local shellRimGradient = Instance.new("UIGradient")
+	shellRimGradient.Rotation = 90
+	shellRimGradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.84),
+		NumberSequenceKeypoint.new(0.5, 0.92),
+		NumberSequenceKeypoint.new(1, 0.78),
+	})
+	shellRimGradient.Parent = shellRim
 
 	-- User-adjustable UI scale (UI Settings); the window resizes around its top-left anchor.
 	local MainFrameScale = Instance.new("UIScale")
@@ -208,11 +238,12 @@ function Window.new(Settings)
 	MainFrameScale.Scale = SettingsStore.Get("UIScale") or 1
 	MainFrameScale.Parent = MainFrame
 
-	-- Shadow colour is themed at construction so the first frame isn't unthemed; blur stays fixed.
+	-- Shadow colour is themed at construction so the first frame isn't unthemed; geometry is the design spec (blur 26, offset (0,10), alpha .45).
 	local MainFrameShadow = Instance.new("UIShadow")
 	MainFrameShadow.Color = theme.MainframeShadowColor or MainFrameShadow.Color
-	MainFrameShadow.Transparency = 0.5
-	MainFrameShadow.BlurRadius = UDim.new(0, 20)
+	MainFrameShadow.Transparency = 0.45
+	MainFrameShadow.BlurRadius = UDim.new(0, 26)
+	MainFrameShadow.Offset = UDim2.fromOffset(0, 10)
 	MainFrameShadow.Parent = MainFrame
 
 	local MainFrameSizeConstraint = Instance.new("UISizeConstraint")
@@ -274,8 +305,8 @@ function Window.new(Settings)
 	local ContentBackgroundCorner = Instance.new("UICorner")
 	ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 0)
 	ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 0)
-	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12) -- flush with the window silhouette
+	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 	ContentBackgroundCorner.Parent = ContentBackground
 
 	-- Content layer sits on the content fill so the art renders over it and
@@ -520,8 +551,8 @@ function Window.new(Settings)
 	SidebarPadding.Parent = Sidebar
 
 	local SidebarCorner = Instance.new("UICorner")
-	SidebarCorner.TopLeftRadius = UDim.new(0, 6)
-	SidebarCorner.BottomLeftRadius = UDim.new(0, 6)
+	SidebarCorner.TopLeftRadius = UDim.new(0, 12) -- flush with the window silhouette
+	SidebarCorner.BottomLeftRadius = UDim.new(0, 12)
 	SidebarCorner.TopRightRadius = UDim.new(0, 0)
 	SidebarCorner.BottomRightRadius = UDim.new(0, 0)
 	SidebarCorner.Parent = Sidebar
@@ -1533,11 +1564,11 @@ function Window.new(Settings)
 				ContentBackground.AnchorPoint = Vector2.new(0, 0)
 				ContentBackground.Size = UDim2.fromScale(1, 1)
 				ContentBackground.Position = UDim2.fromScale(0, 0)
-				-- Compact: square up every corner (full-bleed content background).
-				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				-- Compact: every corner rounds to the window silhouette (full-bleed content background).
+				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
 				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
 				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
@@ -1608,8 +1639,8 @@ function Window.new(Settings)
 				-- Restore the expanded corner treatment (rounded right edge only).
 				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 0)
 				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 0)
-				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
 				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
 				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
@@ -2336,6 +2367,7 @@ function Window.new(Settings)
 	ThemeManager.BindColor(Sidebar, "BackgroundColor3", "SidebarColor")
 	ThemeManager.BindTransparency(Sidebar, "BackgroundTransparency", "SidebarTransparency")
 	ThemeManager.BindColor(MainFrameShadow, "Color", "MainframeShadowColor")
+	ThemeManager.BindColor(shellRim, "Color", "StrokeColor")
 	ThemeManager.BindColor(ResizeButton, "ImageColor3", "TitleTextColor")
 	for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
 		if ctrl then
