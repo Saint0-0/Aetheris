@@ -52,8 +52,9 @@ SettingsStore.Defaults = {
 	MaskDisplayName = false, -- auto-mask on: display name / username open masked
 	AutoSaveConfigs = false, -- auto-save the active config on component change
 	Locale = "en", -- active UI locale id (see Utils/Locale)
-	WindowWallpaperEnabled = true, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
-	ContentWallpaperEnabled = true, -- wallpaper art over the content fill, melting into it
+	WindowWallpaperEnabled = false, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
+	ContentWallpaperEnabled = false, -- wallpaper art over the content fill, melting into it
+	WallpaperTransparency = 0.85, -- wallpaper art ImageTransparency (0 solid - 1 gone)
 	EdgeFadeEnabled = true, -- scroll edge content-melt fades (Utils/ScrollFade)
 }
 

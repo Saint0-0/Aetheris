@@ -232,14 +232,16 @@ function Window.new(Settings)
 		image.ScaleType = Enum.ScaleType.Crop
 		image.Parent = parent
 
+		-- Bottom starts dissolving earlier so the art eases into the fill
+		-- instead of holding a hard band (user call, Batch 8).
 		local melt = Instance.new("UIGradient")
 		melt.Rotation = 90
 		melt.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.3, 0),
-			NumberSequenceKeypoint.new(0.5, 0.4),
-			NumberSequenceKeypoint.new(0.7, 0.85),
-			NumberSequenceKeypoint.new(0.85, 1),
+			NumberSequenceKeypoint.new(0.18, 0),
+			NumberSequenceKeypoint.new(0.4, 0.45),
+			NumberSequenceKeypoint.new(0.6, 0.85),
+			NumberSequenceKeypoint.new(0.78, 1),
 			NumberSequenceKeypoint.new(1, 1),
 		})
 		melt.Parent = image
@@ -249,7 +251,7 @@ function Window.new(Settings)
 
 	-- Shell layer: created before the content fill so it renders under it and
 	-- shows through every translucent shell surface (title strip, sidebar).
-	local windowWallpaperOn = SettingsStore.Get("WindowWallpaperEnabled") ~= false
+	local windowWallpaperOn = SettingsStore.Get("WindowWallpaperEnabled") == true
 	local windowWallpaper = newWallpaper(MainFrame, "WindowWallpaper")
 	local windowWallpaperCorner = Instance.new("UICorner")
 	windowWallpaperCorner.CornerRadius = MainFrameCorner.CornerRadius -- same window radius
@@ -279,7 +281,12 @@ function Window.new(Settings)
 	-- Content layer sits on the content fill so the art renders over it and
 	-- melts into it; the fill's corner treatment is mirrored so the silhouette
 	-- stays clean in both window shapes.
-	local contentWallpaperOn = SettingsStore.Get("ContentWallpaperEnabled") ~= false
+	local contentWallpaperOn = SettingsStore.Get("ContentWallpaperEnabled") == true
+	-- Legacy configs could carry both layers on; the radio group is mutually
+	-- exclusive now, so content wins (same order as the UISettings default).
+	if contentWallpaperOn and windowWallpaperOn then
+		windowWallpaperOn = false
+	end
 	local contentWallpaper = newWallpaper(ContentBackground, "ContentWallpaper")
 	local contentWallpaperCorner = Instance.new("UICorner")
 	contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
@@ -291,11 +298,15 @@ function Window.new(Settings)
 
 	-- Both layers: art follows the active theme; shown only while the theme
 	-- ships a wallpaper and its own gate (WallpaperEnabled) hasn't closed it.
+	-- Art transparency comes from the UI Settings slider (default 0.85).
 	local function refreshWallpapers(t)
 		local image = t.Wallpaper or Constants.FallbackImage
+		local trans = math.clamp(SettingsStore.Get("WallpaperTransparency") or 0.85, 0, 1)
 		windowWallpaper.Image = image
+		windowWallpaper.ImageTransparency = trans
 		windowWallpaper.Visible = windowWallpaperOn and t.WallpaperEnabled ~= false
 		contentWallpaper.Image = image
+		contentWallpaper.ImageTransparency = trans
 		contentWallpaper.Visible = contentWallpaperOn and t.WallpaperEnabled ~= false
 	end
 	refreshWallpapers(theme)
@@ -1184,6 +1195,10 @@ function Window.new(Settings)
 	end
 	self.SetContentWallpaper = function(_me, on)
 		contentWallpaperOn = on
+		refreshWallpapers(_me._theme)
+	end
+	self.SetWallpaperTransparency = function(_me, value)
+		SettingsStore.Set("WallpaperTransparency", math.clamp(value, 0, 1))
 		refreshWallpapers(_me._theme)
 	end
 

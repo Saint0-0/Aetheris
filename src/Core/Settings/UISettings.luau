@@ -229,23 +229,46 @@ function UISettings.Build(window, tab)
 			ScrollFade.SetEnabled(state)
 		end,
 	})
-	visualsSection:Toggle({
-		Name = "Window Wallpaper",
-		Default = SettingsStore.Get("WindowWallpaperEnabled") ~= false,
-		Callback = function(state)
-			SettingsStore.Set("WindowWallpaperEnabled", state)
-			if window.SetWindowWallpaper then
-				window:SetWindowWallpaper(state)
-			end
-		end,
-	})
-	visualsSection:Toggle({
-		Name = "Content Wallpaper",
-		Default = SettingsStore.Get("ContentWallpaperEnabled") ~= false,
-		Callback = function(state)
-			SettingsStore.Set("ContentWallpaperEnabled", state)
-			if window.SetContentWallpaper then
-				window:SetContentWallpaper(state)
+	-- Wallpaper source: mutually exclusive (user call, Batch 8) — Off, shell
+	-- only, or content only. Both stored keys are written together so a stale
+	-- pair from the old two-toggle UI can never show two layers at once.
+	local wallpaperDefault = if SettingsStore.Get("ContentWallpaperEnabled") == true
+		then "content"
+		elseif SettingsStore.Get("WindowWallpaperEnabled") == true then "window"
+		else "off"
+	local wallpaperGroup = visualsSection:RadioButtonGroup()
+	for _, opt in ipairs({
+		{ key = "off", label = "Off" },
+		{ key = "window", label = "Window" },
+		{ key = "content", label = "Content" },
+	}) do
+		wallpaperGroup:RadioButton({
+			Name = opt.label,
+			Default = (opt.key == wallpaperDefault),
+			Callback = function()
+				local windowOn = opt.key == "window"
+				local contentOn = opt.key == "content"
+				SettingsStore.Set("WindowWallpaperEnabled", windowOn)
+				SettingsStore.Set("ContentWallpaperEnabled", contentOn)
+				if window.SetWindowWallpaper then
+					window:SetWindowWallpaper(windowOn)
+				end
+				if window.SetContentWallpaper then
+					window:SetContentWallpaper(contentOn)
+				end
+			end,
+		})
+	end
+	-- art opacity: 0 = solid art, 100 = gone (default 85)
+	visualsSection:Slider({
+		Name = "Wallpaper Transparency",
+		Min = 0,
+		Max = 100,
+		Default = math.floor((SettingsStore.Get("WallpaperTransparency") or 0.85) * 100 + 0.5),
+		Precision = 0,
+		Callback = function(value)
+			if window.SetWallpaperTransparency then
+				window:SetWallpaperTransparency(value / 100)
 			end
 		end,
 	})
