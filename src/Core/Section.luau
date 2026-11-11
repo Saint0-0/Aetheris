@@ -35,6 +35,35 @@ local UUID = require("../Utils/UUID")
 
 local Section = {}
 Section.__index = Section
+
+-- design-notes 1/2/7: sections are group cards — fill wash (never a flat
+-- fill), top-lit rim, radius 14, Bold 13 title. The wash recipe mirrors the
+-- changelog cards (user call, Batch 8).
+local CORNER_SECTION = 14
+local AURORA_TINT = 0.14
+
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+-- UIGradient.Color multiplies what it paints, so the keypoints are
+-- multipliers: accent-tinted top-left corner (the aurora) falling to a
+-- darker bottom (design-notes 10).
+local function stampFillGradient(gradient, t)
+	local base = (t and t.SectionBackgroundColor) or Color3.fromRGB(30, 30, 34)
+	local bottom = if isDark(base) then 0.72 else 0.9
+	local corner = Color3.new(1, 1, 1)
+	if t and t.AccentColor then
+		corner = corner:Lerp(t.AccentColor, AURORA_TINT)
+	end
+	gradient.Rotation = 35
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, corner),
+		ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.new(bottom, bottom, bottom)),
+	})
+end
+
 function Section.new(parent, Settings, theme, window, noSave)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -74,7 +103,14 @@ function Section.new(parent, Settings, theme, window, noSave)
 	frame.Parent = parent
 	local corner = Instance.new("UICorner")
 	corner.Name = UUID.Static("SectionUICorner")
+	corner.CornerRadius = UDim.new(0, CORNER_SECTION)
 	corner.Parent = frame
+	-- Fill wash: the card never reads flat (design-notes 1), restamped on
+	-- every theme switch below.
+	local fillGradient = Instance.new("UIGradient")
+	fillGradient.Name = UUID.Static("SectionFill")
+	stampFillGradient(fillGradient, theme)
+	fillGradient.Parent = frame
 	-- Prefer the section-specific stroke keys so a freshly built section
 	-- matches a theme-switched one; general stroke keys are the fallback.
 	local stroke = Instance.new("UIStroke")
@@ -83,6 +119,17 @@ function Section.new(parent, Settings, theme, window, noSave)
 	stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
+	-- Rim ramp (design-notes 2): the top edge keeps the theme's full paint
+	-- and the sides/bottom fade off it, so the card reads top-lit.
+	local rim = Instance.new("UIGradient")
+	rim.Name = UUID.Static("SectionRim")
+	rim.Rotation = 90
+	rim.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.4, 0.55),
+		NumberSequenceKeypoint.new(1, 0.7),
+	})
+	rim.Parent = stroke
 	local layout = Instance.new("UIListLayout")
 	layout.Name = UUID.Static("SectionUIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -111,10 +158,10 @@ function Section.new(parent, Settings, theme, window, noSave)
 		Locale.set(title, "Text", Settings.Name)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.TextYAlignment = Enum.TextYAlignment.Center
-		title.TextSize = 12
-		title.FontFace = Constants.Font(Enum.FontWeight.Medium)
+		title.TextSize = 13
+		title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
-		title.TextTransparency = 0.7
+		title.TextTransparency = 0.2
 		title.AutomaticSize = Enum.AutomaticSize.Y
 		title.Size = UDim2.fromScale(1, 0)
 		title.LayoutOrder = -1
@@ -130,6 +177,11 @@ function Section.new(parent, Settings, theme, window, noSave)
 	if self.Title then
 		ThemeManager.BindColor(self.Title, "TextColor3", "TitleTextColor")
 	end
+	-- The wash is a derived tint mix (fill x accent), not a theme slot, so
+	-- it rides the callback; owner = frame drops it when the section dies.
+	ThemeManager.OnThemeApplied(function(applied)
+		stampFillGradient(fillGradient, applied)
+	end, frame)
 	return self
 end
 -- Windowed sections register with the window's ConfigManager so configs can
