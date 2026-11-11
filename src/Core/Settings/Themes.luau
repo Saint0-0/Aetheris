@@ -497,10 +497,11 @@ function Themes.Build(window, tab)
 	local page = tab.Page
 	local pageTheme = ThemeManager.GetTheme(tab._theme)
 
-	-- fixed proportion the rest of the settings layout assumes
-	page.Size = UDim2.fromScale(1, 0.87857)
-	page.Position = UDim2.fromScale(0.5, 0.561)
-	page.AnchorPoint = Vector2.new(0.5, 0.5)
+	-- Fixed layout the rest of the settings page assumes: hangs from the top,
+	-- with the docked tab pill bar's reserve subtracted from the bottom.
+	page.Size = UDim2.new(1, 0, 1, -Constants.SettingsBottomReserve)
+	page.Position = UDim2.fromScale(0.5, 0)
+	page.AnchorPoint = Vector2.new(0.5, 0)
 
 	local pageTitle = Instance.new("TextLabel")
 	pageTitle.Name = UUID.Static("ThemePageText")

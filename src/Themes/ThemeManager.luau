@@ -647,20 +647,11 @@ function ThemeManager.ApplyTheme(window, themeInput)
 	-- CancelAll kills these spins and nothing else restarts them, so a switch would silently freeze every one.
 	Tween.RestartSpins()
 
-	-- CancelAll leaves the initial SelectionStatus stuck at 1, so set the final state directly without disturbing future animations.
+	-- CancelAll leaves the tab backdrops stuck mid-tween, so set the final state directly without disturbing future animations.
 	if window.SettingsTabGroup and window.SettingsTabGroup.Tabs then
 		local active = window.SettingsTabGroup.ActiveTab
 		for _, tab in ipairs(window.SettingsTabGroup.Tabs) do
-			local isActive = tab == active
-			if isActive then
-				tab.SelectionStatus.BackgroundTransparency = 0
-				tab.SelectionStatus.Size = UDim2.new(0, 2, 0.7, 0)
-				tab.BackImage.ImageTransparency = 0
-			else
-				tab.SelectionStatus.BackgroundTransparency = 1
-				tab.SelectionStatus.Size = UDim2.fromOffset(2, 0)
-				tab.BackImage.ImageTransparency = 1
-			end
+			tab.BackImage.ImageTransparency = (tab == active) and 0 or 1
 		end
 	end
 

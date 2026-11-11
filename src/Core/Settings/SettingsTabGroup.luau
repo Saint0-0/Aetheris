@@ -1,12 +1,12 @@
 --[[
 	Aetheris/Core/Settings/SettingsTabGroup.luau
 
-	Horizontal settings tab bar with a single-column content area per page.
-	It mirrors Core/TabGroup without the two-column split, and owns tab
-	creation, the active/inactive theme bindings, and page crossfades.
-	Inactive tabs collapse to the icon; the active tab expands to its label.
-	Hovering grows the button (pill presets) and names it via the shared
-	tooltip; the selection bar sits in the gap left of the active tab.
+	Docked settings tab bar: a bottom pill of circular icon-only buttons
+	(same recipe as the floating minimize pill) over a single-column content
+	area per page. It mirrors Core/TabGroup without the two-column split,
+	and owns tab creation, the active/inactive theme bindings, and page
+	crossfades. Tabs carry no labels - the shared tooltip names them on
+	hover and Window.PageTitle names the active page.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -21,15 +21,31 @@ local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
 
--- Tab widths are offsets, not scale: the wallpaper fill child can't live
--- under an automatic-width parent (a scale child pins the width shut), so
--- the button tweens between two fixed widths while TabName sizes itself to
--- the text with AutomaticSize.X.
-local TAB_W_COLLAPSED = 30 -- 6 pad + 12 icon + 12 gap
-local TAB_TEXT_X = 26 -- icon (6 + 12) + 8 gap
-local TAB_W_PAD = 12 -- right padding after the label
-local TAB_TEXT_HIDDEN_X = 40 -- inactive: label starts past the clip edge
-local TAB_HOVER_SCALE = 1.1 -- pill-style hover grow (the pill uses 1.18 on 40px circles)
+-- Circular icon button: the same 40px pill the floating minimize strip uses,
+-- so both bars read as one family.
+local TAB_SIZE = 40
+local TAB_HOVER_SCALE = 1.18 -- pill hover grow
+local TAB_PRESS_SCALE = 0.94 -- press dips the current scale (design-notes 4)
+local BAR_HEIGHT = 48 -- buttons + 4px breathing above/below
+local BAR_BOTTOM = 14 -- gap between the bar and the pages' bottom edge
+local TOOLTIP_GAP = 11
+-- BAR_HEIGHT + BAR_BOTTOM + a 10px gap = Constants.SettingsBottomReserve, which
+-- every settings page/scroller subtracts from its height.
+
+-- design-notes 10: the shell wash multiplies what it paints, so the top stop
+-- is a gray multiplier - stronger on dark themes, gentler on light.
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+local function stampWash(gradient, base)
+	local top = if isDark(base) then 0.9 else 0.96
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(top, top, top)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+end
 
 -- "Settings | " is Medium (weight 500); the page name stays Regular. Stamped
 -- so a live locale change re-resolves both halves in place.
@@ -60,11 +76,12 @@ function SettingsTabHandle:Scroller()
 	scroller.BorderSizePixel = 0
 	scroller.ScrollBarImageTransparency = 1
 	scroller.BackgroundTransparency = 1
-	scroller.AnchorPoint = Vector2.new(0.5, 0.5)
+	scroller.AnchorPoint = Vector2.new(0.5, 0)
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroller.CanvasSize = UDim2.fromScale(0, 0)
-	scroller.Size = UDim2.fromScale(1, 0.879)
-	scroller.Position = UDim2.fromScale(0.5, 0.561)
+	-- Hangs from the top; the bottom reserve keeps clear of the docked pill bar.
+	scroller.Position = UDim2.fromScale(0.5, 0)
+	scroller.Size = UDim2.new(1, 0, 1, -Constants.SettingsBottomReserve)
 	scroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	scroller.ScrollBarThickness = 1
 	scroller.ScrollBarImageColor3 = theme.TertiaryColor or Color3.fromRGB(160, 160, 160)
@@ -109,18 +126,42 @@ function SettingsTabGroup.new(window, theme)
 	self._transitioning = false
 	self._spinHandles = {}
 
-	-- Horizontal tab bar at the top of SettingsPages
+	-- Bottom-docked pill bar: hugs its buttons and floats over the pages'
+	-- content area (shell fill + wash + faint rim, design-notes 1).
 	self.Bar = Instance.new("Frame")
 	self.Bar.Name = UUID.Static("SettingsTabBar")
 	self.Bar.BorderSizePixel = 0
-	self.Bar.BackgroundTransparency = 1
-	self.Bar.Size = UDim2.fromScale(1, 0.07969)
-	self.Bar.Position = UDim2.fromOffset(0, 6)
+	self.Bar.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
+	self.Bar.BackgroundTransparency = 0
+	self.Bar.AnchorPoint = Vector2.new(0.5, 1)
+	self.Bar.Position = UDim2.new(0.5, 0, 1, -BAR_BOTTOM)
+	self.Bar.Size = UDim2.fromOffset(0, BAR_HEIGHT)
+	self.Bar.AutomaticSize = Enum.AutomaticSize.X
 	self.Bar.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	-- Paint above the (transparent) content frame so the bar can never hide.
+	self.Bar.ZIndex = 2
 	self.Bar.Parent = window.SettingsPages
 
+	-- Shell wash on the bar itself (a plain Frame, so the gradient only
+	-- touches its background); re-stamped in ApplyTheme.
+	local barWash = Instance.new("UIGradient")
+	stampWash(barWash, self.Bar.BackgroundColor3)
+	barWash.Parent = self.Bar
+	self._barWash = barWash
+
+	local BarCorner = Instance.new("UICorner")
+	BarCorner.CornerRadius = UDim.new(1, 0) -- pill (h 48 <= 60, design-notes 1)
+	BarCorner.Parent = self.Bar
+
+	local BarStroke = Instance.new("UIStroke")
+	BarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	BarStroke.Parent = self.Bar
+	ThemeManager.BindColor(self.Bar, "BackgroundColor3", "PopupBackgroundColor")
+	ThemeManager.BindColor(BarStroke, "Color", "StrokeColor")
+	ThemeManager.BindTransparency(BarStroke, "Transparency", "StrokeTransparency")
+
 	local BarLayout = Instance.new("UIListLayout")
-	BarLayout.Padding = UDim.new(0, 12)
+	BarLayout.Padding = UDim.new(0, 8)
 	BarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	BarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	BarLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -128,11 +169,11 @@ function SettingsTabGroup.new(window, theme)
 	BarLayout.Parent = self.Bar
 
 	local BarPadding = Instance.new("UIPadding")
-	BarPadding.PaddingLeft = UDim.new(0, 7)
-	BarPadding.PaddingRight = UDim.new(0, 7)
+	BarPadding.PaddingLeft = UDim.new(0, 6)
+	BarPadding.PaddingRight = UDim.new(0, 6)
 	BarPadding.Parent = self.Bar
 
-	-- Content container below the tab bar
+	-- Content container above the tab bar
 	self.Content = Instance.new("Frame")
 	self.Content.Name = UUID.Static("SettingsContent")
 	self.Content.BorderSizePixel = 0
@@ -177,15 +218,13 @@ function SettingsTabGroup:Tab(Settings)
 	local isFirst = #self.Tabs == 0
 	local theme = self._theme or {}
 
-	-- Holder: arranged by the bar and never clips, so the -5px selection
-	-- bar can sit in the inter-tab gap (the original design) while the
-	-- button inside still clips its label. The width tween lives here (a
-	-- layout property); the button fills it and owns the hover scale.
+	-- Fixed-size holder: the hover/press UIScale grows the button visually,
+	-- and the holder keeps that growth from reflowing the bar's layout.
 	local Holder = Instance.new("Frame")
 	Holder.Name = UUID.Generate()
 	Holder.BorderSizePixel = 0
 	Holder.BackgroundTransparency = 1
-	Holder.Size = UDim2.new(0, TAB_W_COLLAPSED, 0.83, 0)
+	Holder.Size = UDim2.fromOffset(TAB_SIZE, TAB_SIZE)
 	Holder.LayoutOrder = #self.Tabs + 1
 	Holder.Parent = self.Bar
 
@@ -196,40 +235,19 @@ function SettingsTabGroup:Tab(Settings)
 	Button.BackgroundColor3 = theme.InactiveTabButtonColor
 	Button.BackgroundTransparency = theme.InactiveTabButtonTransparency
 	Button.Size = UDim2.fromScale(1, 1)
-	Button.ClipsDescendants = true -- clip the label during the collapse/expand tween
 	Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Button.Text = ""
 	Button.Parent = Holder
 
 	local ButtonCorner = Instance.new("UICorner")
-	ButtonCorner.CornerRadius = UDim.new(0, 4)
+	ButtonCorner.CornerRadius = UDim.new(1, 0)
 	ButtonCorner.Parent = Button
 
 	-- Pill-style hover: one UIScale grows the whole button (same presets as
-	-- the floating pill). Button width stays state-owned; this scales it.
+	-- the floating pill); press dips it from whatever the hover state owns.
 	local buttonScale = Instance.new("UIScale")
 	buttonScale.Scale = 1
 	buttonScale.Parent = Button
-
-	local TabName = Instance.new("TextLabel")
-	TabName.Name = UUID.Static("TabName")
-	TabName.BorderSizePixel = 0
-	TabName.TextSize = 11
-	TabName.TextXAlignment = Enum.TextXAlignment.Left
-	TabName.TextTransparency = theme.InactiveTabTextTransparency
-	TabName.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	TabName.TextColor3 = theme.InactiveTabTextColor
-	TabName.BackgroundTransparency = 1
-	TabName.AnchorPoint = Vector2.new(0, 0.5)
-	-- Sizes itself to the text so long locale names never clip; the button's
-	-- width tween (and its clip) decide how much of it is actually shown.
-	TabName.AutomaticSize = Enum.AutomaticSize.X
-	TabName.Size = UDim2.fromScale(0, 0.71359)
-	TabName.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	Locale.set(TabName, "Text", name)
-	-- Starts parked past the clip edge; the first activation slides it in.
-	TabName.Position = UDim2.new(0, TAB_TEXT_HIDDEN_X, 0.5, 0)
-	TabName.Parent = Button
 
 	local BackImage = Instance.new("ImageLabel")
 	BackImage.Name = UUID.Static("BackImage")
@@ -249,7 +267,7 @@ function SettingsTabGroup:Tab(Settings)
 	BackImage.Visible = theme.WallpaperEnabled ~= false
 
 	local BackImageCorner = Instance.new("UICorner")
-	BackImageCorner.CornerRadius = UDim.new(0, 4)
+	BackImageCorner.CornerRadius = UDim.new(1, 0)
 	BackImageCorner.Parent = BackImage
 
 	local BackImageGradient = Instance.new("UIGradient")
@@ -266,32 +284,33 @@ function SettingsTabGroup:Tab(Settings)
 	})
 	BackImageGradient.Parent = BackImage
 
+	-- White hover lift over the backdrop, under the icon (design-notes 1).
+	local Lift = Instance.new("Frame")
+	Lift.Name = UUID.Static("TabLift")
+	Lift.BorderSizePixel = 0
+	Lift.BackgroundColor3 = Color3.new(1, 1, 1)
+	Lift.BackgroundTransparency = 1
+	Lift.Size = UDim2.fromScale(1, 1)
+	Lift.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Lift.Parent = Button
+
+	local LiftCorner = Instance.new("UICorner")
+	LiftCorner.CornerRadius = UDim.new(1, 0)
+	LiftCorner.Parent = Lift
+
 	local TabImage = Instance.new("ImageLabel")
 	TabImage.Name = UUID.Static("TabImage")
 	TabImage.BorderSizePixel = 0
 	TabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	TabImage.ImageTransparency = theme.InactiveTabIconTransparency
-	TabImage.AnchorPoint = Vector2.new(0, 0.5)
+	TabImage.AnchorPoint = Vector2.new(0.5, 0.5)
 	TabImage.Image = Settings.Icon or "rbxassetid://8445470392"
 	TabImage.ImageColor3 = theme.InactiveTabIconColor
-	TabImage.Size = UDim2.fromOffset(12, 12)
+	TabImage.Size = UDim2.fromOffset(18, 18)
 	TabImage.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TabImage.BackgroundTransparency = 1
-	TabImage.Position = UDim2.new(0, 6, 0.5, 0)
+	TabImage.Position = UDim2.fromScale(0.5, 0.5)
 	TabImage.Parent = Button
-
-	-- Selection bar: a sibling of the button inside the unclipped holder,
-	-- so -5px into the gap survives the button's ClipsDescendants.
-	local SelectionStatus = Instance.new("Frame")
-	SelectionStatus.Name = UUID.Static("SelectionStatus")
-	SelectionStatus.BorderSizePixel = 0
-	SelectionStatus.BackgroundColor3 = theme.SecondaryColor
-	SelectionStatus.BackgroundTransparency = 1
-	SelectionStatus.AnchorPoint = Vector2.new(0.5, 0.5)
-	SelectionStatus.Size = UDim2.fromOffset(2, 0)
-	SelectionStatus.Position = UDim2.new(0, -5, 0.5, 0)
-	SelectionStatus.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	SelectionStatus.Parent = Holder
 
 	-- Simple page frame for this settings page (no automatic scroller)
 	local Page = Instance.new("Frame")
@@ -313,11 +332,9 @@ function SettingsTabGroup:Tab(Settings)
 		Name = name,
 		Holder = Holder,
 		Button = Button,
-		TabName = TabName,
 		BackImage = BackImage,
 		BackImageGradient = BackImageGradient,
 		TabImage = TabImage,
-		SelectionStatus = SelectionStatus,
 		Page = Page,
 		FadeLayer = FadeLayer,
 		_theme = theme,
@@ -338,18 +355,6 @@ function SettingsTabGroup:Tab(Settings)
 		{ Active = "ActiveTabButtonTransparency", Inactive = "InactiveTabButtonTransparency" },
 		{ state = "Inactive", duration = 0.2 }
 	)
-	tab._nameColorHandle = ThemeManager.BindColor(
-		TabName,
-		"TextColor3",
-		{ Active = "ActiveTabTextColor", Inactive = "InactiveTabTextColor" },
-		{ state = "Inactive", duration = 0.2 }
-	)
-	tab._nameTransHandle = ThemeManager.BindTransparency(
-		TabName,
-		"TextTransparency",
-		{ Active = "ActiveTabTextTransparency", Inactive = "InactiveTabTextTransparency" },
-		{ state = "Inactive", duration = 0.2 }
-	)
 	tab._iconColorHandle = ThemeManager.BindColor(
 		TabImage,
 		"ImageColor3",
@@ -362,50 +367,42 @@ function SettingsTabGroup:Tab(Settings)
 		{ Active = "ActiveTabIconTransparency", Inactive = "InactiveTabIconTransparency" },
 		{ state = "Inactive", duration = 0.2 }
 	)
-	-- Static (state-independent) bind.
-	ThemeManager.BindColor(SelectionStatus, "BackgroundColor3", "SecondaryColor")
 
 	Button.MouseButton1Click:Connect(function()
 		self:SetActiveTab(tab)
 	end)
 
-	-- Live re-measure: the active width follows TabName's measured text,
-	-- which moves on locale, font and the first layout pass (build-time
-	-- bounds read 0). TextBounds rather than AbsoluteSize so the hover
-	-- UIScale can't inflate the target while the button is grown.
-	local measured = false
-	local function remeasure()
-		if self.ActiveTab == tab and not tab._hovered then
-			self:_setTabWidth(tab, true)
-		end
-	end
-	TabName:GetPropertyChangedSignal("TextBounds"):Connect(remeasure)
-	TabName:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		if not measured and TabName.AbsoluteSize.X > 0 then
-			measured = true
-			remeasure()
-		end
-	end)
-
-	-- Pill-style hover grow + shared tooltip (names the tab even while its
-	-- label is collapsed out of view).
+	-- Pill-style hover grow + white lift + shared tooltip. The bar docks at
+	-- the bottom, so the tip opens upward and names the label-less tab.
 	Button.MouseEnter:Connect(function()
 		tab._hovered = true
 		Tween.Play(buttonScale, "HoverIn", { Scale = TAB_HOVER_SCALE })
+		Tween.Play(Lift, "Lift", { BackgroundTransparency = 0.95 })
 		local tip = self.Window and self.Window.Tooltip
 		if tip then
-			tip:ShowAt(Button, TabName.Text, "Bottom", 11)
+			tip:ShowAt(Button, Locale.resolve(name), "Top", TOOLTIP_GAP)
 		end
 	end)
 	Button.MouseLeave:Connect(function()
 		tab._hovered = false
 		Tween.Play(buttonScale, "HoverOut", { Scale = 1 })
+		Tween.Play(Lift, "Lift", { BackgroundTransparency = 1 })
 		local tip = self.Window and self.Window.Tooltip
 		if tip then
 			tip:Hide()
 		end
-		-- The grow may have inflated measurements; re-assert once settled.
-		task.delay(0.3, remeasure)
+	end)
+
+	-- Press dips the grown scale and springs back to whichever scale the
+	-- hover state owns (design-notes 4).
+	local function heldScale(factor)
+		return (tab._hovered and TAB_HOVER_SCALE or 1) * factor
+	end
+	Button.MouseButton1Down:Connect(function()
+		Tween.Play(buttonScale, "PressIn", { Scale = heldScale(TAB_PRESS_SCALE) })
+	end)
+	Button.MouseButton1Up:Connect(function()
+		Tween.Play(buttonScale, "PressOut", { Scale = heldScale(1) })
 	end)
 
 	table.insert(self.Tabs, tab)
@@ -417,19 +414,6 @@ function SettingsTabGroup:Tab(Settings)
 	return tab
 end
 
--- Width for a tab's holder: icon-only when collapsed, icon + full label
--- when active. Label width comes from TabName.TextBounds - the measured
--- text, which (unlike AbsoluteSize) doesn't react to the hover UIScale.
--- The tween lands on the holder: it is the element the bar arranges, and
--- the button inside just fills it.
-function SettingsTabGroup:_setTabWidth(t, active)
-	local width = TAB_W_COLLAPSED
-	if active then
-		width = TAB_TEXT_X + math.ceil(t.TabName.TextBounds.X) + TAB_W_PAD
-	end
-	Tween.Play(t.Holder, "Fast", { Size = UDim2.new(0, width, 0.83, 0) })
-end
-
 function SettingsTabGroup:_applyActiveVisuals(t)
 	-- STATE-AWARE theme properties resolve through the bindings.
 	if t._bgHandle then
@@ -438,26 +422,16 @@ function SettingsTabGroup:_applyActiveVisuals(t)
 	if t._bgTransHandle then
 		t._bgTransHandle:SetState("Active")
 	end
-	if t._nameColorHandle then
-		t._nameColorHandle:SetState("Active")
-	end
-	if t._nameTransHandle then
-		t._nameTransHandle:SetState("Active")
-	end
 	if t._iconColorHandle then
 		t._iconColorHandle:SetState("Active")
 	end
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState("Active")
 	end
-	-- Expand to the label and slide it back into view.
-	self:_setTabWidth(t, true)
-	Tween.Play(t.TabName, "Fast", { Position = UDim2.new(0, TAB_TEXT_X, 0.5, 0) })
 	-- Non-theme / constant visuals stay imperative.
 	local theme = self._theme or {}
 	t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
-	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
 	self:_resumeSpin(t.BackImageGradient)
 end
 
@@ -468,24 +442,13 @@ function SettingsTabGroup:_applyInactiveVisuals(t)
 	if t._bgTransHandle then
 		t._bgTransHandle:SetState("Inactive")
 	end
-	if t._nameColorHandle then
-		t._nameColorHandle:SetState("Inactive")
-	end
-	if t._nameTransHandle then
-		t._nameTransHandle:SetState("Inactive")
-	end
 	if t._iconColorHandle then
 		t._iconColorHandle:SetState("Inactive")
 	end
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState("Inactive")
 	end
-	-- Collapse to the icon: shrink the button and slide the label past the
-	-- clip edge (theme transparency alone would leave a stub of text).
-	self:_setTabWidth(t, false)
-	Tween.Play(t.TabName, "Fast", { Position = UDim2.new(0, TAB_TEXT_HIDDEN_X, 0.5, 0) })
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 1 })
-	Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 1, Size = UDim2.fromOffset(2, 0) })
 	self:_pauseSpin(t.BackImageGradient)
 end
 
@@ -576,9 +539,13 @@ end
 function SettingsTabGroup:ApplyTheme(newTheme)
 	local theme = ThemeManager.GetTheme(newTheme)
 	self._theme = theme
+	-- The bar's wash is a multiplier ramp; re-stamp it against the new base.
+	if self._barWash then
+		stampWash(self._barWash, theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16))
+	end
 	for _, t in ipairs(self.Tabs) do
 		t._theme = theme
-		-- Tab button / label / icon colors + transparencies are BINDINGS now;
+		-- Tab button / icon colors + transparencies are BINDINGS now;
 		-- re-apply SetState so the active page picks up the new theme's keys.
 		local state = (t == self.ActiveTab) and "Active" or "Inactive"
 		if t._bgHandle then
@@ -586,12 +553,6 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 		end
 		if t._bgTransHandle then
 			t._bgTransHandle:SetState(state)
-		end
-		if t._nameColorHandle then
-			t._nameColorHandle:SetState(state)
-		end
-		if t._nameTransHandle then
-			t._nameTransHandle:SetState(state)
 		end
 		if t._iconColorHandle then
 			t._iconColorHandle:SetState(state)
@@ -602,8 +563,6 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 		-- Wallpaper Image/Visible stay imperative (not Color3/number).
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
-		-- A theme switch cancels in-flight tweens; re-assert the state width.
-		self:_setTabWidth(t, t == self.ActiveTab)
 	end
 end
 

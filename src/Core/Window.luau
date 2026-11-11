@@ -41,6 +41,21 @@ Window.__index = Window
 Window.AnimationStyle = "Smooth"
 Window.DragStyle = "Instant"
 
+-- design-notes 10: shell wash gradients multiply what they paint, so the top
+-- stop is a gray multiplier - stronger on dark themes, gentler on light.
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+local function stampWash(gradient, base)
+	local top = if isDark(base) then 0.9 else 0.96
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(top, top, top)),
+		ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+	})
+end
+
 function Window.new(Settings)
 	Settings = Settings or {}
 
@@ -1609,6 +1624,23 @@ function Window.new(Settings)
 	pillScale.Scale = 1
 	pillScale.Parent = pill
 
+	-- Shell wash: the pill is a CanvasGroup (a gradient on it would tint the
+	-- buttons), so the shade lives on a plain child Frame (design-notes 1).
+	local pillWash = Instance.new("Frame")
+	pillWash.Name = UUID.Static("PillWash")
+	pillWash.BorderSizePixel = 0
+	pillWash.BackgroundColor3 = theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
+	pillWash.BackgroundTransparency = 0
+	pillWash.Size = UDim2.fromScale(1, 1)
+	pillWash.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	pillWash.Parent = pill
+	local pillWashCorner = Instance.new("UICorner")
+	pillWashCorner.CornerRadius = UDim.new(1, 0)
+	pillWashCorner.Parent = pillWash
+	local pillWashGradient = Instance.new("UIGradient")
+	stampWash(pillWashGradient, pillWash.BackgroundColor3)
+	pillWashGradient.Parent = pillWash
+
 	-- Dim + small at rest so the pill doesn't block the game view; hovering it or any of its buttons makes it fully visible with a bounce.
 	local PILL_REST_GROUP = 0.55 -- dim everything at rest so it doesn't block the game
 	local PILL_HOVER_GROUP = 0
@@ -1700,6 +1732,8 @@ function Window.new(Settings)
 		pill.BackgroundColor3 = t.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
 		pill.BackgroundTransparency = 0.05
 		pill.GroupTransparency = PILL_REST_GROUP
+		pillWash.BackgroundColor3 = t.PopupBackgroundColor or Color3.fromRGB(15, 15, 16)
+		stampWash(pillWashGradient, pillWash.BackgroundColor3)
 		pillStroke.Color = t.StrokeColor or Color3.fromRGB(255, 255, 255)
 		-- Stroke transparency is hover-gated, never stamped here, so a theme switch can't leave it visible at rest.
 		applyPillStroke()
@@ -1790,6 +1824,18 @@ function Window.new(Settings)
 			NumberSequenceKeypoint.new(1.000, 1),
 		})
 		grad.Parent = back
+		-- White hover lift over the backdrop, under the icon (design-notes 1).
+		local lift = Instance.new("Frame")
+		lift.Name = UUID.Static("PillLift")
+		lift.BorderSizePixel = 0
+		lift.BackgroundColor3 = Color3.new(1, 1, 1)
+		lift.BackgroundTransparency = 1
+		lift.Size = UDim2.fromScale(1, 1)
+		lift.ZIndex = 1501
+		lift.Parent = btn
+		local liftCorner = Instance.new("UICorner")
+		liftCorner.CornerRadius = UDim.new(1, 0)
+		liftCorner.Parent = lift
 		local icon = Instance.new("ImageLabel")
 		icon.Name = UUID.Static("PillIcon")
 		icon.BorderSizePixel = 0
@@ -1804,13 +1850,25 @@ function Window.new(Settings)
 		icon.Size = UDim2.fromOffset(18, 18)
 		icon.ZIndex = 1502
 		icon.Parent = btn
+		local hovered = false
 		btn.MouseEnter:Connect(function()
+			hovered = true
 			Tween.Play(btnScale, "HoverIn", { Scale = 1.18 })
+			Tween.Play(lift, "Lift", { BackgroundTransparency = 0.95 })
 			tooltip:ShowAt(btn, tab.Name, pillTooltipSide(), 11)
 		end)
 		btn.MouseLeave:Connect(function()
+			hovered = false
 			Tween.Play(btnScale, "HoverOut", { Scale = 1 })
+			Tween.Play(lift, "Lift", { BackgroundTransparency = 1 })
 			tooltip:Hide()
+		end)
+		-- Press dips the grown scale and springs back (design-notes 4).
+		btn.MouseButton1Down:Connect(function()
+			Tween.Play(btnScale, "PressIn", { Scale = (hovered and 1.18 or 1) * 0.94 })
+		end)
+		btn.MouseButton1Up:Connect(function()
+			Tween.Play(btnScale, "PressOut", { Scale = hovered and 1.18 or 1 })
 		end)
 		btn.MouseButton1Click:Connect(function()
 			-- Mirror the sidebar tab click: leave the settings pages, show the normal tab content.

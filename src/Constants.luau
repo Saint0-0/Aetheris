@@ -16,6 +16,11 @@ Constants.FallbackImage = "rbxassetid://11094025229"
 -- fall back to the procedural bloom.
 Constants.AuroraGlow = "rbxassetid://90267840908213"
 
+-- Bottom reserve inside the settings pages: the docked tab pill bar lives
+-- there (bar height + margins), so every settings page/scroller subtracts it
+-- from its height instead of hardcoding the old top-bar proportions.
+Constants.SettingsBottomReserve = 72
+
 -- Shared font family: Constants.Font() builds FontFaces from it;
 -- SetFontAsset swaps it live (nil resets to the built-in family).
 Constants.FontAsset = "rbxassetid://12187365364"

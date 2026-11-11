@@ -29,6 +29,11 @@ TweenUtil.Presets = {
 	HoverIn = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 	HoverOut = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	Hover = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- design-notes 4: white hover lift (0.18s Quint Out both ways) and icon
+	-- press (0.08s in, 0.3s Back out) for the pill buttons.
+	Lift = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	PressIn = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	PressOut = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 	OnOff = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
 	PageSwap = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
 	FadeOut = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
