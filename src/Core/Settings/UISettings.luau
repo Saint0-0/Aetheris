@@ -219,6 +219,26 @@ function UISettings.Build(window, tab)
 			end
 		end,
 	})
+	visualsSection:Toggle({
+		Name = "Window Wallpaper",
+		Default = SettingsStore.Get("WindowWallpaperEnabled") ~= false,
+		Callback = function(state)
+			SettingsStore.Set("WindowWallpaperEnabled", state)
+			if window.SetWindowWallpaper then
+				window:SetWindowWallpaper(state)
+			end
+		end,
+	})
+	visualsSection:Toggle({
+		Name = "Content Wallpaper",
+		Default = SettingsStore.Get("ContentWallpaperEnabled") ~= false,
+		Callback = function(state)
+			SettingsStore.Set("ContentWallpaperEnabled", state)
+			if window.SetContentWallpaper then
+				window:SetContentWallpaper(state)
+			end
+		end,
+	})
 	visualsSection:Slider({
 		Name = "UI Volume",
 		Min = 0,

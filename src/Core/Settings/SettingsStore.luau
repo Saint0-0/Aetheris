@@ -52,6 +52,8 @@ SettingsStore.Defaults = {
 	MaskDisplayName = false, -- auto-mask on: display name / username open masked
 	AutoSaveConfigs = false, -- auto-save the active config on component change
 	Locale = "en", -- active UI locale id (see Utils/Locale)
+	WindowWallpaperEnabled = true, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
+	ContentWallpaperEnabled = true, -- wallpaper art over the content fill, melting into it
 }
 
 SettingsStore.Data = {}

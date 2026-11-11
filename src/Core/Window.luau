@@ -219,6 +219,43 @@ function Window.new(Settings)
 	MainFrameSizeConstraint.MinSize = Vector2.new(425, 360)
 	MainFrameSizeConstraint.Parent = MainFrame
 
+	-- Wallpaper art: full-bleed crop melting downward into the fill below it
+	-- (design-notes 3; the same six-stop Rotation-90 ramp as the theme cards).
+	local function newWallpaper(parent, name)
+		local image = Instance.new("ImageLabel")
+		image.Name = UUID.Static(name)
+		image.BorderSizePixel = 0
+		image.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		image.BackgroundTransparency = 1
+		image.Image = theme.Wallpaper or Constants.FallbackImage
+		image.Size = UDim2.fromScale(1, 1)
+		image.ScaleType = Enum.ScaleType.Crop
+		image.Parent = parent
+
+		local melt = Instance.new("UIGradient")
+		melt.Rotation = 90
+		melt.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.3, 0),
+			NumberSequenceKeypoint.new(0.5, 0.4),
+			NumberSequenceKeypoint.new(0.7, 0.85),
+			NumberSequenceKeypoint.new(0.85, 1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		melt.Parent = image
+
+		return image
+	end
+
+	-- Shell layer: created before the content fill so it renders under it and
+	-- shows through every translucent shell surface (title strip, sidebar).
+	local windowWallpaperOn = SettingsStore.Get("WindowWallpaperEnabled") ~= false
+	local windowWallpaper = newWallpaper(MainFrame, "WindowWallpaper")
+	local windowWallpaperCorner = Instance.new("UICorner")
+	windowWallpaperCorner.CornerRadius = MainFrameCorner.CornerRadius -- same window radius
+	windowWallpaperCorner.Parent = windowWallpaper
+	windowWallpaper.Visible = windowWallpaperOn
+
 	-- Separate fill right of the sidebar so content can stay readable while the shell stays translucent.
 	local ContentBackground = Instance.new("Frame")
 	ContentBackground.Name = UUID.Static("ContentBackground")
@@ -238,6 +275,30 @@ function Window.new(Settings)
 	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
 	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
 	ContentBackgroundCorner.Parent = ContentBackground
+
+	-- Content layer sits on the content fill so the art renders over it and
+	-- melts into it; the fill's corner treatment is mirrored so the silhouette
+	-- stays clean in both window shapes.
+	local contentWallpaperOn = SettingsStore.Get("ContentWallpaperEnabled") ~= false
+	local contentWallpaper = newWallpaper(ContentBackground, "ContentWallpaper")
+	local contentWallpaperCorner = Instance.new("UICorner")
+	contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
+	contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
+	contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
+	contentWallpaperCorner.BottomRightRadius = ContentBackgroundCorner.BottomRightRadius
+	contentWallpaperCorner.Parent = contentWallpaper
+	contentWallpaper.Visible = contentWallpaperOn
+
+	-- Both layers: art follows the active theme; shown only while the theme
+	-- ships a wallpaper and its own gate (WallpaperEnabled) hasn't closed it.
+	local function refreshWallpapers(t)
+		local image = t.Wallpaper or Constants.FallbackImage
+		windowWallpaper.Image = image
+		windowWallpaper.Visible = windowWallpaperOn and t.WallpaperEnabled ~= false
+		contentWallpaper.Image = image
+		contentWallpaper.Visible = contentWallpaperOn and t.WallpaperEnabled ~= false
+	end
+	refreshWallpapers(theme)
 
 	-- Soft accent bloom behind the window, created above the content fill but below sidebar/content; transparency from UI Settings.
 	local aurora = Aurora.new(MainFrame, {
@@ -1116,6 +1177,16 @@ function Window.new(Settings)
 	-- Stored before settings pages/scripts build so they don't fall back to Default.
 	self._theme = theme
 
+	-- Wallpaper toggles (UI Settings > Visuals); ApplyTheme re-asserts the theme gate.
+	self.SetWindowWallpaper = function(_me, on)
+		windowWallpaperOn = on
+		refreshWallpapers(_me._theme)
+	end
+	self.SetContentWallpaper = function(_me, on)
+		contentWallpaperOn = on
+		refreshWallpapers(_me._theme)
+	end
+
 	-- Original theme name so the Themes page can mark the active card on first build.
 	if type(Settings.Theme) == "string" then
 		self._themeName = Settings.Theme
@@ -1452,6 +1523,10 @@ function Window.new(Settings)
 				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 6)
 				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
 				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
+				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
+				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
+				contentWallpaperCorner.BottomRightRadius = ContentBackgroundCorner.BottomRightRadius
 				-- Script info replaces the page title at the top-left of the compact title bar.
 				PageTitle.Visible = false
 				-- Push the settings pages down so they clear the compact title bar and docked search.
@@ -1520,6 +1595,10 @@ function Window.new(Settings)
 				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 0)
 				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
 				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
+				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
+				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
+				contentWallpaperCorner.BottomRightRadius = ContentBackgroundCorner.BottomRightRadius
 				PageTitle.Position = saved.pageTitlePos
 				PageTitle.Visible = saved.pageTitleVisible
 				SettingsPages.Position = saved.settingsPagesPos
@@ -2275,6 +2354,9 @@ function Window.new(Settings)
 		local t = ThemeManager.GetTheme(newTheme)
 		me._theme = t
 		restampThemeGradients(t)
+
+		-- Wallpaper art and its visibility gate follow the theme.
+		refreshWallpapers(t)
 
 		-- Shell colors/transparencies are bindings now; only the bits that can't be bindings stay here.
 
