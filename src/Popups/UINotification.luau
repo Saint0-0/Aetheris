@@ -165,7 +165,7 @@ function UINotification.new(parent, Settings)
 	confirmBtn.ZIndex = 13
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
-	confirmCorner.CornerRadius = UDim.new(0, 4)
+	confirmCorner.CornerRadius = UDim.new(0, 10)
 	confirmCorner.Parent = confirmBtn
 	local confirmShadow = Instance.new("UIShadow")
 	confirmShadow.BlurRadius = UDim.new(0, 20)
@@ -189,7 +189,7 @@ function UINotification.new(parent, Settings)
 	cancelBtn.ZIndex = 13
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
-	cancelCorner.CornerRadius = UDim.new(0, 4)
+	cancelCorner.CornerRadius = UDim.new(0, 10)
 	cancelCorner.Parent = cancelBtn
 	local cancelShadow = Instance.new("UIShadow")
 	cancelShadow.BlurRadius = UDim.new(0, 20)

@@ -2698,6 +2698,7 @@ function Window:DropdownPopUp(id, Settings)
 
 	if popup then
 		popup:Open()
+		Sound.Play("Notification")
 		self._activePopupId = id
 	end
 	return popup
@@ -2741,6 +2742,7 @@ function Window:ColorPickerPopUp(id, Settings)
 
 	if popup then
 		popup:Open()
+		Sound.Play("Notification")
 		self._activeColorPickerId = id
 	end
 	return popup

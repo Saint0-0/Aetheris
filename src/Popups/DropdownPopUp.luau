@@ -205,7 +205,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Position = UDim2.fromScale(0, 0)
 	confirmBtn.Parent = interactions
 	local confirmCorner = Instance.new("UICorner")
-	confirmCorner.CornerRadius = UDim.new(0.5, 0) -- CTA pill (design-notes 6)
+	confirmCorner.CornerRadius = UDim.new(0, 10) -- CTA (user call, Batch 8)
 	confirmCorner.Parent = confirmBtn
 	local confirmShadow = Instance.new("UIShadow")
 	confirmShadow.BlurRadius = UDim.new(0, 20)
@@ -229,7 +229,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.Position = UDim2.fromScale(0.515, 0)
 	cancelBtn.Parent = interactions
 	local cancelCorner = Instance.new("UICorner")
-	cancelCorner.CornerRadius = UDim.new(0.5, 0)
+	cancelCorner.CornerRadius = UDim.new(0, 10)
 	cancelCorner.Parent = cancelBtn
 	local cancelShadow = Instance.new("UIShadow")
 	cancelShadow.BlurRadius = UDim.new(0, 20)
