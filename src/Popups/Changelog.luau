@@ -167,9 +167,9 @@ function Changelog.new(parent, Settings)
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or FALLBACK_POPUP
 	popup.BackgroundTransparency = self._popupTransparency
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	-- Height scales with the popup layer (0.72 of Content) so the shell
+	-- Height scales with the popup layer (0.82 of Content) so the shell
 	-- always fits the window; the constraint below clamps it in both modes.
-	popup.Size = UDim2.fromScale(0.6, 0.72)
+	popup.Size = UDim2.fromScale(0.6, 0.82)
 	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
@@ -197,7 +197,7 @@ function Changelog.new(parent, Settings)
 
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.MinSize = Vector2.new(340, 210)
-	sizeConstraint.MaxSize = Vector2.new(560, 420)
+	sizeConstraint.MaxSize = Vector2.new(560, 500) -- taller shell (user call, Batch 8)
 	sizeConstraint.Parent = popup
 
 	-- Header row: accent tile + title, close button opposite.
