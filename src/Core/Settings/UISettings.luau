@@ -12,6 +12,7 @@ local Tween = require("../../Utils/Tween")
 local Sound = require("../../Utils/Sound")
 local SettingsStore = require("./SettingsStore")
 local PageAwareness = require("../../Utils/PageAwareness")
+local ScrollFade = require("../../Utils/ScrollFade")
 local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
@@ -217,6 +218,15 @@ function UISettings.Build(window, tab)
 			if window.Aurora then
 				window.Aurora:SetTransparency(transparency)
 			end
+		end,
+	})
+	-- Content melts into the surface at scroll edges; one gate for every fade.
+	visualsSection:Toggle({
+		Name = "Scroll Edge Fade",
+		Default = SettingsStore.Get("EdgeFadeEnabled") ~= false,
+		Callback = function(state)
+			SettingsStore.Set("EdgeFadeEnabled", state)
+			ScrollFade.SetEnabled(state)
 		end,
 	})
 	visualsSection:Toggle({

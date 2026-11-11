@@ -54,6 +54,7 @@ SettingsStore.Defaults = {
 	Locale = "en", -- active UI locale id (see Utils/Locale)
 	WindowWallpaperEnabled = true, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
 	ContentWallpaperEnabled = true, -- wallpaper art over the content fill, melting into it
+	EdgeFadeEnabled = true, -- scroll edge content-melt fades (Utils/ScrollFade)
 }
 
 SettingsStore.Data = {}

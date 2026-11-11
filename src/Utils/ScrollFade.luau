@@ -3,19 +3,46 @@
 
 	Scroll edge fade (design-notes 2/9): wrap a ScrollingFrame in a
 	CanvasGroup whose Rotation-90 transparency gradient is rebuilt from the
-	frame's CanvasPosition over a 36 px span, so content melts into the
+	frame's CanvasPosition over an 18 px span, so content melts into the
 	surface at both edges. The wrapper inherits the frame's rect, layout
 	slot and z-order, and the frame fills it - callers keep using the same
-	scroll instance. Returns the wrapper.
+	scroll instance. Returns the wrapper. One global gate (UI Settings >
+	Visuals) shows or hides every attached fade at once.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 local UUID = require("./UUID")
+local SettingsStore = require("../Core/Settings/SettingsStore")
 
 local ScrollFade = {}
 
-local EDGE_FADE_PX = 36
+local EDGE_FADE_PX = 18
+
+-- Every attached fade, so the Visuals toggle can flip them all live; dead
+-- entries (destroyed popups) are pruned on the next pass.
+local attached = {}
+local edgeFadeEnabled = nil -- lazily resolved once, then owned by SetEnabled
+
+local function isEnabled()
+	if edgeFadeEnabled == nil then
+		edgeFadeEnabled = SettingsStore.Get("EdgeFadeEnabled") ~= false
+	end
+	return edgeFadeEnabled
+end
+
+-- Show/hide every scroll edge fade from one switch (UI Settings > Visuals).
+function ScrollFade.SetEnabled(state)
+	edgeFadeEnabled = state == true
+	local live = {}
+	for _, entry in ipairs(attached) do
+		if entry.gradient.Parent then
+			entry.sync()
+			live[#live + 1] = entry
+		end
+	end
+	attached = live
+end
 
 function ScrollFade.Attach(scroll)
 	local parent = scroll.Parent
@@ -47,6 +74,11 @@ function ScrollFade.Attach(scroll)
 	gradient.Parent = fade
 
 	local function sync()
+		if not isEnabled() then
+			-- Gate off: flat transparency so the wrapper paints untouched.
+			gradient.Transparency = NumberSequence.new(0)
+			return
+		end
 		local view = scroll.AbsoluteWindowSize.Y
 		local content = scroll.AbsoluteCanvasSize.Y
 		if view <= 0 or content <= 0 then
@@ -72,6 +104,8 @@ function ScrollFade.Attach(scroll)
 	scroll:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(sync)
 	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(sync)
 	task.defer(sync)
+
+	attached[#attached + 1] = { gradient = gradient, sync = sync }
 
 	return fade
 end
