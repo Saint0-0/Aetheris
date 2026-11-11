@@ -167,9 +167,9 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	corner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	corner.Parent = card
 
-	local scale = Instance.new("UIScale")
-	scale.Scale = 1
-	scale.Parent = card
+	-- No per-card UIScale: a scale ~= 1 under the grid's automatic canvas
+	-- makes the engine re-size scaled descendants (the Batch 7 changelog
+	-- reflow bug, reproduced here on the card text labels).
 
 	-- Fill: the card's own window colour, washed top-light to bottom-dark (design-notes 10).
 	local fill = Instance.new("Frame")
@@ -336,10 +336,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	local hovered = false
 	local primed = false
 
-	local function scaleTarget()
-		return hovered and 1.035 or 1
-	end
-
 	-- The glow is the expensive layer, so it switches off once faded out.
 	local function applyShadow(target, instant, info)
 		if instant then
@@ -418,7 +414,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		stroke.Transparency = 1
 		shadow.Transparency = 1
 		shadow.Enabled = false
-		scale.Scale = 0.96
 	end
 
 	local function reveal()
@@ -430,7 +425,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		Tween.Play(fill, SETTLE, { BackgroundTransparency = 0 })
 		Tween.Play(scrim, SETTLE, { BackgroundTransparency = 0 })
 		paint(false, SETTLE)
-		Tween.Play(scale, SETTLE, { Scale = scaleTarget() })
 	end
 
 	local function setActive(isActive)
@@ -446,7 +440,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		if primed then
 			return
 		end
-		Tween.Play(scale, on and "HoverIn" or "HoverOut", { Scale = scaleTarget() })
 		paint(false)
 	end
 
@@ -459,17 +452,19 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	card.MouseLeave:Connect(function()
 		hover(false)
 	end)
+	-- Press reads as a white tint on the lift (design-notes 3) instead of a
+	-- scale dip: the UIScale reflowed the grid's scaled text labels.
 	card.MouseButton1Down:Connect(function()
 		if primed then
 			return
 		end
-		Tween.Play(scale, "Fast", { Scale = 0.97 })
+		Tween.Play(lift, "PressIn", { BackgroundTransparency = 0.9 })
 	end)
 	card.MouseButton1Up:Connect(function()
 		if primed then
 			return
 		end
-		Tween.Play(scale, "HoverIn", { Scale = scaleTarget() })
+		paint(false)
 	end)
 
 	-- A theme switch sweeps CancelAllUnder the window, which could freeze a
@@ -482,7 +477,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		fill.BackgroundTransparency = 0
 		scrim.BackgroundTransparency = 0
 		paint(true)
-		scale.Scale = scaleTarget()
 	end, card)
 
 	paint(true)
@@ -603,7 +597,7 @@ function Themes.Build(window, tab)
 	local holderPadding = Instance.new("UIPadding")
 	holderPadding.PaddingTop = UDim.new(0, 10)
 	holderPadding.PaddingBottom = UDim.new(0, 20)
-	-- side padding keeps hover-scaled cards and shadows from clipping
+	-- side padding keeps card glow shadows from clipping
 	holderPadding.PaddingLeft = UDim.new(0, 10)
 	holderPadding.PaddingRight = UDim.new(0, 10)
 	holderPadding.Parent = pageHolder
