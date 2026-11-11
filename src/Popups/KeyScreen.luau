@@ -210,19 +210,43 @@ local function buildCard(self)
 	self._card = card
 
 	new("UIScale", { Scale = cardScale, Parent = card })
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = card })
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = card }) -- shell radius (design-notes 10)
+	-- Shell wash (design-notes 1/2): a top-down multiplier over the whole
+	-- CanvasGroup — the same idiom as the popup/window shells — so the fill
+	-- never reads flat. Static multiplier, no per-theme restamp needed.
+	new("UIGradient", {
+		Name = UUID.Static("CardWash"),
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(0.9, 0.9, 0.9)),
+			ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+		}),
+		Parent = card,
+	})
 	local stroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		-- Pinned at 0.7; the open/close fade returns it to this base instead of zero.
-		Transparency = 0.7,
+		-- Base at full paint; the open/close fade returns it here from hidden.
+		Transparency = 0,
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = card,
 	})
+	-- Rim ramp (design-notes 2): the top edge keeps the paint, the sides and
+	-- bottom fade off it, so the card reads top-lit.
+	new("UIGradient", {
+		Name = UUID.Static("CardRim"),
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.84),
+			NumberSequenceKeypoint.new(0.5, 0.92),
+			NumberSequenceKeypoint.new(1, 0.78),
+		}),
+		Parent = stroke,
+	})
 	local shadow = new("UIShadow", {
 		Color = theme.MainframeShadowColor or Color3.new(0, 0, 0),
-		Transparency = 0.5,
-		BlurRadius = UDim.new(0, 28),
+		Transparency = 0.45,
+		BlurRadius = UDim.new(0, 26),
 		Offset = UDim2.fromOffset(0, 10),
 		Parent = card,
 	})
@@ -237,7 +261,31 @@ local function buildCard(self)
 		ZIndex = 0,
 		Parent = card,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = clip })
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = clip })
+	-- Brand watermark (user call, Batch 8): the Aetheris mark sunk into the
+	-- card's right side under the aurora — reads as a soft glow, not a logo.
+	-- Bottom melt so it dissolves into the card instead of ending in a box.
+	local watermark = new("ImageLabel", {
+		Name = UUID.Static("BrandWatermark"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(1, 0.58),
+		Size = UDim2.fromOffset(200, 200),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://92458734285074",
+		ImageTransparency = 0.9,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 0,
+		Parent = clip,
+	})
+	new("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.25),
+			NumberSequenceKeypoint.new(0.55, 0),
+			NumberSequenceKeypoint.new(1, 0.9),
+		}),
+		Parent = watermark,
+	})
 	self._aurora = Aurora.new(clip, { Theme = theme, Transparency = 0.35 })
 
 	-- Drag frame mirrors the window: Instant follows the cursor, Smooth tweens.
@@ -326,7 +374,7 @@ local function buildCard(self)
 		ZIndex = 4,
 		Parent = headerGroup,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = brandTile })
 	local brandIcon = new("ImageLabel", {
 		Name = UUID.Static("BrandIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -335,10 +383,11 @@ local function buildCard(self)
 		BackgroundTransparency = 1,
 		Image = "rbxassetid://92458734285074",
 		ImageColor3 = Color3.new(1, 1, 1),
+		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 4,
 		Parent = brandTile,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandIcon })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = brandIcon })
 
 	local title = new("TextLabel", {
 		Name = UUID.Static("Title"),
@@ -448,6 +497,19 @@ local function buildCard(self)
 	self._subtitle = subtitle
 	self._stroke = stroke
 	self._shadow = shadow
+
+	-- Hairline divider under the header (design-notes 3): one pixel of light
+	-- separating the title row from every phase body.
+	new("Frame", {
+		Name = UUID.Static("HeaderDivider"),
+		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.94,
+		BorderSizePixel = 0,
+		ZIndex = 4,
+		Parent = card,
+	})
 end
 
 ----------------------------------------------------------------
@@ -507,14 +569,17 @@ local function buildIntro(self)
 		Parent = ring,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = tile })
+	-- The brand mark replaces the generic glyph: this screen is the first
+	-- thing the user sees, so it carries the identity (user call, Batch 8).
 	new("ImageLabel", {
 		Name = UUID.Static("IntroIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(24, 24),
+		Size = UDim2.fromOffset(32, 32),
 		BackgroundTransparency = 1,
-		Image = Icons["sparkles"] or Icons["key"],
+		Image = "rbxassetid://92458734285074",
 		ImageColor3 = Color3.new(1, 1, 1),
+		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 4,
 		Parent = tile,
 	})
@@ -841,7 +906,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = field })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = field })
 	local fieldStroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(80, 80, 80),
 		Transparency = math.max(theme.StrokeTransparency or 0.95, 0.85),
@@ -916,7 +981,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = continue })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = continue })
 	buttonMotion(continue)
 	self._continue = continue
 	continue.MouseButton1Click:Connect(function()
@@ -938,7 +1003,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = getKey })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = getKey })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
 		Transparency = math.max(theme.StrokeTransparency or 0.9, 0.85),
@@ -983,7 +1048,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = discordCard })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = discordCard })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
 		Transparency = theme.SectionStrokeTransparency or 0.9,
@@ -1004,7 +1069,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = discordCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = dcTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dcTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -1062,7 +1127,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = infoCard })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoCard })
 	new("UIStroke", {
 		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
 		Transparency = theme.SectionStrokeTransparency or 0.9,
@@ -1083,7 +1148,7 @@ local function buildKeyPhase(self)
 		ZIndex = 3,
 		Parent = infoCard,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 7), Parent = infoTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoTile })
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
