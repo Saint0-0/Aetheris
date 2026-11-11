@@ -14,6 +14,7 @@ local ThemeDefinitions = require("../../Themes/ThemeDefinitions")
 local ThemeManager = require("../../Themes/ThemeManager")
 local FallbackImage = require("../../Constants").FallbackImage
 local PageAwareness = require("../../Utils/PageAwareness")
+local ScrollFade = require("../../Utils/ScrollFade")
 local Tween = require("../../Utils/Tween")
 local Constants = require("../../Constants")
 local UUID = require("../../Utils/UUID")
@@ -584,6 +585,8 @@ function Themes.Build(window, tab)
 	pageHolder.ScrollBarImageColor3 = pageTheme.TertiaryColor
 	pageHolder.ScrollBarImageTransparency = 1
 	pageHolder.Parent = page
+	-- Cards melt into the page at both scroll edges (design-notes 9).
+	ScrollFade.Attach(pageHolder)
 
 	local holderScrollbarTimer
 	pageHolder:GetPropertyChangedSignal("CanvasPosition"):Connect(function()

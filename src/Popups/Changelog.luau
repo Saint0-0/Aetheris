@@ -18,6 +18,7 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Tween = require("../Utils/Tween")
 local Sound = require("../Utils/Sound")
+local ScrollFade = require("../Utils/ScrollFade")
 local Constants = require("../Constants")
 local Locale = require("../Utils/Locale")
 local Icons = require("../Assets/Icons")
@@ -36,11 +37,10 @@ local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 -- Cascade: 35 ms per card capped at 0.3 s (plus a short beat so the shell
--- lands first); scroll edges fade over 36 px.
+-- lands first); scroll edges fade through Utils/ScrollFade.
 local CASCADE_STEP = 0.035
 local CASCADE_CAP = 0.3
 local CASCADE_LEAD = 0.12
-local EDGE_FADE_PX = 36
 
 local CORNER_SHELL = 12
 local CORNER_CARD = 10
@@ -141,53 +141,6 @@ local function restampTile(record, theme)
 	local tint = record.tint or (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 	record.tile.BackgroundColor3 = tileFill(tint, base)
 	record.glyph.ImageColor3 = accentText(tint, isDark(base))
-end
-
--- Scroll edges melt into the shell: a CanvasGroup wrapper whose Rotation-90
--- gradient is rebuilt from CanvasPosition over a 36 px span.
-local function attachScrollFade(scroll)
-	local fade = Instance.new("CanvasGroup")
-	fade.Name = UUID.Static("ScrollFade")
-	fade.BorderSizePixel = 0
-	fade.BackgroundTransparency = 1
-	fade.Position = scroll.Position
-	fade.Size = scroll.Size
-	fade.ZIndex = scroll.ZIndex
-	fade.Parent = scroll.Parent
-	scroll.Position = UDim2.fromScale(0, 0)
-	scroll.Size = UDim2.fromScale(1, 1)
-	scroll.Parent = fade
-
-	local gradient = Instance.new("UIGradient")
-	gradient.Rotation = 90
-	gradient.Parent = fade
-
-	local function sync()
-		local view = scroll.AbsoluteWindowSize.Y
-		local content = scroll.AbsoluteCanvasSize.Y
-		if view <= 0 or content <= 0 then
-			return
-		end
-		local top = scroll.CanvasPosition.Y
-		local bottom = math.max(content - view - top, 0)
-		local above = math.clamp(top / EDGE_FADE_PX, 0, 1)
-		local below = math.clamp(bottom / EDGE_FADE_PX, 0, 1)
-		local keys = {
-			NumberSequenceKeypoint.new(0, if above > 0.5 then 1 else 0),
-		}
-		if above > 0.002 then
-			keys[#keys + 1] = NumberSequenceKeypoint.new(math.min(above, 0.45), 0)
-		end
-		if below > 0.002 then
-			keys[#keys + 1] = NumberSequenceKeypoint.new(math.max(1 - below, 0.55), 0)
-		end
-		keys[#keys + 1] = NumberSequenceKeypoint.new(1, if below > 0.5 then 1 else 0)
-		gradient.Transparency = NumberSequence.new(keys)
-	end
-	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(sync)
-	scroll:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(sync)
-	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(sync)
-	task.defer(sync)
 end
 
 function Changelog.new(parent, Settings)
@@ -364,7 +317,7 @@ function Changelog.new(parent, Settings)
 	scroll.ScrollBarImageTransparency = 1
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.Parent = popup
-	attachScrollFade(scroll)
+	ScrollFade.Attach(scroll)
 
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder

@@ -17,6 +17,7 @@ local FallbackImage = require("../../Constants").FallbackImage
 local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
 local PageAwareness = require("../../Utils/PageAwareness")
+local ScrollFade = require("../../Utils/ScrollFade")
 local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
@@ -110,6 +111,9 @@ function SettingsTabHandle:Scroller()
 			scrollTimer = nil
 		end)
 	end)
+
+	-- Content melts into the page at both scroll edges (design-notes 9).
+	ScrollFade.Attach(scroller)
 
 	self._scroller = scroller
 	self._contentParent = scroller

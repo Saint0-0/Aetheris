@@ -14,6 +14,7 @@ local ThemeManager = require("../Themes/ThemeManager")
 local SearchFilter = require("./SearchFilter")
 local PageFade = require("../Utils/PageFade")
 local PageAwareness = require("../Utils/PageAwareness")
+local ScrollFade = require("../Utils/ScrollFade")
 local Constants = require("../Constants")
 local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
@@ -188,6 +189,8 @@ function TabGroup:Tab(Settings)
 	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate("TabFade"))
 	FadeLayer.Visible = false
 	ContentScroller.Parent = FadeLayer
+	-- Content melts into the page at both scroll edges (design-notes 9).
+	ScrollFade.Attach(ContentScroller)
 	local scrollerScrollbarTimer
 	ContentScroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		Tween.Play(ContentScroller, "Fast", { ScrollBarImageTransparency = 0.5 })

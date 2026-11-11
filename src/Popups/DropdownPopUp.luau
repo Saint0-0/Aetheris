@@ -10,6 +10,7 @@
 
 local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
+local ScrollFade = require("../Utils/ScrollFade")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
 local SearchFilter = require("../Core/SearchFilter")
@@ -173,6 +174,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	list.ScrollBarThickness = 1
 	list.ScrollBarImageColor3 = (theme and theme.TertiaryColor)
 	list.Parent = popup
+	-- Rows melt into the shell at both scroll edges (design-notes 9).
+	ScrollFade.Attach(list)
 	local listLayout = Instance.new("UIListLayout")
 	listLayout.Padding = UDim.new(0, 15)
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder

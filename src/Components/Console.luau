@@ -14,6 +14,7 @@
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local ScrollFade = require("../Utils/ScrollFade")
 local Locale = require("../Utils/Locale")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
@@ -187,6 +188,8 @@ function Console:_build()
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.Parent = panel
 	self._scroll = scroll
+	-- Log lines melt into the panel at both scroll edges (design-notes 9).
+	ScrollFade.Attach(scroll)
 
 	-- the layout is what measures the canvas, so the rows themselves can stay simple
 	local scrollLayout = Instance.new("UIListLayout")

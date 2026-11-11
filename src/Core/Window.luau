@@ -31,6 +31,7 @@ local SettingsSystem = require("./Settings/PageBuilder")
 local SettingsStore = require("./Settings/SettingsStore")
 local ConfigManager = require("./Settings/ConfigManager")
 local PageAwareness = require("../Utils/PageAwareness")
+local ScrollFade = require("../Utils/ScrollFade")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -474,6 +475,10 @@ function Window.new(Settings)
 	TabList.ScrollBarThickness = 1
 	TabList.ScrollBarImageColor3 = theme.TertiaryColor
 	TabList.Parent = Sidebar
+	-- Tab labels melt into the sidebar at both scroll edges (design-notes 9).
+	-- Compact mode reparents TabList out of this wrapper, so the row runs
+	-- fade-free there and picks the edges back up on restore.
+	ScrollFade.Attach(TabList)
 
 	local tabListScrollbarTimer
 	TabList:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
