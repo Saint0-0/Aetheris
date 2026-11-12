@@ -670,8 +670,10 @@ mediaSection:Paragraph({
 })
 
 -- Carousel: swipeable image/video pages (drag left/right), hard max 5.
+-- Pages auto-advance every 4s (Interval / AutoAdvance = false to change).
 -- The blob row tracks the current page — the active blob fills with the
--- video's playback progress, off-view videos pause to save decode.
+-- video's playback progress (or the dwell countdown for images), off-view
+-- videos pause to save decode.
 mediaSection:Carousel({
 	{ "rbxassetid://92458734285074", "image" },
 	{ "rbxassetid://5670794788", "video" },

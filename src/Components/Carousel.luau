@@ -68,12 +68,18 @@ function Carousel.new(parent, Settings, theme)
 	-- Muted by default: a carousel that shouts over the rest of the UI is a
 	-- bug; callers can opt back in with Settings.Volume.
 	local volume = (Settings.Volume ~= nil) and Settings.Volume or 0
+	local interval = tonumber(Settings.Interval) or 4
+	-- Auto-advance (user call): flip to the next page on a dwell timer,
+	-- wrapping at the end. AutoAdvance = false opts out.
+	local autoAdvance = Settings.AutoAdvance ~= false and interval > 0 and count > 1
 
 	local self = setmetatable({}, Carousel)
 	self._theme = theme
 	self._index = 0
 	self._pageCount = count
 	self._conns = {}
+	self._advanceInterval = if autoAdvance then interval else 0
+	self._advanceElapsed = 0
 
 	local container = Instance.new("Frame")
 	container.Name = UUID.Static("Carousel")
@@ -116,6 +122,9 @@ function Carousel.new(parent, Settings, theme)
 	viewport.Size = UDim2.new(1, 0, 0, height)
 	viewport.Position = UDim2.fromScale(0, 0)
 	viewport.ClipsDescendants = true
+	-- The swipe handler lives on the viewport; it must sink input itself so
+	-- a drag always lands here regardless of which page is under the cursor.
+	viewport.Active = true
 	viewport.Parent = container
 
 	-- Track holds every page side by side; its X scale is in viewport widths,
@@ -219,7 +228,9 @@ function Carousel.new(parent, Settings, theme)
 		pageFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		pageFrame.BackgroundTransparency = 1
 		pageFrame.Size = UDim2.fromScale(1 / count, 1)
-		pageFrame.Position = UDim2.fromScale(i - 1, 0)
+		-- Position scales against the track, so page i sits at i/count of it
+		-- (= one viewport width per step).
+		pageFrame.Position = UDim2.fromScale((i - 1) / count, 0)
 		pageFrame.Parent = track
 
 		if page.Video then
@@ -348,6 +359,33 @@ function Carousel.new(parent, Settings, theme)
 		end)
 	end)
 
+	-- Dwell timer: flips to the next page every interval seconds (wrapping)
+	-- and draws the active image blob as a countdown fill. Videos keep their
+	-- own playback progress on the pill instead.
+	if autoAdvance then
+		task.spawn(function()
+			while true do
+				task.wait(0.05)
+				if not self.Frame or not self.Frame.Parent then
+					return
+				end
+				-- Hold the countdown while dragging or while off screen.
+				if dragging or not PageAwareness.IsActive(self.Frame) then
+					continue
+				end
+				self._advanceElapsed = math.min(self._advanceElapsed + 0.05, self._advanceInterval)
+				local active = self._index + 1
+				local blob = self._blobs[active]
+				if blob and blob.Pill.Visible and not self._videos[active] then
+					blob.Fill.Size = UDim2.fromScale(self._advanceElapsed / self._advanceInterval, 1)
+				end
+				if self._advanceElapsed >= self._advanceInterval then
+					self:_goTo((self._index + 1) % self._pageCount)
+				end
+			end
+		end)
+	end
+
 	ComponentAPI.Apply(self, {
 		Root = container,
 		Name = Settings.Name,
@@ -403,6 +441,7 @@ function Carousel:_goTo(index)
 	end
 	index = math.clamp(index, 0, self._pageCount - 1)
 	self._index = index
+	self._advanceElapsed = 0
 	Tween.Play(self._track, "Smooth", { Position = UDim2.fromScale(-index, 0) })
 	if self._sync then
 		self._sync()
@@ -421,7 +460,11 @@ function Carousel:_syncBlobs()
 				local fraction = if length > 0 then math.clamp(video.TimePosition / length, 0, 1) else 0
 				blob.Fill.Size = UDim2.fromScale(fraction, 1)
 			else
-				blob.Fill.Size = UDim2.fromScale(1, 1)
+				-- Images show the auto-advance countdown (full when the
+				-- carousel is set to hold on one page).
+				local dwell = self._advanceInterval or 0
+				local fraction = if dwell > 0 then math.clamp((self._advanceElapsed or 0) / dwell, 0, 1) else 1
+				blob.Fill.Size = UDim2.fromScale(fraction, 1)
 			end
 		end
 	end
