@@ -20,6 +20,8 @@ local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local ColorPickerPopUp = {}
 ColorPickerPopUp.__index = ColorPickerPopUp
@@ -39,15 +41,19 @@ local FALLBACK_NEUTRAL = Color3.fromRGB(46, 46, 46)
 local POPUP_WIDTH = 440
 local POPUP_HEIGHT = 460
 local SIDE_PAD = 16
-local LEFT_WIDTH = 244
+local LEFT_WIDTH = 224
 local RIGHT_X = SIDE_PAD + LEFT_WIDTH + 12
 local RIGHT_WIDTH = POPUP_WIDTH - SIDE_PAD - RIGHT_X
+local HUE_TOP = 312
+local ALPHA_TOP = 352
 local FOOTER_HEIGHT = 54
 local FOOTER_TOP = POPUP_HEIGHT - FOOTER_HEIGHT
 
 local CHECKER_TONE = 0.22
 local RECENT_LIMIT = 8
 local ALPHA_MAX = 255
+-- Preset clicks glide the picker across instead of snapping.
+local GLIDE_TWEEN = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 -- The card is authored at the geometry above and rendered 1.3x so captions
 -- and fields stay legible; computeFit keeps the scaled card inside the layer.
 local BASE_SCALE = 1.3
@@ -151,7 +157,7 @@ local function parseHex(text)
 end
 
 -- Checkerboard backing for translucent surfaces: frame-scale tiles, so the
--- same helper works for the alpha bar, the swatch dot and the footer wells.
+-- same helper works for the alpha bar and the swatch wells.
 local function newChecker(parent, cols, rows)
 	local tiles = {}
 	for row = 0, rows - 1 do
@@ -276,7 +282,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorSquare.BackgroundTransparency = 0
 	colorSquare.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorSquare.Text = ""
-	colorSquare.Size = UDim2.fromOffset(LEFT_WIDTH, 240)
+	colorSquare.Size = UDim2.fromOffset(LEFT_WIDTH, 220)
 	colorSquare.Position = UDim2.fromOffset(SIDE_PAD, 62)
 	colorSquare.Parent = popup
 	addCorner(colorSquare, UDim.new(0, CORNER_CARD))
@@ -332,7 +338,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Name = UUID.Static("RowLabel")
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
-		label.TextSize = 12
+		label.TextSize = 13
 		label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		label.TextColor3 = (theme and theme.PopupTextColor)
 		label.TextTransparency = 0.45
@@ -346,10 +352,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		return label
 	end
 
-	newCaption("Hue", SIDE_PAD, 312, 80)
-	local hueValue = newCaption("0°", SIDE_PAD + LEFT_WIDTH - 60, 312, 60, Enum.TextXAlignment.Right)
-	newCaption("Alpha", SIDE_PAD, 352, 80)
-	local alphaValue = newCaption("100%", SIDE_PAD + LEFT_WIDTH - 60, 352, 60, Enum.TextXAlignment.Right)
+	newCaption("Hue", SIDE_PAD, HUE_TOP, 80)
+	local hueValue = newCaption("0°", SIDE_PAD + LEFT_WIDTH - 60, HUE_TOP, 60, Enum.TextXAlignment.Right)
+	newCaption("Alpha", SIDE_PAD, ALPHA_TOP, 80)
+	local alphaValue = newCaption("100%", SIDE_PAD + LEFT_WIDTH - 60, ALPHA_TOP, 60, Enum.TextXAlignment.Right)
 
 	local hueBar = Instance.new("TextButton")
 	hueBar.Name = UUID.Static("HueBar")
@@ -358,7 +364,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hueBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	hueBar.Text = ""
 	hueBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
-	hueBar.Position = UDim2.fromOffset(SIDE_PAD, 328)
+	hueBar.Position = UDim2.fromOffset(SIDE_PAD, HUE_TOP + 16)
 	hueBar.Parent = popup
 	-- One radius for the bars, their checkers and the alpha fill: every layer
 	-- has to end in the same pill or the transparent half shows a square edge.
@@ -404,7 +410,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaBar.BackgroundColor3 = (theme and theme.PopupNeutralColor) or FALLBACK_NEUTRAL
 	alphaBar.Text = ""
 	alphaBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
-	alphaBar.Position = UDim2.fromOffset(SIDE_PAD, 368)
+	alphaBar.Position = UDim2.fromOffset(SIDE_PAD, ALPHA_TOP + 16)
 	alphaBar.ClipsDescendants = true
 	alphaBar.Parent = popup
 	addCorner(alphaBar, barCorner)
@@ -436,7 +442,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	alphaKnob.AnchorPoint = Vector2.new(0.5, 0.5)
 	alphaKnob.Size = UDim2.fromOffset(14, 14)
-	alphaKnob.Position = UDim2.fromOffset(SIDE_PAD + LEFT_WIDTH, 376)
+	alphaKnob.Position = UDim2.fromOffset(SIDE_PAD + LEFT_WIDTH, ALPHA_TOP + 24)
 	alphaKnob.Parent = popup
 	local alphaKnobStroke = Instance.new("UIStroke")
 	alphaKnobStroke.Transparency = 0
@@ -473,8 +479,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexDot.Position = UDim2.fromOffset(9, 7)
 	hexDot.ClipsDescendants = true
 	hexDot.Parent = hexShell
-	addCorner(hexDot, UDim.new(0, CORNER_CARD))
-	checkers[#checkers + 1] = newChecker(hexDot, 5, 5)
+	addCorner(hexDot, UDim.new(1, 0))
 	local hexFill = Instance.new("Frame")
 	hexFill.Name = UUID.Static("HexFill")
 	hexFill.BorderSizePixel = 0
@@ -486,7 +491,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexInput.BorderSizePixel = 0
 	hexInput.BackgroundTransparency = 1
 	hexInput.TextXAlignment = Enum.TextXAlignment.Left
-	hexInput.TextSize = 14
+	hexInput.TextSize = 15
 	hexInput.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	hexInput.TextColor3 = (theme and theme.PopupTextColor)
 	hexInput.TextTransparency = 0.15
@@ -504,7 +509,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexTag.AnchorPoint = Vector2.new(1, 0.5)
 	hexTag.Position = UDim2.new(1, -6, 0.5, 0)
 	hexTag.Size = UDim2.fromOffset(28, 14)
-	hexTag.TextSize = 11
+	hexTag.TextSize = 12
 	hexTag.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	hexTag.TextColor3 = (theme and theme.PopupTextColor)
 	hexTag.TextTransparency = 0.55
@@ -512,8 +517,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexTag.Parent = hexShell
 	texts[#texts + 1] = hexTag
 
-	local fieldWidth = 46
-	local channelGap = 7
+	local fieldWidth = 52
+	local channelGap = 8
 	local channels = { "R", "G", "B" }
 	local channelBoxes = {}
 	for i, channel in ipairs(channels) do
@@ -522,7 +527,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		caption.Name = UUID.Static("ChannelLabel")
 		caption.BorderSizePixel = 0
 		caption.BackgroundTransparency = 1
-		caption.TextSize = 12
+		caption.TextSize = 13
 		caption.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		caption.TextColor3 = (theme and theme.PopupTextColor)
 		caption.TextTransparency = 0.5
@@ -536,7 +541,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		box.BorderSizePixel = 0
 		box.BackgroundTransparency = 1
 		box.TextXAlignment = Enum.TextXAlignment.Center
-		box.TextSize = 14
+		box.TextSize = 15
 		box.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		box.TextColor3 = (theme and theme.PopupTextColor)
 		box.TextTransparency = 0.15
@@ -614,8 +619,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.Position = UDim2.fromOffset(x, 14)
 		well.ClipsDescendants = true
 		well.Parent = interactions
-		addCorner(well, UDim.new(0, CORNER_CARD))
-		checkers[#checkers + 1] = newChecker(well, 5, 5)
+		addCorner(well, UDim.new(1, 0))
 		local fill = Instance.new("Frame")
 		fill.Name = UUID.Static("WellFill")
 		fill.BorderSizePixel = 0
@@ -648,7 +652,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
-	cancelBtn.TextSize = 14
+	cancelBtn.TextSize = 15
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
@@ -670,7 +674,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 0.2
-	confirmBtn.TextSize = 14
+	confirmBtn.TextSize = 15
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
@@ -743,6 +747,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self._hue = 0
 	self._sat = 0
 	self._val = 1
+	self._glideToken = 0
 
 	local function refreshVisuals()
 		local h, s, v = self._hue, self._sat, self._val
@@ -755,7 +760,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.Target.Position = UDim2.fromScale(s, 1 - v)
 		self.AlphaFill.BackgroundColor3 = color
 		self.AlphaKnob.BackgroundColor3 = color
-		self.AlphaKnob.Position = UDim2.fromOffset(SIDE_PAD + (self._alpha / ALPHA_MAX) * LEFT_WIDTH, 376)
+		self.AlphaKnob.Position = UDim2.fromOffset(SIDE_PAD + (self._alpha / ALPHA_MAX) * LEFT_WIDTH, ALPHA_TOP + 24)
 		self.HexFill.BackgroundColor3 = color
 		self.HexFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
 		self.NewFill.BackgroundColor3 = color
@@ -782,7 +787,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		refreshInputs()
 	end
 
+	-- Any direct set (hex, RGB, preset, open) supersedes a preset glide.
+	self._cancelGlide = function(me)
+		me._glideToken = (me._glideToken or 0) + 1
+	end
+
 	self._setColorAndUpdate = function(me, color)
+		me:_cancelGlide()
 		me._currentColor = color
 		me._hue, me._sat, me._val = color:ToHSV()
 		refreshAll()
@@ -800,6 +811,45 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self._setAlphaAndUpdate = function(me, alpha)
 		me._alpha = clamp(alpha, 0, ALPHA_MAX)
 		refreshVisuals()
+	end
+
+	-- Preset/recent clicks glide hue, sat, value and the target handle together
+	-- over GLIDE_TWEEN instead of snapping; a newer set cancels the run.
+	self._glideToColor = function(me, color)
+		if typeof(color) ~= "Color3" then
+			return
+		end
+		me:_cancelGlide()
+		local token = me._glideToken
+		local h0, s0, v0 = me._hue, me._sat, me._val
+		local h1, s1, v1 = color:ToHSV()
+		-- Short way round the wheel, so red -> magenta doesn't sweep past yellow.
+		local dh = h1 - h0
+		if dh > 0.5 then
+			dh -= 1
+		elseif dh < -0.5 then
+			dh += 1
+		end
+		local duration = GLIDE_TWEEN.Time
+		task.spawn(function()
+			local elapsed = 0
+			while elapsed < duration do
+				local dt = RunService.RenderStepped:Wait()
+				if token ~= me._glideToken or not me.Popup then
+					return
+				end
+				elapsed += dt
+				local t = TweenService:GetValue(
+					math.min(elapsed / duration, 1),
+					GLIDE_TWEEN.EasingStyle,
+					GLIDE_TWEEN.EasingDirection
+				)
+				me:_setHSVAndUpdate((h0 + dh * t) % 1, s0 + (s1 - s0) * t, v0 + (v1 - v0) * t)
+			end
+			if token == me._glideToken then
+				me:_setColorAndUpdate(color)
+			end
+		end)
 	end
 
 	local function newSwatch(parentFrame, color, layoutOrder)
@@ -820,7 +870,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local chipScale = Instance.new("UIScale")
 		chipScale.Parent = chip
 		chip.MouseButton1Click:Connect(function()
-			self:_setColorAndUpdate(color)
+			self:_glideToColor(color)
 		end)
 		chip.MouseButton1Down:Connect(function()
 			Tween.Play(chipScale, "PressIn", { Scale = 0.9 })
@@ -976,8 +1026,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				end
 			end
 			if not inside then
-				-- Outside is a dismissal: keep the colour the popup opened with.
-				me:_Cancel()
+				-- Click-off keeps what the user settled on, same as Confirm.
+				me:_Confirm()
 			end
 		end)
 	end
@@ -995,6 +1045,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 		me.IsOpen = false
 		me._isOpen = false
+		-- Stop a preset glide so it can't repaint a closing popup.
+		me:_cancelGlide()
 		-- Disarm the click-outside listener immediately on close.
 		me:_disconnectOutsideClick()
 		if me._hideTimer then
@@ -1035,6 +1087,11 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- Hide without firing callbacks (used by Window when another popup opens)
 	self.Hide = function(me)
 		me:Close()
+	end
+
+	-- Cross-popup dismissal: resolves like a click-off, keeping the colour.
+	self.Dismiss = function(me)
+		me:_Confirm()
 	end
 
 	self.Destroy = function(me)
@@ -1122,6 +1179,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			squareDragging = true
+			self:_cancelGlide()
 			setFromSquarePosition(input.Position)
 		end
 	end)
@@ -1131,6 +1189,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			hueDragging = true
+			self:_cancelGlide()
 			setFromHuePosition(input.Position)
 		end
 	end)
@@ -1140,6 +1199,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			alphaDragging = true
+			self:_cancelGlide()
 			setFromAlphaPosition(input.Position)
 		end
 	end)

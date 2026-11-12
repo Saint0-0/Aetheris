@@ -24,7 +24,7 @@ section:ColorPicker({
 
 The popup has a saturation/value square, hue and alpha bars, a hex field with a live swatch, RGB fields, preset and recent swatches, and an original → new pair in the footer. It is themed with the rest of the window, so it follows your theme automatically, and it scales down to fit compact windows.
 
-The hex field accepts `#abc`, `abc`, `#AABBCC` and `#AABBCCAA` (the last two set alpha too). Clicking outside the popup cancels the edit.
+The hex field accepts `#abc`, `abc`, `#AABBCC` and `#AABBCCAA` (the last two set alpha too). Clicking outside the popup confirms the edit, and opening any other popup resolves it the same way. Preset and recent swatches glide the picker to their colour instead of snapping.
 
 ## Methods
 
