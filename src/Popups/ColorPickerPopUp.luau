@@ -48,6 +48,9 @@ local FOOTER_TOP = POPUP_HEIGHT - FOOTER_HEIGHT
 local CHECKER_TONE = 0.22
 local RECENT_LIMIT = 8
 local ALPHA_MAX = 255
+-- The card is authored at the geometry above and rendered 1.3x so captions
+-- and fields stay legible; computeFit keeps the scaled card inside the layer.
+local BASE_SCALE = 1.3
 
 -- Neutral-to-hue row, twice four: grays then hues. Presets are fixed colour
 -- references, not theme slots (design-notes 10: colour lives in the chips).
@@ -258,36 +261,11 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.BackgroundTransparency = 1
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = (theme and theme.PopupTextColor)
-	header.Size = UDim2.new(1, -140, 0, 30)
+	header.Size = UDim2.new(1, -72, 0, 30)
 	header.Position = UDim2.fromOffset(56, 14)
 	header.Parent = popup
 	header.Text = "Color Picker"
 	texts[#texts + 1] = header
-
-	-- 28px circle close with a 16px glyph (design-notes 6); closes as cancel.
-	local closeBtn = Instance.new("ImageButton")
-	closeBtn.Name = UUID.Static("Close")
-	closeBtn.BorderSizePixel = 0
-	closeBtn.BackgroundColor3 = Color3.new(1, 1, 1)
-	closeBtn.BackgroundTransparency = 0.92
-	closeBtn.AutoButtonColor = false
-	closeBtn.AnchorPoint = Vector2.new(1, 0)
-	closeBtn.Size = UDim2.fromOffset(28, 28)
-	closeBtn.Position = UDim2.new(1, -10, 0, 15)
-	closeBtn.Parent = popup
-	addCorner(closeBtn, UDim.new(1, 0))
-	local closeIcon = Instance.new("ImageLabel")
-	closeIcon.Name = UUID.Static("CloseIcon")
-	closeIcon.BorderSizePixel = 0
-	closeIcon.BackgroundTransparency = 1
-	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	closeIcon.Position = UDim2.fromScale(0.5, 0.5)
-	closeIcon.Size = UDim2.fromOffset(16, 16)
-	closeIcon.Image = Icons["x"] or "rbxassetid://110786993356448"
-	closeIcon.ImageTransparency = 0.4
-	closeIcon.ImageColor3 = (theme and theme.PopupTextColor)
-	closeIcon.Parent = closeBtn
-	texts[#texts + 1] = closeIcon
 
 	-- =====================================================================
 	--  Left column: saturation/value square, hue pill, alpha pill
@@ -434,6 +412,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	alphaFill.Size = UDim2.fromScale(1, 1)
 	alphaFill.Parent = alphaBar
+	addCorner(alphaFill, UDim.new(0.5, 0)) -- same pill as the hue bar (design-notes 1)
 	local alphaGradient = Instance.new("UIGradient")
 	alphaGradient.Rotation = 0
 	alphaGradient.Transparency = NumberSequence.new({
@@ -491,7 +470,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexDot.Position = UDim2.fromOffset(10, 9)
 	hexDot.ClipsDescendants = true
 	hexDot.Parent = hexShell
-	addCorner(hexDot, UDim.new(1, 0))
+	addCorner(hexDot, UDim.new(0, CORNER_CARD))
 	checkers[#checkers + 1] = newChecker(hexDot, 5, 5)
 	local hexFill = Instance.new("Frame")
 	hexFill.Name = UUID.Static("HexFill")
@@ -632,7 +611,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.Position = UDim2.fromOffset(x, 16)
 		well.ClipsDescendants = true
 		well.Parent = interactions
-		addCorner(well, UDim.new(1, 0))
+		addCorner(well, UDim.new(0, CORNER_CARD))
 		checkers[#checkers + 1] = newChecker(well, 5, 5)
 		local fill = Instance.new("Frame")
 		fill.Name = UUID.Static("WellFill")
@@ -741,7 +720,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.ConfirmShadow = confirmShadow
 	self.CancelBtn = cancelBtn
 	self.CancelShadow = cancelShadow
-	self.CloseBtn = closeBtn
 	self._texts = texts
 	self._fieldStrokes = fieldStrokes
 	self._barStrokes = barStrokes
@@ -928,12 +906,15 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me.CancelShadow.Color = newTheme.PopupNeutralColor or me.CancelShadow.Color
 	end
 
+	-- Fits the scaled card, not the authored one: the ratios shrink first, then
+	-- BASE_SCALE lifts the result so the card never renders below its design size.
 	local function computeFit()
 		local area = parent.AbsoluteSize
 		if area.X <= 0 or area.Y <= 0 then
-			return 1
+			return BASE_SCALE
 		end
-		return clamp(math.min((area.X - 24) / POPUP_WIDTH, (area.Y - 24) / POPUP_HEIGHT), 0.35, 1)
+		local ratio = math.min((area.X - 24) / (POPUP_WIDTH * BASE_SCALE), (area.Y - 24) / (POPUP_HEIGHT * BASE_SCALE))
+		return clamp(ratio, 0.35, 1) * BASE_SCALE
 	end
 
 	self.Open = function(me)
@@ -1017,7 +998,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			task.cancel(me._hideTimer)
 			me._hideTimer = nil
 		end
-		local fit = me._fit or 1
+		local fit = me._fit or BASE_SCALE
 		Tween.Play(me.Popup, "Fast", { GroupTransparency = 1 })
 		Tween.Play(me.Shadow, "Fast", { Transparency = 1 })
 		Tween.Play(me._scale, "Fast", { Scale = fit * 0.94 })
@@ -1080,18 +1061,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	-- =====================================================================
 	--  Interactions
 	-- =====================================================================
-	closeBtn.MouseButton1Click:Connect(function()
-		self:_Cancel()
-	end)
-	closeBtn.MouseEnter:Connect(function()
-		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.86 })
-		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0 })
-	end)
-	closeBtn.MouseLeave:Connect(function()
-		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.92 })
-		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0.4 })
-	end)
-
 	confirmBtn.MouseButton1Click:Connect(function()
 		self:_Confirm()
 	end)

@@ -3,8 +3,7 @@
 
 	Color swatch row for a section. Clicking it opens PopUps/ColorPickerPopUp
 	(created lazily via the supplied ShowPopup factory). The swatch itself is
-	kept opaque across theme switches (protected in ThemeManager); its fill
-	carries alpha, so the checker behind it shows through.
+	kept opaque across theme switches (protected in ThemeManager).
 
 	Alpha travels beside the colour (Color3 has no alpha): Callback receives
 	(Color3, alpha 0-255), and Settings.Alpha seeds it.
@@ -25,27 +24,9 @@ ColorPicker.__index = ColorPicker
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ALPHA_MAX = 255
-local CHECKER_SIZE = 5
 
 local function clamp(value, min, max)
 	return math.max(min, math.min(max, value))
-end
-
--- Swatch checker: white over the row plus a darker square, so it reads on
--- both light and dark themes without another theme slot.
-local function buildChecker(parent)
-	for row = 0, CHECKER_SIZE - 1 do
-		for col = 0, CHECKER_SIZE - 1 do
-			local tile = Instance.new("Frame")
-			tile.Name = UUID.Static("CheckerTile")
-			tile.BorderSizePixel = 0
-			tile.Size = UDim2.fromScale(1 / CHECKER_SIZE, 1 / CHECKER_SIZE)
-			tile.Position = UDim2.fromScale(col / CHECKER_SIZE, row / CHECKER_SIZE)
-			tile.BackgroundColor3 = if (col + row) % 2 == 0 then Color3.new(1, 1, 1) else Color3.new(0, 0, 0)
-			tile.BackgroundTransparency = if (col + row) % 2 == 0 then 0.35 else 0.65
-			tile.Parent = parent
-		end
-	end
 end
 
 function ColorPicker.new(parent, Settings, ShowPopup, theme)
@@ -82,7 +63,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.Name = UUID.Static("ColorDisplay")
 	display.BorderSizePixel = 0
 	display.AutoButtonColor = false
-	display.BackgroundTransparency = 1
+	display.BackgroundColor3 = defaultColor
 	display.AnchorPoint = Vector2.new(1, 0.5)
 	display.Size = UDim2.fromOffset(24, 24)
 	display.Position = UDim2.fromScale(1, 0.5)
@@ -91,27 +72,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	local displayCorner = Instance.new("UICorner")
 	displayCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip pill (design-notes 8.10)
 	displayCorner.Parent = display
-	-- transparency checker behind the fill so alpha is visible in the row
-	local checkerHolder = Instance.new("Frame")
-	checkerHolder.Name = UUID.Static("SwatchChecker")
-	checkerHolder.BorderSizePixel = 0
-	checkerHolder.BackgroundTransparency = 1
-	checkerHolder.Size = UDim2.fromScale(1, 1)
-	checkerHolder.ClipsDescendants = true
-	checkerHolder.Parent = display
-	local checkerCorner = Instance.new("UICorner")
-	checkerCorner.CornerRadius = UDim.new(0.5, 0)
-	checkerCorner.Parent = checkerHolder
-	buildChecker(checkerHolder)
-	local displayFill = Instance.new("Frame")
-	displayFill.Name = UUID.Static("SwatchFill")
-	displayFill.BorderSizePixel = 0
-	displayFill.BackgroundColor3 = defaultColor
-	displayFill.Size = UDim2.fromScale(1, 1)
-	displayFill.Parent = display
-	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = UDim.new(0.5, 0)
-	fillCorner.Parent = displayFill
 	local displayScale = Instance.new("UIScale")
 	displayScale.Parent = display
 	local displayStroke = Instance.new("UIStroke")
@@ -139,7 +99,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	self.Label = label
 	self.HeaderBar = headerBar
 	self.Display = display
-	self.DisplayFill = displayFill
 	self.DisplayShadow = displayShadow
 	self.Chevron = chevron
 	self._currentColor = defaultColor
@@ -153,8 +112,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	local SHADOW_TRANSPARENCY = 0.5
 	displayShadow:SetAttribute(UUID.Static("PageFadeBase"), SHADOW_TRANSPARENCY)
 	local function updateDisplay()
-		displayFill.BackgroundColor3 = self._currentColor
-		displayFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		display.BackgroundColor3 = self._currentColor
 		displayShadow.Color = self._currentColor
 		displayShadow.Transparency = SHADOW_TRANSPARENCY
 	end
