@@ -229,6 +229,14 @@ function UISettings.Build(window, tab)
 			ScrollFade.SetEnabled(state)
 		end,
 	})
+	-- Plain hint (no card, no stroke) so the radios below read as one group.
+	visualsSection:Label({
+		Text = "Where the theme wallpaper shows: Window paints the shell behind the sidebar, Content paints behind the pages. Off hides it entirely.",
+		ShowContainer = false,
+		ShowStroke = false,
+		TextSize = 12,
+		Padding = { Top = 0, Bottom = 2, Left = 0, Right = 0 },
+	})
 	-- Wallpaper source: mutually exclusive (user call, Batch 8) — Off, shell
 	-- only, or content only. Both stored keys are written together so a stale
 	-- pair from the old two-toggle UI can never show two layers at once.
