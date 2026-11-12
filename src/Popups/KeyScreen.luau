@@ -47,6 +47,10 @@ local INTRO_HOLD = 0.85
 local SUCCESS_HOLD = 1.3
 local HEADER_HEIGHT = 62
 local CONTENT_PAD = 18
+local HEADER_ROW_Y = HEADER_HEIGHT / 2 - 4
+local HEADER_CHIP = 24
+local HEADER_CHIP_GAP = 8
+local HEADER_INSET = 12
 
 -- First-paint images for the card and window chrome, warmed by the loading step.
 local PRELOAD_IMAGES = {
@@ -416,14 +420,16 @@ local function buildCard(self)
 		Name = UUID.Static("BrandTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(18, 35),
-		Size = UDim2.fromOffset(34, 34),
+		-- Matches the window sidebar mark (40x32) so the same art keeps its
+		-- proportions instead of being letterboxed into a square.
+		Size = UDim2.fromOffset(40, 32),
 		-- The mark sits bare on the shell — no tile behind it (user call).
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 		Parent = headerGroup,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = brandTile })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandTile })
 	local brandIcon = new("ImageLabel", {
 		Name = UUID.Static("BrandIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -436,12 +442,12 @@ local function buildCard(self)
 		ZIndex = 4,
 		Parent = brandTile,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = brandIcon })
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = brandIcon })
 
 	local title = new("TextLabel", {
 		Name = UUID.Static("Title"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(62, 25),
+		Position = UDim2.fromOffset(66, 25),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 18),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
@@ -456,7 +462,7 @@ local function buildCard(self)
 	local subtitle = new("TextLabel", {
 		Name = UUID.Static("Subtitle"),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(62, 45),
+		Position = UDim2.fromOffset(66, 45),
 		Size = UDim2.new(1, -(CONTENT_PAD + 44 + 120), 0, 12),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
@@ -472,19 +478,30 @@ local function buildCard(self)
 	local execName = getExecutorName()
 	local execStatus, execColor = getExecutorStatus()
 	local execWidth = math.clamp(#execName * 6.2 + 34, 70, 150)
+	local chipTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02
+	local chipHoverTransparency = math.max(chipTransparency - 0.1, 0)
+	-- Header cluster: the executor chip and the close button share one 24px
+	-- pill, one fill and one hairline stroke, so they read as a pair.
 	local execChip = new("Frame", {
 		Name = UUID.Static("ExecutorChip"),
 		AnchorPoint = Vector2.new(1, 0.5),
 		-- Inset past the close button so the chip never slides under it.
-		Position = UDim2.new(1, -(CONTENT_PAD + 22), 0.5, -4),
-		Size = UDim2.fromOffset(execWidth, 24),
+		Position = UDim2.new(1, -(HEADER_INSET + HEADER_CHIP + HEADER_CHIP_GAP), 0, HEADER_ROW_Y),
+		Size = UDim2.fromOffset(execWidth, HEADER_CHIP),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02,
+		BackgroundTransparency = chipTransparency,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 		Parent = headerGroup,
 	})
+	-- A pill: full rounding rather than a fixed radius.
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = execChip })
+	local chipStroke = new("UIStroke", {
+		Color = theme.StrokeColor or Color3.new(1, 1, 1),
+		Transparency = 0.9,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = execChip,
+	})
 	local statusDot = new("Frame", {
 		Name = UUID.Static("StatusDot"),
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -513,34 +530,57 @@ local function buildCard(self)
 	})
 
 	-- Direct child of the card, above the drag frame, so the click never starts a drag.
-	-- The bare X was near-invisible over the header, so it sits on a small chip:
-	-- muted at rest, brighter with the icon popping forward on hover.
-	local closeButton = new("ImageButton", {
+	-- Matches the executor chip: muted pill at rest, brighter fill and a solid
+	-- icon on hover, with the X inside a 12px label so it never stretches thin.
+	local closeButton = new("TextButton", {
 		Name = UUID.Static("CloseButton"),
 		AnchorPoint = Vector2.new(1, 0.5),
 		-- Centred on the header row so it lines up with the executor chip.
-		Position = UDim2.new(1, -10, 0, HEADER_HEIGHT / 2 - 4),
-		Size = UDim2.fromOffset(18, 18),
-		BackgroundColor3 = theme.PopupNeutralColor or Color3.fromRGB(46, 46, 46),
-		BackgroundTransparency = 0.35,
+		Position = UDim2.new(1, -HEADER_INSET, 0, HEADER_ROW_Y),
+		Size = UDim2.fromOffset(HEADER_CHIP, HEADER_CHIP),
+		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = chipTransparency,
 		BorderSizePixel = 0,
-		Image = Icons["x"] or "rbxassetid://110786993356448",
-		ImageColor3 = theme.PopupTextColor or theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
-		ImageTransparency = 0.15,
+		Text = "",
+		AutoButtonColor = false,
 		ZIndex = 6,
 		Parent = card,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = closeButton })
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = closeButton })
+	local closeStroke = new("UIStroke", {
+		Color = theme.StrokeColor or Color3.new(1, 1, 1),
+		Transparency = 0.9,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = closeButton,
+	})
+	local closeIcon = new("ImageLabel", {
+		Name = UUID.Static("CloseIcon"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(12, 12),
+		BackgroundTransparency = 1,
+		Image = Icons["x"] or "rbxassetid://110786993356448",
+		ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		ImageTransparency = 0.15,
+		ZIndex = 6,
+		Parent = closeButton,
+	})
 	closeButton.MouseEnter:Connect(function()
-		Tween.Play(closeButton, "HoverIn", { BackgroundTransparency = 0.05, ImageTransparency = 0 })
+		Tween.Play(closeButton, "Lift", { BackgroundTransparency = chipHoverTransparency })
+		Tween.Play(closeIcon, "Lift", { ImageTransparency = 0 })
 	end)
 	closeButton.MouseLeave:Connect(function()
-		Tween.Play(closeButton, "HoverOut", { BackgroundTransparency = 0.35, ImageTransparency = 0.15 })
+		Tween.Play(closeButton, "Lift", { BackgroundTransparency = chipTransparency })
+		Tween.Play(closeIcon, "Lift", { ImageTransparency = 0.15 })
 	end)
 	closeButton.MouseButton1Click:Connect(function()
 		self:_dismiss()
 	end)
 	self._closeButton = closeButton
+	self._closeIcon = closeIcon
+	self._execChip = execChip
+	-- One restamp list so a live theme switch keeps the cluster in sync.
+	self._headerStrokes = { chipStroke, closeStroke }
 
 	self._title = title
 	self._subtitle = subtitle
@@ -1581,6 +1621,9 @@ function KeyScreen:_destroy()
 		self._gui = nil
 		self._card = nil
 		self._closeButton = nil
+		self._closeIcon = nil
+		self._execChip = nil
+		self._headerStrokes = nil
 		gui:Destroy()
 	end
 end
@@ -1740,8 +1783,18 @@ function KeyScreen.Run(keyConfig, opts)
 		self._theme = theme
 		self._title.TextColor3 = theme.TitleTextColor or Color3.new(1, 1, 1)
 		self._subtitle.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		if self._closeIcon then
+			self._closeIcon.ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		end
+		-- Header cluster: chip and close share the fill, so restamp both.
+		if self._execChip then
+			self._execChip.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+		end
 		if self._closeButton then
-			self._closeButton.ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+			self._closeButton.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+		end
+		for _, headerStroke in ipairs(self._headerStrokes or {}) do
+			headerStroke.Color = theme.StrokeColor or Color3.new(1, 1, 1)
 		end
 		self._card.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 16)
 		-- Card opacity is pinned at build; only the colour follows the theme.
