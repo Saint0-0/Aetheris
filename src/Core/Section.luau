@@ -38,9 +38,9 @@ local Section = {}
 Section.__index = Section
 
 -- design-notes 1/2/7: sections are group cards — fill wash (never a flat
--- fill), top-lit rim, radius 14 (user call), SemiBold 13 title. The wash
--- recipe mirrors the changelog cards.
-local CORNER_SECTION = 14
+-- fill), top-lit rim, radius 6 (matches the sidebar tabs, user call),
+-- SemiBold 13 title. The wash recipe mirrors the changelog cards.
+local CORNER_SECTION = 6
 local AURORA_TINT = 0.14
 
 local function isDark(color)
@@ -162,7 +162,7 @@ function Section.new(parent, Settings, theme, window, noSave)
 		title.TextSize = 13
 		title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 		title.TextColor3 = theme.TitleTextColor or Color3.fromRGB(255, 255, 255)
-		title.TextTransparency = 0.2
+		title.TextTransparency = 0.7
 		title.AutomaticSize = Enum.AutomaticSize.Y
 		title.Size = UDim2.fromScale(1, 0)
 		title.LayoutOrder = -1
