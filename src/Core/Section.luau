@@ -21,6 +21,7 @@ local Status = require("../Components/Status")
 local Dropdown = require("../Components/Dropdown")
 local ProgressBar = require("../Components/ProgressBar")
 local Stepper = require("../Components/Stepper")
+local Carousel = require("../Components/Carousel")
 local Button = require("../Components/Button")
 local Label = require("../Components/Label")
 local Paragraph = require("../Components/Paragraph")
@@ -258,6 +259,10 @@ function Section:RadioButtonGroup()
 end
 function Section:Video(Settings)
 	return Video.new(self.Frame, Settings, self._theme)
+end
+-- { {assetId, "image"|"video"}, ... }, hard max 5 pages.
+function Section:Carousel(Settings)
+	return Carousel.new(self.Frame, Settings, self._theme)
 end
 function Section:Viewport(Settings)
 	return Viewport.new(self.Frame, Settings, self._theme)

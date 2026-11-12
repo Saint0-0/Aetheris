@@ -669,6 +669,15 @@ mediaSection:Paragraph({
 	Description = "The Video component wraps a VideoFrame with the library's stroke, rounding and shadow styling, all theme-aware.",
 })
 
+-- Carousel: swipeable image/video pages (drag left/right), hard max 5.
+-- The blob row tracks the current page — the active blob fills with the
+-- video's playback progress, off-view videos pause to save decode.
+mediaSection:Carousel({
+	{ "rbxassetid://92458734285074", "image" },
+	{ "rbxassetid://5670794788", "video" },
+	{ "rbxassetid://11094025229", "image" },
+})
+
 -- Viewport: renders a live character clone; Framing picks the camera crop.
 -- Omitting `Info` hides the side labels (viewport centres and widens into the
 -- freed space); the health bar hugs the viewport's right edge unless
