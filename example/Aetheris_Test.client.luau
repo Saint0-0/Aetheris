@@ -552,16 +552,17 @@ local colorSection = inputsTab:Section({ Name = "Colors", Side = "Right" })
 colorSection:ColorPicker({
 	Name = "Accent Colour",
 	Default = Color3.fromRGB(108, 140, 255),
-	Callback = function(color)
-		print("[Demo] ColorPicker:", color)
+	Callback = function(color, alpha)
+		print("[Demo] ColorPicker:", color, "alpha", alpha)
 	end,
 })
 
 colorSection:ColorPicker({
 	Name = "Crosshair Colour",
 	Default = Color3.fromRGB(255, 80, 80),
-	Callback = function(color)
-		print("[Demo] ColorPicker 2:", color)
+	Alpha = 180,
+	Callback = function(color, alpha)
+		print("[Demo] ColorPicker 2:", color, "alpha", alpha)
 	end,
 })
 

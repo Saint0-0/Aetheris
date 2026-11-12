@@ -104,11 +104,16 @@ local Parsers = {
 				math.floor(color.R * 255 + 0.5),
 				math.floor(color.G * 255 + 0.5),
 				math.floor(color.B * 255 + 0.5),
+				math.floor(comp:GetAlpha() + 0.5),
 			}
 		end,
 		Load = function(comp, value)
-			if type(value) == "table" and #value == 3 then
-				comp:SetColor(Color3.fromRGB(value[1] or 0, value[2] or 0, value[3] or 0))
+			if type(value) ~= "table" or #value < 3 then
+				return
+			end
+			comp:SetColor(Color3.fromRGB(value[1] or 0, value[2] or 0, value[3] or 0))
+			if #value >= 4 then
+				comp:SetAlpha(value[4])
 			end
 		end,
 	},

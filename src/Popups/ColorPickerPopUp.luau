@@ -1,9 +1,13 @@
 --[[
 	Aetheris/Popups/ColorPickerPopUp.luau
 
-	Modal colour picker: saturation/value square, value slider, RGB + Hex
-	inputs, and colour wells. Cached per id by Window and reused; theme
-	switches drop the cache so the next open rebuilds with current colors.
+	Modal colour picker: saturation/value square, hue and alpha pills, a hex
+	field with a live swatch, RGB fields, preset/recent swatches and an
+	original -> new footer pair. Cached per id by Window and reused; theme
+	switches recolor it in place.
+
+	Alpha is carried beside the colour (0-255) because Color3 has no alpha;
+	OnConfirm receives (Color3, alpha).
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -14,8 +18,12 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
+
+local UserInputService = game:GetService("UserInputService")
+
 local ColorPickerPopUp = {}
 ColorPickerPopUp.__index = ColorPickerPopUp
+
 local function clamp(v, min, max)
 	return math.max(min, math.min(max, v))
 end
@@ -25,6 +33,37 @@ end
 local CORNER_SHELL = 12
 local CORNER_CARD = 10
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
+local FALLBACK_NEUTRAL = Color3.fromRGB(46, 46, 46)
+
+-- Fixed card geometry, scaled down on small windows by the UIScale below.
+local POPUP_WIDTH = 440
+local POPUP_HEIGHT = 460
+local SIDE_PAD = 16
+local LEFT_WIDTH = 244
+local RIGHT_X = SIDE_PAD + LEFT_WIDTH + 12
+local RIGHT_WIDTH = POPUP_WIDTH - SIDE_PAD - RIGHT_X
+local FOOTER_HEIGHT = 54
+local FOOTER_TOP = POPUP_HEIGHT - FOOTER_HEIGHT
+
+local CHECKER_TONE = 0.22
+local RECENT_LIMIT = 8
+local ALPHA_MAX = 255
+
+-- Neutral-to-hue row, twice four: grays then hues. Presets are fixed colour
+-- references, not theme slots (design-notes 10: colour lives in the chips).
+local PRESETS = {
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(160, 160, 168),
+	Color3.fromRGB(72, 72, 78),
+	Color3.fromRGB(0, 0, 0),
+	Color3.fromRGB(255, 92, 92),
+	Color3.fromRGB(255, 159, 67),
+	Color3.fromRGB(76, 217, 123),
+	Color3.fromRGB(91, 140, 255),
+}
+
+-- Confirmed colours, newest first, shared by every picker in the session.
+local RECENT = {}
 
 local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
@@ -68,25 +107,112 @@ local function stampHeaderTile(tile, glyph, t)
 	glyph.ImageColor3 = accentText(tint, isDark(base))
 end
 
+local function addCorner(parent, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = radius
+	corner.Parent = parent
+	return corner
+end
+
+local function formatHex(color)
+	local r = math.floor(color.R * 255 + 0.5)
+	local g = math.floor(color.G * 255 + 0.5)
+	local b = math.floor(color.B * 255 + 0.5)
+	return string.format("#%02X%02X%02X", r, g, b)
+end
+
+-- Accepts #abc, abc, aabbcc and 8-digit aabbccaa; leading # and spaces drop.
+-- Returns the colour plus an optional alpha (nil when the text had none).
+local function parseHex(text)
+	if type(text) ~= "string" then
+		return nil
+	end
+	local hex = string.upper((text:gsub("[%s#]", "")))
+	if #hex == 3 or #hex == 4 then
+		hex = hex:gsub(".", "%0%0")
+	end
+	if (#hex ~= 6 and #hex ~= 8) or not hex:match("^%x+$") then
+		return nil
+	end
+	local r = tonumber(hex:sub(1, 2), 16)
+	local g = tonumber(hex:sub(3, 4), 16)
+	local b = tonumber(hex:sub(5, 6), 16)
+	if not r or not g or not b then
+		return nil
+	end
+	local alpha = nil
+	if #hex == 8 then
+		alpha = tonumber(hex:sub(7, 8), 16)
+	end
+	return Color3.fromRGB(r, g, b), alpha
+end
+
+-- Checkerboard backing for translucent surfaces: frame-scale tiles, so the
+-- same helper works for the alpha bar, the swatch dot and the footer wells.
+local function newChecker(parent, cols, rows)
+	local tiles = {}
+	for row = 0, rows - 1 do
+		for col = 0, cols - 1 do
+			local tile = Instance.new("Frame")
+			tile.Name = UUID.Static("CheckerTile")
+			tile.BorderSizePixel = 0
+			tile.Size = UDim2.fromScale(1 / cols, 1 / rows)
+			tile.Position = UDim2.fromScale(col / cols, row / rows)
+			tile.Parent = parent
+			tiles[#tiles + 1] = { Tile = tile, Even = ((col + row) % 2 == 0) }
+		end
+	end
+	return tiles
+end
+
+local function stampChecker(tiles, theme)
+	local base = (theme and theme.PopupNeutralColor) or FALLBACK_NEUTRAL
+	local light = base:Lerp(Color3.new(1, 1, 1), CHECKER_TONE)
+	for _, record in ipairs(tiles) do
+		record.Tile.BackgroundColor3 = if record.Even then base else light
+	end
+end
+
+local function rememberColor(color)
+	for i = #RECENT, 1, -1 do
+		if RECENT[i] == color then
+			table.remove(RECENT, i)
+		end
+	end
+	table.insert(RECENT, 1, color)
+	while #RECENT > RECENT_LIMIT do
+		table.remove(RECENT)
+	end
+end
+
 function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	Settings = Settings or {}
+	local theme = ThemeManager.GetTheme(Settings.Theme)
 	local self = setmetatable({}, ColorPickerPopUp)
-	local theme = Settings.Theme
 	self._theme = theme
+	self._parent = parent
+
 	local popup = Instance.new("CanvasGroup")
 	popup.Name = UUID.Generate("ColorPickerPopup")
 	popup.BorderSizePixel = 0
 	popup.GroupTransparency = 1
-	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor)
-	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 1
+	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or FALLBACK_POPUP
+	popup.BackgroundTransparency = (theme and theme.PopupBackgroundTransparency) or 0.07
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	popup.Size = UDim2.fromScale(0.694, 1.02153)
+	popup.Size = UDim2.fromOffset(POPUP_WIDTH, POPUP_HEIGHT)
 	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	popup.Visible = false
 	popup.Active = true
-	popup.ZIndex = 11
+	popup.ZIndex = 12
 	popup.Parent = parent
+
+	-- Collections restamped by ApplyTheme (derived values, not theme slots).
+	local texts = {}
+	local fieldStrokes = {}
+	local barStrokes = {}
+	local checkers = {}
+
 	-- Shell wash first: a top-down multiplier over the whole group (the
 	-- CanvasGroup tints its subtree with it, matching the Changelog shell).
 	local shellGradient = Instance.new("UIGradient")
@@ -97,22 +223,19 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	shadow.BlurRadius = UDim.new(0, 20)
 	shadow.Transparency = 1
 	shadow.Parent = popup
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, CORNER_SHELL)
-	corner.Parent = popup
+	addCorner(popup, UDim.new(0, CORNER_SHELL))
 	local scale = Instance.new("UIScale")
-	scale.Scale = 0.9
+	scale.Scale = 1
 	scale.Parent = popup
+
 	-- Accent tile + left-set title, the Changelog header (design-notes 6).
 	local headTile = Instance.new("Frame")
 	headTile.Name = UUID.Static("HeaderTile")
 	headTile.BorderSizePixel = 0
 	headTile.Size = UDim2.fromOffset(30, 30)
-	headTile.Position = UDim2.fromOffset(16, 14)
+	headTile.Position = UDim2.fromOffset(SIDE_PAD, 14)
 	headTile.Parent = popup
-	local headTileCorner = Instance.new("UICorner")
-	headTileCorner.CornerRadius = UDim.new(0, 10)
-	headTileCorner.Parent = headTile
+	addCorner(headTile, UDim.new(0, 10))
 	local headGlyph = Instance.new("ImageLabel")
 	headGlyph.Name = UUID.Static("HeaderGlyph")
 	headGlyph.BorderSizePixel = 0
@@ -123,6 +246,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	headGlyph.Image = Icons["palette"] or Icons.droplet
 	headGlyph.Parent = headTile
 	stampHeaderTile(headTile, headGlyph, theme)
+
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
@@ -130,29 +254,54 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.TextYAlignment = Enum.TextYAlignment.Center
 	header.TextTruncate = Enum.TextTruncate.AtEnd
-	header.TextTransparency = (theme and theme.PopupTextTransparency) or 0.4
-	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	header.TextTransparency = 0.2
+	header.BackgroundTransparency = 1
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = (theme and theme.PopupTextColor)
-	header.BackgroundTransparency = 1
-	header.RichText = true
-	header.Size = UDim2.new(1, -110, 0, 30)
+	header.Size = UDim2.new(1, -140, 0, 30)
 	header.Position = UDim2.fromOffset(56, 14)
 	header.Parent = popup
 	header.Text = "Color Picker"
+	texts[#texts + 1] = header
+
+	-- 28px circle close with a 16px glyph (design-notes 6); closes as cancel.
+	local closeBtn = Instance.new("ImageButton")
+	closeBtn.Name = UUID.Static("Close")
+	closeBtn.BorderSizePixel = 0
+	closeBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+	closeBtn.BackgroundTransparency = 0.92
+	closeBtn.AutoButtonColor = false
+	closeBtn.AnchorPoint = Vector2.new(1, 0)
+	closeBtn.Size = UDim2.fromOffset(28, 28)
+	closeBtn.Position = UDim2.new(1, -10, 0, 15)
+	closeBtn.Parent = popup
+	addCorner(closeBtn, UDim.new(1, 0))
+	local closeIcon = Instance.new("ImageLabel")
+	closeIcon.Name = UUID.Static("CloseIcon")
+	closeIcon.BorderSizePixel = 0
+	closeIcon.BackgroundTransparency = 1
+	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	closeIcon.Position = UDim2.fromScale(0.5, 0.5)
+	closeIcon.Size = UDim2.fromOffset(16, 16)
+	closeIcon.Image = Icons["x"] or "rbxassetid://110786993356448"
+	closeIcon.ImageTransparency = 0.4
+	closeIcon.ImageColor3 = (theme and theme.PopupTextColor)
+	closeIcon.Parent = closeBtn
+	texts[#texts + 1] = closeIcon
+
+	-- =====================================================================
+	--  Left column: saturation/value square, hue pill, alpha pill
+	-- =====================================================================
 	local colorSquare = Instance.new("TextButton")
 	colorSquare.Name = UUID.Static("ColorSquare")
 	colorSquare.AutoButtonColor = false
 	colorSquare.BackgroundTransparency = 0
 	colorSquare.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorSquare.Text = ""
-	colorSquare.Size = UDim2.fromScale(0.44792, 0.43228)
-	colorSquare.ClipsDescendants = false
-	colorSquare.Position = UDim2.fromScale(0.0506, 0.16117)
+	colorSquare.Size = UDim2.fromOffset(LEFT_WIDTH, 240)
+	colorSquare.Position = UDim2.fromOffset(SIDE_PAD, 62)
 	colorSquare.Parent = popup
-	local squareCorner = Instance.new("UICorner")
-	squareCorner.CornerRadius = UDim.new(0, CORNER_CARD)
-	squareCorner.Parent = colorSquare
+	addCorner(colorSquare, UDim.new(0, CORNER_CARD))
 	local squareShadow = Instance.new("UIShadow")
 	squareShadow.Color = (theme and theme.PopupShadowColor)
 	squareShadow.Parent = colorSquare
@@ -163,9 +312,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	satOverlay.BorderSizePixel = 0
 	satOverlay.Size = UDim2.fromScale(1, 1)
 	satOverlay.Parent = colorSquare
-	local satCorner = Instance.new("UICorner")
-	satCorner.CornerRadius = UDim.new(0, CORNER_CARD)
-	satCorner.Parent = satOverlay
+	addCorner(satOverlay, UDim.new(0, CORNER_CARD))
 	local satGradient = Instance.new("UIGradient")
 	satGradient.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.000, 1),
@@ -178,9 +325,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	valOverlay.BorderSizePixel = 0
 	valOverlay.Size = UDim2.fromScale(1, 1)
 	valOverlay.Parent = colorSquare
-	local valCorner = Instance.new("UICorner")
-	valCorner.CornerRadius = UDim.new(0, CORNER_CARD)
-	valCorner.Parent = valOverlay
+	addCorner(valOverlay, UDim.new(0, CORNER_CARD))
 	local valGradient = Instance.new("UIGradient")
 	valGradient.Rotation = 90
 	valGradient.Transparency = NumberSequence.new({
@@ -188,15 +333,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		NumberSequenceKeypoint.new(1.000, 0),
 	})
 	valGradient.Parent = valOverlay
-	local target = Instance.new("TextButton")
+	local target = Instance.new("Frame")
 	target.Name = UUID.Static("Target")
 	target.BorderSizePixel = 0
 	target.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	target.AnchorPoint = Vector2.new(0.5, 0.5)
 	target.Size = UDim2.fromOffset(15, 15)
 	target.Position = UDim2.fromScale(0.5, 0.5)
-	target.Active = true
-	target.AutoButtonColor = false
 	target.Parent = colorSquare
 	local targetStroke = Instance.new("UIStroke")
 	targetStroke.Transparency = 0
@@ -204,24 +347,44 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	targetStroke.Color = Color3.fromRGB(255, 255, 255)
 	targetStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	targetStroke.Parent = target
-	local targetCorner = Instance.new("UICorner")
-	targetCorner.CornerRadius = UDim.new(1, 0)
-	targetCorner.Parent = target
-	local colorValue = Instance.new("TextButton")
-	colorValue.Name = UUID.Static("ColorValue")
-	colorValue.BorderSizePixel = 0
-	colorValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	colorValue.AnchorPoint = Vector2.new(0.5, 0.5)
-	colorValue.Size = UDim2.fromScale(0.938, 0.04291)
-	colorValue.LayoutOrder = 1
-	colorValue.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	colorValue.Position = UDim2.fromScale(0.5, 0.66864)
-	colorValue.Text = ""
-	colorValue.AutoButtonColor = false
-	colorValue.ClipsDescendants = false
-	colorValue.Parent = popup
-	local valueGradient = Instance.new("UIGradient")
-	valueGradient.Color = ColorSequence.new({
+	addCorner(target, UDim.new(1, 0))
+
+	local function newCaption(text, x, y, width, alignment)
+		local label = Instance.new("TextLabel")
+		label.Name = UUID.Static("RowLabel")
+		label.BorderSizePixel = 0
+		label.BackgroundTransparency = 1
+		label.TextSize = 11
+		label.FontFace = Constants.Font(Enum.FontWeight.Medium)
+		label.TextColor3 = (theme and theme.PopupTextColor)
+		label.TextTransparency = 0.45
+		label.TextXAlignment = alignment or Enum.TextXAlignment.Left
+		label.TextYAlignment = Enum.TextYAlignment.Center
+		label.Size = UDim2.fromOffset(width, 14)
+		label.Position = UDim2.fromOffset(x, y)
+		label.Text = text
+		label.Parent = popup
+		texts[#texts + 1] = label
+		return label
+	end
+
+	newCaption("Hue", SIDE_PAD, 312, 80)
+	local hueValue = newCaption("0°", SIDE_PAD + LEFT_WIDTH - 60, 312, 60, Enum.TextXAlignment.Right)
+	newCaption("Alpha", SIDE_PAD, 352, 80)
+	local alphaValue = newCaption("100%", SIDE_PAD + LEFT_WIDTH - 60, 352, 60, Enum.TextXAlignment.Right)
+
+	local hueBar = Instance.new("TextButton")
+	hueBar.Name = UUID.Static("HueBar")
+	hueBar.AutoButtonColor = false
+	hueBar.BorderSizePixel = 0
+	hueBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	hueBar.Text = ""
+	hueBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
+	hueBar.Position = UDim2.fromOffset(SIDE_PAD, 328)
+	hueBar.Parent = popup
+	addCorner(hueBar, UDim.new(0.5, 0))
+	local hueGradient = Instance.new("UIGradient")
+	hueGradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 0, 0)),
 		ColorSequenceKeypoint.new(0.160, Color3.fromRGB(255, 255, 0)),
 		ColorSequenceKeypoint.new(0.330, Color3.fromRGB(0, 255, 0)),
@@ -230,166 +393,228 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		ColorSequenceKeypoint.new(0.830, Color3.fromRGB(171, 0, 255)),
 		ColorSequenceKeypoint.new(1.000, Color3.fromRGB(255, 0, 171)),
 	})
-	valueGradient.Parent = colorValue
-	local valueCorner = Instance.new("UICorner")
-	valueCorner.CornerRadius = UDim.new(0.5, 0) -- h <= 60, so pill (design-notes 1)
-	valueCorner.Parent = colorValue
-	local valueShadow = Instance.new("UIShadow")
-	valueShadow.Color = (theme and theme.PopupShadowColor)
-	valueShadow.Parent = colorValue
-	local slide = Instance.new("TextButton")
-	slide.Name = UUID.Static("Slide")
-	slide.BorderSizePixel = 0
-	slide.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-	slide.AnchorPoint = Vector2.new(0.5, 0.5)
-	slide.Size = UDim2.new(0, 15, 1, 0)
-	slide.Position = UDim2.fromScale(0, 0.5)
-	slide.Active = true
-	slide.AutoButtonColor = false
-	slide.Parent = colorValue
-	local slideStroke = Instance.new("UIStroke")
-	slideStroke.Transparency = 0
-	slideStroke.Thickness = 2
-	slideStroke.Color = Color3.fromRGB(255, 255, 255)
-	slideStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	slideStroke.Parent = slide
-	local slideCorner = Instance.new("UICorner")
-	slideCorner.CornerRadius = UDim.new(1, 0)
-	slideCorner.Parent = slide
-	local inputsFrame = Instance.new("Frame")
-	inputsFrame.Name = UUID.Static("Inputs")
-	inputsFrame.BorderSizePixel = 0
-	inputsFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	inputsFrame.AnchorPoint = Vector2.new(1, 0.5)
-	inputsFrame.Size = UDim2.fromScale(0.39286, 0.37207)
-	inputsFrame.Position = UDim2.fromScale(1, 0.35319)
-	inputsFrame.BackgroundTransparency = 1
-	inputsFrame.Parent = popup
-	local inputsLayout = Instance.new("UIListLayout")
-	inputsLayout.Padding = UDim.new(0, 7)
-	inputsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-	inputsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	inputsLayout.Parent = inputsFrame
+	hueGradient.Parent = hueBar
+	local hueStroke = Instance.new("UIStroke")
+	hueStroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
+	hueStroke.Transparency = math.max((theme and theme.StrokeTransparency) or 0.95, 0.85)
+	hueStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	hueStroke.Parent = hueBar
+	barStrokes[#barStrokes + 1] = hueStroke
+	local hueKnob = Instance.new("Frame")
+	hueKnob.Name = UUID.Static("HueKnob")
+	hueKnob.BorderSizePixel = 0
+	hueKnob.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	hueKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+	hueKnob.Size = UDim2.fromOffset(14, 14)
+	hueKnob.Position = UDim2.fromScale(0, 0.5)
+	hueKnob.Parent = hueBar
+	local hueKnobStroke = Instance.new("UIStroke")
+	hueKnobStroke.Transparency = 0
+	hueKnobStroke.Thickness = 2
+	hueKnobStroke.Color = Color3.fromRGB(255, 255, 255)
+	hueKnobStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	hueKnobStroke.Parent = hueKnob
+	addCorner(hueKnob, UDim.new(1, 0))
 
-	local inputsLayoutPadding = Instance.new("UIPadding")
-	inputsLayoutPadding.PaddingRight = UDim.new(0, 10)
-	inputsLayoutPadding.Parent = inputsFrame
+	local alphaBar = Instance.new("TextButton")
+	alphaBar.Name = UUID.Static("AlphaBar")
+	alphaBar.AutoButtonColor = false
+	alphaBar.BorderSizePixel = 0
+	alphaBar.BackgroundColor3 = (theme and theme.PopupNeutralColor) or FALLBACK_NEUTRAL
+	alphaBar.Text = ""
+	alphaBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
+	alphaBar.Position = UDim2.fromOffset(SIDE_PAD, 368)
+	alphaBar.ClipsDescendants = true
+	alphaBar.Parent = popup
+	addCorner(alphaBar, UDim.new(0.5, 0))
+	checkers[#checkers + 1] = newChecker(alphaBar, 24, 2)
+	local alphaFill = Instance.new("Frame")
+	alphaFill.Name = UUID.Static("AlphaFill")
+	alphaFill.BorderSizePixel = 0
+	alphaFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	alphaFill.Size = UDim2.fromScale(1, 1)
+	alphaFill.Parent = alphaBar
+	local alphaGradient = Instance.new("UIGradient")
+	alphaGradient.Rotation = 0
+	alphaGradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	alphaGradient.Parent = alphaFill
+	local alphaStroke = Instance.new("UIStroke")
+	alphaStroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
+	alphaStroke.Transparency = math.max((theme and theme.StrokeTransparency) or 0.95, 0.85)
+	alphaStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	alphaStroke.Parent = alphaBar
+	barStrokes[#barStrokes + 1] = alphaStroke
+	-- The knob lives beside the bar, not inside it: the bar clips its checker.
+	local alphaKnob = Instance.new("Frame")
+	alphaKnob.Name = UUID.Static("AlphaKnob")
+	alphaKnob.BorderSizePixel = 0
+	alphaKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	alphaKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+	alphaKnob.Size = UDim2.fromOffset(14, 14)
+	alphaKnob.Position = UDim2.fromOffset(SIDE_PAD + LEFT_WIDTH, 376)
+	alphaKnob.Parent = popup
+	local alphaKnobStroke = Instance.new("UIStroke")
+	alphaKnobStroke.Transparency = 0
+	alphaKnobStroke.Thickness = 2
+	alphaKnobStroke.Color = Color3.fromRGB(255, 255, 255)
+	alphaKnobStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	alphaKnobStroke.Parent = alphaKnob
+	addCorner(alphaKnob, UDim.new(1, 0))
 
-	local function createInputRow(labelText, defaultText, layoutOrder)
-		local row = Instance.new("Frame")
-		row.Name = UUID.Generate("ColorPickerRow")
-		row.BorderSizePixel = 0
-		row.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		row.BackgroundTransparency = 1
-		row.AutomaticSize = Enum.AutomaticSize.XY
-		row.LayoutOrder = layoutOrder
-		row.Parent = inputsFrame
-		local rowLayout = Instance.new("UIListLayout")
-		rowLayout.Padding = UDim.new(0, 15)
-		rowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-		rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-		rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		rowLayout.FillDirection = Enum.FillDirection.Horizontal
-		rowLayout.Parent = row
-		local label = Instance.new("TextLabel")
-		label.Name = UUID.Static("InputName")
-		label.TextTruncate = Enum.TextTruncate.AtEnd
-		label.BorderSizePixel = 0
-		label.TextSize = 13
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.TextTransparency = 0.5
-		label.TextYAlignment = Enum.TextYAlignment.Top
-		label.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		label.FontFace = Constants.Font(Enum.FontWeight.Regular)
-		label.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-		label.BackgroundTransparency = 1
-		label.AnchorPoint = Vector2.new(0, 0.5)
-		label.BorderColor3 = Color3.fromRGB(0, 0, 0)
-		label.Text = labelText
-		label.LayoutOrder = 1
-		label.AutomaticSize = Enum.AutomaticSize.Y
-		label.Size = UDim2.fromOffset(40, 0)
-		label.Position = UDim2.fromScale(0, 0.5)
-		label.Parent = row
-		local inputBox = Instance.new("TextBox")
-		inputBox.Name = UUID.Static("InputBox")
-		inputBox.TextXAlignment = Enum.TextXAlignment.Left
-		inputBox.BorderSizePixel = 0
-		inputBox.TextTransparency = 0.5
-		inputBox.TextSize = 12
-		inputBox.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-		inputBox.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or Color3.fromRGB(255, 255, 255)
-		inputBox.FontFace = Constants.Font(Enum.FontWeight.Regular)
-		inputBox.AnchorPoint = Vector2.new(1, 0.5)
-		inputBox.ClearTextOnFocus = false
-		inputBox.ClipsDescendants = true
-		inputBox.Size = UDim2.fromOffset(75, 25)
-		inputBox.Position = UDim2.fromScale(1, 0.5)
-		inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-		inputBox.Text = defaultText
-		inputBox.LayoutOrder = 2
-		inputBox.BackgroundTransparency = 1
-		inputBox.Parent = row
-		local inputCorner = Instance.new("UICorner")
-		inputCorner.Name = UUID.Static("InputBoxUICorner")
-		inputCorner.CornerRadius = UDim.new(0.5, 0) -- field = pill at this height (design-notes 6)
-		inputCorner.Parent = inputBox
-		local inputStroke = Instance.new("UIStroke")
-		inputStroke.Name = UUID.Static("InputBoxUIStroke")
-		inputStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
-		inputStroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
-		inputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		inputStroke.Parent = inputBox
-		local inputPadding = Instance.new("UIPadding")
-		inputPadding.Name = UUID.Static("InputBoxUIPadding")
-		inputPadding.PaddingRight = UDim.new(0, 10)
-		inputPadding.PaddingLeft = UDim.new(0, 8)
-		inputPadding.Parent = inputBox
-		return row, inputBox, inputStroke
+	-- =====================================================================
+	--  Right column: hex + swatch dot, RGB fields, presets, recents
+	-- =====================================================================
+	local hexShell = Instance.new("Frame")
+	hexShell.Name = UUID.Static("HexField")
+	hexShell.BorderSizePixel = 0
+	hexShell.BackgroundTransparency = 1
+	hexShell.Size = UDim2.fromOffset(RIGHT_WIDTH, 40)
+	hexShell.Position = UDim2.fromOffset(RIGHT_X, 62)
+	hexShell.ClipsDescendants = true
+	hexShell.Parent = popup
+	addCorner(hexShell, UDim.new(0.5, 0))
+	local hexStroke = Instance.new("UIStroke")
+	hexStroke.Name = UUID.Static("HexStroke")
+	hexStroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
+	hexStroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
+	hexStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	hexStroke.Parent = hexShell
+	fieldStrokes[#fieldStrokes + 1] = hexStroke
+	local hexDot = Instance.new("Frame")
+	hexDot.Name = UUID.Static("HexDot")
+	hexDot.BorderSizePixel = 0
+	hexDot.BackgroundTransparency = 1
+	hexDot.Size = UDim2.fromOffset(22, 22)
+	hexDot.Position = UDim2.fromOffset(10, 9)
+	hexDot.ClipsDescendants = true
+	hexDot.Parent = hexShell
+	addCorner(hexDot, UDim.new(1, 0))
+	checkers[#checkers + 1] = newChecker(hexDot, 5, 5)
+	local hexFill = Instance.new("Frame")
+	hexFill.Name = UUID.Static("HexFill")
+	hexFill.BorderSizePixel = 0
+	hexFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	hexFill.Size = UDim2.fromScale(1, 1)
+	hexFill.Parent = hexDot
+	local hexInput = Instance.new("TextBox")
+	hexInput.Name = UUID.Static("HexInput")
+	hexInput.BorderSizePixel = 0
+	hexInput.BackgroundTransparency = 1
+	hexInput.TextXAlignment = Enum.TextXAlignment.Left
+	hexInput.TextSize = 13
+	hexInput.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
+	hexInput.TextColor3 = (theme and theme.PopupTextColor)
+	hexInput.TextTransparency = 0.15
+	hexInput.ClearTextOnFocus = false
+	hexInput.ClipsDescendants = true
+	hexInput.Size = UDim2.new(1, -76, 1, 0)
+	hexInput.Position = UDim2.fromOffset(40, 0)
+	hexInput.Text = "#FFFFFF"
+	hexInput.Parent = hexShell
+	texts[#texts + 1] = hexInput
+	local hexTag = Instance.new("TextLabel")
+	hexTag.Name = UUID.Static("HexTag")
+	hexTag.BorderSizePixel = 0
+	hexTag.BackgroundTransparency = 1
+	hexTag.AnchorPoint = Vector2.new(1, 0.5)
+	hexTag.Position = UDim2.new(1, -10, 0.5, 0)
+	hexTag.Size = UDim2.fromOffset(26, 14)
+	hexTag.TextSize = 9
+	hexTag.FontFace = Constants.Font(Enum.FontWeight.Bold)
+	hexTag.TextColor3 = (theme and theme.PopupTextColor)
+	hexTag.TextTransparency = 0.55
+	hexTag.Text = "HEX"
+	hexTag.Parent = hexShell
+	texts[#texts + 1] = hexTag
+
+	local fieldWidth = 46
+	local channelGap = 7
+	local channels = { "R", "G", "B" }
+	local channelBoxes = {}
+	for i, channel in ipairs(channels) do
+		local x = RIGHT_X + (i - 1) * (fieldWidth + channelGap)
+		local caption = Instance.new("TextLabel")
+		caption.Name = UUID.Static("ChannelLabel")
+		caption.BorderSizePixel = 0
+		caption.BackgroundTransparency = 1
+		caption.TextSize = 10
+		caption.FontFace = Constants.Font(Enum.FontWeight.Medium)
+		caption.TextColor3 = (theme and theme.PopupTextColor)
+		caption.TextTransparency = 0.5
+		caption.Text = channel
+		caption.Size = UDim2.fromOffset(fieldWidth, 12)
+		caption.Position = UDim2.fromOffset(x, 118)
+		caption.Parent = popup
+		texts[#texts + 1] = caption
+		local box = Instance.new("TextBox")
+		box.Name = UUID.Static("ChannelField")
+		box.BorderSizePixel = 0
+		box.BackgroundTransparency = 1
+		box.TextXAlignment = Enum.TextXAlignment.Center
+		box.TextSize = 12
+		box.FontFace = Constants.Font(Enum.FontWeight.Medium)
+		box.TextColor3 = (theme and theme.PopupTextColor)
+		box.TextTransparency = 0.15
+		box.ClearTextOnFocus = false
+		box.ClipsDescendants = true
+		box.Size = UDim2.fromOffset(fieldWidth, 28)
+		box.Position = UDim2.fromOffset(x, 134)
+		box.Text = "255"
+		box.Parent = popup
+		texts[#texts + 1] = box
+		addCorner(box, UDim.new(0.5, 0))
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = (theme and theme.StrokeColor) or Color3.fromRGB(255, 255, 255)
+		stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = box
+		fieldStrokes[#fieldStrokes + 1] = stroke
+		channelBoxes[channel] = { Box = box, Stroke = stroke }
 	end
-	local redRow, redInput, redStroke = createInputRow("Red", "255", 1)
-	local greenRow, greenInput, greenStroke = createInputRow("Green", "255", 2)
-	local blueRow, blueInput, blueStroke = createInputRow("Blue", "255", 3)
-	local hexRow, hexInput, hexStroke = createInputRow("Hex", "#FFFFFF", 4)
-	local colorWells = Instance.new("Frame")
-	colorWells.Name = UUID.Static("ColorWells")
-	colorWells.BorderSizePixel = 0
-	colorWells.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	colorWells.AnchorPoint = Vector2.new(0.5, 0.5)
-	colorWells.AutomaticSize = Enum.AutomaticSize.Y
-	colorWells.Size = UDim2.fromScale(0.9375, 0.08267)
-	colorWells.Position = UDim2.fromScale(0.5, 0.76301)
-	colorWells.BackgroundTransparency = 1
-	colorWells.Parent = popup
-	local wellsLayout = Instance.new("UIGridLayout")
-	wellsLayout.CellSize = UDim2.new(0.5, -5, 0, 30)
-	wellsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	wellsLayout.CellPadding = UDim2.fromOffset(10, 0)
-	wellsLayout.Parent = colorWells
-	local function createColorWell(wellParent, name, layoutOrder)
-		local well = Instance.new("Frame")
-		well.Name = UUID.Static("ColorWell:" .. name)
-		well.BorderSizePixel = 0
-		well.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		well.BackgroundTransparency = 0
-		well.Size = UDim2.fromOffset(100, 100)
-		well.LayoutOrder = layoutOrder
-		well.Parent = wellParent
-		local wellCorner = Instance.new("UICorner")
-		wellCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip (design-notes 8.10)
-		wellCorner.Parent = well
-		return well
-	end
-	local oldWell = createColorWell(colorWells, "OldColor", 1)
-	local newWell = createColorWell(colorWells, "NewColor", 0)
+
+	newCaption("Presets", RIGHT_X, 190, RIGHT_WIDTH)
+	local presetsGrid = Instance.new("Frame")
+	presetsGrid.Name = UUID.Static("PresetsGrid")
+	presetsGrid.BorderSizePixel = 0
+	presetsGrid.BackgroundTransparency = 1
+	presetsGrid.Size = UDim2.fromOffset(RIGHT_WIDTH, 62)
+	presetsGrid.Position = UDim2.fromOffset(RIGHT_X, 206)
+	presetsGrid.Parent = popup
+	local presetsLayout = Instance.new("UIGridLayout")
+	presetsLayout.CellSize = UDim2.fromOffset(28, 28)
+	presetsLayout.CellPadding = UDim2.fromOffset(6, 6)
+	presetsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	presetsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	presetsLayout.Parent = presetsGrid
+
+	newCaption("Recent", RIGHT_X, 282, RIGHT_WIDTH)
+	local recentGrid = Instance.new("Frame")
+	recentGrid.Name = UUID.Static("RecentGrid")
+	recentGrid.BorderSizePixel = 0
+	recentGrid.BackgroundTransparency = 1
+	recentGrid.Size = UDim2.fromOffset(RIGHT_WIDTH, 62)
+	recentGrid.Position = UDim2.fromOffset(RIGHT_X, 298)
+	recentGrid.Parent = popup
+	local recentLayout = Instance.new("UIGridLayout")
+	recentLayout.CellSize = UDim2.fromOffset(28, 28)
+	recentLayout.CellPadding = UDim2.fromOffset(6, 6)
+	recentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	recentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	recentLayout.Parent = recentGrid
+
+	-- =====================================================================
+	--  Footer: original -> new pair, cancel + confirm
+	-- =====================================================================
 	local interactions = Instance.new("Frame")
 	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
 	interactions.BackgroundColor3 = (theme and theme.PopupShadowColor) or Color3.fromRGB(15, 15, 16)
 	interactions.BackgroundTransparency = 0.8
-	interactions.AnchorPoint = Vector2.new(0.5, 1)
-	interactions.Size = UDim2.new(1, 0, 0, 55)
-	interactions.Position = UDim2.fromScale(0.5, 1)
+	interactions.Size = UDim2.fromOffset(POPUP_WIDTH, FOOTER_HEIGHT)
+	interactions.Position = UDim2.fromOffset(0, FOOTER_TOP)
 	interactions.Parent = popup
 	local interactionsCorner = Instance.new("UICorner")
 	interactionsCorner.BottomLeftRadius = UDim.new(0, CORNER_SHELL)
@@ -397,150 +622,269 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	interactionsCorner.TopLeftRadius = UDim.new(0, 0)
 	interactionsCorner.TopRightRadius = UDim.new(0, 0)
 	interactionsCorner.Parent = interactions
-	local interactionsLayout = Instance.new("UIListLayout")
-	interactionsLayout.FillDirection = Enum.FillDirection.Horizontal
-	interactionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	interactionsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	interactionsLayout.Padding = UDim.new(0, 8)
-	interactionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	interactionsLayout.Parent = interactions
-	local interactionsPadding = Instance.new("UIPadding")
-	interactionsPadding.PaddingLeft = UDim.new(0, 10)
-	interactionsPadding.PaddingRight = UDim.new(0, 10)
-	interactionsPadding.Parent = interactions
-	local confirmBtn = Instance.new("TextButton")
-	confirmBtn.Name = UUID.Static("Confirm")
-	confirmBtn.BorderSizePixel = 0
-	confirmBtn.TextTransparency = 0.2
-	confirmBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-	confirmBtn.TextSize = 13
-	confirmBtn.AutoButtonColor = false
-	confirmBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
-	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	confirmBtn.AnchorPoint = Vector2.new(0, 0)
-	confirmBtn.Size = UDim2.fromScale(0.47, 0.6)
-	confirmBtn.Position = UDim2.fromScale(0, 0)
-	confirmBtn.Text = "Confirm"
-	confirmBtn.Parent = interactions
-	local confirmCorner = Instance.new("UICorner")
-	confirmCorner.CornerRadius = UDim.new(0, 10) -- CTA (user call, Batch 8)
-	confirmCorner.Parent = confirmBtn
-	local confirmShadow = Instance.new("UIShadow")
-	confirmShadow.BlurRadius = UDim.new(0, 20)
-	confirmShadow.Color = (theme and theme.PrimaryColor) or Color3.fromRGB(13, 44, 177)
-	confirmShadow.Transparency = 1
-	confirmShadow.Parent = confirmBtn
+
+	local function newWell(name, x)
+		local well = Instance.new("Frame")
+		well.Name = UUID.Static(name)
+		well.BorderSizePixel = 0
+		well.BackgroundTransparency = 1
+		well.Size = UDim2.fromOffset(22, 22)
+		well.Position = UDim2.fromOffset(x, 16)
+		well.ClipsDescendants = true
+		well.Parent = interactions
+		addCorner(well, UDim.new(1, 0))
+		checkers[#checkers + 1] = newChecker(well, 5, 5)
+		local fill = Instance.new("Frame")
+		fill.Name = UUID.Static("WellFill")
+		fill.BorderSizePixel = 0
+		fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		fill.Size = UDim2.fromScale(1, 1)
+		fill.Parent = well
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(255, 255, 255)
+		stroke.Transparency = 0.7
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = well
+		return fill
+	end
+
+	local oldFill = newWell("OldWell", 16)
+	local arrow = Instance.new("ImageLabel")
+	arrow.Name = UUID.Static("WellArrow")
+	arrow.BorderSizePixel = 0
+	arrow.BackgroundTransparency = 1
+	arrow.Image = Icons["arrow-right"] or "rbxassetid://113692007244654"
+	arrow.ImageColor3 = (theme and theme.PopupTextColor)
+	arrow.ImageTransparency = 0.55
+	arrow.Size = UDim2.fromOffset(14, 14)
+	arrow.Position = UDim2.fromOffset(42, 20)
+	arrow.Parent = interactions
+	texts[#texts + 1] = arrow
+	local newFill = newWell("NewWell", 60)
+
 	local cancelBtn = Instance.new("TextButton")
 	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
-	cancelBtn.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
 	cancelBtn.TextSize = 13
 	cancelBtn.AutoButtonColor = false
-	cancelBtn.TextColor3 = (theme and theme.PopupTextColor) or Color3.fromRGB(255, 255, 255)
+	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
 	cancelBtn.BackgroundTransparency = 0.5
 	cancelBtn.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-	cancelBtn.AnchorPoint = Vector2.new(0, 0)
-	cancelBtn.Size = UDim2.fromScale(0.47, 0.6)
-	cancelBtn.Position = UDim2.fromScale(0.515, 0)
+	cancelBtn.Size = UDim2.fromOffset(96, 34)
+	cancelBtn.Position = UDim2.fromOffset(POPUP_WIDTH - SIDE_PAD - 108 - 8 - 96, 10)
 	cancelBtn.Text = "Cancel"
 	cancelBtn.Parent = interactions
-	local cancelCorner = Instance.new("UICorner")
-	cancelCorner.CornerRadius = UDim.new(0, 10)
-	cancelCorner.Parent = cancelBtn
+	addCorner(cancelBtn, UDim.new(0, CORNER_CARD))
 	local cancelShadow = Instance.new("UIShadow")
 	cancelShadow.BlurRadius = UDim.new(0, 20)
 	cancelShadow.Color = (theme and theme.PopupNeutralColor) or Color3.fromRGB(0, 0, 0)
 	cancelShadow.Transparency = 1
 	cancelShadow.Parent = cancelBtn
+	texts[#texts + 1] = cancelBtn
+
+	local confirmBtn = Instance.new("TextButton")
+	confirmBtn.Name = UUID.Static("Confirm")
+	confirmBtn.BorderSizePixel = 0
+	confirmBtn.TextTransparency = 0.2
+	confirmBtn.TextSize = 13
+	confirmBtn.AutoButtonColor = false
+	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
+	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
+	confirmBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
+	confirmBtn.Size = UDim2.fromOffset(108, 34)
+	confirmBtn.Position = UDim2.fromOffset(POPUP_WIDTH - SIDE_PAD - 108, 10)
+	confirmBtn.Text = "Confirm"
+	confirmBtn.Parent = interactions
+	addCorner(confirmBtn, UDim.new(0, CORNER_CARD))
+	local confirmShadow = Instance.new("UIShadow")
+	confirmShadow.BlurRadius = UDim.new(0, 20)
+	confirmShadow.Color = (theme and theme.PrimaryColor) or Color3.fromRGB(13, 44, 177)
+	confirmShadow.Transparency = 1
+	confirmShadow.Parent = confirmBtn
+	texts[#texts + 1] = confirmBtn
+
+	for _, tiles in ipairs(checkers) do
+		stampChecker(tiles, theme)
+	end
+
+	-- =====================================================================
+	--  State + shared refreshers
+	-- =====================================================================
 	self.Popup = popup
 	self.Shadow = shadow
 	self.Header = header
 	self.HeaderTile = headTile
 	self.HeaderGlyph = headGlyph
 	self._shellGradient = shellGradient
+	self._scale = scale
 	self.ColorSquare = colorSquare
 	self.SatOverlay = satOverlay
 	self.ValOverlay = valOverlay
 	self.Target = target
-	self.ColorValue = colorValue
-	self.Slide = slide
-	self.ValueGradient = valueGradient
-	self.Inputs = {
-		Red = { Row = redRow, Input = redInput, Stroke = redStroke },
-		Green = { Row = greenRow, Input = greenInput, Stroke = greenStroke },
-		Blue = { Row = blueRow, Input = blueInput, Stroke = blueStroke },
-		Hex = { Row = hexRow, Input = hexInput, Stroke = hexStroke },
-	}
-	self.OldWell = oldWell
-	self.NewWell = newWell
+	self.HueBar = hueBar
+	self.HueKnob = hueKnob
+	self.AlphaBar = alphaBar
+	self.AlphaKnob = alphaKnob
+	self.AlphaFill = alphaFill
+	self.HexShell = hexShell
+	self.HexInput = hexInput
+	self.HexFill = hexFill
+	self.ChannelBoxes = channelBoxes
+	self.PresetsGrid = presetsGrid
+	self.RecentGrid = recentGrid
+	self.OldFill = oldFill
+	self.NewFill = newFill
 	self.Interactions = interactions
 	self.ConfirmBtn = confirmBtn
 	self.ConfirmShadow = confirmShadow
 	self.CancelBtn = cancelBtn
 	self.CancelShadow = cancelShadow
+	self.CloseBtn = closeBtn
+	self._texts = texts
+	self._fieldStrokes = fieldStrokes
+	self._barStrokes = barStrokes
+	self._checkers = checkers
 	self._cleanupCallback = cleanupCallback
+
 	self.OnConfirm = function() end
 	self.OnCancel = function() end
+	self.IsOpen = false
+	self._isOpen = false
+	self._resolved = false
+	self._hideTimer = nil
+	self._outsideConn = nil
 	self._currentColor = Color3.fromRGB(255, 255, 255)
 	self._oldColor = Color3.fromRGB(255, 255, 255)
+	self._alpha = ALPHA_MAX
+	self._oldAlpha = ALPHA_MAX
 	self._hue = 0
 	self._sat = 0
 	self._val = 1
-	self._isOpen = false
-	self._resolved = false
-	self._inputConnection = nil
-	self._hideTimer = nil
+
 	local function refreshVisuals()
 		local h, s, v = self._hue, self._sat, self._val
 		local hueColor = Color3.fromHSV(h, 1, 1)
+		local color = Color3.fromHSV(h, s, v)
 		self.SatOverlay.BackgroundColor3 = hueColor
-		self.Slide.BackgroundColor3 = hueColor
-		self.Target.BackgroundColor3 = Color3.fromHSV(h, s, v)
+		self.HueKnob.BackgroundColor3 = hueColor
+		self.HueKnob.Position = UDim2.fromScale(h, 0.5)
+		self.Target.BackgroundColor3 = color
 		self.Target.Position = UDim2.fromScale(s, 1 - v)
-		self.Slide.Position = UDim2.fromScale(h, 0.5)
-		self.NewWell.BackgroundColor3 = Color3.fromHSV(h, s, v)
-		self.OldWell.BackgroundColor3 = self._oldColor
+		self.AlphaFill.BackgroundColor3 = color
+		self.AlphaKnob.BackgroundColor3 = color
+		self.AlphaKnob.Position = UDim2.fromOffset(SIDE_PAD + (self._alpha / ALPHA_MAX) * LEFT_WIDTH, 376)
+		self.HexFill.BackgroundColor3 = color
+		self.HexFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		self.NewFill.BackgroundColor3 = color
+		self.NewFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		self.OldFill.BackgroundColor3 = self._oldColor
+		self.OldFill.BackgroundTransparency = 1 - self._oldAlpha / ALPHA_MAX
+		hueValue.Text = string.format("%d°", math.floor(h * 360 + 0.5))
+		alphaValue.Text = string.format("%d%%", math.floor(self._alpha / ALPHA_MAX * 100 + 0.5))
 	end
-	local function refreshInputsFromState()
+
+	local function refreshInputs()
 		local color = Color3.fromHSV(self._hue, self._sat, self._val)
-		local r = math.round(color.R * 255)
-		local g = math.round(color.G * 255)
-		local b = math.round(color.B * 255)
-		self.Inputs.Red.Input.Text = tostring(r)
-		self.Inputs.Green.Input.Text = tostring(g)
-		self.Inputs.Blue.Input.Text = tostring(b)
-		self.Inputs.Hex.Input.Text = string.format("#%02X%02X%02X", r, g, b)
+		local r = math.floor(color.R * 255 + 0.5)
+		local g = math.floor(color.G * 255 + 0.5)
+		local b = math.floor(color.B * 255 + 0.5)
+		channelBoxes.R.Box.Text = tostring(r)
+		channelBoxes.G.Box.Text = tostring(g)
+		channelBoxes.B.Box.Text = tostring(b)
+		hexInput.Text = formatHex(color)
 	end
+
+	local function refreshAll()
+		refreshVisuals()
+		refreshInputs()
+	end
+
 	self._setColorAndUpdate = function(me, color)
 		me._currentColor = color
 		me._hue, me._sat, me._val = color:ToHSV()
-		refreshVisuals()
-		refreshInputsFromState()
+		refreshAll()
 	end
+
 	-- Keep the dragged HSV verbatim (not ToHSV of the rebuilt colour) so the handles never snap at the s/v/h boundaries.
 	self._setHSVAndUpdate = function(me, h, s, v)
-		me._hue = math.clamp(h, 0, 1)
-		me._sat = math.clamp(s, 0, 1)
-		me._val = math.clamp(v, 0, 1)
+		me._hue = clamp(h, 0, 1)
+		me._sat = clamp(s, 0, 1)
+		me._val = clamp(v, 0, 1)
 		me._currentColor = Color3.fromHSV(me._hue, me._sat, me._val)
+		refreshAll()
+	end
+
+	self._setAlphaAndUpdate = function(me, alpha)
+		me._alpha = clamp(alpha, 0, ALPHA_MAX)
 		refreshVisuals()
-		refreshInputsFromState()
 	end
-	self.SetContent = function(_self, contentSettings)
-		local title = contentSettings.Title or "Color Picker"
-		local currentColor = contentSettings.CurrentColor
-		self.OnConfirm = contentSettings.OnConfirm or function() end
-		self.OnCancel = contentSettings.OnCancel or function() end
-		self.Header.Text = title
-		self._oldColor = currentColor
-		self._currentColor = currentColor
-		self._resolved = false
-		self:_setColorAndUpdate(currentColor)
-		self.OldWell.BackgroundColor3 = currentColor
+
+	local function newSwatch(parentFrame, color, layoutOrder)
+		local chip = Instance.new("TextButton")
+		chip.Name = UUID.Generate("Swatch")
+		chip.BorderSizePixel = 0
+		chip.AutoButtonColor = false
+		chip.Text = ""
+		chip.BackgroundColor3 = color
+		chip.LayoutOrder = layoutOrder
+		chip.Parent = parentFrame
+		addCorner(chip, UDim.new(1, 0))
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(255, 255, 255)
+		stroke.Transparency = 0.75
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = chip
+		local chipScale = Instance.new("UIScale")
+		chipScale.Parent = chip
+		chip.MouseButton1Click:Connect(function()
+			self:_setColorAndUpdate(color)
+		end)
+		chip.MouseButton1Down:Connect(function()
+			Tween.Play(chipScale, "PressIn", { Scale = 0.9 })
+		end)
+		chip.MouseButton1Up:Connect(function()
+			Tween.Play(chipScale, "PressOut", { Scale = 1 })
+		end)
+		chip.MouseLeave:Connect(function()
+			Tween.Play(chipScale, "PressOut", { Scale = 1 })
+		end)
+		return chip
 	end
+
+	self._rebuildRecent = function(me)
+		for _, child in ipairs(me.RecentGrid:GetChildren()) do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		for i, color in ipairs(RECENT) do
+			newSwatch(me.RecentGrid, color, i)
+		end
+	end
+
+	for i, color in ipairs(PRESETS) do
+		newSwatch(presetsGrid, color, i)
+	end
+
+	self.SetContent = function(me, contentSettings)
+		contentSettings = contentSettings or {}
+		me.OnConfirm = contentSettings.OnConfirm or function() end
+		me.OnCancel = contentSettings.OnCancel or function() end
+		me.Header.Text = contentSettings.Title or "Color Picker"
+		local color = contentSettings.CurrentColor or contentSettings.Default
+		if typeof(color) ~= "Color3" then
+			color = Color3.fromRGB(255, 255, 255)
+		end
+		me._oldColor = color
+		me._oldAlpha = clamp(contentSettings.CurrentAlpha or contentSettings.Alpha or ALPHA_MAX, 0, ALPHA_MAX)
+		me._alpha = me._oldAlpha
+		me._resolved = false
+		me:_setColorAndUpdate(color)
+		me:_rebuildRecent()
+	end
+
 	-- Recolor in place without rebuilding so an open or cached picker follows a live theme switch.
 	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
@@ -549,143 +893,78 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		newTheme = ThemeManager.GetTheme(newTheme)
 		me._theme = newTheme
 		me.Popup.BackgroundColor3 = newTheme.PopupBackgroundColor or me.Popup.BackgroundColor3
+		me.Popup.BackgroundTransparency = newTheme.PopupBackgroundTransparency or 0.07
 		if me.Shadow then
 			me.Shadow.Color = newTheme.PopupShadowColor or me.Shadow.Color
 		end
-		me.Header.TextColor3 = newTheme.PopupTextColor or me.Header.TextColor3
 		if me._shellGradient then
 			stampShellGradient(me._shellGradient, newTheme)
 		end
 		if me.HeaderTile and me.HeaderGlyph then
 			stampHeaderTile(me.HeaderTile, me.HeaderGlyph, newTheme)
 		end
-		for _, info in pairs(me.Inputs) do
-			info.Input.TextColor3 = newTheme.PopupTextColor or info.Input.TextColor3
-			info.Input.BackgroundColor3 = newTheme.PopupBackgroundColor or info.Input.BackgroundColor3
-			info.Stroke.Color = newTheme.StrokeColor or info.Stroke.Color
-			local label = info.Row:FindFirstChild(UUID.Static("InputName"))
-			if label then
-				label.TextColor3 = newTheme.PopupTextColor or label.TextColor3
+		for _, item in ipairs(me._texts) do
+			if item:IsA("ImageLabel") then
+				item.ImageColor3 = newTheme.PopupTextColor or item.ImageColor3
+			else
+				item.TextColor3 = newTheme.PopupTextColor or item.TextColor3
 			end
 		end
-		local sqShadow = me.ColorSquare:FindFirstChildOfClass("UIShadow")
-		if sqShadow then
-			sqShadow.Color = newTheme.PopupShadowColor or sqShadow.Color
+		for _, stroke in ipairs(me._fieldStrokes) do
+			stroke.Color = newTheme.StrokeColor or stroke.Color
+			stroke.Transparency = newTheme.StrokeTransparency or 0.95
 		end
-		local valShadow = me.ColorValue:FindFirstChildOfClass("UIShadow")
-		if valShadow then
-			valShadow.Color = newTheme.PopupShadowColor or valShadow.Color
+		for _, stroke in ipairs(me._barStrokes) do
+			stroke.Color = newTheme.StrokeColor or stroke.Color
+			stroke.Transparency = math.max(newTheme.StrokeTransparency or 0.95, 0.85)
 		end
-		-- Target/Slide handle strokes stay opaque white; not theme-driven.
-		local applyTargetStroke = me.Target:FindFirstChildOfClass("UIStroke")
-		if applyTargetStroke then
-			applyTargetStroke.Color = Color3.fromRGB(255, 255, 255)
-			applyTargetStroke.Transparency = 0
+		for _, tiles in ipairs(me._checkers) do
+			stampChecker(tiles, newTheme)
 		end
-		local applySlideStroke = me.Slide:FindFirstChildOfClass("UIStroke")
-		if applySlideStroke then
-			applySlideStroke.Color = Color3.fromRGB(255, 255, 255)
-			applySlideStroke.Transparency = 0
-		end
-		me.ConfirmBtn.TextColor3 = newTheme.PopupTextColor or me.ConfirmBtn.TextColor3
+		me.Interactions.BackgroundColor3 = newTheme.PopupShadowColor or me.Interactions.BackgroundColor3
 		me.ConfirmBtn.BackgroundColor3 = newTheme.PrimaryColor or me.ConfirmBtn.BackgroundColor3
 		me.ConfirmShadow.Color = newTheme.PrimaryColor or me.ConfirmShadow.Color
-		me.CancelBtn.TextColor3 = newTheme.PopupTextColor or me.CancelBtn.TextColor3
 		me.CancelBtn.BackgroundColor3 = newTheme.PopupNeutralColor or me.CancelBtn.BackgroundColor3
 		me.CancelShadow.Color = newTheme.PopupNeutralColor or me.CancelShadow.Color
 	end
-	self.Open = function(_self)
-		if not self.Popup then
-			return
+
+	local function computeFit()
+		local area = parent.AbsoluteSize
+		if area.X <= 0 or area.Y <= 0 then
+			return 1
 		end
-		if self._hideTimer then
-			task.cancel(self._hideTimer)
-			self._hideTimer = nil
-		end
-		self.IsOpen = true
-		self._isOpen = true
-		self._resolved = false
-		self.Popup.Visible = true
-		self.Popup.GroupTransparency = 1
-		self.Popup.BackgroundTransparency = 1
-		self.Shadow.Transparency = 1
-		local function resetTransparency(obj)
-			if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-				obj.TextTransparency = 1
-			end
-			if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-				obj.ImageTransparency = 1
-			end
-			if obj:IsA("Frame") and obj ~= self.Popup and obj ~= self.Shadow then
-				obj.BackgroundTransparency = 1
-			end
-			if obj:IsA("UIStroke") then
-				obj.Transparency = 1
-			end
-			if obj:IsA("UIShadow") then
-				obj.Transparency = 1
-			end
-			for _, child in ipairs(obj:GetChildren()) do
-				resetTransparency(child)
-			end
-		end
-		resetTransparency(self.Popup)
-		-- Restore the fills resetTransparency blanked (square, overlays, value bar, handles, wells).
-		self.ColorSquare.BackgroundTransparency = 0
-		self.SatOverlay.BackgroundTransparency = 0
-		self.ValOverlay.BackgroundTransparency = 0
-		self.ColorValue.BackgroundTransparency = 0
-		self.Target.BackgroundTransparency = 0
-		self.Slide.BackgroundTransparency = 0
-		self.OldWell.BackgroundTransparency = 0
-		self.NewWell.BackgroundTransparency = 0
-		-- Header tile/glyph are chrome, not colour surfaces: restore them too.
-		self.HeaderTile.BackgroundTransparency = 0
-		self.HeaderGlyph.ImageTransparency = 0
-		local openTargetStroke = self.Target:FindFirstChildOfClass("UIStroke")
-		if openTargetStroke then
-			openTargetStroke.Color = Color3.fromRGB(255, 255, 255)
-			openTargetStroke.Transparency = 0
-		end
-		local openSlideStroke = self.Slide:FindFirstChildOfClass("UIStroke")
-		if openSlideStroke then
-			openSlideStroke.Color = Color3.fromRGB(255, 255, 255)
-			openSlideStroke.Transparency = 0
-		end
-		-- Normalize every input stroke to the live theme's base on each open.
-		local liveStroke = ThemeManager.GetTheme(self._theme)
-		local baseStrokeT = liveStroke.StrokeTransparency or 0.95
-		for _, info in pairs(self.Inputs) do
-			info.Stroke.Color = liveStroke.StrokeColor or Color3.fromRGB(255, 255, 255)
-			info.Stroke.Transparency = baseStrokeT
-		end
-		Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 0.07, GroupTransparency = 0 })
-		Tween.Play(self.Shadow, "Fast", { Transparency = 0.5 })
-		Tween.Play(self.Header, "Fast", { TextTransparency = 0.2 })
-		Tween.Play(self.SatOverlay, "Fast", { BackgroundTransparency = 0 })
-		Tween.Play(self.ValOverlay, "Fast", { BackgroundTransparency = 0 })
-		Tween.Play(self.ColorValue, "Fast", { BackgroundTransparency = 0 })
-		for _, info in pairs(self.Inputs) do
-			Tween.Play(info.Input, "Fast", { TextTransparency = 0.5 })
-			local label = info.Row:FindFirstChild(UUID.Static("InputName"))
-			if label then
-				Tween.Play(label, "Fast", { TextTransparency = 0.5 })
-			end
-		end
-		Tween.Play(self.ConfirmBtn, "Fast", { TextTransparency = 0.2, BackgroundTransparency = 0 })
-		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5, BackgroundTransparency = 0.5 })
-		Tween.Play(self.ConfirmShadow, "Fast", { Transparency = 0.5 })
-		Tween.Play(self.Interactions, "Fast", { BackgroundTransparency = 0.8 })
-		self:_setColorAndUpdate(self._currentColor)
-		self:_connectOutsideClick()
+		return clamp(math.min((area.X - 24) / POPUP_WIDTH, (area.Y - 24) / POPUP_HEIGHT), 0.35, 1)
 	end
-	-- Connected only while the popup is open: armed in Open(), dropped in Close/Hide/Destroy.
-	self._connectOutsideClick = function(_self)
-		if self._outsideConn then
+
+	self.Open = function(me)
+		if not me.Popup then
 			return
 		end
-		local UserInputService = game:GetService("UserInputService")
-		self._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if me._hideTimer then
+			task.cancel(me._hideTimer)
+			me._hideTimer = nil
+		end
+		me.IsOpen = true
+		me._isOpen = true
+		me._resolved = false
+		me:_rebuildRecent()
+		me:_setColorAndUpdate(me._currentColor)
+		me._fit = computeFit()
+		me._scale.Scale = me._fit * 0.94
+		me.Popup.Visible = true
+		me.Popup.GroupTransparency = 1
+		Tween.Play(me.Popup, "Fast", { GroupTransparency = 0 })
+		Tween.Play(me.Shadow, "Fast", { Transparency = 0.5 })
+		Tween.Play(me._scale, "Fast", { Scale = me._fit })
+		me:_connectOutsideClick()
+	end
+
+	-- Connected only while the popup is open: armed in Open(), dropped in Close/Destroy.
+	self._connectOutsideClick = function(me)
+		if me._outsideConn then
+			return
+		end
+		me._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			if gameProcessed then
 				return
 			end
@@ -693,19 +972,19 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			if inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch then
 				return
 			end
-			if not self.IsOpen or not self.Popup or not self.Popup.Visible then
+			if not me.IsOpen or not me.Popup or not me.Popup.Visible then
 				return
 			end
 			local p = input.Position
 			-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
-			local pos = self.Popup.AbsolutePosition
-			local size = self.Popup.AbsoluteSize
+			local pos = me.Popup.AbsolutePosition
+			local size = me.Popup.AbsoluteSize
 			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
 			if not inside then
-				local playerGui = self.Popup:FindFirstAncestorOfClass("PlayerGui")
+				local playerGui = me.Popup:FindFirstAncestorOfClass("PlayerGui")
 				if playerGui then
 					for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
-						if obj == self.Popup or obj:IsDescendantOf(self.Popup) then
+						if obj == me.Popup or obj:IsDescendantOf(me.Popup) then
 							inside = true
 							break
 						end
@@ -713,78 +992,53 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				end
 			end
 			if not inside then
-				self:_Confirm()
+				-- Outside is a dismissal: keep the colour the popup opened with.
+				me:_Cancel()
 			end
 		end)
 	end
+
 	self._disconnectOutsideClick = function(me)
 		if me._outsideConn then
 			me._outsideConn:Disconnect()
 			me._outsideConn = nil
 		end
 	end
-	self.Close = function(_self)
-		if not self.Popup or not self.IsOpen then
+
+	self.Close = function(me)
+		if not me.Popup or not me.IsOpen then
 			return
 		end
-		self.IsOpen = false
-		self._isOpen = false
+		me.IsOpen = false
+		me._isOpen = false
 		-- Disarm the click-outside listener immediately on close.
-		self:_disconnectOutsideClick()
-		if self._inputConnection then
-			self._inputConnection:Disconnect()
-			self._inputConnection = nil
+		me:_disconnectOutsideClick()
+		if me._hideTimer then
+			task.cancel(me._hideTimer)
+			me._hideTimer = nil
 		end
-		if self._hideTimer then
-			task.cancel(self._hideTimer)
-			self._hideTimer = nil
-		end
-		Tween.Play(self.Popup, "Fast", { BackgroundTransparency = 1, GroupTransparency = 1 })
-		Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
-		local function fadeObject(obj)
-			local goals = {}
-			if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-				goals.TextTransparency = 1
-				goals.BackgroundTransparency = 1
+		local fit = me._fit or 1
+		Tween.Play(me.Popup, "Fast", { GroupTransparency = 1 })
+		Tween.Play(me.Shadow, "Fast", { Transparency = 1 })
+		Tween.Play(me._scale, "Fast", { Scale = fit * 0.94 })
+		me._hideTimer = task.delay(0.35, function()
+			if not me.IsOpen and me.Popup then
+				me.Popup.Visible = false
 			end
-			if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-				goals.ImageTransparency = 1
-				goals.BackgroundTransparency = 1
-			end
-			if obj:IsA("Frame") and obj ~= self.Popup then
-				goals.BackgroundTransparency = 1
-			end
-			if obj:IsA("UIStroke") then
-				goals.Transparency = 1
-			end
-			if obj:IsA("UIShadow") then
-				goals.Transparency = 1
-			end
-			if next(goals) then
-				Tween.Play(obj, "Fast", goals)
-			end
-		end
-		for _, descendant in ipairs(self.Popup:GetDescendants()) do
-			fadeObject(descendant)
-		end
-		Tween.Play(self.Popup:FindFirstChildOfClass("UIScale"), "Fast", { Scale = 0.9 })
-		self._hideTimer = task.delay(0.35, function()
-			if not self.IsOpen then
-				if self.Popup then
-					self.Popup.Visible = false
-				end
-			end
-			self._hideTimer = nil
+			me._hideTimer = nil
 		end)
 	end
+
 	self._Confirm = function(me)
 		if me._resolved then
 			return
 		end
 		me._resolved = true
+		rememberColor(me._currentColor)
 		me:Close()
-		me.OnConfirm(me._currentColor)
+		me.OnConfirm(me._currentColor, math.floor(me._alpha + 0.5))
 	end
+
 	self._Cancel = function(me)
 		if me._resolved then
 			return
@@ -793,15 +1047,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me:Close()
 		me.OnCancel()
 	end
+
 	-- Hide without firing callbacks (used by Window when another popup opens)
 	self.Hide = function(me)
 		me:Close()
 	end
+
 	self.Destroy = function(me)
-		if me._inputConnection then
-			me._inputConnection:Disconnect()
-			me._inputConnection = nil
-		end
 		if me._dragChangedConnection then
 			me._dragChangedConnection:Disconnect()
 			me._dragChangedConnection = nil
@@ -811,6 +1063,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			me._dragEndedConnection = nil
 		end
 		me:_disconnectOutsideClick()
+		if me._hideTimer then
+			task.cancel(me._hideTimer)
+			me._hideTimer = nil
+		end
 		if me.Popup then
 			me.Popup:Destroy()
 			me.Popup = nil
@@ -820,48 +1076,74 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			me._cleanupCallback = nil
 		end
 	end
-	self.ConfirmBtn.MouseButton1Click:Connect(function()
-		self:_Confirm()
-	end)
-	self.CancelBtn.MouseButton1Click:Connect(function()
+
+	-- =====================================================================
+	--  Interactions
+	-- =====================================================================
+	closeBtn.MouseButton1Click:Connect(function()
 		self:_Cancel()
 	end)
-	self.ConfirmBtn.MouseEnter:Connect(function()
-		Tween.Play(self.ConfirmShadow, "Fast", { BlurRadius = UDim.new(0, 50), Transparency = 0 })
+	closeBtn.MouseEnter:Connect(function()
+		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.86 })
+		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0 })
 	end)
-	self.ConfirmBtn.MouseLeave:Connect(function()
-		Tween.Play(self.ConfirmShadow, "Fast", { BlurRadius = UDim.new(0, 20), Transparency = 1 })
+	closeBtn.MouseLeave:Connect(function()
+		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.92 })
+		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0.4 })
 	end)
-	self.CancelBtn.MouseEnter:Connect(function()
-		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.2 })
+
+	confirmBtn.MouseButton1Click:Connect(function()
+		self:_Confirm()
 	end)
-	self.CancelBtn.MouseLeave:Connect(function()
-		Tween.Play(self.CancelBtn, "Fast", { TextTransparency = 0.5 })
+	cancelBtn.MouseButton1Click:Connect(function()
+		self:_Cancel()
 	end)
+	confirmBtn.MouseEnter:Connect(function()
+		Tween.Play(confirmShadow, "Fast", { BlurRadius = UDim.new(0, 50), Transparency = 0 })
+	end)
+	confirmBtn.MouseLeave:Connect(function()
+		Tween.Play(confirmShadow, "Fast", { BlurRadius = UDim.new(0, 20), Transparency = 1 })
+	end)
+	cancelBtn.MouseEnter:Connect(function()
+		Tween.Play(cancelBtn, "Fast", { TextTransparency = 0.2 })
+	end)
+	cancelBtn.MouseLeave:Connect(function()
+		Tween.Play(cancelBtn, "Fast", { TextTransparency = 0.5 })
+	end)
+
 	local function setFromSquarePosition(screenPosition)
-		local size = self.ColorSquare.AbsoluteSize
+		local size = colorSquare.AbsoluteSize
 		if size.X <= 0 or size.Y <= 0 then
 			return
 		end
-		local squarePos = self.ColorSquare.AbsolutePosition
+		local squarePos = colorSquare.AbsolutePosition
 		local x = clamp((screenPosition.X - squarePos.X) / size.X, 0, 1)
 		local y = clamp((screenPosition.Y - squarePos.Y) / size.Y, 0, 1)
 		-- Keep the existing hue; saturation = x, value = 1 - y, set via the HSV-preserving path so the handle never snaps.
 		self:_setHSVAndUpdate(self._hue, x, 1 - y)
 	end
 	local function setFromHuePosition(screenPosition)
-		local size = self.ColorValue.AbsoluteSize
+		local size = hueBar.AbsoluteSize
 		if size.X <= 0 then
 			return
 		end
-		local barPos = self.ColorValue.AbsolutePosition
+		local barPos = hueBar.AbsolutePosition
 		local h = clamp((screenPosition.X - barPos.X) / size.X, 0, 1)
 		self:_setHSVAndUpdate(h, self._sat, self._val)
 	end
-	-- Click-and-drag anywhere on the square/bar: UIDragDetector only drags its own instance, so the whole surface is tracked manually.
-	local UserInputService = game:GetService("UserInputService")
+	local function setFromAlphaPosition(screenPosition)
+		local size = alphaBar.AbsoluteSize
+		if size.X <= 0 then
+			return
+		end
+		local barPos = alphaBar.AbsolutePosition
+		local t = clamp((screenPosition.X - barPos.X) / size.X, 0, 1)
+		self:_setAlphaAndUpdate(t * ALPHA_MAX)
+	end
+	-- Click-and-drag anywhere on the square/bars: UIDragDetector only drags its own instance, so the whole surface is tracked manually.
 	local squareDragging = false
-	local barDragging = false
+	local hueDragging = false
+	local alphaDragging = false
 	colorSquare.InputBegan:Connect(function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseButton1
@@ -871,16 +1153,25 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			setFromSquarePosition(input.Position)
 		end
 	end)
-	colorValue.InputBegan:Connect(function(input)
+	hueBar.InputBegan:Connect(function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
-			barDragging = true
+			hueDragging = true
 			setFromHuePosition(input.Position)
 		end
 	end)
-	-- Follow the drag globally so it survives the cursor leaving the square/bar; disconnected in Destroy().
+	alphaBar.InputBegan:Connect(function(input)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			alphaDragging = true
+			setFromAlphaPosition(input.Position)
+		end
+	end)
+	-- Follow the drag globally so it survives the cursor leaving the square/bars; disconnected in Destroy().
 	self._dragChangedConnection = UserInputService.InputChanged:Connect(function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseMovement
@@ -888,8 +1179,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		then
 			if squareDragging then
 				setFromSquarePosition(input.Position)
-			elseif barDragging then
+			elseif hueDragging then
 				setFromHuePosition(input.Position)
+			elseif alphaDragging then
+				setFromAlphaPosition(input.Position)
 			end
 		end
 	end)
@@ -899,73 +1192,82 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			squareDragging = false
-			barDragging = false
+			hueDragging = false
+			alphaDragging = false
 		end
 	end)
-	local function onFocusLost(inputBox, channel)
-		inputBox.FocusLost:Connect(function()
-			local text = inputBox.Text
-			if channel == "Hex" then
-				-- Handle hex first so values like "123456" aren't parsed as numbers
-				local hex = text:gsub("#", "")
-				if #hex == 6 then
-					local r = tonumber(hex:sub(1, 2), 16)
-					local g = tonumber(hex:sub(3, 4), 16)
-					local b = tonumber(hex:sub(5, 6), 16)
-					if r and g and b then
-						self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
-					end
-				end
-			else
-				local num = tonumber(text)
-				if num ~= nil then
-					local r, g, b
-					if channel == "Red" then
-						r = math.clamp(num, 0, 255)
-						g = self._currentColor.G * 255
-						b = self._currentColor.B * 255
-						self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
-					elseif channel == "Green" then
-						r = self._currentColor.R * 255
-						g = math.clamp(num, 0, 255)
-						b = self._currentColor.B * 255
-						self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
-					elseif channel == "Blue" then
-						r = self._currentColor.R * 255
-						g = self._currentColor.G * 255
-						b = math.clamp(num, 0, 255)
-						self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
-					end
-				end
-			end
-		end)
+
+	local function setStrokeBright(stroke, bright)
+		-- Read the live theme (ApplyTheme keeps self._theme current) so hover/focus after a switch doesn't write old colours back.
+		local liveTheme = ThemeManager.GetTheme(self._theme)
+		local baseTrans = liveTheme.StrokeTransparency or 0.95
+		local baseColor = liveTheme.StrokeColor or Color3.fromRGB(255, 255, 255)
+		local targetTrans = if bright then 0.3 else baseTrans
+		local targetColor = if bright then (liveTheme.PrimaryColor or baseColor) else baseColor
+		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
 	end
-	for channel, info in pairs(self.Inputs) do
-		onFocusLost(info.Input, channel)
-		local function setStrokeBright(bright)
-			-- Read the live theme (ApplyTheme keeps self._theme current) so hover/focus after a switch doesn't write old colors back.
-			local liveTheme = ThemeManager.GetTheme(self._theme)
-			local baseTrans = liveTheme.StrokeTransparency or 0.95
-			local baseColor = liveTheme.StrokeColor or Color3.fromRGB(255, 255, 255)
-			local targetTrans = bright and 0.3 or baseTrans
-			local targetColor = bright and (liveTheme.PrimaryColor or baseColor) or baseColor
-			Tween.Play(info.Stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
+
+	hexInput.Focused:Connect(function()
+		setStrokeBright(hexStroke, true)
+	end)
+	hexInput.FocusLost:Connect(function()
+		local parsed, parsedAlpha = parseHex(hexInput.Text)
+		if parsed then
+			self:_setColorAndUpdate(parsed)
+			if parsedAlpha then
+				self:_setAlphaAndUpdate(parsedAlpha)
+			end
 		end
-		info.Input.MouseEnter:Connect(function()
-			setStrokeBright(true)
+		-- Always rewrite canonical state: invalid text snaps back, valid text normalizes.
+		refreshInputs()
+		setStrokeBright(hexStroke, false)
+	end)
+	hexInput.MouseEnter:Connect(function()
+		setStrokeBright(hexStroke, true)
+	end)
+	hexInput.MouseLeave:Connect(function()
+		if not hexInput:IsFocused() then
+			setStrokeBright(hexStroke, false)
+		end
+	end)
+
+	for channel, info in pairs(channelBoxes) do
+		info.Box.FocusLost:Connect(function()
+			local value = tonumber(info.Box.Text)
+			if value then
+				local color = Color3.fromHSV(self._hue, self._sat, self._val)
+				local r = math.floor(color.R * 255 + 0.5)
+				local g = math.floor(color.G * 255 + 0.5)
+				local b = math.floor(color.B * 255 + 0.5)
+				value = clamp(math.floor(value + 0.5), 0, 255)
+				if channel == "R" then
+					r = value
+				elseif channel == "G" then
+					g = value
+				else
+					b = value
+				end
+				self:_setColorAndUpdate(Color3.fromRGB(r, g, b))
+			end
+			refreshInputs()
 		end)
-		info.Input.MouseLeave:Connect(function()
-			if not info.Input:IsFocused() then
-				setStrokeBright(false)
+		info.Box.Focused:Connect(function()
+			setStrokeBright(info.Stroke, true)
+		end)
+		info.Box.FocusLost:Connect(function()
+			setStrokeBright(info.Stroke, false)
+		end)
+		info.Box.MouseEnter:Connect(function()
+			setStrokeBright(info.Stroke, true)
+		end)
+		info.Box.MouseLeave:Connect(function()
+			if not info.Box:IsFocused() then
+				setStrokeBright(info.Stroke, false)
 			end
 		end)
-		info.Input.Focused:Connect(function()
-			setStrokeBright(true)
-		end)
-		info.Input.FocusLost:Connect(function()
-			setStrokeBright(false)
-		end)
 	end
+
 	return self
 end
+
 return ColorPickerPopUp

@@ -3,7 +3,11 @@
 
 	Color swatch row for a section. Clicking it opens PopUps/ColorPickerPopUp
 	(created lazily via the supplied ShowPopup factory). The swatch itself is
-	kept opaque across theme switches (protected in ThemeManager).
+	kept opaque across theme switches (protected in ThemeManager); its fill
+	carries alpha, so the checker behind it shows through.
+
+	Alpha travels beside the colour (Color3 has no alpha): Callback receives
+	(Color3, alpha 0-255), and Settings.Alpha seeds it.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -20,6 +24,30 @@ ColorPicker.__index = ColorPicker
 -- design-notes 4: icon hover lifts in over 0.15s, settles back over 0.2s.
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ALPHA_MAX = 255
+local CHECKER_SIZE = 5
+
+local function clamp(value, min, max)
+	return math.max(min, math.min(max, value))
+end
+
+-- Swatch checker: white over the row plus a darker square, so it reads on
+-- both light and dark themes without another theme slot.
+local function buildChecker(parent)
+	for row = 0, CHECKER_SIZE - 1 do
+		for col = 0, CHECKER_SIZE - 1 do
+			local tile = Instance.new("Frame")
+			tile.Name = UUID.Static("CheckerTile")
+			tile.BorderSizePixel = 0
+			tile.Size = UDim2.fromScale(1 / CHECKER_SIZE, 1 / CHECKER_SIZE)
+			tile.Position = UDim2.fromScale(col / CHECKER_SIZE, row / CHECKER_SIZE)
+			tile.BackgroundColor3 = if (col + row) % 2 == 0 then Color3.new(1, 1, 1) else Color3.new(0, 0, 0)
+			tile.BackgroundTransparency = if (col + row) % 2 == 0 then 0.35 else 0.65
+			tile.Parent = parent
+		end
+	end
+end
+
 function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -27,6 +55,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	self._theme = theme
 	local name = Settings.Name or "Color"
 	local defaultColor = Settings.Default or Color3.fromRGB(255, 0, 0)
+	local defaultAlpha = clamp(tonumber(Settings.Alpha) or ALPHA_MAX, 0, ALPHA_MAX)
 	local callback = Settings.Callback or function() end
 	-- whole row is clickable; container styling matches Dropdown
 	local row, label = ComponentRow.new(parent, {
@@ -53,7 +82,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.Name = UUID.Static("ColorDisplay")
 	display.BorderSizePixel = 0
 	display.AutoButtonColor = false
-	display.BackgroundColor3 = defaultColor
+	display.BackgroundTransparency = 1
 	display.AnchorPoint = Vector2.new(1, 0.5)
 	display.Size = UDim2.fromOffset(24, 24)
 	display.Position = UDim2.fromScale(1, 0.5)
@@ -62,6 +91,27 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	local displayCorner = Instance.new("UICorner")
 	displayCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip pill (design-notes 8.10)
 	displayCorner.Parent = display
+	-- transparency checker behind the fill so alpha is visible in the row
+	local checkerHolder = Instance.new("Frame")
+	checkerHolder.Name = UUID.Static("SwatchChecker")
+	checkerHolder.BorderSizePixel = 0
+	checkerHolder.BackgroundTransparency = 1
+	checkerHolder.Size = UDim2.fromScale(1, 1)
+	checkerHolder.ClipsDescendants = true
+	checkerHolder.Parent = display
+	local checkerCorner = Instance.new("UICorner")
+	checkerCorner.CornerRadius = UDim.new(0.5, 0)
+	checkerCorner.Parent = checkerHolder
+	buildChecker(checkerHolder)
+	local displayFill = Instance.new("Frame")
+	displayFill.Name = UUID.Static("SwatchFill")
+	displayFill.BorderSizePixel = 0
+	displayFill.BackgroundColor3 = defaultColor
+	displayFill.Size = UDim2.fromScale(1, 1)
+	displayFill.Parent = display
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(0.5, 0)
+	fillCorner.Parent = displayFill
 	local displayScale = Instance.new("UIScale")
 	displayScale.Parent = display
 	local displayStroke = Instance.new("UIStroke")
@@ -69,7 +119,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	displayStroke.Color = Color3.fromRGB(255, 255, 255)
 	displayStroke.Parent = display
 	local displayShadow = Instance.new("UIShadow")
-	displayShadow.Color = defaultColor -- matches the display background
+	displayShadow.Color = defaultColor -- matches the display fill
 	displayShadow.Transparency = 0.5
 	displayShadow.BlurRadius = UDim.new(0, 20)
 	displayShadow.Parent = display
@@ -89,9 +139,11 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	self.Label = label
 	self.HeaderBar = headerBar
 	self.Display = display
+	self.DisplayFill = displayFill
 	self.DisplayShadow = displayShadow
 	self.Chevron = chevron
 	self._currentColor = defaultColor
+	self._alpha = defaultAlpha
 	self._isOpen = false -- popup state
 	self.Callback = callback
 	self.ShowPopup = ShowPopup
@@ -100,9 +152,10 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	-- UIShadow on fades and can otherwise leave it stuck invisible at 1
 	local SHADOW_TRANSPARENCY = 0.5
 	displayShadow:SetAttribute(UUID.Static("PageFadeBase"), SHADOW_TRANSPARENCY)
-	local function updateDisplay(color)
-		display.BackgroundColor3 = color
-		displayShadow.Color = color
+	local function updateDisplay()
+		displayFill.BackgroundColor3 = self._currentColor
+		displayFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		displayShadow.Color = self._currentColor
 		displayShadow.Transparency = SHADOW_TRANSPARENCY
 	end
 	row.MouseButton1Click:Connect(function()
@@ -139,11 +192,11 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 			row:Destroy()
 		end
 	end
-	-- the ColorDisplay itself is left alone: it shows the user's colour
+	-- the swatch fill itself is left alone: it shows the user's colour
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
-	updateDisplay(defaultColor)
+	updateDisplay()
 	ComponentAPI.Apply(self, {
 		Root = row,
 		Label = label,
@@ -161,13 +214,27 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 					return
 				end
 				me._currentColor = newColor
-				updateDisplay(newColor)
+				updateDisplay()
 				if not noCallback then
-					me.Callback(newColor)
+					me.Callback(newColor, me._alpha)
 				end
 			end,
 			GetColor = function(me)
 				return me._currentColor
+			end,
+			SetAlpha = function(me, newAlpha, noCallback)
+				local alpha = clamp(tonumber(newAlpha) or me._alpha, 0, ALPHA_MAX)
+				if alpha == me._alpha then
+					return
+				end
+				me._alpha = alpha
+				updateDisplay()
+				if not noCallback then
+					me.Callback(me._currentColor, alpha)
+				end
+			end,
+			GetAlpha = function(me)
+				return me._alpha
 			end,
 			TogglePopup = function(me)
 				me._isOpen = not me._isOpen
@@ -178,8 +245,12 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 					me._popup = me.ShowPopup(me._popupId, {
 						Title = me.Label.Text,
 						CurrentColor = me._currentColor,
-						OnConfirm = function(newColor)
-							me:SetColor(newColor, false)
+						CurrentAlpha = me._alpha,
+						OnConfirm = function(newColor, newAlpha)
+							me._currentColor = newColor
+							me._alpha = clamp(tonumber(newAlpha) or ALPHA_MAX, 0, ALPHA_MAX)
+							updateDisplay()
+							me.Callback(newColor, me._alpha)
 							me:ClosePopup()
 						end,
 						OnCancel = function()
