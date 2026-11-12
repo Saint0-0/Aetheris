@@ -38,9 +38,9 @@ local Section = {}
 Section.__index = Section
 
 -- design-notes 1/2/7: sections are group cards — fill wash (never a flat
--- fill), top-lit rim, radius 8 (original, restored per user feedback),
--- SemiBold 13 title. The wash recipe mirrors the changelog cards.
-local CORNER_SECTION = 8
+-- fill), top-lit rim, radius 14 (user call), SemiBold 13 title. The wash
+-- recipe mirrors the changelog cards.
+local CORNER_SECTION = 14
 local AURORA_TINT = 0.14
 
 local function isDark(color)

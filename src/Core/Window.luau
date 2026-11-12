@@ -200,6 +200,7 @@ function Window.new(Settings)
 	end
 
 	local MainFrameCorner = Instance.new("UICorner")
+	MainFrameCorner.CornerRadius = UDim.new(0, 12) -- rounded shell (user call)
 	MainFrameCorner.Parent = MainFrame
 
 	-- Shell wash + glass rim (design-notes 1/2): a top-down multiplier over
@@ -304,8 +305,8 @@ function Window.new(Settings)
 	local ContentBackgroundCorner = Instance.new("UICorner")
 	ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 0)
 	ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 0)
-	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+	ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12) -- flush with the window silhouette
+	ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 	ContentBackgroundCorner.Parent = ContentBackground
 
 	-- Content layer sits on the content fill so the art renders over it and
@@ -550,8 +551,8 @@ function Window.new(Settings)
 	SidebarPadding.Parent = Sidebar
 
 	local SidebarCorner = Instance.new("UICorner")
-	SidebarCorner.TopLeftRadius = UDim.new(0, 6)
-	SidebarCorner.BottomLeftRadius = UDim.new(0, 6)
+	SidebarCorner.TopLeftRadius = UDim.new(0, 12) -- flush with the window silhouette
+	SidebarCorner.BottomLeftRadius = UDim.new(0, 12)
 	SidebarCorner.TopRightRadius = UDim.new(0, 0)
 	SidebarCorner.BottomRightRadius = UDim.new(0, 0)
 	SidebarCorner.Parent = Sidebar
@@ -1563,11 +1564,11 @@ function Window.new(Settings)
 				ContentBackground.AnchorPoint = Vector2.new(0, 0)
 				ContentBackground.Size = UDim2.fromScale(1, 1)
 				ContentBackground.Position = UDim2.fromScale(0, 0)
-				-- Compact: square up every corner (full-bleed content background).
-				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				-- Compact: every corner rounds to the window silhouette (full-bleed content background).
+				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
 				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
 				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius
@@ -1638,8 +1639,8 @@ function Window.new(Settings)
 				-- Restore the expanded corner treatment (rounded right edge only).
 				ContentBackgroundCorner.TopLeftRadius = UDim.new(0, 0)
 				ContentBackgroundCorner.BottomLeftRadius = UDim.new(0, 0)
-				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 6)
-				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 6)
+				ContentBackgroundCorner.TopRightRadius = UDim.new(0, 12)
+				ContentBackgroundCorner.BottomRightRadius = UDim.new(0, 12)
 				contentWallpaperCorner.TopLeftRadius = ContentBackgroundCorner.TopLeftRadius
 				contentWallpaperCorner.BottomLeftRadius = ContentBackgroundCorner.BottomLeftRadius
 				contentWallpaperCorner.TopRightRadius = ContentBackgroundCorner.TopRightRadius

@@ -334,30 +334,6 @@ local function buildCard(self)
 		Parent = card,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = clip })
-	-- Brand watermark (user call, Batch 8): the Aetheris mark sunk into the
-	-- card's right side under the aurora — reads as a soft glow, not a logo.
-	-- Bottom melt so it dissolves into the card instead of ending in a box.
-	local watermark = new("ImageLabel", {
-		Name = UUID.Static("BrandWatermark"),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(1, 0.58),
-		Size = UDim2.fromOffset(200, 200),
-		BackgroundTransparency = 1,
-		Image = "rbxassetid://92458734285074",
-		ImageTransparency = 0.9,
-		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 0,
-		Parent = clip,
-	})
-	new("UIGradient", {
-		Rotation = 90,
-		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.25),
-			NumberSequenceKeypoint.new(0.55, 0),
-			NumberSequenceKeypoint.new(1, 0.9),
-		}),
-		Parent = watermark,
-	})
 	self._aurora = Aurora.new(clip, { Theme = theme, Transparency = 0.35 })
 
 	-- Drag frame mirrors the window: Instant follows the cursor, Smooth tweens.
@@ -570,19 +546,6 @@ local function buildCard(self)
 	self._subtitle = subtitle
 	self._stroke = stroke
 	self._shadow = shadow
-
-	-- Hairline divider under the header (design-notes 3): one pixel of light
-	-- separating the title row from every phase body.
-	new("Frame", {
-		Name = UUID.Static("HeaderDivider"),
-		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
-		Size = UDim2.new(1, 0, 0, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.94,
-		BorderSizePixel = 0,
-		ZIndex = 4,
-		Parent = card,
-	})
 end
 
 ----------------------------------------------------------------
