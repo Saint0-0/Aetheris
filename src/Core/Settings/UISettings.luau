@@ -223,7 +223,7 @@ function UISettings.Build(window, tab)
 	-- Content melts into the surface at scroll edges; one gate for every fade.
 	visualsSection:Toggle({
 		Name = "Scroll Edge Fade",
-		Default = SettingsStore.Get("EdgeFadeEnabled") ~= false,
+		Default = SettingsStore.Get("EdgeFadeEnabled") == true,
 		Callback = function(state)
 			SettingsStore.Set("EdgeFadeEnabled", state)
 			ScrollFade.SetEnabled(state)

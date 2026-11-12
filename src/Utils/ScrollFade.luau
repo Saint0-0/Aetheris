@@ -26,7 +26,7 @@ local edgeFadeEnabled = nil -- lazily resolved once, then owned by SetEnabled
 
 local function isEnabled()
 	if edgeFadeEnabled == nil then
-		edgeFadeEnabled = SettingsStore.Get("EdgeFadeEnabled") ~= false
+		edgeFadeEnabled = SettingsStore.Get("EdgeFadeEnabled") == true
 	end
 	return edgeFadeEnabled
 end

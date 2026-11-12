@@ -55,7 +55,7 @@ SettingsStore.Defaults = {
 	WindowWallpaperEnabled = false, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
 	ContentWallpaperEnabled = false, -- wallpaper art over the content fill, melting into it
 	WallpaperTransparency = 0.85, -- wallpaper art ImageTransparency (0 solid - 1 gone)
-	EdgeFadeEnabled = true, -- scroll edge content-melt fades (Utils/ScrollFade)
+	EdgeFadeEnabled = false, -- scroll edge content-melt fades (Utils/ScrollFade)
 }
 
 SettingsStore.Data = {}
