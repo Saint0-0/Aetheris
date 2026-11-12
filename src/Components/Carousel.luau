@@ -10,6 +10,7 @@
 ]]
 
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local ThemeManager = require("../Themes/ThemeManager")
 local ComponentAPI = require("../Utils/ComponentAPI")
@@ -31,10 +32,6 @@ local INDICATOR_PAD_X = 8
 local INDICATOR_PAD_Y = 5
 local INDICATOR_INSET = 10 -- px between the indicator capsule and the media edge
 local SWIPE_COMMIT = 44 -- px of travel before a swipe flips the page
-local TICK = 0.05 -- dwell sampling rate
--- Each tick retargets the fill; a short linear tween bridges the gap so the
--- progress reads as one continuous sweep instead of 20 discrete jumps.
-local FILL_TWEEN = TweenInfo.new(TICK * 1.6, Enum.EasingStyle.Linear)
 
 -- Accept "rbxassetid://123", "123" or 123.
 local function assetId(value)
@@ -110,6 +107,7 @@ function Carousel.new(parent, Settings, theme)
 	self._conns = {}
 	self._advanceInterval = if autoAdvance then interval else 0
 	self._advanceElapsed = 0
+	self._height = height
 
 	local container = Instance.new("Frame")
 	container.Name = UUID.Static("Carousel")
@@ -120,7 +118,7 @@ function Carousel.new(parent, Settings, theme)
 	container.Position = UDim2.fromScale(0, 0)
 	container.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	-- The indicator floats over the media, so the shell is exactly one page
-	-- tall; the corner clips every page edge to the card radius.
+	-- tall; the media carries the corner itself (see the page builder below).
 	container.ClipsDescendants = true
 	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
@@ -143,8 +141,9 @@ function Carousel.new(parent, Settings, theme)
 		return self
 	end
 
-	-- The viewport owns the visible frame: it clips the page strip to its own
-	-- rounded bounds, so a page never pokes a square corner out of the card.
+	-- The viewport owns the visible frame and clips the sliding strip. It stays
+	-- square: the corner belongs to the image/video itself, so a page's media
+	-- is what reads as rounded (and a VideoFrame rounds with its own UICorner).
 	local viewport = Instance.new("Frame")
 	viewport.Name = UUID.Static("Viewport")
 	viewport.BorderSizePixel = 0
@@ -157,7 +156,6 @@ function Carousel.new(parent, Settings, theme)
 	-- a drag always lands here regardless of which page is under the cursor.
 	viewport.Active = true
 	viewport.Parent = container
-	round(viewport, CORNER)
 	self._viewport = viewport
 
 	-- Track holds every page side by side; its X scale is in viewport widths,
@@ -265,7 +263,6 @@ function Carousel.new(parent, Settings, theme)
 		pageFrame.Position = UDim2.fromScale((i - 1) / count, 0)
 		pageFrame.ClipsDescendants = true
 		pageFrame.Parent = track
-		round(pageFrame, CORNER)
 
 		if page.Video then
 			local videoFrame = Instance.new("VideoFrame")
@@ -278,17 +275,11 @@ function Carousel.new(parent, Settings, theme)
 			videoFrame.Looped = true
 			videoFrame.Volume = volume
 			videoFrame.Parent = pageFrame
+			-- The corner rides the media, not the clipping viewport.
+			round(videoFrame, CORNER)
 			-- Window/tab fades tween this gradient; VideoFrame has no transparency.
 			VideoFade.attach(videoFrame)
 			videos[i] = videoFrame
-			-- Drive the active pill from playback position.
-			local conn = videoFrame:GetPropertyChangedSignal("TimePosition"):Connect(function()
-				if i - 1 ~= self._index then
-					return
-				end
-				self:_setBlobFill(i, videoFraction(videoFrame), false)
-			end)
-			table.insert(self._conns, conn)
 		else
 			local image = Instance.new("ImageLabel")
 			image.Name = UUID.Static("PageImage")
@@ -299,6 +290,7 @@ function Carousel.new(parent, Settings, theme)
 			image.Image = page.Id
 			image.ScaleType = Enum.ScaleType.Crop
 			image.Parent = pageFrame
+			round(image, CORNER)
 		end
 	end
 
@@ -391,32 +383,38 @@ function Carousel.new(parent, Settings, theme)
 		end)
 	end)
 
-	-- Dwell timer: flips to the next page every interval seconds (wrapping)
-	-- and draws the active image blob as a countdown fill. Videos keep their
-	-- own playback progress on the pill instead.
-	if autoAdvance then
-		task.spawn(function()
-			while true do
-				task.wait(TICK)
-				if not self.Frame or not self.Frame.Parent then
-					return
-				end
-				-- Hold the countdown while dragging or while off screen.
-				if dragging or not PageAwareness.IsActive(self.Frame) then
-					continue
-				end
-				self._advanceElapsed = math.min(self._advanceElapsed + TICK, self._advanceInterval)
-				local active = self._index + 1
-				local blob = self._blobs[active]
-				if blob and blob.Pill.Visible and not self._videos[active] then
-					self:_setBlobFill(active, self._advanceElapsed / self._advanceInterval, true)
-				end
-				if self._advanceElapsed >= self._advanceInterval then
-					self:_goTo((self._index + 1) % self._pageCount)
-				end
-			end
-		end)
-	end
+	-- Progress driver: one pass per frame paints the active pill. Images fill
+	-- with the dwell countdown, videos with their playback position, so both
+	-- sweep continuously instead of in 20 Hz steps. Auto-advance rides the
+	-- same elapsed clock and still flips pages while a video page is showing.
+	local progressConn = RunService.RenderStepped:Connect(function(dt)
+		if not self.Frame or not self.Frame.Parent then
+			return
+		end
+		-- Hold the sweep while dragging or while off screen.
+		if dragging or not PageAwareness.IsActive(self.Frame) then
+			return
+		end
+		-- A stalled frame (tab switch, hitch) must not teleport the countdown.
+		dt = math.min(dt, 0.1)
+		local active = self._index + 1
+		local blob = self._blobs[active]
+		if not blob then
+			return
+		end
+		if self._advanceInterval > 0 then
+			self._advanceElapsed = self._advanceElapsed + dt
+		end
+		local video = self._videos[active]
+		if video then
+			self:_setBlobFill(active, videoFraction(video))
+		elseif self._advanceInterval > 0 then
+			self:_setBlobFill(active, self._advanceElapsed / self._advanceInterval)
+		end
+		if self._advanceInterval > 0 and self._advanceElapsed >= self._advanceInterval then
+			self:_goTo((self._index + 1) % self._pageCount)
+		end
+	end)
 
 	ComponentAPI.Apply(self, {
 		Root = container,
@@ -438,6 +436,18 @@ function Carousel.new(parent, Settings, theme)
 			GetPageCount = function(me)
 				return me._pageCount
 			end,
+			-- Height in pixels, same as the Video component.
+			SetHeight = function(me, newHeight)
+				local pixels = tonumber(newHeight) or DEFAULT_HEIGHT
+				me._height = pixels
+				me.Frame.Size = UDim2.new(1, 0, 0, pixels)
+				if me._viewport then
+					me._viewport.Size = UDim2.new(1, 0, 0, pixels)
+				end
+			end,
+			GetHeight = function(me)
+				return me._height
+			end,
 		},
 	})
 
@@ -446,6 +456,10 @@ function Carousel.new(parent, Settings, theme)
 			conn:Disconnect()
 		end
 		table.clear(me._conns)
+		if progressConn then
+			progressConn:Disconnect()
+			progressConn = nil
+		end
 		if moveConn then
 			moveConn:Disconnect()
 			moveConn = nil
@@ -480,20 +494,14 @@ function Carousel:_goTo(index)
 	end
 end
 
--- Draw one blob's progress. Snapping is for page changes and video frames
--- (both already arrive smoothly); the dwell countdown tweens instead.
-function Carousel:_setBlobFill(index, fraction, animate)
+-- Draw one blob's progress. The driver writes every frame, so this is a
+-- direct set (no tween to retarget and no visible stepping).
+function Carousel:_setBlobFill(index, fraction)
 	local blob = self._blobs[index]
 	if not blob then
 		return
 	end
-	local size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1)
-	if not animate then
-		Tween.CancelProperty(blob.Fill, "Size")
-		blob.Fill.Size = size
-		return
-	end
-	Tween.Play(blob.Fill, FILL_TWEEN, { Size = size })
+	blob.Fill.Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1)
 end
 
 function Carousel:_syncBlobs()
@@ -505,12 +513,12 @@ function Carousel:_syncBlobs()
 		if active then
 			local video = self._videos[i]
 			if video then
-				self:_setBlobFill(i, videoFraction(video), false)
+				self:_setBlobFill(i, videoFraction(video))
 			else
 				-- Images show the auto-advance countdown (full when the
 				-- carousel is set to hold on one page).
 				local fraction = if dwell > 0 then (self._advanceElapsed or 0) / dwell else 1
-				self:_setBlobFill(i, fraction, false)
+				self:_setBlobFill(i, fraction)
 			end
 		end
 	end
