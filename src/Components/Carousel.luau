@@ -2,9 +2,9 @@
 	Aetheris/Components/Carousel.luau
 
 	Horizontal page carousel: up to MAX_ITEMS image or video pages with a
-	blob indicator row (the current blob doubles as the playing item's
-	progress bar), drag swipe to change page, and off-view videos paused
-	so only the visible page decodes.
+	floating blob indicator over the media (the current blob doubles as the
+	playing item's progress bar), drag swipe to change page, and off-view
+	videos paused so only the visible page decodes.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -23,11 +23,18 @@ Carousel.__index = Carousel
 Carousel.MAX_ITEMS = 5
 
 local DEFAULT_HEIGHT = 160
-local BLOB_ROW = 22
+local CORNER = 6
 local SLOT_W = 20
 local SLOT_H = 8
 local DOT = 6
+local INDICATOR_PAD_X = 8
+local INDICATOR_PAD_Y = 5
+local INDICATOR_INSET = 10 -- px between the indicator capsule and the media edge
 local SWIPE_COMMIT = 44 -- px of travel before a swipe flips the page
+local TICK = 0.05 -- dwell sampling rate
+-- Each tick retargets the fill; a short linear tween bridges the gap so the
+-- progress reads as one continuous sweep instead of 20 discrete jumps.
+local FILL_TWEEN = TweenInfo.new(TICK * 1.6, Enum.EasingStyle.Linear)
 
 -- Accept "rbxassetid://123", "123" or 123.
 local function assetId(value)
@@ -59,6 +66,29 @@ local function collectPages(settings)
 	return pages
 end
 
+-- 0..1 playback position; a still-loading video reports length 0.
+local function videoFraction(video)
+	local length = video.TimeLength
+	if length <= 0 then
+		return 0
+	end
+	return math.clamp(video.TimePosition / length, 0, 1)
+end
+
+local function round(parent, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = parent
+	return corner
+end
+
+local function pill(parent)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = parent
+	return corner
+end
+
 function Carousel.new(parent, Settings, theme)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
@@ -86,18 +116,17 @@ function Carousel.new(parent, Settings, theme)
 	container.BorderSizePixel = 0
 	container.BackgroundColor3 = (theme and theme.ComponentBackgroundColor) or Color3.fromRGB(255, 255, 255)
 	container.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
-	container.Size = UDim2.new(1, 0, 0, if count > 0 then height + BLOB_ROW + 6 else 0)
+	container.Size = UDim2.new(1, 0, 0, if count > 0 then height else 0)
 	container.Position = UDim2.fromScale(0, 0)
 	container.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	-- Clips so the pages round through the container's own corner.
+	-- The indicator floats over the media, so the shell is exactly one page
+	-- tall; the corner clips every page edge to the card radius.
 	container.ClipsDescendants = true
 	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
 	self.Frame = container
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = container
+	round(container, CORNER)
 	local stroke = Instance.new("UIStroke")
 	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	stroke.Color = (theme and theme.StrokeColor)
@@ -114,6 +143,8 @@ function Carousel.new(parent, Settings, theme)
 		return self
 	end
 
+	-- The viewport owns the visible frame: it clips the page strip to its own
+	-- rounded bounds, so a page never pokes a square corner out of the card.
 	local viewport = Instance.new("Frame")
 	viewport.Name = UUID.Static("Viewport")
 	viewport.BorderSizePixel = 0
@@ -126,6 +157,8 @@ function Carousel.new(parent, Settings, theme)
 	-- a drag always lands here regardless of which page is under the cursor.
 	viewport.Active = true
 	viewport.Parent = container
+	round(viewport, CORNER)
+	self._viewport = viewport
 
 	-- Track holds every page side by side; its X scale is in viewport widths,
 	-- so page i sits at Position X = i and the track hides page i at -i.
@@ -138,39 +171,40 @@ function Carousel.new(parent, Settings, theme)
 	track.Position = UDim2.fromScale(0, 0)
 	track.Parent = viewport
 	self._track = track
-	self._viewport = viewport
 
-	local blobRow = Instance.new("Frame")
-	blobRow.Name = UUID.Static("Blobs")
-	blobRow.BorderSizePixel = 0
-	blobRow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	blobRow.BackgroundTransparency = 1
-	blobRow.Position = UDim2.fromOffset(0, height + 6)
-	blobRow.Size = UDim2.new(1, 0, 0, BLOB_ROW)
-	blobRow.Parent = container
-
-	-- Fixed-width slots keep the row from reflowing when a dot becomes a pill.
-	local holder = Instance.new("Frame")
-	holder.Name = UUID.Static("BlobHolder")
-	holder.BorderSizePixel = 0
-	holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	holder.BackgroundTransparency = 1
-	holder.AnchorPoint = Vector2.new(0.5, 0.5)
-	holder.Position = UDim2.fromScale(0.5, 0.5)
-	holder.Size = UDim2.fromOffset(0, SLOT_H)
-	holder.AutomaticSize = Enum.AutomaticSize.X
-	holder.Parent = blobRow
-	local holderLayout = Instance.new("UIListLayout")
-	holderLayout.FillDirection = Enum.FillDirection.Horizontal
-	holderLayout.Padding = UDim.new(0, 4)
-	holderLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	holderLayout.Parent = holder
+	-- Indicator capsule: a dark scrim pill floating over the bottom of the
+	-- media, so the dots read over any artwork (light pages included).
+	local indicator = Instance.new("Frame")
+	indicator.Name = UUID.Static("Blobs")
+	indicator.BorderSizePixel = 0
+	indicator.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	indicator.BackgroundTransparency = 0.72
+	indicator.AnchorPoint = Vector2.new(0.5, 1)
+	indicator.Position = UDim2.new(0.5, 0, 1, -INDICATOR_INSET)
+	indicator.Size = UDim2.fromOffset(0, SLOT_H + INDICATOR_PAD_Y * 2)
+	indicator.AutomaticSize = Enum.AutomaticSize.X
+	indicator.ZIndex = 5
+	indicator.Parent = viewport
+	pill(indicator)
+	local indicatorLayout = Instance.new("UIListLayout")
+	indicatorLayout.FillDirection = Enum.FillDirection.Horizontal
+	indicatorLayout.Padding = UDim.new(0, 4)
+	indicatorLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	indicatorLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	indicatorLayout.Parent = indicator
+	local indicatorPadding = Instance.new("UIPadding")
+	indicatorPadding.PaddingLeft = UDim.new(0, INDICATOR_PAD_X)
+	indicatorPadding.PaddingRight = UDim.new(0, INDICATOR_PAD_X)
+	indicatorPadding.PaddingTop = UDim.new(0, INDICATOR_PAD_Y)
+	indicatorPadding.PaddingBottom = UDim.new(0, INDICATOR_PAD_Y)
+	indicatorPadding.Parent = indicator
 
 	local blobs = {}
 	local videos = {}
 
 	for i, page in ipairs(pages) do
+		-- Fixed-width slots keep the capsule from reflowing when a dot
+		-- becomes a pill.
 		local slot = Instance.new("Frame")
 		slot.Name = UUID.Static("BlobSlot")
 		slot.BorderSizePixel = 0
@@ -178,7 +212,8 @@ function Carousel.new(parent, Settings, theme)
 		slot.BackgroundTransparency = 1
 		slot.Size = UDim2.fromOffset(SLOT_W, SLOT_H)
 		slot.LayoutOrder = i
-		slot.Parent = holder
+		slot.ZIndex = 5
+		slot.Parent = indicator
 
 		local dot = Instance.new("Frame")
 		dot.Name = UUID.Static("Dot")
@@ -186,27 +221,25 @@ function Carousel.new(parent, Settings, theme)
 		dot.Position = UDim2.fromScale(0.5, 0.5)
 		dot.Size = UDim2.fromOffset(DOT, DOT)
 		dot.BackgroundColor3 = Color3.new(1, 1, 1)
-		dot.BackgroundTransparency = 0.7
+		dot.BackgroundTransparency = 0.55
 		dot.BorderSizePixel = 0
+		dot.ZIndex = 6
 		dot.Parent = slot
-		local dotCorner = Instance.new("UICorner")
-		dotCorner.CornerRadius = UDim.new(1, 0)
-		dotCorner.Parent = dot
+		pill(dot)
 		ThemeManager.BindColor(dot, "BackgroundColor3", "PrimaryTextColor")
 
-		-- The active pill: white track plus an accent fill that doubles as
-		-- the video's playback progress (full for images).
-		local pill = Instance.new("Frame")
-		pill.Name = UUID.Static("Pill")
-		pill.Size = UDim2.fromScale(1, 1)
-		pill.BackgroundColor3 = Color3.new(1, 1, 1)
-		pill.BackgroundTransparency = 0.85
-		pill.BorderSizePixel = 0
-		pill.Visible = false
-		pill.Parent = slot
-		local pillCorner = Instance.new("UICorner")
-		pillCorner.CornerRadius = UDim.new(0, 4)
-		pillCorner.Parent = pill
+		-- The active pill: faint white track plus an accent fill that doubles
+		-- as the video's playback progress (a dwell countdown for images).
+		local activePill = Instance.new("Frame")
+		activePill.Name = UUID.Static("Pill")
+		activePill.Size = UDim2.fromScale(1, 1)
+		activePill.BackgroundColor3 = Color3.new(1, 1, 1)
+		activePill.BackgroundTransparency = 0.82
+		activePill.BorderSizePixel = 0
+		activePill.Visible = false
+		activePill.ZIndex = 6
+		activePill.Parent = slot
+		pill(activePill)
 
 		local fill = Instance.new("Frame")
 		fill.Name = UUID.Static("PillFill")
@@ -214,13 +247,12 @@ function Carousel.new(parent, Settings, theme)
 		fill.BackgroundColor3 = Color3.new(1, 1, 1)
 		fill.BackgroundTransparency = 0
 		fill.BorderSizePixel = 0
-		fill.Parent = pill
-		local fillCorner = Instance.new("UICorner")
-		fillCorner.CornerRadius = UDim.new(0, 4)
-		fillCorner.Parent = fill
+		fill.ZIndex = 7
+		fill.Parent = activePill
+		pill(fill)
 		ThemeManager.BindColor(fill, "BackgroundColor3", "AccentColor")
 
-		blobs[i] = { Dot = dot, Pill = pill, Fill = fill }
+		blobs[i] = { Dot = dot, Pill = activePill, Fill = fill }
 
 		local pageFrame = Instance.new("Frame")
 		pageFrame.Name = UUID.Static("Page")
@@ -231,7 +263,9 @@ function Carousel.new(parent, Settings, theme)
 		-- Position scales against the track, so page i sits at i/count of it
 		-- (= one viewport width per step).
 		pageFrame.Position = UDim2.fromScale((i - 1) / count, 0)
+		pageFrame.ClipsDescendants = true
 		pageFrame.Parent = track
+		round(pageFrame, CORNER)
 
 		if page.Video then
 			local videoFrame = Instance.new("VideoFrame")
@@ -252,9 +286,7 @@ function Carousel.new(parent, Settings, theme)
 				if i - 1 ~= self._index then
 					return
 				end
-				local length = videoFrame.TimeLength
-				local fraction = if length > 0 then math.clamp(videoFrame.TimePosition / length, 0, 1) else 0
-				blobs[i].Fill.Size = UDim2.fromScale(fraction, 1)
+				self:_setBlobFill(i, videoFraction(videoFrame), false)
 			end)
 			table.insert(self._conns, conn)
 		else
@@ -365,7 +397,7 @@ function Carousel.new(parent, Settings, theme)
 	if autoAdvance then
 		task.spawn(function()
 			while true do
-				task.wait(0.05)
+				task.wait(TICK)
 				if not self.Frame or not self.Frame.Parent then
 					return
 				end
@@ -373,11 +405,11 @@ function Carousel.new(parent, Settings, theme)
 				if dragging or not PageAwareness.IsActive(self.Frame) then
 					continue
 				end
-				self._advanceElapsed = math.min(self._advanceElapsed + 0.05, self._advanceInterval)
+				self._advanceElapsed = math.min(self._advanceElapsed + TICK, self._advanceInterval)
 				local active = self._index + 1
 				local blob = self._blobs[active]
 				if blob and blob.Pill.Visible and not self._videos[active] then
-					blob.Fill.Size = UDim2.fromScale(self._advanceElapsed / self._advanceInterval, 1)
+					self:_setBlobFill(active, self._advanceElapsed / self._advanceInterval, true)
 				end
 				if self._advanceElapsed >= self._advanceInterval then
 					self:_goTo((self._index + 1) % self._pageCount)
@@ -448,7 +480,24 @@ function Carousel:_goTo(index)
 	end
 end
 
+-- Draw one blob's progress. Snapping is for page changes and video frames
+-- (both already arrive smoothly); the dwell countdown tweens instead.
+function Carousel:_setBlobFill(index, fraction, animate)
+	local blob = self._blobs[index]
+	if not blob then
+		return
+	end
+	local size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1)
+	if not animate then
+		Tween.CancelProperty(blob.Fill, "Size")
+		blob.Fill.Size = size
+		return
+	end
+	Tween.Play(blob.Fill, FILL_TWEEN, { Size = size })
+end
+
 function Carousel:_syncBlobs()
+	local dwell = self._advanceInterval or 0
 	for i, blob in ipairs(self._blobs) do
 		local active = i - 1 == self._index
 		blob.Dot.Visible = not active
@@ -456,15 +505,12 @@ function Carousel:_syncBlobs()
 		if active then
 			local video = self._videos[i]
 			if video then
-				local length = video.TimeLength
-				local fraction = if length > 0 then math.clamp(video.TimePosition / length, 0, 1) else 0
-				blob.Fill.Size = UDim2.fromScale(fraction, 1)
+				self:_setBlobFill(i, videoFraction(video), false)
 			else
 				-- Images show the auto-advance countdown (full when the
 				-- carousel is set to hold on one page).
-				local dwell = self._advanceInterval or 0
-				local fraction = if dwell > 0 then math.clamp((self._advanceElapsed or 0) / dwell, 0, 1) else 1
-				blob.Fill.Size = UDim2.fromScale(fraction, 1)
+				local fraction = if dwell > 0 then (self._advanceElapsed or 0) / dwell else 1
+				self:_setBlobFill(i, fraction, false)
 			end
 		end
 	end
