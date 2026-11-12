@@ -1325,6 +1325,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 			me._scrollbarTimer = nil
 		end
 	end
+	-- Cross-popup dismissal: commits the current selection like a click-off.
+	self.Dismiss = function(me)
+		me:_Confirm()
+	end
 	self.Destroy = function(me)
 		if me._inputConnection then
 			me._inputConnection:Disconnect()

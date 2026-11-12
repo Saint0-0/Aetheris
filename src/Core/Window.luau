@@ -2498,6 +2498,8 @@ function Window.new(Settings)
 				if me.IsOpen or not me.Popup or not me.Popup.Parent then
 					return
 				end
+				-- Opening the changelog resolves whatever else is open.
+				win:_claimPopup(me)
 				if version ~= "" then
 					-- Stamp the moment it actually opens, so a popup dismissed
 					-- during startup doesn't burn the notification for later runs.
@@ -2645,15 +2647,21 @@ function Window:UINotification(Settings)
 
 	-- Only one dialog at a time; the old one is closed and destroyed first.
 	if self._notification then
+		if self._activePopUp == self._notification then
+			self._activePopUp = nil
+		end
 		self._notification:Close()
 		self._notification:Destroy()
 		self._notification = nil
 	end
 
 	Settings.Theme = self._theme
-	self._notification = UINotification.new(self.PopUpsFolder, Settings)
-	self._notification:Open()
-	return self._notification
+	local notification = UINotification.new(self.PopUpsFolder, Settings)
+	self._notification = notification
+	-- A UI notification resolves whatever popup was open before it.
+	self:_claimPopup(notification)
+	notification:Open()
+	return notification
 end
 
 -- Toast notifications (self-destroying). window:Alert/Error/Toast.
@@ -2692,6 +2700,16 @@ function Window:Toast(Settings)
 	return spawnNotification(self, "Variable", Settings)
 end
 
+-- One popup at a time across dropdown, colour picker, changelog and UI
+-- notification: claiming dismisses the previous one like a click-off.
+function Window:_claimPopup(popup)
+	local active = self._activePopUp
+	if active and active ~= popup and active.Dismiss then
+		active:Dismiss()
+	end
+	self._activePopUp = popup
+end
+
 function Window:DropdownPopUp(id, Settings)
 	if type(Settings) ~= "table" then
 		warn("[Window:DropdownPopUp] Settings is not a table, defaulting to {}")
@@ -2711,8 +2729,8 @@ function Window:DropdownPopUp(id, Settings)
 			if self._dropdownPopups then
 				self._dropdownPopups[id] = nil
 			end
-			if self._activePopupId == id then
-				self._activePopupId = nil
+			if self._activePopUp == popup then
+				self._activePopUp = nil
 			end
 		end)
 		self._dropdownPopups[id] = popup
@@ -2720,18 +2738,10 @@ function Window:DropdownPopUp(id, Settings)
 		popup:SetContent(Settings)
 	end
 
-	-- One popup at a time: hide whichever else is open.
-	if self._activePopupId and self._activePopupId ~= id then
-		local activePopup = self._dropdownPopups[self._activePopupId]
-		if activePopup then
-			activePopup:Hide()
-		end
-	end
-
 	if popup then
+		self:_claimPopup(popup)
 		popup:Open()
 		Sound.Play("Notification")
-		self._activePopupId = id
 	end
 	return popup
 end
@@ -2754,8 +2764,8 @@ function Window:ColorPickerPopUp(id, Settings)
 			if self._colorPickerPopups then
 				self._colorPickerPopups[id] = nil
 			end
-			if self._activeColorPickerId == id then
-				self._activeColorPickerId = nil
+			if self._activePopUp == popup then
+				self._activePopUp = nil
 			end
 		end)
 		self._colorPickerPopups[id] = popup
@@ -2764,40 +2774,28 @@ function Window:ColorPickerPopUp(id, Settings)
 		popup:SetContent(Settings)
 	end
 
-	-- One popup at a time: hide whichever else is open.
-	if self._activeColorPickerId and self._activeColorPickerId ~= id then
-		local activePopup = self._colorPickerPopups[self._activeColorPickerId]
-		if activePopup then
-			activePopup:Hide()
-		end
-	end
-
 	if popup then
+		self:_claimPopup(popup)
 		popup:Open()
 		Sound.Play("Notification")
-		self._activeColorPickerId = id
 	end
 	return popup
 end
 
+-- Tab switches and window close: put every popup away without firing callbacks.
 function Window:HidePopups()
 	if self._notification then
 		self._notification:Hide()
 	end
-	if self._activePopupId then
-		local popup = self._dropdownPopups and self._dropdownPopups[self._activePopupId]
-		if popup then
-			popup:Hide()
+	local active = self._activePopUp
+	if active then
+		if active.Hide then
+			active:Hide()
+		elseif active.Close then
+			active:Close()
 		end
-		self._activePopupId = nil
 	end
-	if self._activeColorPickerId then
-		local popup = self._colorPickerPopups and self._colorPickerPopups[self._activeColorPickerId]
-		if popup then
-			popup:Hide()
-		end
-		self._activeColorPickerId = nil
-	end
+	self._activePopUp = nil
 end
 
 return Window

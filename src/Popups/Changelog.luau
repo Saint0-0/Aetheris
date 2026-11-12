@@ -616,6 +616,11 @@ function Changelog:Close()
 	end)
 end
 
+-- Cross-popup dismissal (Window): same as clicking off the changelog.
+function Changelog:Dismiss()
+	self:Close()
+end
+
 function Changelog:Destroy()
 	self:_disconnectOutsideClick()
 	if self._hideTimer then

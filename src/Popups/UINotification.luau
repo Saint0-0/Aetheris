@@ -384,6 +384,11 @@ function UINotification:_disconnectOutsideClick()
 		self._outsideConn = nil
 	end
 end
+-- Cross-popup dismissal (Window): treat it as a click-off, so no input was
+-- given and the caller's default/cancel path runs.
+function UINotification:Dismiss()
+	self:_Cancel()
+end
 function UINotification:Open()
 	if self.IsOpen then
 		return
