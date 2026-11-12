@@ -332,7 +332,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Name = UUID.Static("RowLabel")
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
-		label.TextSize = 11
+		label.TextSize = 12
 		label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		label.TextColor3 = (theme and theme.PopupTextColor)
 		label.TextTransparency = 0.45
@@ -360,7 +360,10 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hueBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
 	hueBar.Position = UDim2.fromOffset(SIDE_PAD, 328)
 	hueBar.Parent = popup
-	addCorner(hueBar, UDim.new(0.5, 0))
+	-- One radius for the bars, their checkers and the alpha fill: every layer
+	-- has to end in the same pill or the transparent half shows a square edge.
+	local barCorner = UDim.new(0.5, 0)
+	addCorner(hueBar, barCorner)
 	local hueGradient = Instance.new("UIGradient")
 	hueGradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 0, 0)),
@@ -404,7 +407,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaBar.Position = UDim2.fromOffset(SIDE_PAD, 368)
 	alphaBar.ClipsDescendants = true
 	alphaBar.Parent = popup
-	addCorner(alphaBar, UDim.new(0.5, 0))
+	addCorner(alphaBar, barCorner)
 	checkers[#checkers + 1] = newChecker(alphaBar, 24, 2)
 	local alphaFill = Instance.new("Frame")
 	alphaFill.Name = UUID.Static("AlphaFill")
@@ -412,7 +415,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	alphaFill.Size = UDim2.fromScale(1, 1)
 	alphaFill.Parent = alphaBar
-	addCorner(alphaFill, UDim.new(0.5, 0)) -- same pill as the hue bar (design-notes 1)
+	addCorner(alphaFill, barCorner)
 	local alphaGradient = Instance.new("UIGradient")
 	alphaGradient.Rotation = 0
 	alphaGradient.Transparency = NumberSequence.new({
@@ -466,8 +469,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexDot.Name = UUID.Static("HexDot")
 	hexDot.BorderSizePixel = 0
 	hexDot.BackgroundTransparency = 1
-	hexDot.Size = UDim2.fromOffset(22, 22)
-	hexDot.Position = UDim2.fromOffset(10, 9)
+	hexDot.Size = UDim2.fromOffset(26, 26)
+	hexDot.Position = UDim2.fromOffset(9, 7)
 	hexDot.ClipsDescendants = true
 	hexDot.Parent = hexShell
 	addCorner(hexDot, UDim.new(0, CORNER_CARD))
@@ -483,13 +486,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexInput.BorderSizePixel = 0
 	hexInput.BackgroundTransparency = 1
 	hexInput.TextXAlignment = Enum.TextXAlignment.Left
-	hexInput.TextSize = 13
+	hexInput.TextSize = 14
 	hexInput.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	hexInput.TextColor3 = (theme and theme.PopupTextColor)
 	hexInput.TextTransparency = 0.15
 	hexInput.ClearTextOnFocus = false
 	hexInput.ClipsDescendants = true
-	hexInput.Size = UDim2.new(1, -76, 1, 0)
+	hexInput.Size = UDim2.new(1, -78, 1, 0)
 	hexInput.Position = UDim2.fromOffset(40, 0)
 	hexInput.Text = "#FFFFFF"
 	hexInput.Parent = hexShell
@@ -499,9 +502,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexTag.BorderSizePixel = 0
 	hexTag.BackgroundTransparency = 1
 	hexTag.AnchorPoint = Vector2.new(1, 0.5)
-	hexTag.Position = UDim2.new(1, -10, 0.5, 0)
-	hexTag.Size = UDim2.fromOffset(26, 14)
-	hexTag.TextSize = 9
+	hexTag.Position = UDim2.new(1, -6, 0.5, 0)
+	hexTag.Size = UDim2.fromOffset(28, 14)
+	hexTag.TextSize = 11
 	hexTag.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	hexTag.TextColor3 = (theme and theme.PopupTextColor)
 	hexTag.TextTransparency = 0.55
@@ -519,13 +522,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		caption.Name = UUID.Static("ChannelLabel")
 		caption.BorderSizePixel = 0
 		caption.BackgroundTransparency = 1
-		caption.TextSize = 10
+		caption.TextSize = 12
 		caption.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		caption.TextColor3 = (theme and theme.PopupTextColor)
 		caption.TextTransparency = 0.5
 		caption.Text = channel
-		caption.Size = UDim2.fromOffset(fieldWidth, 12)
-		caption.Position = UDim2.fromOffset(x, 118)
+		caption.Size = UDim2.fromOffset(fieldWidth, 14)
+		caption.Position = UDim2.fromOffset(x, 117)
 		caption.Parent = popup
 		texts[#texts + 1] = caption
 		local box = Instance.new("TextBox")
@@ -533,7 +536,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		box.BorderSizePixel = 0
 		box.BackgroundTransparency = 1
 		box.TextXAlignment = Enum.TextXAlignment.Center
-		box.TextSize = 12
+		box.TextSize = 14
 		box.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		box.TextColor3 = (theme and theme.PopupTextColor)
 		box.TextTransparency = 0.15
@@ -607,8 +610,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		well.Name = UUID.Static(name)
 		well.BorderSizePixel = 0
 		well.BackgroundTransparency = 1
-		well.Size = UDim2.fromOffset(22, 22)
-		well.Position = UDim2.fromOffset(x, 16)
+		well.Size = UDim2.fromOffset(26, 26)
+		well.Position = UDim2.fromOffset(x, 14)
 		well.ClipsDescendants = true
 		well.Parent = interactions
 		addCorner(well, UDim.new(0, CORNER_CARD))
@@ -636,16 +639,16 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	arrow.ImageColor3 = (theme and theme.PopupTextColor)
 	arrow.ImageTransparency = 0.55
 	arrow.Size = UDim2.fromOffset(14, 14)
-	arrow.Position = UDim2.fromOffset(42, 20)
+	arrow.Position = UDim2.fromOffset(46, 20)
 	arrow.Parent = interactions
 	texts[#texts + 1] = arrow
-	local newFill = newWell("NewWell", 60)
+	local newFill = newWell("NewWell", 66)
 
 	local cancelBtn = Instance.new("TextButton")
 	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
-	cancelBtn.TextSize = 13
+	cancelBtn.TextSize = 14
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
@@ -667,7 +670,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 0.2
-	confirmBtn.TextSize = 13
+	confirmBtn.TextSize = 14
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
