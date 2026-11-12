@@ -168,6 +168,78 @@ local function agoText(timestamp)
 end
 
 ----------------------------------------------------------------
+-- Changelog card grammar (design-notes 1/10): a solid neutral fill
+-- under a 35-degree aurora wash — accent-tinted bright corner falling
+-- to a darker bottom. Shared by every card this screen draws.
+----------------------------------------------------------------
+
+local FALLBACK_NEUTRAL = Color3.fromRGB(34, 34, 38)
+local AURORA_TINT = 0.14
+
+local function isDark(color)
+	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
+end
+
+local function cardBase(theme)
+	return (theme and theme.PopupNeutralColor) or (theme and theme.ComponentBackgroundColor) or FALLBACK_NEUTRAL
+end
+
+-- UIGradient.Color multiplies what it paints, so the keypoints are
+-- multipliers rather than literal colours (design-notes 10).
+local function stampCardGradient(gradient, theme)
+	local base = cardBase(theme)
+	local bottom = if isDark(base) then 0.72 else 0.9
+	local corner = Color3.new(1, 1, 1)
+	if theme and theme.AccentColor then
+		corner = corner:Lerp(theme.AccentColor, AURORA_TINT)
+	end
+	gradient.Rotation = 35
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, corner),
+		ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.new(bottom, bottom, bottom)),
+	})
+end
+
+-- Tile fills derive from theme slots so they follow light/dark themes.
+local function tileFill(tint, base)
+	if isDark(base) then
+		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
+	end
+	return base:Lerp(tint, 0.3)
+end
+
+-- Accent-as-text: hue kept, saturation capped, value forced up on dark
+-- grounds; darkened on light ones (design-notes 5).
+local function accentText(color, onDark)
+	if onDark then
+		local h, s, v = color:ToHSV()
+		return Color3.fromHSV(h, math.min(s, 0.75), math.max(v, 0.92))
+	end
+	return color:Lerp(Color3.new(0, 0, 0), 0.3)
+end
+
+-- Registries so the theme switch below can restamp every card/tile.
+local function rememberGradient(self, gradient)
+	self._cardGradients = self._cardGradients or {}
+	self._cardGradients[#self._cardGradients + 1] = gradient
+end
+
+local function rememberTile(self, tile, glyph)
+	self._tiles = self._tiles or {}
+	self._tiles[#self._tiles + 1] = { Tile = tile, Glyph = glyph }
+end
+
+local function restampTiles(self, theme)
+	local base = cardBase(theme)
+	local tint = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+	for _, record in ipairs(self._tiles or {}) do
+		record.Tile.BackgroundColor3 = tileFill(tint, base)
+		record.Glyph.ImageColor3 = accentText(tint, isDark(base))
+	end
+end
+
+----------------------------------------------------------------
 -- Card build
 ----------------------------------------------------------------
 
@@ -369,7 +441,8 @@ local function buildCard(self)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(18, 35),
 		Size = UDim2.fromOffset(34, 34),
-		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
+		-- The mark sits bare on the shell — no tile behind it (user call).
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 		Parent = headerGroup,
@@ -563,7 +636,8 @@ local function buildIntro(self)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(50, 50),
-		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
+		-- Bare brand mark: the accent square behind it is gone (user call).
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 		Parent = ring,
@@ -643,10 +717,23 @@ local function buildLoading(self)
 	local column = new("Frame", {
 		Name = UUID.Static("Steps"),
 		Position = UDim2.fromOffset(CONTENT_PAD, 8),
-		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 104),
-		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 124),
+		BackgroundColor3 = cardBase(theme),
+		BackgroundTransparency = 0,
+		BorderSizePixel = 0,
 		Parent = body,
 	})
+	-- Changelog card: solid neutral fill, aurora corner wash, no stroke.
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = column })
+	local columnGradient = new("UIGradient", { Parent = column })
+	stampCardGradient(columnGradient, theme)
+	rememberGradient(self, columnGradient)
+	ThemeManager.BindColor(column, "BackgroundColor3", "PopupNeutralColor")
+	local columnPad = new("UIPadding", { Parent = column })
+	columnPad.PaddingTop = UDim.new(0, 10)
+	columnPad.PaddingBottom = UDim.new(0, 10)
+	columnPad.PaddingLeft = UDim.new(0, 12)
+	columnPad.PaddingRight = UDim.new(0, 12)
 	local layout = new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
 		Padding = UDim.new(0, 6),
@@ -654,7 +741,8 @@ local function buildLoading(self)
 		Parent = column,
 	})
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		column.Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, layout.AbsoluteContentSize.Y)
+		-- +20 for the card's vertical padding above/below the rows.
+		column.Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, layout.AbsoluteContentSize.Y + 20)
 	end)
 
 	for index, step in ipairs(self._steps) do
@@ -1040,8 +1128,9 @@ local function buildKeyPhase(self)
 		Name = UUID.Static("DiscordCard"),
 		Position = UDim2.fromOffset(CONTENT_PAD, cardsY),
 		Size = UDim2.fromOffset(discordWidth, 74),
-		BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = theme.ComponentBackgroundTransparency or 0.94,
+		-- Changelog card: solid neutral fill + aurora wash, no stroke.
+		BackgroundColor3 = cardBase(theme),
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Text = "",
@@ -1049,13 +1138,10 @@ local function buildKeyPhase(self)
 		Parent = body,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = discordCard })
-	new("UIStroke", {
-		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		Transparency = theme.SectionStrokeTransparency or 0.9,
-		Thickness = 1,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Parent = discordCard,
-	})
+	local dcGradient = new("UIGradient", { Parent = discordCard })
+	stampCardGradient(dcGradient, theme)
+	rememberGradient(self, dcGradient)
+	ThemeManager.BindColor(discordCard, "BackgroundColor3", "PopupNeutralColor")
 	buttonMotion(discordCard)
 
 	local dcTile = new("Frame", {
@@ -1063,23 +1149,24 @@ local function buildKeyPhase(self)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
 		Size = UDim2.fromOffset(40, 40),
-		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
-		BackgroundTransparency = 0.82,
+		BackgroundColor3 = tileFill(theme.AccentColor or Color3.fromRGB(14, 45, 178), cardBase(theme)),
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = discordCard,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dcTile })
-	new("ImageLabel", {
+	local dcGlyph = new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(19, 19),
 		BackgroundTransparency = 1,
 		Image = Icons["link"] or Icons["external-link"],
-		ImageColor3 = theme.AccentColor or Color3.fromRGB(108, 140, 255),
+		ImageColor3 = accentText(theme.AccentColor or Color3.fromRGB(108, 140, 255), isDark(cardBase(theme))),
 		ZIndex = 3,
 		Parent = dcTile,
 	})
+	rememberTile(self, dcTile, dcGlyph)
 	new("TextLabel", {
 		Name = UUID.Static("CardTitle"),
 		AnchorPoint = Vector2.new(0, 0),
@@ -1119,8 +1206,8 @@ local function buildKeyPhase(self)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -CONTENT_PAD, 0, cardsY),
 		Size = UDim2.fromOffset(infoWidth, 74),
-		BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = theme.ComponentBackgroundTransparency or 0.94,
+		BackgroundColor3 = cardBase(theme),
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Text = "",
@@ -1128,13 +1215,10 @@ local function buildKeyPhase(self)
 		Parent = body,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoCard })
-	new("UIStroke", {
-		Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-		Transparency = theme.SectionStrokeTransparency or 0.9,
-		Thickness = 1,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Parent = infoCard,
-	})
+	local infoGradient = new("UIGradient", { Parent = infoCard })
+	stampCardGradient(infoGradient, theme)
+	rememberGradient(self, infoGradient)
+	ThemeManager.BindColor(infoCard, "BackgroundColor3", "PopupNeutralColor")
 	buttonMotion(infoCard)
 
 	local infoTile = new("Frame", {
@@ -1142,23 +1226,24 @@ local function buildKeyPhase(self)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
 		Size = UDim2.fromOffset(40, 40),
-		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
-		BackgroundTransparency = 0.82,
+		BackgroundColor3 = tileFill(theme.AccentColor or Color3.fromRGB(14, 45, 178), cardBase(theme)),
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 		Parent = infoCard,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = infoTile })
-	new("ImageLabel", {
+	local infoGlyph = new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(19, 19),
 		BackgroundTransparency = 1,
 		Image = Icons["info"] or Icons["badge-info"],
-		ImageColor3 = theme.AccentColor or Color3.fromRGB(108, 140, 255),
+		ImageColor3 = accentText(theme.AccentColor or Color3.fromRGB(108, 140, 255), isDark(cardBase(theme))),
 		ZIndex = 3,
 		Parent = infoTile,
 	})
+	rememberTile(self, infoTile, infoGlyph)
 	local infoTitle = new("TextLabel", {
 		Name = UUID.Static("CardTitle"),
 		AnchorPoint = Vector2.new(0, 0),
@@ -1703,6 +1788,12 @@ function KeyScreen.Run(keyConfig, opts)
 			ColorSequenceKeypoint.new(0, theme.AccentColor or Color3.fromRGB(14, 45, 178)),
 			ColorSequenceKeypoint.new(1, theme.PrimaryColor or Color3.fromRGB(13, 44, 177)),
 		})
+		-- The card washes and tile fills are derived mixes, not theme slots,
+		-- so they ride this callback.
+		for _, gradient in ipairs(self._cardGradients or {}) do
+			stampCardGradient(gradient, theme)
+		end
+		restampTiles(self, theme)
 		self._aurora:SetTheme(theme)
 	end, self._card)
 
