@@ -34,7 +34,7 @@ section:Dropdown({
 
 Each item is a table, not a string: `{ name = "Apple", value = "apple" }`. Adding `icon = Aetheris.Icons.apple` puts a glyph next to it in the popup. The callback runs on confirm, not per click, so cancelling leaves everything untouched.
 
-The callback receives an array of the same `{ name, value }` tables, in the order the player picked them.
+The callback receives an array of the same `{ name, value }` tables, in the order the player picked them. The row shows the selected names beside the label, truncated from the end when they do not fit.
 
 ## Methods
 

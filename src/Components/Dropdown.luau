@@ -8,6 +8,7 @@
 ]]
 
 local Icons = require("../Assets/Icons")
+local Constants = require("../Constants")
 local Tween = require("../Utils/Tween")
 local ThemeManager = require("../Themes/ThemeManager")
 local ActiveTheme = require("../Themes/ActiveTheme")
@@ -37,7 +38,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		RowName = name .. "Dropdown",
 		Theme = theme,
 		Clickable = false,
-		LabelWidth = 0.82748,
+		LabelWidth = 0.48591,
 		LabelPosition = UDim2.new(0, 10, 0.5, 0),
 		BackgroundColor = (theme and theme.ComponentBackgroundColor),
 		BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985,
@@ -68,6 +69,23 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	dropdownImage.Size = UDim2.fromOffset(14, 14)
 	dropdownImage.Position = UDim2.new(1, -20, 0.5, 0)
 	dropdownImage.Parent = row
+	-- Selected names sit between the label and the chevron.
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Name = UUID.Static("SelectedValues")
+	valueLabel.BorderSizePixel = 0
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.AnchorPoint = Vector2.new(1, 0.5)
+	valueLabel.Size = UDim2.new(0.5, -46, 1, 0)
+	valueLabel.Position = UDim2.new(1, -40, 0.5, 0)
+	valueLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
+	valueLabel.TextSize = 13
+	valueLabel.TextWrapped = false
+	valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.TextColor3 = (theme and theme.SecondaryTextColor) or Color3.fromRGB(255, 255, 255)
+	valueLabel.TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.4
+	valueLabel.Text = ""
+	valueLabel.Parent = row
 	local selectedItems = {} -- array of { name, value }
 	for _, value in ipairs(default) do
 		for _, item in ipairs(items) do
@@ -77,6 +95,15 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			end
 		end
 	end
+	-- One text write per selection change, shared by every setter.
+	local function refreshValues()
+		local names = {}
+		for _, item in ipairs(selectedItems) do
+			names[#names + 1] = item.name
+		end
+		valueLabel.Text = table.concat(names, ", ")
+	end
+	refreshValues()
 	local popupInstance = nil
 	local function openPopup()
 		if popupInstance and popupInstance.IsOpen then
@@ -98,6 +125,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			Theme = ActiveTheme.theme or self._theme,
 			OnConfirm = function(selected)
 				selectedItems = selected
+				refreshValues()
 				if callback then
 					callback(selectedItems)
 				end
@@ -126,6 +154,8 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
+	ThemeManager.BindColor(valueLabel, "TextColor3", "SecondaryTextColor")
+	ThemeManager.BindTransparency(valueLabel, "TextTransparency", "SecondaryTextTransparency")
 	self.Destroy = function()
 		if popupInstance and popupInstance.IsOpen then
 			pcall(function()
@@ -137,6 +167,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		ThemeManager.UnbindInstance(row)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(dropdownImage)
+		ThemeManager.UnbindInstance(valueLabel)
 		if row and row.Parent then
 			row:Destroy()
 		end
@@ -151,20 +182,19 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			end,
 			SetValues = function(_, newItems, keepSelection)
 				items = type(newItems) == "table" and newItems or {}
-				if not keepSelection then
-					selectedItems = {}
-					return
-				end
 				local valid = {}
-				for _, sel in ipairs(selectedItems) do
-					for _, item in ipairs(items) do
-						if item.value == sel.value then
-							table.insert(valid, { name = item.name, value = item.value })
-							break
+				if keepSelection then
+					for _, sel in ipairs(selectedItems) do
+						for _, item in ipairs(items) do
+							if item.value == sel.value then
+								table.insert(valid, { name = item.name, value = item.value })
+								break
+							end
 						end
 					end
 				end
 				selectedItems = valid
+				refreshValues()
 			end,
 			SetValue = function(_, value, silent)
 				local wanted = type(value) == "table" and value or { value }
@@ -177,6 +207,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 						end
 					end
 				end
+				refreshValues()
 				if not silent and callback then
 					callback(selectedItems)
 				end
