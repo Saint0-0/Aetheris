@@ -14,7 +14,7 @@ Constants.FallbackImage = "rbxassetid://11094025229"
 Constants.AuroraGlow = "rbxassetid://90267840908213"
 
 -- Space reserved at the bottom of settings pages for the docked tab bar.
-Constants.SettingsBottomReserve = 72
+Constants.SettingsBottomReserve = 64
 
 -- Shared font family; SetFontAsset swaps it live, and nil restores the default.
 Constants.FontAsset = "rbxassetid://12187365364"

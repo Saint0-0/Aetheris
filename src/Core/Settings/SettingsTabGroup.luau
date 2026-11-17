@@ -23,7 +23,7 @@ local TAB_SIZE = 40
 local TAB_HOVER_SCALE = 1.18 -- Hover grow factor.
 local TAB_PRESS_SCALE = 0.94 -- Press factor.
 local BAR_HEIGHT = 56 -- Pill height.
-local BAR_BOTTOM = 16 -- With BAR_HEIGHT this matches SettingsBottomReserve.
+local BAR_BOTTOM = 6 -- Pill gap; BAR_HEIGHT plus this fits in SettingsBottomReserve.
 local TOOLTIP_GAP = 11
 
 -- Shell wash multiplies what it paints; dark themes take a stronger stop.
