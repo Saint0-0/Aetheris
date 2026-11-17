@@ -61,7 +61,7 @@ for k, v in pairs(SettingsStore.Defaults) do
 end
 
 -- Nil defaults cannot round-trip through JSON, so Load keeps them explicitly.
-SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font", "ChangelogVersion" }
+SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font", "ChangelogVersion", "UIChangeLogVersion" }
 
 function SettingsStore.Load()
 	if not hasFileAPI then

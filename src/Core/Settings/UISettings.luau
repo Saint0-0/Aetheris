@@ -302,6 +302,14 @@ function UISettings.Build(window, tab)
 
 	local actionsSection = tab:Section({ Name = "Actions" })
 	actionsSection:Button({
+		Name = "Aetheris Changelog",
+		Callback = function()
+			if window.AetherisChangelog then
+				window.AetherisChangelog:Show()
+			end
+		end,
+	})
+	actionsSection:Button({
 		Name = "Reset Layout",
 		Callback = function()
 			if window.ResetLayout then

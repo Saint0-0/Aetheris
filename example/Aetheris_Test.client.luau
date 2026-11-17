@@ -76,26 +76,20 @@ local window = Aetheris:CreateWindow({
 	Theme = "Gruvbox", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
 	-- Shown in the changelog popup; the stored ChangelogVersion decides whether
 	-- the popup auto-opens (it stamps itself the first time it actually shows).
-	Version = "1.1.0",
+	Version = "1.2.0",
 	Changelog = {
 		-- Optional per entry: Icon (Icons key) and Tint
 		-- (blue/purple/teal/orange/red/yellow); entries cycle tints when omitted.
 		{
-			Title = "Locale applies live",
-			Description = "Spanish and Portuguese now switch every chrome string the moment you pick them in UI Settings, no relaunch.",
-			Icon = "languages",
-			Tint = "blue",
-		},
-		{
-			Title = "Changelog popup",
-			Description = "New Version + Changelog keys in CreateWindow: the popup opens once per version, and Settings > Show changelog re-opens it any time.",
+			Title = "Example changelog",
+			Description = "This list is the script's own release notes. Leave Version and Changelog out to skip the popup entirely.",
 			Icon = "rocket",
 			Tint = "purple",
 		},
 		{
-			Title = "Viewport options",
-			Description = "HealthBar = false drops the side bar, and an Info table is now the opt-in for the info column (ShowInfo is gone).",
-			Icon = "list-checks",
+			Title = "Icons and tints",
+			Description = "Every entry takes an optional Icon key and Tint name; without them the popup cycles through the tints.",
+			Icon = "sparkles",
 			Tint = "teal",
 		},
 	},

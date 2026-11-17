@@ -20,6 +20,7 @@ local Icons = require("../Assets/Icons")
 local TabGroup = require("./TabGroup")
 local UINotification = require("../Popups/UINotification")
 local Changelog = require("../Popups/Changelog")
+local UIChangelog = require("./UIChangelog")
 local Locale = require("../Utils/Locale")
 local DropdownPopUp = require("../Popups/DropdownPopUp")
 local ColorPickerPopUp = require("../Popups/ColorPickerPopUp")
@@ -2404,46 +2405,77 @@ function Window.new(Settings)
 	-- Run the shell theme pass now that it exists.
 	self:ApplyTheme(theme)
 
-	-- Changelog exists whenever entries ship; a version gates the auto-show.
+	-- Two changelogs share the popup: the library's own list and the script's.
 	do
 		local win = self
-		local entries = Settings.Changelog
-		if type(entries) == "table" and entries[1] ~= nil then
-			local version = Settings.Version
-			if type(version) ~= "string" then
-				version = ""
-			end
 
+		local function makeChangelog(entries, version, title, storeKey)
 			local changelog = Changelog.new(PopUpsLayer, {
 				Theme = theme,
 				Version = version,
+				Title = title,
 				Entries = entries,
 			})
-			self._changelog = changelog
-			self.Changelog = changelog
-
 			-- The changelog arrives as `me`; `self` is the window here.
 			function changelog.Show(me)
 				if me.IsOpen or not me.Popup or not me.Popup.Parent then
 					return
 				end
-				-- Opening the changelog resolves whatever else is open.
+				-- Opening a changelog resolves whatever else is open.
 				win:_claimPopup(me)
 				if version ~= "" then
 					-- Stamp the version on open, so a dismissed popup is not burned.
-					SettingsStore.Set("ChangelogVersion", version)
+					SettingsStore.Set(storeKey, version)
 				end
 				me:Open()
 			end
+			return changelog
+		end
 
-			-- Show once per new version, after the window settles.
-			if version ~= "" and SettingsStore.Get("ChangelogVersion") ~= version then
-				task.delay(1, function()
-					if win._changelog == changelog then
-						changelog:Show()
-					end
-				end)
+		local uiVersion = UIChangelog.Version or ""
+		local uiChangelog
+		local uiDue = false
+		if type(UIChangelog.Entries) == "table" and UIChangelog.Entries[1] ~= nil then
+			uiChangelog = makeChangelog(UIChangelog.Entries, uiVersion, "Aetheris Changelog", "UIChangeLogVersion")
+			self._uiChangelog = uiChangelog
+			self.AetherisChangelog = uiChangelog
+			uiDue = uiVersion ~= "" and SettingsStore.Get("UIChangeLogVersion") ~= uiVersion
+		end
+
+		local entries = Settings.Changelog
+		local scriptVersion = Settings.Version
+		if type(scriptVersion) ~= "string" then
+			scriptVersion = ""
+		end
+		local scriptChangelog
+		local scriptDue = false
+		if type(entries) == "table" and entries[1] ~= nil then
+			scriptChangelog = makeChangelog(entries, scriptVersion, "Changelog", "ChangelogVersion")
+			self._changelog = scriptChangelog
+			self.Changelog = scriptChangelog
+			scriptDue = scriptVersion ~= "" and SettingsStore.Get("ChangelogVersion") ~= scriptVersion
+		end
+
+		if uiDue then
+			-- A user close hands over to the script's list; a replacement skips it.
+			uiChangelog.OnClose = function(reason)
+				uiChangelog.OnClose = nil
+				if reason == "user" and scriptDue and win._changelog == scriptChangelog then
+					scriptChangelog:Show()
+				end
 			end
+			task.delay(1, function()
+				if win._uiChangelog == uiChangelog then
+					uiChangelog:Show()
+				end
+			end)
+		elseif scriptDue then
+			-- Show once per new version, after the window settles.
+			task.delay(1, function()
+				if win._changelog == scriptChangelog then
+					scriptChangelog:Show()
+				end
+			end)
 		end
 	end
 
@@ -2513,11 +2545,16 @@ function Window:Destroy()
 	-- UIClose is the close sound.
 	Sound.Play("UIClose")
 
-	-- Drop the changelog first so its outside-click connection ends with the tree.
+	-- Drop the changelogs first so their outside-click connections end with the tree.
 	if self._changelog then
 		self._changelog:Destroy()
 		self._changelog = nil
 		self.Changelog = nil
+	end
+	if self._uiChangelog then
+		self._uiChangelog:Destroy()
+		self._uiChangelog = nil
+		self.AetherisChangelog = nil
 	end
 
 	if self._teardown then

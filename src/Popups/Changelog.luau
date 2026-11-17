@@ -132,6 +132,8 @@ function Changelog.new(parent, Settings)
 
 	self.IsOpen = false
 	self.Version = Settings.Version or ""
+	self.Title = Settings.Title or "Changelog"
+	self.OnClose = Settings.OnClose
 	self.Entries = Settings.Entries or {}
 	self._shellGradients = {}
 	self._cardGradients = {}
@@ -216,7 +218,7 @@ function Changelog.new(parent, Settings)
 	header.Position = UDim2.fromOffset(56, 14)
 	header.Size = UDim2.new(1, -110, 0, TILE)
 	header.ZIndex = 13
-	Locale.set(header, "Text", "Changelog")
+	Locale.set(header, "Text", self.Title)
 	header.Parent = popup
 
 	if self.Version ~= "" then
@@ -560,13 +562,17 @@ function Changelog:Open()
 	Tween.Play(self.Shadow, "Fast", { Transparency = SHADOW_OPEN })
 end
 
-function Changelog:Close()
+-- reason is "replaced" when another popup takes over, otherwise a user close.
+function Changelog:Close(reason)
 	if not self.IsOpen then
 		return
 	end
 	self.IsOpen = false
 	-- Disarmed before the fade so a click during it cannot re-trigger.
 	self:_disconnectOutsideClick()
+	if self.OnClose then
+		self.OnClose(reason or "user")
+	end
 	Tween.Play(self.Popup, "Fast", { GroupTransparency = 1 })
 	Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
 	-- Hidden after the fade; the instance is kept for reuse.
@@ -581,9 +587,9 @@ function Changelog:Close()
 	end)
 end
 
--- Cross-popup dismissal; identical to clicking outside.
+-- Cross-popup dismissal; identical to clicking outside, but flagged.
 function Changelog:Dismiss()
-	self:Close()
+	self:Close("replaced")
 end
 
 function Changelog:Destroy()

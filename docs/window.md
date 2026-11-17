@@ -28,6 +28,8 @@ local window = Aetheris:CreateWindow({
 | `IgnoreGuiInset` | boolean | Let the window sit under the topbar. |
 | `AETHERIS_SECUREMODE` | boolean | Parent through `gethui` and rename to UUIDs. |
 | `KeySystem` | table | Gate the window behind a key. See [Key System](key-system.md). |
+| `Version` | string | Version for the script's own changelog. |
+| `Changelog` | table | Array of `{ Title, Description, Icon, Tint }` entries. |
 
 A saved setting always beats the value you pass here: if the player changed the theme or minimize key in the settings window, that wins on the next launch.
 
@@ -52,6 +54,23 @@ A saved setting always beats the value you pass here: if the player changed the 
 | `:HidePopups()` | Close any open popup. |
 | `:OnDestroy(callback)` | Run something when the window is destroyed. |
 | `:Destroy()` | Tear the window down. |
+
+## Changelog
+
+Two changelogs share one popup. `Version` and `Changelog` are the script's own release notes: they open once per version string, then stay quiet until that string changes. Aetheris keeps its own list in the same popup, keyed on the library version, and `Settings > Actions > Aetheris Changelog` re-opens it; `window.AetherisChangelog:Show()` does the same from code, while `window.Changelog:Show()` re-opens the script's list.
+
+Entries take an optional `Icon` (any key from [Icons](utilities/icons.md)) and `Tint` (`blue`, `purple`, `teal`, `orange`, `red`, `yellow`). Without a tint, entries cycle through the palette in order.
+
+```lua
+local window = Aetheris:CreateWindow({
+	Title = "My Script",
+	Version = "2.1.0",
+	Changelog = {
+		{ Title = "Faster startup", Description = "Cached theme lookups shave a frame off the first paint.", Tint = "blue" },
+		{ Title = "New configs page", Description = "Save, load and overwrite presets without leaving Settings.", Icon = "save" },
+	},
+})
+```
 
 ## Notifications in one line each
 
