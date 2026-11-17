@@ -27,8 +27,8 @@ local UUID = require("../../Utils/UUID")
 local TAB_SIZE = 40
 local TAB_HOVER_SCALE = 1.18 -- pill hover grow
 local TAB_PRESS_SCALE = 0.94 -- press dips the current scale (design-notes 4)
-local BAR_HEIGHT = 64 -- buttons + 12px breathing above/below
-local BAR_BOTTOM = 8 -- gap between the bar and the pages' bottom edge
+local BAR_HEIGHT = 56 -- buttons + 8px breathing above/below
+local BAR_BOTTOM = 16 -- gap between the bar and the pages' bottom edge
 local TOOLTIP_GAP = 11
 -- BAR_HEIGHT + BAR_BOTTOM = Constants.SettingsBottomReserve (72): the bar's
 -- top edge lands exactly on the pages' content clip line, so scrolled content
@@ -155,7 +155,7 @@ function SettingsTabGroup.new(window, theme)
 	self._barWash = barWash
 
 	local BarCorner = Instance.new("UICorner")
-	BarCorner.CornerRadius = UDim.new(1, 0) -- pill (h 64, design-notes 1)
+	BarCorner.CornerRadius = UDim.new(1, 0) -- pill (h 56, design-notes 1)
 	BarCorner.Parent = self.Bar
 
 	local BarStroke = Instance.new("UIStroke")

@@ -216,22 +216,6 @@ function Window.new(Settings)
 	})
 	shellWash.Parent = MainFrame
 
-	local shellRim = Instance.new("UIStroke")
-	shellRim.Name = UUID.Static("WindowRim")
-	shellRim.Color = theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	shellRim.Transparency = 0
-	shellRim.Thickness = 1
-	shellRim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	shellRim.Parent = MainFrame
-	local shellRimGradient = Instance.new("UIGradient")
-	shellRimGradient.Rotation = 90
-	shellRimGradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.84),
-		NumberSequenceKeypoint.new(0.5, 0.92),
-		NumberSequenceKeypoint.new(1, 0.78),
-	})
-	shellRimGradient.Parent = shellRim
-
 	-- User-adjustable UI scale (UI Settings); the window resizes around its top-left anchor.
 	local MainFrameScale = Instance.new("UIScale")
 	MainFrameScale.Name = UUID.Static("WindowScale")
@@ -2367,7 +2351,6 @@ function Window.new(Settings)
 	ThemeManager.BindColor(Sidebar, "BackgroundColor3", "SidebarColor")
 	ThemeManager.BindTransparency(Sidebar, "BackgroundTransparency", "SidebarTransparency")
 	ThemeManager.BindColor(MainFrameShadow, "Color", "MainframeShadowColor")
-	ThemeManager.BindColor(shellRim, "Color", "StrokeColor")
 	ThemeManager.BindColor(ResizeButton, "ImageColor3", "TitleTextColor")
 	for _, ctrl in ipairs({ MinimizeButton, MaximizeButton, CloseButton }) do
 		if ctrl then
