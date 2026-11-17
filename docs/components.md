@@ -21,6 +21,7 @@ Most components also share four methods: `:SetName(string)`, `:SetVisible(bool)`
 | [Console](components/console.md) | Scrollback log panel. |
 | [Code View](components/code-view.md) | Highlighted code block, optionally editable. |
 | [Video](components/video.md) | Inline video frame. |
+| [Carousel](components/carousel.md) | Swipeable image and video pages. |
 | [Viewport](components/viewport.md) | Renders a player's character. |
 | [Button](components/button.md) | A row you click. |
 | [Label](components/label.md) | One line of text in a container. |

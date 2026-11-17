@@ -107,6 +107,7 @@ function Carousel.new(parent, Settings, theme)
 	self._conns = {}
 	self._advanceInterval = if autoAdvance then interval else 0
 	self._advanceElapsed = 0
+	self._lastVideoFraction = nil
 	self._height = height
 
 	local container = Instance.new("Frame")
@@ -406,12 +407,27 @@ function Carousel.new(parent, Settings, theme)
 			self._advanceElapsed = self._advanceElapsed + dt
 		end
 		local video = self._videos[active]
+		local advance = false
 		if video then
-			self:_setBlobFill(active, videoFraction(video))
+			local fraction = videoFraction(video)
+			self:_setBlobFill(active, fraction)
+			if self._advanceInterval > 0 then
+				if video.TimeLength > 0 then
+					-- Video pages advance when the loop wraps, so the blob fills fully first.
+					if self._lastVideoFraction and fraction < 0.1 and self._lastVideoFraction > 0.9 then
+						advance = true
+					end
+					self._lastVideoFraction = fraction
+				elseif self._advanceElapsed >= self._advanceInterval then
+					-- A video with no reported length falls back to the dwell timer.
+					advance = true
+				end
+			end
 		elseif self._advanceInterval > 0 then
 			self:_setBlobFill(active, self._advanceElapsed / self._advanceInterval)
+			advance = self._advanceElapsed >= self._advanceInterval
 		end
-		if self._advanceInterval > 0 and self._advanceElapsed >= self._advanceInterval then
+		if advance then
 			self:_goTo((self._index + 1) % self._pageCount)
 		end
 	end)
@@ -488,6 +504,7 @@ function Carousel:_goTo(index)
 	index = math.clamp(index, 0, self._pageCount - 1)
 	self._index = index
 	self._advanceElapsed = 0
+	self._lastVideoFraction = nil
 	Tween.Play(self._track, "Smooth", { Position = UDim2.fromScale(-index, 0) })
 	if self._sync then
 		self._sync()
