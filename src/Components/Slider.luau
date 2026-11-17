@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Slider.luau
 
-	Draggable value slider. The drag mechanics are a 1:1 port of Rayfield
-	gen2's slider; the look, readout, reset button and spinning fill gradient
-	are ours. The pill is a child of the fill and rides its leading edge.
+	Draggable value slider; the drag mechanics are a port of Rayfield Gen 2. The
+	pill is a child of the fill and rides its leading edge.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
@@ -35,7 +34,7 @@ local FOLLOW_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirect
 local HANDLE_REST = Vector2.new(35, 15)
 local HANDLE_HELD = Vector2.new(41, 17)
 
--- float error can't inflate the count (0.07 * 10 is 0.7000000000000001)
+-- Float error must not inflate the decimal count.
 local function decimalsOf(step)
 	local decimals = 0
 	while decimals < 6 do
@@ -48,8 +47,7 @@ local function decimalsOf(step)
 	return decimals
 end
 
--- snap onto a grid anchored at range[1]; a zero-anchored grid can't express
--- range = {0.5, 2.5} with increment 1
+-- Snap to a grid anchored at range[1]; a zero-anchored grid cannot express it.
 local function snapTo(range, increment, value)
 	local snapped = range[1] + math.round((value - range[1]) / increment) * increment
 	return math.clamp(snapped, range[1], range[2])
@@ -59,7 +57,6 @@ local function fillSize(ratio)
 	return UDim2.fromScale(ratio, 1)
 end
 
--- the pill lives inside the fill, so it tracks the value with no position of its own
 local function handleOffset()
 	return UDim2.fromScale(1, 0.5)
 end
@@ -82,7 +79,7 @@ function Slider.new(parent, Settings, theme)
 	local default = Settings.Default or 50
 	local precision = Settings.Precision or decimalsOf(increment)
 
-	-- keep range ascending and increment positive so the clamp/snap math is sane
+	-- Keep the range ascending and the increment positive for clamp and snap.
 	if min > max then
 		min, max = max, min
 	end
@@ -246,8 +243,7 @@ function Slider.new(parent, Settings, theme)
 		return string.format("%." .. precision .. "f", val)
 	end
 
-	-- the fill carries the pill, so one Size write moves both; runs through the
-	-- Tween registry so a page-collapse and a value change replace, not race
+	-- One Size write moves fill and pill; the Tween registry avoids races.
 	local function renderProgress(info)
 		local span = max - min
 		local ratio = (span ~= 0) and math.clamp((currentValue - min) / span, 0, 1) or 0
@@ -317,7 +313,7 @@ function Slider.new(parent, Settings, theme)
 			dragConnection:Disconnect()
 			dragConnection = nil
 		end
-		-- per-frame follow while held; self-terminates when the drag ends
+		-- Per-frame follow while held; it stops itself when the drag ends.
 		dragConnection = RunService.RenderStepped:Connect(function()
 			if not isDragging then
 				if dragConnection then
@@ -357,8 +353,7 @@ function Slider.new(parent, Settings, theme)
 		end
 	end)
 
-	-- releasing outside the Roblox window never fires InputEnded, so losing
-	-- focus counts as letting go too - otherwise the slider sticks to the cursor
+	-- Losing window focus also ends the drag, since InputEnded may not fire.
 	UserInputService.WindowFocusReleased:Connect(endDrag)
 
 	thumb.MouseEnter:Connect(function()
@@ -378,14 +373,13 @@ function Slider.new(parent, Settings, theme)
 		local ratio = (span ~= 0) and math.clamp((value - min) / span, 0, 1) or 0
 		renderProgress(snapSmooth and TWEEN_INFO or nil)
 		percentLabel.Text = math.round(ratio * 100) .. "%"
-		-- The first paint has no previous digit to roll from, so it snaps.
+		-- The first paint snaps because no digit precedes it.
 		readout:SetValue(formatValue(value), snapSmooth and up or nil)
 		if Settings.Callback then
 			Settings.Callback(value)
 		end
 	end
 
-	-- typed values take the same clamp/snap/format path as the drag
 	readout.OnCommit = function(value)
 		updateSlider(value, true)
 	end
@@ -397,7 +391,7 @@ function Slider.new(parent, Settings, theme)
 			TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 			{ Rotation = resetBtn.Rotation + 360 }
 		):Play()
-		-- squash-and-pop so the click reads even if the spin is missed
+		-- Squash and pop so the click reads even if the spin is missed.
 		TweenService:Create(
 			resetBtn,
 			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -443,8 +437,7 @@ function Slider.new(parent, Settings, theme)
 	updateSlider(currentValue, false)
 	updateVisibility()
 
-	-- off-page the fill collapses (carrying the pill); `instant` snaps the
-	-- collapse at registration so the deferred restore tweens from zero
+	-- Off-page the fill collapses; instant snaps it at registration.
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
 		OnInactive = function(instant)

@@ -1,16 +1,9 @@
 --[[
 	Aetheris/Popups/Changelog.luau
 
-	Startup changelog popup: a clean shell over a scrolling column of aurora
-	cards (tinted corner wash on the falloff fill, accent tint tile, hover
-	lift) that cascade in when the popup opens. The design follows the card
-	grammar in design-notes.md (Novoline reference); open/close, click-outside
-	and the scrollbar follow the Dropdown/ColorPicker popup mechanics, so the
-	shell shares their "Fast" fade and 0.35 s hide timer. The code stays on
-	Aetheris idioms - ThemeManager binds, Locale stamps, Tween registry.
-	Version tracking lives in the window - this module only builds and shows
-	the entries it is handed. Entries take optional Icon (Icons key) and Tint
-	(blue/purple/teal/orange/red/yellow).
+	Startup changelog popup: a themed shell over a scrolling column of aurora
+	cards that cascade in on open. Version tracking lives in the window, and
+	entries take an optional Icon and Tint.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -28,16 +21,13 @@ local UserInputService = game:GetService("UserInputService")
 local Changelog = {}
 Changelog.__index = Changelog
 
--- Motion (design-notes.md 4): one settle for the cascade, one lift for
--- hovers. The shell itself uses the shared "Fast" fade like every other
--- popup; Tween.Play takes an explicit TweenInfo for these locals.
+-- Cascade settle and hover lift; the shell uses the shared "Fast" fade.
 local SETTLE = TweenInfo.new(0.36, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local LIFT = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- Cascade: 35 ms per card capped at 0.3 s (plus a short beat so the shell
--- lands first); scroll edges fade through Utils/ScrollFade.
+-- Per-card cascade step and cap, plus a lead so the shell lands first.
 local CASCADE_STEP = 0.035
 local CASCADE_CAP = 0.3
 local CASCADE_LEAD = 0.12
@@ -47,8 +37,7 @@ local CORNER_CARD = 10
 local TILE = 30
 local LIFT_BOOST = 0.16
 local SHADOW_OPEN = 0.45
--- How far the aurora's bright corner keypoint pulls toward the entry tint
--- (Novoline's BlueCornerGlow adapted to a multiplier gradient).
+-- How far the aurora corner pulls toward the entry tint.
 local AURORA_TINT = 0.14
 
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
@@ -57,8 +46,7 @@ local FALLBACK_NEUTRAL = Color3.fromRGB(46, 46, 46)
 local CLOSE_ICON = Icons["circle-x"] or "rbxassetid://76821953846248"
 local DEFAULT_ICON = Icons["sparkles"] or CLOSE_ICON
 
--- Accent tints (design-notes.md 5): cards cycle them so a changelog reads
--- like a script grid; entry.Tint picks one by name instead.
+-- Cards cycle these tints by index; entry.Tint selects one by name.
 local TINTS = {
 	{ Name = "blue", Color = Color3.fromRGB(64, 186, 255) },
 	{ Name = "purple", Color = Color3.fromRGB(168, 120, 255) },
@@ -86,8 +74,7 @@ local function resolveTint(name, index)
 	return TINTS[((index - 1) % #TINTS) + 1].Color
 end
 
--- Accent as readable text: keep the hue, cap saturation, force value on
--- dark grounds; darken on light ones (design-notes.md 5).
+-- Accent as text: hue kept, saturation capped, value forced on dark grounds.
 local function accentText(color, onDark)
 	if onDark then
 		local h, s, v = color:ToHSV()
@@ -96,8 +83,7 @@ local function accentText(color, onDark)
 	return color:Lerp(Color3.new(0, 0, 0), 0.3)
 end
 
--- Tile fills derive from the theme's card colour so they follow light and
--- dark themes instead of copying Novoline's fixed dark tints.
+-- Tile fills derive from the card colour so they follow the theme.
 local function tileFill(tint, base)
 	if isDark(base) then
 		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
@@ -105,8 +91,7 @@ local function tileFill(tint, base)
 	return base:Lerp(tint, 0.3)
 end
 
--- UIGradient.Color multiplies what it paints, so both ramps below are
--- multiplier pairs rather than literal colours (design-notes.md 10).
+-- UIGradient.Color multiplies, so these ramps are multipliers, not colours.
 local function stampShellGradient(gradient, theme)
 	local base = (theme and theme.PopupBackgroundColor) or FALLBACK_POPUP
 	local top = if isDark(base) then 0.9 else 0.96
@@ -117,10 +102,7 @@ local function stampShellGradient(gradient, theme)
 	})
 end
 
--- The card fill's one gradient carries both jobs: the vertical-ish falloff
--- and the aurora - a tinted bright corner on Novoline's 35-degree diagonal.
--- UIGradient.Color multiplies what it paints, so the keypoints are
--- multipliers rather than literal colours (design-notes.md 10).
+-- One gradient carries the falloff and the tinted aurora corner at 35 degrees.
 local function stampCardGradient(gradient, theme, tint)
 	local base = (theme and theme.PopupNeutralColor) or FALLBACK_NEUTRAL
 	local bottom = if isDark(base) then 0.72 else 0.9
@@ -167,8 +149,7 @@ function Changelog.new(parent, Settings)
 	popup.BackgroundColor3 = (theme and theme.PopupBackgroundColor) or FALLBACK_POPUP
 	popup.BackgroundTransparency = self._popupTransparency
 	popup.AnchorPoint = Vector2.new(0.5, 0.5)
-	-- Height scales with the popup layer (0.82 of Content) so the shell
-	-- always fits the window; the constraint below clamps it in both modes.
+	-- Height scales with the layer so the shell fits; the constraint clamps it.
 	popup.Size = UDim2.fromScale(0.6, 0.82)
 	popup.Position = UDim2.fromScale(0.5, 0.5)
 	popup.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -177,9 +158,7 @@ function Changelog.new(parent, Settings)
 	popup.ZIndex = 12
 	popup.Parent = parent
 
-	-- Shell gradient first, then the rest of the shell: no stroke - the
-	-- popup layer's own z-order (Window PopUpsLayer) keeps it above the
-	-- compact tab row, and the fill plus shadow carry the edge.
+	-- No stroke: the popup layer's z-order keeps it above the compact tab row.
 	local shellGradient = Instance.new("UIGradient")
 	stampShellGradient(shellGradient, theme)
 	shellGradient.Parent = popup
@@ -197,10 +176,9 @@ function Changelog.new(parent, Settings)
 
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.MinSize = Vector2.new(340, 210)
-	sizeConstraint.MaxSize = Vector2.new(560, 500) -- taller shell (user call, Batch 8)
+	sizeConstraint.MaxSize = Vector2.new(560, 500) -- Taller shell.
 	sizeConstraint.Parent = popup
 
-	-- Header row: accent tile + title, close button opposite.
 	local headTile = Instance.new("Frame")
 	headTile.Name = UUID.Static("HeaderTile")
 	headTile.BorderSizePixel = 0
@@ -222,8 +200,7 @@ function Changelog.new(parent, Settings)
 	headGlyph.ZIndex = 14
 	headGlyph.Parent = headTile
 	self._tiles[#self._tiles + 1] = { tile = headTile, glyph = headGlyph, baseSlot = "PopupBackgroundColor" }
-	-- Stamp at build too: tint tiles must show immediately, not on the first
-	-- theme switch (they used to stay default-white until OnThemeApplied).
+	-- Stamped at build so tint tiles show before the first theme switch.
 	restampTile(self._tiles[#self._tiles], theme)
 
 	local header = Instance.new("TextLabel")
@@ -242,7 +219,6 @@ function Changelog.new(parent, Settings)
 	Locale.set(header, "Text", "Changelog")
 	header.Parent = popup
 
-	-- Version chip: only when the script writer actually stamped a version.
 	if self.Version ~= "" then
 		local chip = Instance.new("TextLabel")
 		chip.Name = UUID.Static("VersionChip")
@@ -274,7 +250,6 @@ function Changelog.new(parent, Settings)
 		ThemeManager.BindColor(chip, "BackgroundColor3", "AccentColor")
 	end
 
-	-- 28 px circle close with a 16 px glyph (design-notes.md 6).
 	local closeBtn = Instance.new("ImageButton")
 	closeBtn.Name = UUID.Static("Close")
 	closeBtn.BorderSizePixel = 0
@@ -311,8 +286,7 @@ function Changelog.new(parent, Settings)
 	scroll.ZIndex = 13
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
-	-- Scrollbar never shows: the scroll-fade edges already read as the
-	-- scroll affordance, so the bar itself stays fully transparent.
+	-- Scroll-fade edges carry the affordance, so the bar stays invisible.
 	scroll.ScrollBarThickness = 1
 	scroll.ScrollBarImageTransparency = 1
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -337,9 +311,7 @@ function Changelog.new(parent, Settings)
 				iconId = Icons[entry.Icon]
 			end
 
-			-- CanvasGroup so one GroupTransparency tween reveals fill, tile and
-			-- text together; the fill lives on the inner Frame so the gradient
-			-- only paints the background.
+			-- Fill sits on the inner frame so the gradient paints only the background.
 			local card = Instance.new("CanvasGroup")
 			card.Name = UUID.Generate("ChangeCard")
 			card.BorderSizePixel = 0
@@ -439,8 +411,7 @@ function Changelog.new(parent, Settings)
 			descLabel.Text = description
 			descLabel.Parent = visual
 
-			-- Hover (design-notes.md 4 - one LIFT for all of it): lift the
-			-- fill, slide the aurora wash across the card, pop the text.
+			-- Hover: lift the fill, slide the aurora, brighten the text.
 			visual.MouseEnter:Connect(function()
 				Tween.Play(visual, LIFT, { BackgroundColor3 = self._cardBase:Lerp(Color3.new(1, 1, 1), LIFT_BOOST) })
 				Tween.Play(cardGradient, LIFT, { Offset = Vector2.new(0.08, 0.08) })
@@ -480,8 +451,7 @@ function Changelog.new(parent, Settings)
 	self.Scroll = scroll
 	self.CloseBtn = closeBtn
 
-	-- Colour follows the theme through Bind; gradients, tiles and the accent
-	-- text need the callback because they are derived, not theme slots.
+	-- Gradients, tiles and accent text are derived, so they restamp here.
 	ThemeManager.BindColor(popup, "BackgroundColor3", "PopupBackgroundColor")
 	ThemeManager.BindColor(header, "TextColor3", "PopupTextColor")
 	ThemeManager.BindColor(closeIcon, "ImageColor3", "PopupTextColor")
@@ -511,11 +481,7 @@ function Changelog.new(parent, Settings)
 	return self
 end
 
--- Stagger the cards in: a GroupTransparency fade per card, 35 ms apart,
--- capped. The token drops callbacks from a superseded open. No per-card
--- UIScale here: a scale ~= 1 affecting an AutomaticSize frame makes the
--- engine recompute its height from scaled descendants, so the old 0.96->1
--- settle re-laid-out every card mid-open ("cards grow after opening").
+-- The token drops callbacks from a superseded open; no UIScale on auto-sized cards.
 function Changelog:_cascade()
 	local token = self._revealToken + 1
 	self._revealToken = token
@@ -533,7 +499,7 @@ function Changelog:_cascade()
 	end
 end
 
--- Connected only while the popup is open: armed in Open(), dropped in Close/Destroy.
+-- Armed in Open, dropped in Close and Destroy.
 function Changelog:_connectOutsideClick()
 	if self._outsideConn then
 		return
@@ -550,7 +516,7 @@ function Changelog:_connectOutsideClick()
 			return
 		end
 		local p = input.Position
-		-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside (Dropdown pattern).
+		-- Descendants count as inside so overhanging content is not misread.
 		local pos = self.Popup.AbsolutePosition
 		local size = self.Popup.AbsoluteSize
 		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -590,7 +556,6 @@ function Changelog:Open()
 	self.Scroll.CanvasPosition = Vector2.zero
 	self:_connectOutsideClick()
 	self:_cascade()
-	-- Shared popup mechanics: "Fast" GroupTransparency fade, no slide.
 	Tween.Play(popup, "Fast", { GroupTransparency = 0 })
 	Tween.Play(self.Shadow, "Fast", { Transparency = SHADOW_OPEN })
 end
@@ -600,11 +565,11 @@ function Changelog:Close()
 		return
 	end
 	self.IsOpen = false
-	-- Disarm click-outside immediately so a click during the fade-out can't re-trigger it.
+	-- Disarmed before the fade so a click during it cannot re-trigger.
 	self:_disconnectOutsideClick()
 	Tween.Play(self.Popup, "Fast", { GroupTransparency = 1 })
 	Tween.Play(self.Shadow, "Fast", { Transparency = 1 })
-	-- Hide after the fade, keep the instance for reuse (Dropdown/ColorPicker pattern).
+	-- Hidden after the fade; the instance is kept for reuse.
 	if self._hideTimer then
 		task.cancel(self._hideTimer)
 	end
@@ -616,7 +581,7 @@ function Changelog:Close()
 	end)
 end
 
--- Cross-popup dismissal (Window): same as clicking off the changelog.
+-- Cross-popup dismissal; identical to clicking outside.
 function Changelog:Dismiss()
 	self:Close()
 end

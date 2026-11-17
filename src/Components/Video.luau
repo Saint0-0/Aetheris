@@ -1,10 +1,10 @@
 --[[
 	Aetheris/Components/Video.luau
 
-	Video player component with a configurable source, height, and looping.
-	Because VideoFrame.Transparency does not affect the rendered video, it
-	fades via a tagged UIGradient instead (see Utils/VideoFade).
+	Video player with a configurable source, height and looping. VideoFrame has
+	no transparency, so fading rides a tagged UIGradient (see Utils/VideoFade).
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local VideoFade = require("../Utils/VideoFade")
@@ -54,26 +54,22 @@ function Video.new(parent, Settings, theme)
 	local videoCorner = Instance.new("UICorner")
 	videoCorner.CornerRadius = UDim.new(0, 6)
 	videoCorner.Parent = videoFrame
-	-- Transparency doesn't render on a VideoFrame, so the fade systems (Window
-	-- minimize, tab switches) tween a tagged UIGradient instead
+	-- Fades tween the tagged UIGradient instead of transparency.
 	local fadeGradient = VideoFade.attach(videoFrame)
 	self.FadeGradient = fadeGradient
 	videoFrame.Video = videoId
 	videoFrame.Looped = loop
-	-- 0..1; nil is treated as 1
 	videoFrame.Volume = (Settings.Volume ~= nil) and Settings.Volume or 1
 	videoFrame:Play()
 	self.Frame = frame
 	self.VideoFrame = videoFrame
-	-- true while the creator intends playback: page switches pause off-page
-	-- and resume on-page only if this is set, so an explicit Pause() sticks
+	-- True while playback is wanted, so an explicit Pause() sticks.
 	self._wantPlay = true
 	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- pause the moment the page is switched away, resume when it returns (no
-	-- Gate: pausing off-page is always on, saving decode while invisible)
+	-- Pause off-page and resume on return; this is not gated.
 	PageAwareness.Register(frame, {
 		OnInactive = function()
 			if self._wantPlay then
@@ -86,8 +82,7 @@ function Video.new(parent, Settings, theme)
 			end
 		end,
 	})
-	-- Register doesn't fire handlers, so an off-page video built on an
-	-- inactive tab would keep playing; sync it to its real page state once
+	-- Register does not fire handlers, so sync to the real page state once.
 	if not PageAwareness.IsActive(frame) and self._wantPlay then
 		videoFrame:Pause()
 	end
@@ -96,7 +91,6 @@ function Video.new(parent, Settings, theme)
 			frame:Destroy()
 		end
 	end
-	-- Public surface lives in one Methods table so the whole API reads at a glance.
 	ComponentAPI.Apply(self, {
 		Root = frame,
 		Name = Settings.Name,
@@ -130,7 +124,7 @@ function Video.new(parent, Settings, theme)
 			SetHeight = function(_, newHeight)
 				frame.Size = UDim2.new(1, 0, 0, newHeight)
 			end,
-			-- fades the video in (0) or out (1) via its gradient
+			-- Fades the video in (0) or out (1) via its gradient.
 			SetFade = function(_, value, duration)
 				VideoFade.fade(fadeGradient, value, duration)
 			end,

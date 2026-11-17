@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Utils/SyntaxHighlight.luau
 
-	Lexes Luau, JavaScript, Python and JSON into colour classes and renders
-	them as escaped RichText for CodeView. Colours come from the caller's
-	palette, so the same classes can be re-tinted per theme without changing
-	their meaning.
+	Lexes Luau, JavaScript, Python and JSON into colour classes and renders them
+	as escaped RichText. Colours come from the caller's palette per theme.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -424,7 +422,6 @@ local function lex(code: string, cfg: any): { Token }
 			continue
 		end
 
-		-- Quoted strings (python triples handled via cfg.triple).
 		for _, q in ipairs(cfg.quotes) do
 			if c == q[1] then
 				local open = q[1]
@@ -445,7 +442,6 @@ local function lex(code: string, cfg: any): { Token }
 					end
 				end
 				local finalStop = if stop then stop else n
-				-- JSON: a string followed by ':' is an object key, not a value.
 				local class = "string"
 				if cfg.stringKeys then
 					local scan = finalStop + 1
@@ -475,7 +471,7 @@ local function lex(code: string, cfg: any): { Token }
 			local identLen = #ident
 			local nextChar = string.sub(code, i + identLen, i + identLen)
 
-			-- Python string prefixes (f"", r"", ...) colour as the string itself.
+			-- Python string prefixes (f"", r"") colour as the string itself.
 			if cfg.stringPrefixes and cfg.stringPrefixes[ident] and string.find(nextChar, "[\"']") then
 				push("string", ident)
 				i += identLen
@@ -506,7 +502,7 @@ local function lex(code: string, cfg: any): { Token }
 			while p <= n do
 				local ch = string.sub(code, p, p)
 				local isWord = string.match(ch, "[%w_]") ~= nil
-				-- '.' only continues a number when the next char isn't another '.' (Lua's "..").
+				-- '.' only continues a number when the next char is not another '.' (Lua's "..").
 				local isDot = ch == "." and string.sub(code, p + 1, p + 1) ~= "."
 				local isExpSign = (ch == "+" or ch == "-") and (prev == "e" or prev == "E")
 				if isWord or isDot or isExpSign then
@@ -564,7 +560,6 @@ local function colorHex(c): string
 	return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
 end
 
--- Exposed for tests and debugging; Render is the production path.
 function SyntaxHighlight.Tokenize(code: string?, language: string?): { Token }
 	return lex(if type(code) == "string" then code else "", compile(language))
 end

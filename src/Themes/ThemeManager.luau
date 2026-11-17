@@ -15,13 +15,11 @@ local UUID = require("../Utils/UUID")
 
 local ThemeManager = {}
 
--- Must be a number before ApplyTheme runs: TweenInfo.new errors on a nil time at the first animated binding.
+-- Must be a number before ApplyTheme runs; TweenInfo.new rejects a nil time.
 ThemeManager.ColorFadeTime = 0.6
 
--- Independent of the merge base (Base), which only fills in the keys a theme omits.
 ThemeManager.DefaultTheme = "Umbral"
 
--- Weak keys, so destroyed components drop out automatically.
 ThemeManager._components = setmetatable({}, { __mode = "k" })
 
 function ThemeManager.Register(root, component)
@@ -30,10 +28,9 @@ function ThemeManager.Register(root, component)
 	end
 end
 
--- Stamping ThemeOverride_<Property> makes the theme system skip that property, so custom colors survive theme switches.
+-- A ThemeOverride attribute makes the theme system skip that property.
 local overrideCount = 0
--- Instances with pinned colours, tracked so a theme switch re-stamps only
--- them; walking GetDescendants() over the whole window instead froze executors.
+-- Pinned colours are tracked so a switch re-stamps only them, not the whole tree.
 local overrideProps = setmetatable({}, { __mode = "k" })
 
 function ThemeManager.SetColorOverride(instance, property, color)
@@ -86,7 +83,7 @@ function ThemeManager.ClearColorOverride(instance, property)
 	end
 end
 
--- Precedence on a switch: overrides win over bindings, which win over the prior value.
+-- Overrides win over bindings, which win over the prior value.
 
 ThemeManager.THEME_KEYS = {
 	"WindowColor",
@@ -169,7 +166,7 @@ end
 -- Turn on in Studio to catch omissions at build time instead of at switch time.
 ThemeManager.strict = false
 
--- Entries are dropped on Destroying and compacted on the next apply, so the arrays never accumulate dead UI.
+-- Entries drop on Destroying and compact on the next apply, so arrays stay small.
 local bindings = {}
 local bindingIndex = setmetatable({}, { __mode = "k" })
 
@@ -187,8 +184,7 @@ local function compactBindings()
 	end
 end
 
--- TweenInfo is immutable; reuse one per duration instead of allocating a fresh
--- object for every animated binding on each theme switch.
+-- TweenInfo is immutable, so one instance is reused per duration.
 local tweenInfoCache = {}
 local function TweenInfoCache(duration)
 	local info = tweenInfoCache[duration]
@@ -207,7 +203,7 @@ local function applyEntry(entry, theme, animate)
 	if inst:GetAttribute(entry.overrideAttr) ~= nil then
 		return
 	end
-	-- A literal is a state-map entry of the form { value = <any> }; it stays constant across theme switches.
+	-- A literal state entry stays constant across theme switches.
 	local value
 	if entry.literal ~= nil then
 		value = entry.literal
@@ -220,7 +216,7 @@ local function applyEntry(entry, theme, animate)
 	if entry.opts.transform then
 		value = entry.opts.transform(value)
 	end
-	-- PageFade's decoration pass reads this authoritative resting value instead of guessing from a mid-tween property.
+	-- PageFade reads this resting value instead of a mid-tween property.
 	if entry.opts.live or entry.kind == "color" or entry.kind == "number" then
 		inst:SetAttribute(entry.liveAttr, value)
 	end
@@ -249,7 +245,7 @@ local function makeHandle(entry)
 			applyEntry(entry, theme, true)
 		end
 	end
-	-- No-op for single-key bindings (no state map), so callers can invoke it blindly.
+	-- No-op without a state map, so callers can invoke it unconditionally.
 	function handle:SetState(name)
 		local map = entry.stateMap
 		if not map then
@@ -294,7 +290,7 @@ end
 local function bind(instance, property, themeKey, kind, opts)
 	opts = opts or {}
 
-	-- A nil instance (an optional element that never got built) gets a no-op handle so it can't take the window down.
+	-- A nil instance gets a no-op handle so an optional element cannot break the build.
 	if instance == nil then
 		return {
 			SetState = function() end,
@@ -362,9 +358,7 @@ local function bind(instance, property, themeKey, kind, opts)
 		stateName = initialStateName,
 		kind = kind,
 		opts = opts,
-		-- Precomputed attribute names + a shared TweenInfo: applyEntry runs once
-		-- per binding on every theme switch, so avoid per-call string concat and
-		-- TweenInfo allocation (the main source of theme-switch hitching).
+		-- Precomputed attributes and TweenInfo avoid per-switch string work.
 		overrideAttr = UUID.Static("ThemeOverride_" .. property),
 		liveAttr = UUID.Static("ThemeLive_" .. property),
 		tweenInfo = (kind == "color" or kind == "number") and TweenInfoCache(
@@ -373,7 +367,7 @@ local function bind(instance, property, themeKey, kind, opts)
 	}
 	byProp[property] = entry
 	bindings[#bindings + 1] = entry
-	-- Apply immediately so the property is themed on the first frame, not only after the next switch.
+	-- Applied immediately, so the property is themed on the first frame.
 	local theme = ActiveTheme.theme
 	if theme then
 		applyEntry(entry, theme, false)
@@ -389,7 +383,7 @@ function ThemeManager.BindTransparency(instance, property, themeKey, opts)
 	return bind(instance, property, themeKey, "number", opts)
 end
 
--- Non-tweenable kinds (string, boolean, asset id) snap instantly instead of crossfading.
+-- Non-tweenable kinds snap instead of crossfading.
 function ThemeManager.Bind(instance, property, themeKey, opts)
 	local t = typeof(instance[property])
 	local kind = "value"
@@ -421,13 +415,12 @@ function ThemeManager.UnbindInstance(instance)
 	end
 end
 
--- Handlers use this instead of reading a mid-tween instance[prop].
 function ThemeManager.Get(themeKey)
 	local theme = ActiveTheme.theme or ThemeManager.GetTheme(ThemeManager.DefaultTheme)
 	return theme[themeKey]
 end
 
--- For state the theme does not own (e.g. a hover transparency), which ApplyTheme's CancelAll can freeze mid-tween.
+-- For non-theme state that CancelAll can freeze mid-tween.
 local themeAppliedCallbacks = {}
 
 function ThemeManager.OnThemeApplied(fn, ownerInstance)
@@ -454,8 +447,7 @@ function ThemeManager.OnThemeApplied(fn, ownerInstance)
 end
 
 local COLOR_PROPS = { "BackgroundColor3", "TextColor3", "ImageColor3" }
--- Precomputed override attribute names for the re-stamp loop, so it doesn't
--- concat + hash a key per descendant per property on every theme switch.
+-- Precomputed attribute names keep the re-stamp loop allocation-free.
 local COLOR_PROP_ATTRS = {}
 for _, p in ipairs(COLOR_PROPS) do
 	COLOR_PROP_ATTRS[p] = UUID.Static("ThemeOverride_" .. p)
@@ -469,7 +461,7 @@ local function overrideAttrFor(property)
 	return COLOR_PROP_ATTRS[property] or UUID.Static("ThemeOverride_" .. property)
 end
 
--- Only named (string/nil) results are memoized; custom tables are caller-owned and merged fresh each time.
+-- Only named results are memoized; custom tables are merged fresh each time.
 local themeMemo = {}
 
 function ThemeManager.GetTheme(themeInput)
@@ -508,7 +500,6 @@ function ThemeManager.GetTheme(themeInput)
 		theme[k] = themeTable[k] ~= nil and themeTable[k] or v
 	end
 
-	-- Only named/nil results are interned; a bad name falls back to Base, so it never overwrites a real theme's memo entry.
 	if key then
 		themeMemo[key] = theme
 	end
@@ -528,9 +519,7 @@ function ThemeManager.SyncTheme(target, theme)
 	end
 end
 
--- Elements under a hidden ancestor (an inactive tab's FadeLayer, a minimized
--- window) can't be seen, so their values snap on a theme switch instead of
--- spawning tweens nobody watches. Visible elements still crossfade.
+-- Values under a hidden ancestor snap instead of spawning unwatched tweens.
 local function isHidden(inst)
 	local node = inst
 	while node and node ~= game do
@@ -549,20 +538,20 @@ end
 function ThemeManager.ApplyTheme(window, themeInput)
 	local theme = ThemeManager.GetTheme(themeInput)
 
-	-- Publish the live theme so components read current colors at interaction time, not a stale construction-time table.
+	-- Published so components read current colors at interaction time.
 	ActiveTheme.theme = theme
 	ActiveTheme.name = (type(themeInput) == "string") and themeInput or nil
 
-	-- Cancel in-flight tweens first, or one started by the old theme can finish after this pass and overwrite the new values.
+	-- Cancel first; an old-theme tween could otherwise finish after this pass.
 	Tween.CancelAllUnder(window.Base)
 
-	-- Window shell colors are declarative bindings created in Window.new; the bindings pass below re-resolves them.
+	-- Window shell colours are bindings created in Window.new and re-resolved below.
 	window._theme = theme
 
 	ThemeManager.SyncTheme(window.TabGroup, theme)
 	ThemeManager.SyncTheme(window.SettingsTabGroup, theme)
 
-	-- The window can't self-register (the registry walks Base's descendants, excluding Base itself), so call its ApplyTheme explicitly first.
+	-- The window cannot self-register, so its ApplyTheme is called explicitly first.
 	if window.ApplyTheme then
 		pcall(function()
 			window:ApplyTheme(theme)
@@ -579,10 +568,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Re-stamp pinned colors after every pass so component theme colors can't
-	-- clobber a pinned custom color. Iterate the override registry (a handful
-	-- of entries) instead of GetDescendants() over the whole window — that
-	-- walk was the multi-second freeze on executors.
+	-- Re-stamp pinned colours last so component colours cannot clobber them.
 	if overrideCount > 0 then
 		for inst, props in pairs(overrideProps) do
 			if inst.Parent then
@@ -598,12 +584,11 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Additive with the component walk above; bindings skip overridden props, so re-stamped overrides survive.
+	-- Additive with the component walk above; bindings skip overridden props.
 	compactBindings()
-	-- bindings is module-global, so scope the pass to this window's tree or a second window's ApplyTheme would re-theme the first.
+	-- The binding index is module-global, so each pass is scoped to this window.
 	local scopeRoot = window.Base
-	-- One visibility climb per instance per switch, and only for bindings that
-	-- would actually tween: instant/direct bindings skip the ancestor walk.
+	-- One visibility climb per instance per switch, and only for bindings that tween.
 	local hiddenCache = {}
 	local function shouldAnimate(inst, entry)
 		if entry.opts.instant or (entry.kind ~= "color" and entry.kind ~= "number") then
@@ -620,9 +605,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		local inst = entry.instance
 		if inst and (entry.scopeRoot == scopeRoot or inst == scopeRoot or inst:IsDescendantOf(scopeRoot)) then
 			entry.scopeRoot = scopeRoot
-			-- Isolate each binding: a throw here used to abort the rest of the
-			-- pass (and the spin/callback passes below), stranding every later
-			-- binding on the old theme until the next switch.
+			-- Each binding is isolated; a throw must not strand later bindings on the old theme.
 			local ok, err = pcall(function()
 				applyEntry(entry, theme, shouldAnimate(inst, entry))
 			end)
@@ -632,7 +615,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- CancelAll stopped these spins; restart them so the selected tab keeps its gradient instead of staying stopped until a tab switch.
+	-- CancelAll stopped these spins; restart so the selected tab keeps its gradient.
 	if window.TabGroup and window.TabGroup.ActiveTab and window.TabGroup.ActiveTab.BackImageGradient then
 		window.TabGroup:_resumeSpin(window.TabGroup.ActiveTab.BackImageGradient, true)
 	end
@@ -644,10 +627,10 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		window.SettingsTabGroup:_resumeSpin(window.SettingsTabGroup.ActiveTab.BackImageGradient, true)
 	end
 
-	-- CancelAll kills these spins and nothing else restarts them, so a switch would silently freeze every one.
+	-- CancelAll kills the remaining spins, so they restart here.
 	Tween.RestartSpins()
 
-	-- CancelAll leaves the tab backdrops stuck mid-tween, so set the final state directly without disturbing future animations.
+	-- CancelAll leaves tab backdrops mid-tween, so the final state is set directly.
 	if window.SettingsTabGroup and window.SettingsTabGroup.Tabs then
 		local active = window.SettingsTabGroup.ActiveTab
 		for _, tab in ipairs(window.SettingsTabGroup.Tabs) do
@@ -655,7 +638,7 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		end
 	end
 
-	-- Decorations read their resting transparency from ThemeLive_, which the bindings pass republished; restore the pages CancelAll killed.
+	-- Decorations re-read ThemeLive_; restore the pages CancelAll killed.
 	if PageFade.InvalidateDecorationBases then
 		PageFade.InvalidateDecorationBases()
 	end
@@ -666,7 +649,6 @@ function ThemeManager.ApplyTheme(window, themeInput)
 		window.SettingsTabGroup:RestoreActivePage()
 	end
 
-	-- Let components re-stamp non-theme state (e.g. a mid-hover transparency) that CancelAll froze.
 	for i = #themeAppliedCallbacks, 1, -1 do
 		local entry = themeAppliedCallbacks[i]
 		if entry.owner and (not entry.owner.Parent or not entry.owner:IsDescendantOf(game)) then

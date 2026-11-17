@@ -1,23 +1,16 @@
 --[[
 	Aetheris/Utils/Locale.luau
 
-	Localization core, modelled on Rayfield's locale utility (MPL-2.0).
-	English is canonical: every chrome string in src is written in it, so the
-	source text is its own lookup key and a missing entry falls back to plain
-	English instead of a raw key. Built-in tables sit in Locale.strings keyed
-	by lowercased locale id; devs merge more with Locale.register().
+	Localization core, modelled on Rayfield's locale utility (MPL-2.0). English
+	source text is its own lookup key, so a missing entry falls back to English.
 
-	resolve() runs dev translator -> exact locale ("pt-br") -> language-only
-	("pt") -> source. Only strings passed through it are copy; element values,
- slider readouts and keybind keys are data and stay untouched.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 local Locale = {}
 
--- A wrapped string carries this tag so resolve() can tell copy from a plain
--- value; property values are never plain tables, so the shape is unambiguous.
+-- Token tag lets resolve() tell copy from a plain value.
 local tokenTag = {}
 
 Locale.strings = {
@@ -181,8 +174,7 @@ Locale.strings = {
 	},
 }
 
--- Active locale id plus the optional dev hook (source, localeId) -> string?.
--- Both start neutral, so with no setup at all everything renders in English.
+-- Active locale id and the optional dev translator hook.
 Locale.current = "en"
 Locale.translator = nil
 
@@ -190,8 +182,7 @@ local function languageOf(id)
 	return string.match(id, "^(%a+)") or id
 end
 
--- Wrap a string so it localizes. Non-strings pass through untouched so
--- callers can wrap unconditionally without special-casing nil.
+-- Non-strings pass through so callers can wrap unconditionally.
 function Locale.t(source)
 	if type(source) ~= "string" or source == "" then
 		return source
@@ -199,7 +190,6 @@ function Locale.t(source)
 	return { [tokenTag] = source }
 end
 
--- True for a value produced by Locale.t that still carries a source string.
 function Locale.isToken(value)
 	return type(value) == "table" and type(value[tokenTag]) == "string"
 end
@@ -208,10 +198,7 @@ function Locale.sourceOf(token)
 	return token[tokenTag]
 end
 
--- Resolve a source string (or token) to the active locale: dev translator
--- wins, then the exact-locale table, then the language-only table, then the
--- source itself. The translator is pcall'd so a bad dev hook can't take the
--- UI down.
+-- Dev translator, exact locale, language-only table, then the source.
 function Locale.resolve(value)
 	local source = value
 	if Locale.isToken(value) then
@@ -236,12 +223,7 @@ function Locale.resolve(value)
 	return source
 end
 
--- Merge dev-supplied tables into the built-in set, keyed by locale id
--- (lowercased), each a map of source string -> translation. Merges rather
--- than replaces, so repeated calls accumulate instead of clobbering.
--- Entries are checked here rather than trusted: a non-string translation
--- would sail through resolve() into a Text property and only blow up at
--- render, nowhere near the register call.
+-- Merges dev tables by lowercased locale id; non-string entries are rejected.
 function Locale.register(tables)
 	if type(tables) ~= "table" then
 		return
@@ -265,9 +247,7 @@ function Locale.register(tables)
 	end
 end
 
--- Point the active locale at localeId (lowercased), falling back to English
--- when it isn't a usable string. Setting it alone touches nothing on screen;
--- call refresh() after it to re-resolve the live UI in place.
+-- Sets the active locale; call refresh() afterwards to repaint live UI.
 function Locale.setActive(localeId)
 	if type(localeId) == "string" and localeId ~= "" then
 		Locale.current = string.lower(localeId)
@@ -277,16 +257,10 @@ function Locale.setActive(localeId)
 	return Locale.current
 end
 
--- Chrome strings stamped onto instances: one property + source list per
--- instance, in a weak-keyed registry so destroyed UI drops out on GC. Never
--- walks the instance tree -- that walk was the multi-second freeze on
--- executors.
+-- Stamped strings live in a weak per-instance registry; the tree is never walked.
 local stamped = setmetatable({}, { __mode = "k" })
 
--- Set inst[property] to the resolved source and remember it, so refresh()
--- can re-resolve it when the locale changes. Callers keep passing their raw
--- source string, never the resolved copy. `wrap` (optional) formats the
--- resolved string, e.g. rich-text font tags around a page title.
+-- Remembers the raw source so refresh() can repaint it; wrap formats the copy.
 function Locale.set(inst, property, source, wrap)
 	if inst == nil or source == nil then
 		return
@@ -312,9 +286,6 @@ function Locale.set(inst, property, source, wrap)
 	inst[property] = paint(source)
 end
 
--- Re-resolve every stamped string under the active locale. The UI Settings
--- locale dropdown calls this after setActive so a change lands immediately
--- instead of on the next launch.
 function Locale.refresh()
 	for inst, list in pairs(stamped) do
 		for _, entry in ipairs(list) do
@@ -324,9 +295,7 @@ function Locale.refresh()
 	end
 end
 
--- The player's language from Roblox's locale id (e.g. "fr-fr"), lowercased
--- and kept whole so a translator sees the exact region; resolve() narrows to
--- the language part when it needs to.
+-- Player language from Roblox's locale id, lowercased and kept whole.
 function Locale.detect()
 	local ok, id = pcall(function()
 		return game:GetService("LocalizationService").RobloxLocaleId

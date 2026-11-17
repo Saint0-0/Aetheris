@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Viewport.luau
 
-	Player card: a ViewportFrame rendering a live character clone (slow orbit or
-	static 3/4 view) beside customisable info rows and a slim health bar.
-	Framing picks the camera crop; SetPlayer swaps the subject in place.
+	Player card: a ViewportFrame rendering a live character clone beside
+	customisable info rows and a slim health bar.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -18,8 +17,7 @@ local PageAwareness = require("../Utils/PageAwareness")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
--- camera crop per framing: focus offset above the bounding-box centre and
--- distance, both as fractions of the model's height
+-- Framing crop: focus offset and distance as fractions of model height.
 local FRAMING = {
 	Full = { focus = 0.0, distance = 1.25 },
 	UpperBody = { focus = 0.18, distance = 0.55 },
@@ -34,11 +32,10 @@ local INFO_ROWS = {
 	{ caption = "ACCOUNT AGE", key = "AccountAge", suffix = " days" },
 }
 
-local STATIC_YAW = math.rad(-20) -- slight 3/4 angle when not rotating.
-local ORBIT_SPEED = 0.35 -- radians per second (~20°/s: a calm ~18s revolution).
+local STATIC_YAW = math.rad(-20) -- Slight 3/4 angle when not rotating.
+local ORBIT_SPEED = 0.35 -- Radians per second; one revolution takes about 18s.
 
--- Health bar ramp: red -> yellow -> green as the bound humanoid heals, so a
--- glance reads the state like the classic health bar. Not theme-bound on purpose.
+-- Health ramp from red to yellow to green; deliberately not theme-bound.
 local HEALTH_LOW = Color3.fromRGB(226, 70, 70)
 local HEALTH_MID = Color3.fromRGB(245, 195, 75)
 local HEALTH_HIGH = Color3.fromRGB(85, 220, 110)
@@ -65,18 +62,15 @@ function Viewport.new(parent, Settings, theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Viewport)
 	self._theme = theme
-	-- the orbit RenderStepped early-returns while off screen (cheaper than connect/disconnect)
+	-- The orbit early-returns off screen, which is cheaper than reconnecting.
 	self._pageActive = true
 	local height = Settings.Height or 160
 	local framing = FRAMING[Settings.Framing] and Settings.Framing or "Full"
 	local rotating = Settings.Rotate ~= false
-	-- `Info` is the opt-in for the info column: pass a table to show it (its
-	-- entries customise the rows, an empty one keeps the default player
-	-- fields), omit it for a viewport-only card. HealthBar = false drops the
-	-- slim side bar.
+	-- Info opts into the info column; HealthBar = false drops the side bar.
 	local showInfo = type(Settings.Info) == "table"
 	local healthBar = Settings.HealthBar ~= false
-	-- 3px gap to the side bar, + 4px for the bar itself when present.
+	-- Gap to the side bar, plus the bar width when present.
 	local viewportRight = if healthBar then 7 else 3
 	local infoRows = {}
 	if showInfo then
@@ -108,9 +102,7 @@ function Viewport.new(parent, Settings, theme)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 
-	-- The holder owns the viewport + health-bar pair and is scale-positioned,
-	-- so the pair sits correctly without width-dependent offset maths. With no
-	-- info column it takes over the whole row (no `Info` table).
+	-- Holder owns the viewport and bar pair and is scale-positioned.
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("ViewportHolder")
 	holder.BorderSizePixel = 0
@@ -120,14 +112,13 @@ function Viewport.new(parent, Settings, theme)
 	holder.Size = if showInfo then UDim2.fromScale(0.55, 0.9) else UDim2.fromScale(0.94, 0.9)
 	holder.Parent = frame
 	if showInfo then
-		-- The viewport's old 150px cap, now on the holder (150 + margin).
+		-- 150px cap plus margin, applied to the holder.
 		local holderConstraint = Instance.new("UISizeConstraint")
 		holderConstraint.MaxSize = Vector2.new(150 + viewportRight, math.huge)
 		holderConstraint.Parent = holder
 	end
 
-	-- input-well tint keeps it recessed and themed like a Keybind/TextInput
-	-- field; the right margin leaves the 3px gap (+4px health bar when on)
+	-- Input-well tint; the right margin leaves room for the health bar.
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = UUID.Static("PlayerViewport")
 	viewport.BorderSizePixel = 0
@@ -142,9 +133,7 @@ function Viewport.new(parent, Settings, theme)
 	viewport.Parent = holder
 	newCorner(viewport, 4)
 
-	-- Slim vertical health bar hugging the viewport's right edge (3px away),
-	-- filled from the bottom by the bound character's humanoid health.
-	-- HealthBar = false skips the whole bar (track, fill and its binds).
+	-- Slim bar at the right edge, filled from the bottom by humanoid health.
 	local healthTrack, healthStroke, healthFill
 	if healthBar then
 		healthTrack = Instance.new("Frame")
@@ -182,8 +171,7 @@ function Viewport.new(parent, Settings, theme)
 	local worldModel = Instance.new("WorldModel")
 	worldModel.Parent = viewport
 
-	-- caption over value rows; skipped entirely without an `Info` table so the
-	-- viewport can take the freed space
+	-- Caption over value rows; skipped without an Info table.
 	local valueLabels = {}
 	if showInfo then
 		local infoColumn = Instance.new("Frame")
@@ -233,7 +221,7 @@ function Viewport.new(parent, Settings, theme)
 			value.TextSize = 13
 			value.TextXAlignment = Enum.TextXAlignment.Right
 			value.TextTruncate = Enum.TextTruncate.AtEnd
-			-- Static rows carry their own text; Key rows fill in on bind.
+			-- Static rows carry text; key rows fill in on bind.
 			value.Text = if spec.text ~= nil then tostring(spec.text) .. (spec.suffix or "") else ""
 			value.Parent = row
 			valueLabels[index] = value
@@ -254,14 +242,12 @@ function Viewport.new(parent, Settings, theme)
 		local focus = boxCF.Position + Vector3.new(0, boxSize.Y * mode.focus, 0)
 		local distance = boxSize.Y * mode.distance + 0.4
 		local rotation = CFrame.Angles(0, yaw, 0)
-		-- characters face -Z, so yaw 0 puts the camera on the -Z side showing
-		-- the front; elevation adds a touch of top-down perspective
+		-- Characters face -Z, so yaw 0 frames the front with slight elevation.
 		local camPos = focus + rotation:VectorToWorldSpace(Vector3.new(0, boxSize.Y * 0.05, -distance))
 		camera.CFrame = CFrame.lookAt(camPos, focus)
 	end
 
-	-- Health bar reads the SOURCE character's humanoid (live, unlike the
-	-- stripped clone); a swap or respawn just moves the connection.
+	-- Reads the source humanoid, which stays live unlike the stripped clone.
 	local function bindHealth(character)
 		if not healthFill then
 			return
@@ -291,7 +277,7 @@ function Viewport.new(parent, Settings, theme)
 		end
 		boxCF, boxSize = nil, nil
 
-		-- strip anything that could execute or float away inside the viewport
+		-- Strip anything that could execute or float inside the viewport.
 		local previousArchivable = character.Archivable
 		character.Archivable = true
 		local ok, result = pcall(function()
@@ -307,8 +293,7 @@ function Viewport.new(parent, Settings, theme)
 				descendant:Destroy()
 			end
 		end
-		-- hold the model upright and frame off the bounding box, so R6/R15 and
-		-- scaled avatars all crop correctly
+		-- Frame off the bounding box so R6, R15 and scaled avatars crop evenly.
 		local root = clone:FindFirstChild("HumanoidRootPart")
 		if root then
 			root.Anchored = true
@@ -328,7 +313,7 @@ function Viewport.new(parent, Settings, theme)
 			charAddedConn = nil
 		end
 		for index, spec in ipairs(infoRows) do
-			-- Static `text` rows never change; Key rows read the player live.
+			-- Static text rows never change; key rows read the player live.
 			local label = valueLabels[index]
 			if label and spec.key then
 				local raw
@@ -352,7 +337,7 @@ function Viewport.new(parent, Settings, theme)
 			boxCF, boxSize = nil, nil
 			return
 		end
-		-- a respawn or player swap may have queued this attach late
+		-- A respawn or swap may queue this attach late.
 		local function attachIfCurrent(character)
 			if token == bindToken and frame.Parent then
 				attach(character)
@@ -366,7 +351,7 @@ function Viewport.new(parent, Settings, theme)
 		end)
 	end
 
-	-- one RenderStepped connection; static views keep yaw fixed
+	-- One RenderStepped connection; static views keep yaw fixed.
 	if rotating then
 		renderConn = RunService.RenderStepped:Connect(function(deltaTime)
 			if not self._pageActive then
@@ -380,8 +365,7 @@ function Viewport.new(parent, Settings, theme)
 		end)
 	end
 
-	-- pause the orbit while the page is off screen (always on, no Gate: it
-	-- saves per-frame camera math on a hidden view)
+	-- Pause the orbit off page to skip per-frame camera maths.
 	PageAwareness.Register(frame, {
 		OnInactive = function()
 			self._pageActive = false
@@ -403,7 +387,7 @@ function Viewport.new(parent, Settings, theme)
 	if healthBar then
 		ThemeManager.BindColor(healthTrack, "BackgroundColor3", "InputBackgroundColor")
 		ThemeManager.BindTransparency(healthTrack, "BackgroundTransparency", "InputBackgroundTransparency")
-		-- healthFill's colour is driven by the bound humanoid's ratio, never by the theme.
+		-- The health fill follows humanoid health, never the theme.
 		ThemeManager.BindColor(healthStroke, "Color", "StrokeColor")
 		ThemeManager.BindTransparency(healthStroke, "Transparency", "StrokeTransparency")
 	end
@@ -444,8 +428,7 @@ function Viewport.new(parent, Settings, theme)
 				end
 			end,
 			Destroy = function(_self)
-				-- the orbit, respawn and health connections outlive the instance
-				-- tree unless disconnected here
+				-- Disconnect orbit, respawn and health connections explicitly.
 				if renderConn then
 					renderConn:Disconnect()
 					renderConn = nil

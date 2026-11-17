@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/LiveStat.luau
 
-	Animated numeric stat card with Full and Compact layouts. Values roll
-	through the odometer and tint positive, negative or neutral using accents
-	derived from the theme's own AccentColor.
+	Animated numeric stat card with Full and Compact layouts. Values roll through
+	the odometer and tint positive, negative or neutral from the theme accent.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
@@ -22,7 +21,7 @@ local UUID = require("../Utils/UUID")
 local LiveStat = {}
 LiveStat.__index = LiveStat
 
--- 12s / revolution, a shared preset in Utils/Tween
+-- 12s per revolution; a shared preset in Utils/Tween.
 local SPIN_PRESET = "SpinStat"
 
 local FULL_HEIGHT = 90
@@ -30,22 +29,20 @@ local COMPACT_HEIGHT = 41
 local FULL_CORNER = 8
 local COMPACT_CORNER = 6
 
--- rising uses the theme's AccentColor; falling is that hue rotated to red, so
--- the card belongs to the palette but "down" still reads as down
+-- Rising uses the accent; falling rotates that hue to red.
 local POS_FALLBACK = Color3.fromRGB(0, 170, 127)
 
 local function lighten(c, t)
 	return Color3.new(c.R + (1 - c.R) * t, c.G + (1 - c.G) * t, c.B + (1 - c.B) * t)
 end
 
--- preserves S and V, so a blue accent yields a blue-toned "down"
+-- Preserves saturation and value, so a blue accent stays blue-toned.
 local function withHue(c, targetHue)
 	local _, s, v = Color3.toHSV(c)
 	return Color3.fromHSV(targetHue, math.max(s, 0.55), v)
 end
 
--- memoized: _applyAccent runs every value tick, so the HSV round-trip only
--- happens when the theme reference actually changes
+-- Memoized: the HSV round trip runs only when the theme changes.
 local cachedTheme, cachedAccents
 local function accentsFor(theme)
 	if theme == cachedTheme and cachedAccents then
@@ -59,11 +56,10 @@ local function accentsFor(theme)
 	return cachedAccents
 end
 
--- static default until the first :_applyAccent call swaps in the themed set
+-- Static default until _applyAccent swaps in the themed set.
 local ACCENT = accentsFor(nil)
 
--- comma-grouped integer, e.g. 1234567 -> "1,234,567"; a negative rounding to
--- zero shows plain "0"
+-- Comma-grouped integer; a negative rounding to zero shows "0".
 local function formatNumber(value)
 	if type(value) ~= "number" then
 		return tostring(value)
@@ -111,8 +107,7 @@ function LiveStat.new(parent, Settings, theme)
 	end
 
 	self:_applyAccent(0)
-	-- re-derives the accent on a live theme switch; owner = main frame, so it
-	-- auto-unregisters on destroy
+	-- Re-derives the accent on a theme switch; owner unregisters on destroy.
 	ThemeManager.OnThemeApplied(function()
 		self:_applyAccent(self._direction or 0)
 	end, self._main)
@@ -134,7 +129,6 @@ function LiveStat.new(parent, Settings, theme)
 	return self
 end
 
--- title (+icon) top-left, value bottom-left, change bottom-right
 function LiveStat:_buildFull()
 	local theme = self._theme
 
@@ -161,8 +155,7 @@ function LiveStat:_buildFull()
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = main
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- re-stamp AFTER the binding: it only writes on theme change, so without
-	-- this the stroke stayed invisible until the first theme switch
+	-- Re-stamp after the binding, which only writes on theme change.
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	self._stroke = stroke
 
@@ -233,7 +226,6 @@ function LiveStat:_buildFull()
 	})
 	self._valueOdo:snap(self:_format(self._value))
 
-	-- Change (bottom-right), right-aligned
 	if self._showChange then
 		local changeHost = Instance.new("Frame")
 		changeHost.Name = UUID.Static("Change")
@@ -253,7 +245,6 @@ function LiveStat:_buildFull()
 	end
 end
 
--- icon + title left, single value right
 function LiveStat:_buildCompact()
 	local theme = self._theme
 
@@ -281,7 +272,7 @@ function LiveStat:_buildCompact()
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = main
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- re-stamp AFTER the binding: it only writes on theme change
+	-- Re-stamp after the binding, which only writes on theme change.
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	self._stroke = stroke
 
@@ -338,8 +329,7 @@ function LiveStat:_buildCompact()
 	self._valueOdo:snap(self:_format(self._value))
 end
 
--- near-transparent white overlay carrying an accent gradient whose alpha ramps
--- in, spun for the "alive" sheen; a UIShadow glow sits behind the card
+-- Accent overlay spun for sheen, with a UIShadow glow behind the card.
 function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	local overlay = Instance.new("Frame")
 	overlay.Size = UDim2.fromScale(1, 1)
@@ -354,8 +344,7 @@ function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	oCorner.CornerRadius = UDim.new(0, cornerRadius)
 	oCorner.Parent = overlay
 
-	-- brightness-only ramp; the hue comes from the overlay's BackgroundColor3,
-	-- so tweening that shifts the whole gradient together
+	-- Brightness-only ramp; the overlay colour supplies the hue.
 	local gradient = Instance.new("UIGradient")
 	gradient.Rotation = -55
 	gradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
@@ -375,7 +364,7 @@ function LiveStat:_buildAccent(main, cornerRadius, blurSize)
 	self._glow = glow
 end
 
--- "+12.3%" / "-4.0%" / "0%" (percentage) or a signed grouped number (absolute)
+-- Signed percentage, or a signed grouped number in absolute mode.
 function LiveStat:_formatChange(delta)
 	if self._changeMode == "absolute" then
 		if delta > 0 then
@@ -408,12 +397,12 @@ function LiveStat:_applyAccent(direction)
 	end
 	self._accent = accent
 
-	-- solid card base behind the overlay keeps the edges matched
+	-- Solid card base keeps the overlay edges matched.
 	if self._main then
 		ThemeManager.SetColorOverride(self._main, "BackgroundColor3", accent.fill)
 		self._main.BackgroundTransparency = 0
 	end
-	-- tween the hue instead of snapping, so rising/falling crossfades smoothly
+	-- Tween the hue so rising and falling crossfade.
 	if self._stroke then
 		Tween.Play(self._stroke, "Fast", { Color = accent.stroke })
 	end
@@ -425,8 +414,7 @@ function LiveStat:_applyAccent(direction)
 	end
 end
 
--- StartSpin auto-gates on visibility, so an off-screen card pauses and
--- resumes from the frozen angle when its page returns
+-- StartSpin gates on visibility, so an off-screen card resumes in place.
 function LiveStat:_startSpin()
 	if not self._gradient then
 		return

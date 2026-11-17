@@ -2,9 +2,7 @@
 	Aetheris/Components/ComponentRow.luau
 
 	Shared factory for the standard settings row: a full-width container with a
-	left-aligned themed name label. Returns (row, label) so the caller can parent
-	its control straight into the row; centralising the boilerplate keeps every
-	component's row consistent with no extra wrapper frame or shadow.
+	left-aligned themed name label. Returns (row, label) for the caller's control.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -59,7 +57,6 @@ function ComponentRow.new(parent, Settings)
 		stroke.Color = (theme and theme.StrokeColor)
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = row
-		-- Bind the stroke so it re-themes on every switch.
 		ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 		ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	end
@@ -68,7 +65,7 @@ function ComponentRow.new(parent, Settings)
 	label.Name = UUID.Static("ElementName")
 	label.BorderSizePixel = 0
 	label.FontFace = Constants.Font(Enum.FontWeight.Regular)
-	-- Chrome: stamped so a live locale change re-resolves every row label.
+	-- Stamped so a live locale change re-resolves every row label.
 	Locale.set(label, "Text", Settings.Name or "Element")
 	label.TextSize = Settings.LabelTextSize or 14
 	label.TextTruncate = Enum.TextTruncate.AtEnd
@@ -77,8 +74,7 @@ function ComponentRow.new(parent, Settings)
 	label.AnchorPoint = Settings.LabelAnchorPoint or Vector2.new(0, 0.5)
 	label.BackgroundTransparency = 1
 	if Settings.LabelAutoSize then
-		-- Hug the name text (X size 0 + AutomaticSize.X) for callers that need a
-		-- variable-width label, like TextInput's field cap.
+		-- Hug the text for callers that need a variable-width label.
 		label.TextWrapped = false
 		label.AutomaticSize = Enum.AutomaticSize.X
 		label.Size = UDim2.fromScale(0, labelHeight)

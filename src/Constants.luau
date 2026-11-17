@@ -1,9 +1,7 @@
 --[[
 	Aetheris/Constants.luau
 
-	Shared library-wide constants: the fallback backdrop asset, the aurora
-	glow texture, and the shared font family with its UI Settings choices.
-	Add new constants here instead of scattering bare literals across modules.
+	Shared library constants, plus the shared font family and its UI Settings choices.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -12,17 +10,13 @@ local Constants = {}
 
 Constants.FallbackImage = "rbxassetid://11094025229"
 
--- Optional aurora glow texture tinted from the active theme; clear it to
--- fall back to the procedural bloom.
+-- Optional aurora glow texture; nil falls back to the procedural bloom.
 Constants.AuroraGlow = "rbxassetid://90267840908213"
 
--- Bottom reserve inside the settings pages: the docked tab pill bar lives
--- there (bar height + margins), so every settings page/scroller subtracts it
--- from its height instead of hardcoding the old top-bar proportions.
+-- Space reserved at the bottom of settings pages for the docked tab bar.
 Constants.SettingsBottomReserve = 72
 
--- Shared font family: Constants.Font() builds FontFaces from it;
--- SetFontAsset swaps it live (nil resets to the built-in family).
+-- Shared font family; SetFontAsset swaps it live, and nil restores the default.
 Constants.FontAsset = "rbxassetid://12187365364"
 local DEFAULT_FONT_ASSET = Constants.FontAsset
 
@@ -35,9 +29,7 @@ function Constants.SetFontAsset(asset)
 	return Constants.FontAsset
 end
 
--- UI Settings dropdown choices; bundled families resolve through
--- Font.fromEnum so they need no asset ids. One entry per distinct family:
--- weight variants of one family would collide in the stored value.
+-- UI Settings font choices; one entry per distinct family.
 Constants.FontChoices = {
 	{ Name = "Aetheris", Value = DEFAULT_FONT_ASSET },
 	{ Name = "Gotham", Value = Font.fromEnum(Enum.Font.Gotham).Family },

@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Dropdown.luau
 
-	Button that opens a modal popup for single/multi item selection. The
-	button row lives here; the popup itself is PopUps/DropdownPopUp, created
-	lazily via the supplied ShowDropdownPopup factory.
+	Button that opens a modal popup for single or multi item selection. The
+	popup is PopUps/DropdownPopUp, created lazily via ShowDropdownPopup.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -18,7 +17,7 @@ local UUID = require("../Utils/UUID")
 local Dropdown = {}
 Dropdown.__index = Dropdown
 local _counter = 0
--- design-notes 4: icon hover lifts in over 0.15s, settles back over 0.2s.
+-- Icon hover lifts in over 0.15s and settles back over 0.2s.
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 function Dropdown.new(parent, Settings, ShowPopup, theme)
@@ -47,7 +46,7 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 		Stroke = true,
 		ComponentContainer = true,
 	})
-	-- covers the whole row so clicks anywhere open the popup
+	-- Covers the row so clicks anywhere open the popup.
 	local interact = Instance.new("TextButton")
 	interact.Name = UUID.Static("Interact")
 	interact.BorderSizePixel = 0
@@ -105,17 +104,16 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 				popupInstance = nil
 			end,
 			OnCancel = function()
-				-- cleared on cancel too, including click-outside
+				-- Cleared on cancel too, including click-outside.
 				popupInstance = nil
 			end,
 		})
 		popupInstance:Open()
 	end
-	-- only the interact button, to avoid double-fire from row.InputBegan
+	-- Only the interact button, to avoid double-fire from row.InputBegan.
 	interact.MouseButton1Click:Connect(function()
 		openPopup()
 	end)
-	-- Icon hover lift (design-notes 4).
 	interact.MouseEnter:Connect(function()
 		Tween.Play(dropdownImage, ICON_IN, { ImageTransparency = 0 })
 	end)
@@ -124,19 +122,18 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 	end)
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
-	-- the row's stroke is created and bound by ComponentRow (Stroke = true)
+	-- ComponentRow creates and binds the row stroke (Stroke = true).
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(dropdownImage, "ImageColor3", "AccentColor")
 	self.Destroy = function()
-		-- close any open popup so it can't dangle
 		if popupInstance and popupInstance.IsOpen then
 			pcall(function()
 				popupInstance:Close()
 			end)
 			popupInstance = nil
 		end
-		-- the row's own stroke binds die with its Destroying signal
+		-- Row stroke bindings end with its Destroying signal.
 		ThemeManager.UnbindInstance(row)
 		ThemeManager.UnbindInstance(label)
 		ThemeManager.UnbindInstance(dropdownImage)

@@ -1,13 +1,9 @@
 --[[
 	Aetheris/Utils/ComponentAPI.luau
 
-	Adds the shared public surface every component exposes: SetName,
-	SetVisible, GetVisible, and a fallback Destroy. Opts: Root (instance or fn), Label, Name, OnName, Children (fn
-	returning child components for fan-out visibility), and Methods (a table of
-	component-unique public methods, e.g. Viewport's SetPlayer). Methods is the
-	single assembly point for a component's API surface so each component file
-	declares everything in one place. Custom teardown and name side effects stay
-	with the component.
+	Shared public surface for every component: SetName, SetVisible, GetVisible
+	and a fallback Destroy. Methods carries component-unique API so each file
+	declares its surface once.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -26,10 +22,7 @@ function ComponentAPI.Apply(component, opts)
 	opts = opts or {}
 	local root = opts.Root
 	local label = opts.Label
-	-- Names are copy: stored as the raw source (not the resolved copy) so a
-	-- live locale change can re-resolve them, and stamped onto the label here
-	-- so every component's chrome and dev-supplied element names localize
-	-- together.
+	-- Names stay raw so a locale change can re-resolve them.
 	local name = opts.Name
 	local children = opts.Children
 
@@ -47,8 +40,7 @@ function ComponentAPI.Apply(component, opts)
 	end
 	component.SetName = setName
 
-	-- Initial paint for components without a custom OnName handler: their own
-	-- build code set the raw string, so re-assert it stamped.
+	-- Re-assert the name for components without a custom OnName handler.
 	if label and not opts.OnName and name ~= nil then
 		Locale.set(label, "Text", name)
 	end
@@ -86,9 +78,7 @@ function ComponentAPI.Apply(component, opts)
 		end
 	end
 
-	-- Component-unique methods (SetPlayer, SetVideo, ...): merged last so a
-	-- component can override a shared name if it needs to. Keeps each file's
-	-- whole public surface in one table instead of scattered self.X assignments.
+	-- Merged last so a component can override a shared method.
 	local methods = opts.Methods
 	if methods then
 		for key, fn in pairs(methods) do

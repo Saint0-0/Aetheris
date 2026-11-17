@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Paragraph.luau
 
-	Container with a title and a wrapped description body. Accepts Title and
-	Description; themed properties are declarative bindings so a theme switch
-	re-resolves them with no ApplyTheme body to maintain.
+	Container with a title and a wrapped description body. Themed properties are
+	declarative bindings, so a theme switch needs no ApplyTheme body.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]

@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Components/Carousel.luau
 
-	Horizontal page carousel: up to MAX_ITEMS image or video pages with a
-	floating blob indicator over the media (the current blob doubles as the
-	playing item's progress bar), drag swipe to change page, and off-view
-	videos paused so only the visible page decodes.
+	Horizontal page carousel of up to MAX_ITEMS image or video pages. The
+	floating indicator doubles as playback progress and off-view videos pause.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -44,8 +42,7 @@ local function assetId(value)
 	return value
 end
 
--- The table's array part is the page list: { {assetId, "image"|"video"}, ... };
--- Height/Volume ride as named keys alongside it.
+-- Array part lists pages as { assetId, kind }; Height and Volume are keys.
 local function collectPages(settings)
 	local pages = {}
 	for _, entry in ipairs(settings) do
@@ -92,12 +89,10 @@ function Carousel.new(parent, Settings, theme)
 	local pages = collectPages(Settings)
 	local count = #pages
 	local height = Settings.Height or DEFAULT_HEIGHT
-	-- Muted by default: a carousel that shouts over the rest of the UI is a
-	-- bug; callers can opt back in with Settings.Volume.
+	-- Silent by default; Settings.Volume opts back in.
 	local volume = (Settings.Volume ~= nil) and Settings.Volume or 0
 	local interval = tonumber(Settings.Interval) or 4
-	-- Auto-advance (user call): flip to the next page on a dwell timer,
-	-- wrapping at the end. AutoAdvance = false opts out.
+	-- AutoAdvance flips pages on a dwell timer; false disables it.
 	local autoAdvance = Settings.AutoAdvance ~= false and interval > 0 and count > 1
 
 	local self = setmetatable({}, Carousel)
@@ -118,8 +113,6 @@ function Carousel.new(parent, Settings, theme)
 	container.Size = UDim2.new(1, 0, 0, if count > 0 then height else 0)
 	container.Position = UDim2.fromScale(0, 0)
 	container.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	-- The indicator floats over the media, so the shell is exactly one page
-	-- tall; the media carries the corner itself (see the page builder below).
 	container.ClipsDescendants = true
 	container:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	container.Parent = parent
@@ -142,9 +135,7 @@ function Carousel.new(parent, Settings, theme)
 		return self
 	end
 
-	-- The viewport owns the visible frame and clips the sliding strip. It stays
-	-- square: the corner belongs to the image/video itself, so a page's media
-	-- is what reads as rounded (and a VideoFrame rounds with its own UICorner).
+	-- The viewport clips the strip and stays square; media carries the corners.
 	local viewport = Instance.new("Frame")
 	viewport.Name = UUID.Static("Viewport")
 	viewport.BorderSizePixel = 0
@@ -153,14 +144,12 @@ function Carousel.new(parent, Settings, theme)
 	viewport.Size = UDim2.new(1, 0, 0, height)
 	viewport.Position = UDim2.fromScale(0, 0)
 	viewport.ClipsDescendants = true
-	-- The swipe handler lives on the viewport; it must sink input itself so
-	-- a drag always lands here regardless of which page is under the cursor.
+	-- The viewport sinks input so drags land here over any page.
 	viewport.Active = true
 	viewport.Parent = container
 	self._viewport = viewport
 
-	-- Track holds every page side by side; its X scale is in viewport widths,
-	-- so page i sits at Position X = i and the track hides page i at -i.
+	-- Track X scale is in viewport widths, so page i sits at X = i.
 	local track = Instance.new("Frame")
 	track.Name = UUID.Static("Track")
 	track.BorderSizePixel = 0
@@ -171,8 +160,7 @@ function Carousel.new(parent, Settings, theme)
 	track.Parent = viewport
 	self._track = track
 
-	-- Indicator capsule: a dark scrim pill floating over the bottom of the
-	-- media, so the dots read over any artwork (light pages included).
+	-- Dark scrim pill so the dots read over any artwork.
 	local indicator = Instance.new("Frame")
 	indicator.Name = UUID.Static("Blobs")
 	indicator.BorderSizePixel = 0
@@ -202,8 +190,7 @@ function Carousel.new(parent, Settings, theme)
 	local videos = {}
 
 	for i, page in ipairs(pages) do
-		-- Fixed-width slots keep the capsule from reflowing when a dot
-		-- becomes a pill.
+		-- Fixed-width slots keep the capsule from reflowing when a dot grows.
 		local slot = Instance.new("Frame")
 		slot.Name = UUID.Static("BlobSlot")
 		slot.BorderSizePixel = 0
@@ -227,8 +214,7 @@ function Carousel.new(parent, Settings, theme)
 		pill(dot)
 		ThemeManager.BindColor(dot, "BackgroundColor3", "PrimaryTextColor")
 
-		-- The active pill: faint white track plus an accent fill that doubles
-		-- as the video's playback progress (a dwell countdown for images).
+		-- Active pill: faint track plus an accent fill that doubles as progress.
 		local activePill = Instance.new("Frame")
 		activePill.Name = UUID.Static("Pill")
 		activePill.Size = UDim2.fromScale(1, 1)
@@ -259,8 +245,7 @@ function Carousel.new(parent, Settings, theme)
 		pageFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		pageFrame.BackgroundTransparency = 1
 		pageFrame.Size = UDim2.fromScale(1 / count, 1)
-		-- Position scales against the track, so page i sits at i/count of it
-		-- (= one viewport width per step).
+		-- Position is relative to the track, so one step is one viewport width.
 		pageFrame.Position = UDim2.fromScale((i - 1) / count, 0)
 		pageFrame.ClipsDescendants = true
 		pageFrame.Parent = track
@@ -276,9 +261,8 @@ function Carousel.new(parent, Settings, theme)
 			videoFrame.Looped = true
 			videoFrame.Volume = volume
 			videoFrame.Parent = pageFrame
-			-- The corner rides the media, not the clipping viewport.
 			round(videoFrame, CORNER)
-			-- Window/tab fades tween this gradient; VideoFrame has no transparency.
+			-- Fades tween this gradient because VideoFrame has no transparency.
 			VideoFade.attach(videoFrame)
 			videos[i] = videoFrame
 		else
@@ -298,22 +282,19 @@ function Carousel.new(parent, Settings, theme)
 	self._blobs = blobs
 	self._videos = videos
 
-	-- One sync point: blob visibility and video play state both follow the
-	-- current page and whether the page itself is on screen.
 	local function sync()
 		self:_syncBlobs()
 		self:_syncVideos()
 	end
 	self._sync = sync
 
-	-- Off-view videos pause so only the visible page decodes (user call).
+	-- Off-view videos pause so only the visible page decodes.
 	PageAwareness.Register(container, {
 		OnActive = sync,
 		OnInactive = sync,
 	})
 
-	-- Drag swipe: mouse or touch, tracked through UserInputService so the
-	-- drag keeps working when the cursor leaves the viewport.
+	-- Drags track through UserInputService so they survive the cursor leaving.
 	local dragging = false
 	local dragStartX = 0
 	local moveConn
@@ -335,7 +316,6 @@ function Carousel.new(parent, Settings, theme)
 		elseif dx >= SWIPE_COMMIT then
 			self:_goTo(self._index - 1)
 		else
-			-- A tap (or a short nudge) snaps back to the current page.
 			self:_goTo(self._index)
 		end
 	end
@@ -384,19 +364,15 @@ function Carousel.new(parent, Settings, theme)
 		end)
 	end)
 
-	-- Progress driver: one pass per frame paints the active pill. Images fill
-	-- with the dwell countdown, videos with their playback position, so both
-	-- sweep continuously instead of in 20 Hz steps. Auto-advance rides the
-	-- same elapsed clock and still flips pages while a video page is showing.
+	-- Per-frame driver paints the active pill and advances pages when due.
 	local progressConn = RunService.RenderStepped:Connect(function(dt)
 		if not self.Frame or not self.Frame.Parent then
 			return
 		end
-		-- Hold the sweep while dragging or while off screen.
 		if dragging or not PageAwareness.IsActive(self.Frame) then
 			return
 		end
-		-- A stalled frame (tab switch, hitch) must not teleport the countdown.
+		-- A stalled frame must not teleport the countdown.
 		dt = math.min(dt, 0.1)
 		local active = self._index + 1
 		local blob = self._blobs[active]
@@ -413,7 +389,7 @@ function Carousel.new(parent, Settings, theme)
 			self:_setBlobFill(active, fraction)
 			if self._advanceInterval > 0 then
 				if video.TimeLength > 0 then
-					-- Video pages advance when the loop wraps, so the blob fills fully first.
+					-- Video pages advance on loop wrap, after the blob fills.
 					if self._lastVideoFraction and fraction < 0.1 and self._lastVideoFraction > 0.9 then
 						advance = true
 					end
@@ -490,13 +466,11 @@ function Carousel.new(parent, Settings, theme)
 		me.Frame = nil
 	end
 
-	-- Prime the first page: Register fires OnInactive first, then a deferred
-	-- OnActive when the page is on screen, so both syncs land here too.
+	-- Prime the first page; PageAwareness re-syncs once it is on screen.
 	sync()
 	return self
 end
 
--- Slide the track to a page (0-based, clamped) and re-sync indicators/media.
 function Carousel:_goTo(index)
 	if self._pageCount == 0 then
 		return
@@ -511,8 +485,7 @@ function Carousel:_goTo(index)
 	end
 end
 
--- Draw one blob's progress. The driver writes every frame, so this is a
--- direct set (no tween to retarget and no visible stepping).
+-- Direct set: the driver writes every frame, so no tween is needed.
 function Carousel:_setBlobFill(index, fraction)
 	local blob = self._blobs[index]
 	if not blob then
@@ -532,8 +505,7 @@ function Carousel:_syncBlobs()
 			if video then
 				self:_setBlobFill(i, videoFraction(video))
 			else
-				-- Images show the auto-advance countdown (full when the
-				-- carousel is set to hold on one page).
+				-- Images show the dwell countdown, full when auto-advance is off.
 				local fraction = if dwell > 0 then (self._advanceElapsed or 0) / dwell else 1
 				self:_setBlobFill(i, fraction)
 			end
@@ -541,7 +513,6 @@ function Carousel:_syncBlobs()
 	end
 end
 
--- Play only the current page's video, and only while its page is on screen.
 function Carousel:_syncVideos()
 	local onScreen = PageAwareness.IsActive(self.Frame)
 	for i, video in pairs(self._videos) do

@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Button.luau
 
-	Clickable action row with a hover/press bounce and an optional trailing
-	fingerprint icon. Clicking runs the callback and plays a short flash
-	animation that restarts cleanly on rapid clicks.
+	Clickable action row with a hover/press bounce and an optional fingerprint
+	icon. Clicks run the callback and flash without stacking on rapid input.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -104,7 +103,7 @@ function Button.new(parent, Settings, theme)
 		Tween.Play(scale, "HoverIn", { Scale = isHovered and 1.02 or 1 })
 	end)
 	local function performClick()
-		-- Rapid clicks restart the flash instead of stacking or locking the button.
+		-- Rapid clicks restart the flash instead of stacking.
 		Tween.CancelAll(buttonColor)
 		Tween.CancelAll(fingerprint)
 		Tween.Play(buttonColor, "Click", {
@@ -135,8 +134,7 @@ function Button.new(parent, Settings, theme)
 	ThemeManager.BindColor(fingerprint, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- Interaction transparencies aren't theme-bound; re-stamp them on theme
-	-- switch so a mid-tween hover/click value isn't captured.
+	-- Interaction transparencies are not theme-bound; re-stamp them on a switch.
 	local function restampInteractionBases()
 		fingerprint.ImageTransparency = isHovered and 0.2 or FINGERPRINT_BASE
 		buttonColor.BackgroundTransparency = BUTTONCOLOR_BASE

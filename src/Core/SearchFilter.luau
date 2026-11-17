@@ -1,11 +1,8 @@
 --[[
 	Aetheris/Core/SearchFilter.luau
 
-	Filters the sections of a page by a text query and highlights the matched
-	substring inside each component's ElementName label with the theme accent
-	color. Used by the sidebar search box (per active page); sections and labels
-	are indexed once per page and cached (weak-keyed, invalidated on tree change)
-	so a keystroke never walks the whole page.
+	Filters page sections by text and highlights matches with the theme accent.
+	Labels are indexed once per page and cached until the tree changes.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -44,7 +41,7 @@ local function buildHighlight(base, lower, lq, hex)
 	return table.concat(out)
 end
 
--- Public so the dropdown popup reuses the exact same highlight logic.
+-- Public; the dropdown popup reuses the same highlight logic.
 function SearchFilter.Highlight(base, query, color)
 	if not base or base == "" then
 		return nil
@@ -61,7 +58,7 @@ function SearchFilter.Highlight(base, query, color)
 	return buildHighlight(base, lower, lq, hex)
 end
 
--- Weak keys so a destroyed page's index + dirty flag are collected.
+-- Weak keys let a destroyed page's index be collected.
 local indexByPage = setmetatable({}, { __mode = "k" })
 local dirtyByPage = setmetatable({}, { __mode = "k" })
 local connectedByPage = setmetatable({}, { __mode = "k" })
@@ -73,8 +70,7 @@ local function buildIndex(page)
 		if d:GetAttribute(UUID.Static("IsSection")) then
 			sections[d] = false
 		elseif d:IsA("TextLabel") and d.Name == UUID.Static("ElementName") then
-			-- Resolve the owning section once at index time instead of walking
-			-- parents on every keystroke.
+			-- Resolve the owning section once at index time.
 			local sec = nil
 			local p = d.Parent
 			while p do
@@ -100,8 +96,7 @@ local function getIndex(page)
 	dirtyByPage[page] = nil
 	if not connectedByPage[page] then
 		connectedByPage[page] = true
-		-- Connections hang off the page's own signals, so they die with the
-		-- page; the weak key only stops us re-connecting.
+		-- Connections attach to the page's signals and end with it.
 		page.DescendantAdded:Connect(function()
 			dirtyByPage[page] = true
 		end)

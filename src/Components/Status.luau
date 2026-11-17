@@ -1,10 +1,9 @@
 --[[
 	Aetheris/Components/Status.luau
 
-	A status readout: a header label plus up to MAX_ENTRIES coloured lines.
-	Each entry is a { key, text, color } triplet where color is a named string
-	("green" / "orange" / "red" / "info") or a Color3; rich-text colours are
-	emitted as hex because Roblox RichText rejects rgb().
+	A status readout with a header label and up to MAX_ENTRIES coloured lines.
+	Each entry is a { key, text, color } triplet whose color is a named string
+	("green" / "orange" / "red" / "info") or a Color3.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -17,14 +16,12 @@ local UUID = require("../Utils/UUID")
 local Status = {}
 Status.__index = Status
 Status.MAX_ENTRIES = 8
--- Default color mapping
 local DEFAULT_COLORS = {
 	green = Color3.fromRGB(0, 255, 0),
 	orange = Color3.fromRGB(255, 165, 0),
 	red = Color3.fromRGB(255, 0, 0),
 }
--- Convert a color value to a string suitable for <font color="...">.
--- Roblox RichText accepts hex (#RRGGBB) or named colors, NOT rgb(...).
+-- Roblox RichText takes hex or named colours, not rgb().
 local function colorToString(color)
 	if typeof(color) == "string" then
 		local lower = string.lower(color)
@@ -32,7 +29,7 @@ local function colorToString(color)
 			local c = DEFAULT_COLORS[lower]
 			return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
 		else
-			-- Assume it's already a valid color string like "#FF0000"
+			-- Assume an already valid colour string such as "#FF0000".
 			return color
 		end
 	elseif typeof(color) == "Color3" then
@@ -47,7 +44,7 @@ local function colorToString(color)
 	end
 end
 
--- Copy the triplets so callers can keep reusing their own table.
+-- Copy the triplets so callers can reuse their own table.
 local function copyEntries(source)
 	local copy = {}
 	for i = 1, math.min(#source, Status.MAX_ENTRIES) do
@@ -66,7 +63,6 @@ function Status.new(parent, Settings, theme)
 	self._theme = theme
 	local name = Settings.Name or "Status"
 	local entries = copyEntries(Settings.Entries or {})
-	-- Main container
 	local frame = Instance.new("Frame")
 	frame.Name = UUID.Static("Status")
 	frame.BorderSizePixel = 0
@@ -78,17 +74,14 @@ function Status.new(parent, Settings, theme)
 	frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	frame:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	frame.Parent = parent
-	-- Corner
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = frame
-	-- Stroke
 	local stroke = Instance.new("UIStroke")
 	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
-	-- ElementName label
 	local label = Instance.new("TextLabel")
 	label.Name = UUID.Static("ElementName")
 	label.TextWrapped = true
@@ -106,15 +99,13 @@ function Status.new(parent, Settings, theme)
 	label.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	label.Text = name
 	label.Parent = frame
-	-- Declarative theming: every themed property is a BINDING -- no ApplyTheme
-	-- body to forget. Bind applies immediately and re-resolves each switch.
+	-- Bindings apply immediately and re-resolve on every theme switch.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
-	-- StatusTextHolder
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("StatusTextHolder")
 	holder.BorderSizePixel = 0
@@ -125,17 +116,13 @@ function Status.new(parent, Settings, theme)
 	holder.Position = UDim2.fromOffset(11, 38)
 	holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	holder.Parent = frame
-	-- Layout
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = holder
-	-- Padding
 	local padding = Instance.new("UIPadding")
 	padding.PaddingBottom = UDim.new(0, 15)
 	padding.Parent = holder
-	-- Reusable label factory: initial build and SetEntries share it so both
-	-- paths pick up the same rich-text + theme bindings. An empty key renders
-	-- just the coloured text (no dangling "key:" prefix).
+	-- Shared factory so both build paths get the same text and bindings.
 	local function applyEntryText(textLabel, entry)
 		local key = entry[1]
 		if key and key ~= "" then
@@ -238,8 +225,7 @@ function Status.new(parent, Settings, theme)
 				me.StatusLabels = statusLabels
 				return textLabel
 			end,
-			-- Append-only: never updates an existing line, unlike SetEntry. key = ""
-			-- (or nil) for an unkeyed line; returns nil once MAX_ENTRIES is reached.
+			-- Append-only, unlike SetEntry; nil is returned at MAX_ENTRIES.
 			AddEntry = function(me, key, text, color)
 				key = tostring(key or "")
 				if #me.Entries >= Status.MAX_ENTRIES then

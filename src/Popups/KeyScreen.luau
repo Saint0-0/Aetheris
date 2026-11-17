@@ -1,20 +1,16 @@
 --[[
 	Aetheris/Popups/KeyScreen.luau
 
-	Combined loading + key-system card shown before the window builds when
-	CreateWindow receives a KeySystem table. One card plays the loading steps
-	(assets, sounds, key services, saved-key check) with a real progress bar,
-	then crossfades into the key UI (input, Get Key, Discord + Information
-	cards) when a key is actually required. Draggable like the main window,
-	fades in/out, fully themed, sounds through KeySystemOpen/Close.
+	Combined loading and key-system card shown before the window builds when
+	CreateWindow receives a KeySystem table. It plays the loading steps, then
+	crossfades into the key UI when a key is required.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 --# selene: allow(undefined_variable)
--- Executor APIs (identifyexecutor, setclipboard, request, ...) are injected
--- by the host at runtime; probed with type() checks throughout.
+-- Executor APIs are injected at runtime and probed with type() checks.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -52,7 +48,7 @@ local HEADER_CHIP = 24
 local HEADER_CHIP_GAP = 8
 local HEADER_INSET = 12
 
--- First-paint images for the card and window chrome, warmed by the loading step.
+-- Images warmed by the first loading step for first paint.
 local PRELOAD_IMAGES = {
 	"rbxassetid://92458734285074",
 	Icons["sparkles"],
@@ -82,8 +78,7 @@ local function new(className, props)
 	return inst
 end
 
--- UIStroke/UIShadow transparency is not covered by CanvasGroup.GroupTransparency,
--- so the open/close fade carries them separately.
+-- CanvasGroup transparency skips UIStroke and UIShadow, so capture them.
 local function captureFade(root)
 	local targets = {}
 	local function scan(inst)
@@ -98,8 +93,7 @@ local function captureFade(root)
 	return targets
 end
 
--- Tween each decoration between its own resting transparency and hidden: the
--- fade value scales toward 1, never toward an opaque 0.
+-- Scales each decoration toward 1 from its own rest, never toward opaque.
 local function fadeTo(targets, value, duration)
 	for _, target in ipairs(targets or {}) do
 		local base = target[3]
@@ -109,7 +103,6 @@ local function fadeTo(targets, value, duration)
 	end
 end
 
--- Tween captured targets back to the transparency they were captured at.
 local function fadeRestore(targets, duration)
 	for _, target in ipairs(targets or {}) do
 		Tween.Play(target[1], TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -171,11 +164,7 @@ local function agoText(timestamp)
 	return math.floor(seconds / 86400) .. "d ago"
 end
 
-----------------------------------------------------------------
--- Changelog card grammar (design-notes 1/10): a solid neutral fill
--- under a 35-degree aurora wash — accent-tinted bright corner falling
--- to a darker bottom. Shared by every card this screen draws.
-----------------------------------------------------------------
+-- Card grammar: neutral fill under a 35-degree aurora wash.
 
 local FALLBACK_NEUTRAL = Color3.fromRGB(34, 34, 38)
 local AURORA_TINT = 0.14
@@ -188,8 +177,7 @@ local function cardBase(theme)
 	return (theme and theme.PopupNeutralColor) or (theme and theme.ComponentBackgroundColor) or FALLBACK_NEUTRAL
 end
 
--- UIGradient.Color multiplies what it paints, so the keypoints are
--- multipliers rather than literal colours (design-notes 10).
+-- UIGradient.Color multiplies, so the keypoints are multipliers.
 local function stampCardGradient(gradient, theme)
 	local base = cardBase(theme)
 	local bottom = if isDark(base) then 0.72 else 0.9
@@ -213,8 +201,7 @@ local function tileFill(tint, base)
 	return base:Lerp(tint, 0.3)
 end
 
--- Accent-as-text: hue kept, saturation capped, value forced up on dark
--- grounds; darkened on light ones (design-notes 5).
+-- Accent text: hue kept, saturation capped, value forced on dark grounds.
 local function accentText(color, onDark)
 	if onDark then
 		local h, s, v = color:ToHSV()
@@ -223,7 +210,7 @@ local function accentText(color, onDark)
 	return color:Lerp(Color3.new(0, 0, 0), 0.3)
 end
 
--- Registries so the theme switch below can restamp every card/tile.
+-- Registries let the theme switch restamp every card and tile.
 local function rememberGradient(self, gradient)
 	self._cardGradients = self._cardGradients or {}
 	self._cardGradients[#self._cardGradients + 1] = gradient
@@ -242,10 +229,6 @@ local function restampTiles(self, theme)
 		record.Glyph.ImageColor3 = accentText(tint, isDark(base))
 	end
 end
-
-----------------------------------------------------------------
--- Card build
-----------------------------------------------------------------
 
 local function buildCard(self)
 	local theme = self._theme
@@ -286,10 +269,8 @@ local function buildCard(self)
 	self._card = card
 
 	new("UIScale", { Scale = cardScale, Parent = card })
-	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = card }) -- shell radius (design-notes 10)
-	-- Shell wash (design-notes 1/2): a top-down multiplier over the whole
-	-- CanvasGroup — the same idiom as the popup/window shells — so the fill
-	-- never reads flat. Static multiplier, no per-theme restamp needed.
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = card }) -- Shell radius.
+	-- Top-down static multiplier so the fill never reads flat.
 	new("UIGradient", {
 		Name = UUID.Static("CardWash"),
 		Rotation = 90,
@@ -307,8 +288,7 @@ local function buildCard(self)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = card,
 	})
-	-- Rim ramp (design-notes 2): the top edge keeps the paint, the sides and
-	-- bottom fade off it, so the card reads top-lit.
+	-- Rim ramp keeps the top edge painted so the card reads top-lit.
 	new("UIGradient", {
 		Name = UUID.Static("CardRim"),
 		Rotation = 90,
@@ -340,7 +320,7 @@ local function buildCard(self)
 	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = clip })
 	self._aurora = Aurora.new(clip, { Theme = theme, Transparency = 0.35 })
 
-	-- Drag frame mirrors the window: Instant follows the cursor, Smooth tweens.
+	-- Instant drag follows the cursor; Smooth tweens the card.
 	local dragFrame = new("Frame", {
 		Name = UUID.Static("DragArea"),
 		Size = UDim2.new(1, 0, 0, 46),
@@ -360,7 +340,7 @@ local function buildCard(self)
 			then
 				dragging = true
 				dragStart = input.Position
-				-- switch to top-left anchoring so offset positions track the cursor 1:1
+				-- Top-left anchoring so offset positions track the cursor 1:1.
 				local absolute = card.AbsolutePosition
 				card.AnchorPoint = Vector2.new(0, 0)
 				card.Position = UDim2.fromOffset(absolute.X, absolute.Y)
@@ -401,11 +381,7 @@ local function buildCard(self)
 		end)
 	end
 
-	----------------------------------------------------------------
-	-- Header
-	----------------------------------------------------------------
-
-	-- Hidden during the intro, then faded in with the loading body
+	-- Hidden during the intro, faded in with the loading body.
 	local headerGroup = new("CanvasGroup", {
 		Name = UUID.Static("HeaderGroup"),
 		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT),
@@ -420,10 +396,9 @@ local function buildCard(self)
 		Name = UUID.Static("BrandTile"),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(18, 35),
-		-- Matches the window sidebar mark (40x32) so the same art keeps its
-		-- proportions instead of being letterboxed into a square.
+		-- Matches the window sidebar mark so the art keeps its proportions.
 		Size = UDim2.fromOffset(40, 32),
-		-- The mark sits bare on the shell — no tile behind it (user call).
+		-- The mark sits bare on the shell, with no tile behind it.
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
@@ -480,8 +455,7 @@ local function buildCard(self)
 	local execWidth = math.clamp(#execName * 6.2 + 34, 70, 150)
 	local chipTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02
 	local chipHoverTransparency = math.max(chipTransparency - 0.1, 0)
-	-- Header cluster: the executor chip and the close button share one 24px
-	-- pill, one fill and one hairline stroke, so they read as a pair.
+	-- Chip and close share one pill, fill and hairline stroke.
 	local execChip = new("Frame", {
 		Name = UUID.Static("ExecutorChip"),
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -494,7 +468,6 @@ local function buildCard(self)
 		ZIndex = 4,
 		Parent = headerGroup,
 	})
-	-- A pill: full rounding rather than a fixed radius.
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = execChip })
 	local chipStroke = new("UIStroke", {
 		Color = theme.StrokeColor or Color3.new(1, 1, 1),
@@ -529,13 +502,10 @@ local function buildCard(self)
 		Parent = execChip,
 	})
 
-	-- Direct child of the card, above the drag frame, so the click never starts a drag.
-	-- Matches the executor chip: muted pill at rest, brighter fill and a solid
-	-- icon on hover, with the X inside a 12px label so it never stretches thin.
+	-- Above the drag frame, so a click never starts a drag.
 	local closeButton = new("TextButton", {
 		Name = UUID.Static("CloseButton"),
 		AnchorPoint = Vector2.new(1, 0.5),
-		-- Centred on the header row so it lines up with the executor chip.
 		Position = UDim2.new(1, -HEADER_INSET, 0, HEADER_ROW_Y),
 		Size = UDim2.fromOffset(HEADER_CHIP, HEADER_CHIP),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
@@ -588,10 +558,6 @@ local function buildCard(self)
 	self._shadow = shadow
 end
 
-----------------------------------------------------------------
--- Intro phase
-----------------------------------------------------------------
-
 local function buildIntro(self)
 	local theme = self._theme
 
@@ -639,15 +605,12 @@ local function buildIntro(self)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(50, 50),
-		-- Bare brand mark: the accent square behind it is gone (user call).
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 		Parent = ring,
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = tile })
-	-- The brand mark replaces the generic glyph: this screen is the first
-	-- thing the user sees, so it carries the identity (user call, Batch 8).
 	new("ImageLabel", {
 		Name = UUID.Static("IntroIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -695,15 +658,10 @@ local function buildIntro(self)
 	self._introFadeTargets = captureFade(body)
 end
 
-----------------------------------------------------------------
--- Loading phase
-----------------------------------------------------------------
-
 local function buildLoading(self)
 	local theme = self._theme
 
-	-- CanvasGroup so the phase crossfade can tween one GroupTransparency;
-	-- starts hidden until the intro hands off
+	-- One GroupTransparency carries the phase crossfade; starts hidden.
 	local body = new("CanvasGroup", {
 		Name = UUID.Static("LoadingBody"),
 		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
@@ -726,7 +684,6 @@ local function buildLoading(self)
 		BorderSizePixel = 0,
 		Parent = body,
 	})
-	-- Changelog card: solid neutral fill, aurora corner wash, no stroke.
 	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = column })
 	local columnGradient = new("UIGradient", { Parent = column })
 	stampCardGradient(columnGradient, theme)
@@ -744,7 +701,7 @@ local function buildLoading(self)
 		Parent = column,
 	})
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		-- +20 for the card's vertical padding above/below the rows.
+		-- 20 covers the card's vertical padding around the rows.
 		column.Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, layout.AbsoluteContentSize.Y + 20)
 	end)
 
@@ -846,7 +803,7 @@ local function buildLoading(self)
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = body,
 	})
-	-- Odometer rolls the percent digits slot-machine style as loading advances.
+	-- The odometer rolls the digits as loading advances.
 	local percentHolder = new("Frame", {
 		Name = UUID.Static("Percent"),
 		AnchorPoint = Vector2.new(1, 0),
@@ -916,10 +873,6 @@ local function setProgress(self, fraction, label)
 	end
 end
 
-----------------------------------------------------------------
--- Key phase
-----------------------------------------------------------------
-
 local function buttonMotion(button)
 	local scale = new("UIScale", { Parent = button, Scale = 1 })
 	button.MouseEnter:Connect(function()
@@ -955,7 +908,7 @@ local function copyLink(self, url)
 			Duration = 4,
 		}, self._theme):Show()
 	else
-		-- no clipboard outside executors: show the link instead so it's still usable
+		-- Without a clipboard, show the link so it stays usable.
 		Notification.new(self._notifHolder, {
 			Type = "Alert",
 			Title = "Key link",
@@ -1119,10 +1072,6 @@ local function buildKeyPhase(self)
 		copyLink(self, url)
 	end)
 
-	----------------------------------------------------------------
-	-- Discord + Information cards
-	----------------------------------------------------------------
-
 	local infoWidth = 168
 	local discordWidth = CARD_WIDTH - (CONTENT_PAD * 2) - infoWidth - 10
 	local cardsY = 134
@@ -1131,7 +1080,6 @@ local function buildKeyPhase(self)
 		Name = UUID.Static("DiscordCard"),
 		Position = UDim2.fromOffset(CONTENT_PAD, cardsY),
 		Size = UDim2.fromOffset(discordWidth, 74),
-		-- Changelog card: solid neutral fill + aurora wash, no stroke.
 		BackgroundColor3 = cardBase(theme),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
@@ -1294,9 +1242,7 @@ local function buildKeyPhase(self)
 	self._infoTitle = infoTitle
 	self._infoSub = infoSub
 
-	----------------------------------------------------------------
-	-- Notifications container (toasts stack bottom-centre, like the window)
-	----------------------------------------------------------------
+	-- Toasts stack bottom-centre, as in the window.
 
 	local notifHolder = new("Frame", {
 		Name = UUID.Static("Notifications"),
@@ -1304,7 +1250,7 @@ local function buildKeyPhase(self)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Active = false, -- transparent pass-through layer, like PopUpsLayer
+		Active = false, -- Transparent pass-through layer.
 		ZIndex = 999,
 		Parent = self._gui,
 	})
@@ -1322,10 +1268,6 @@ local function buildKeyPhase(self)
 
 	self._keyFadeTargets = captureFade(body)
 end
-
-----------------------------------------------------------------
--- Success phase
-----------------------------------------------------------------
 
 local function buildSuccess(self)
 	local theme = self._theme
@@ -1430,10 +1372,6 @@ local function drawCheck(self)
 	end)
 end
 
-----------------------------------------------------------------
--- Phase transitions
-----------------------------------------------------------------
-
 function KeyScreen:_fadeCard(target, duration)
 	Tween.Play(self._card, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		GroupTransparency = target,
@@ -1441,8 +1379,7 @@ function KeyScreen:_fadeCard(target, duration)
 	fadeTo(self._fadeTargets, target, duration)
 end
 
--- CanvasGroup transparency skips UIStroke/UIShadow, so phases carry their own
--- captured fade targets and snap invisible before restoring on the way in.
+-- Each phase carries its own captured fade targets for strokes and shadows.
 function KeyScreen:_phaseOut(body, targets, duration)
 	if not body then
 		return
@@ -1543,7 +1480,7 @@ function KeyScreen:_submitKey()
 				Description = tostring(reason or "key is invalid."),
 				Duration = 5,
 			}, self._theme):Show()
-			-- red flash on the field so the failure reads even with notifications off
+			-- Field glows red so a failure reads even without notifications.
 			Tween.Play(self._fieldGlow, "Fast", { Transparency = 0.15 })
 			task.delay(0.5, function()
 				if self._fieldGlow then
@@ -1575,7 +1512,7 @@ function KeyScreen:_finish(message)
 	end)
 end
 
--- Close button: abort the gate so CreateWindow returns nil instead of building.
+-- Aborts the gate so CreateWindow returns nil instead of building.
 function KeyScreen:_dismiss()
 	if self._closing or not self._card then
 		return
@@ -1616,8 +1553,7 @@ function KeyScreen:_destroy()
 	end
 	if self._gui then
 		local gui = self._gui
-		-- clear refs first so the Destroying handler below doesn't fire
-		-- resolve(false) over an already-resolved gate
+		-- Clear refs first so the Destroying handler cannot re-resolve.
 		self._gui = nil
 		self._card = nil
 		self._closeButton = nil
@@ -1628,10 +1564,6 @@ function KeyScreen:_destroy()
 	end
 end
 
-----------------------------------------------------------------
--- Loading runner
-----------------------------------------------------------------
-
 function KeyScreen:_runSteps()
 	local totalWeight = 0
 	for _, step in ipairs(self._steps) do
@@ -1640,7 +1572,7 @@ function KeyScreen:_runSteps()
 
 	local doneWeight = 0
 	for index, step in ipairs(self._steps) do
-		-- The close button can dismiss mid-run; stop touching the dead card.
+		-- The close button may dismiss mid-run, so stop touching the destroyed card.
 		if not self._card then
 			return
 		end
@@ -1652,7 +1584,7 @@ function KeyScreen:_runSteps()
 			setProgress(self, (doneWeight + math.clamp(fraction, 0, 1) * step.Weight) / totalWeight, label)
 		end)
 
-		-- hold each step briefly so the bar reads as real work, not a flash
+		-- Each step is held briefly so the bar reads as real work.
 		local elapsed = os.clock() - stepStart
 		if elapsed < 0.35 then
 			task.wait(0.35 - elapsed)
@@ -1669,12 +1601,7 @@ function KeyScreen:_runSteps()
 	setProgress(self, 1, "Ready")
 end
 
-----------------------------------------------------------------
--- Entry point
-----------------------------------------------------------------
-
--- Runs the combined loading + key card. Resolves true when the caller may
--- build the window, false + reason when the gate was aborted.
+-- Resolves true when the window may build, false when the gate was aborted.
 function KeyScreen.Run(keyConfig, opts)
 	opts = opts or {}
 	keyConfig = keyConfig or {}
@@ -1732,7 +1659,7 @@ function KeyScreen.Run(keyConfig, opts)
 						table.insert(list, id)
 					end
 				end
-				-- Theme wallpapers: warming them here keeps the Themes tab from hitching on first open.
+				-- Warming wallpapers here keeps the Themes tab from hitching.
 				for _, def in pairs(ThemeDefinitions) do
 					local wallpaper = def.Wallpaper
 					if type(wallpaper) == "string" and not seen[wallpaper] then
@@ -1804,8 +1731,7 @@ function KeyScreen.Run(keyConfig, opts)
 			ColorSequenceKeypoint.new(0, theme.AccentColor or Color3.fromRGB(14, 45, 178)),
 			ColorSequenceKeypoint.new(1, theme.PrimaryColor or Color3.fromRGB(13, 44, 177)),
 		})
-		-- The card washes and tile fills are derived mixes, not theme slots,
-		-- so they ride this callback.
+		-- Washes and tile fills are derived, so they restamp here.
 		for _, gradient in ipairs(self._cardGradients or {}) do
 			stampCardGradient(gradient, theme)
 		end
@@ -1819,7 +1745,7 @@ function KeyScreen.Run(keyConfig, opts)
 	end
 	self._gui.Destroying:Connect(function()
 		if self._card then
-			-- the gui died under us (teardown/leave): abort the gate
+			-- The gui was destroyed, so the gate is aborted.
 			self._resolve(false)
 		end
 	end)
@@ -1853,14 +1779,14 @@ function KeyScreen.Run(keyConfig, opts)
 
 	self:_runSteps()
 
-	-- saved key already verified during loading: skip the key UI entirely
+	-- A saved key already verified, so skip the key UI.
 	if self._savedValid == true then
 		self:_finish("All set")
 		return signal.Event:Wait()
 	end
 
 	if not self._validator:HasAny() then
-		-- KeySystem configured but nothing to validate against: loading only
+		-- Nothing to validate against, so loading only.
 		self:_finish("All set")
 		return signal.Event:Wait()
 	end

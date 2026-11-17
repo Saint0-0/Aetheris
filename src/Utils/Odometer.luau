@@ -1,12 +1,8 @@
 --[[
 	Aetheris/Utils/Odometer.luau
 
-	Renders a numeric string as a row of per-digit reels: each digit is a
-	clipped cell holding a vertical strip of the glyphs 0-9, and changing a
-	digit rolls the strip into place with an eased slot-machine motion.
-	Non-digit characters stay as plain static labels, cells are variable
-	width, and the string reconciles from the right so decimals and suffixes
-	stay put as digits grow. Cells are pooled and reused.
+	Renders a numeric string as per-digit reels that roll into place. Non-digits
+	stay static, cells are pooled, and the string reconciles from the right.
 
 	Based on Rayfield Gen 2 code (MPL-2.0)
 	https://github.com/SiriusSoftwareLtd/rayfield-gen2
@@ -25,13 +21,13 @@ local TextService = game:GetService("TextService")
 local Odometer = {}
 Odometer.__index = Odometer
 
--- Two stacked copies of 0-9: rolling down jumps to the second copy so it can travel past index 0.
+-- Two stacked copies of 0-9 let a downward roll travel past index 0.
 local STRIP_LENGTH = 20
 
 -- Extra cell width so ClipsDescendants never shaves a glyph's edge off.
 local CELL_PAD = 2
 
--- Digit advances are the same per font+size; measure once and cache (GetTextBoundsAsync yields).
+-- Digit advances are cached per font and size; measurement yields.
 local metricsCache = {}
 local function digitMetrics(font, size)
 	local key = tostring(font.Family)
@@ -67,8 +63,7 @@ local function digitMetrics(font, size)
 	return cached
 end
 
--- opts: { textSize, height, alignment, transparency, duration, weight, textColor }
--- textColor seeds the glyphs before any theme binding has applied (e.g. the pre-window key screen).
+-- The text colour seeds the glyphs before any theme binding applies.
 function Odometer.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({
@@ -84,7 +79,6 @@ function Odometer.new(parent, opts)
 	}, Odometer)
 
 	self.font = Constants.Font(self.weight)
-	-- A taller cell can be passed so ascenders/descenders don't clip.
 	self.height = opts.height or math.ceil(self.textSize)
 
 	local metrics = digitMetrics(self.font, self.textSize)
@@ -100,7 +94,7 @@ function Odometer.new(parent, opts)
 	layout.Parent = parent
 	self.layout = layout
 
-	-- A theme switch cancels the roll tween; settle each reel on its target.
+	-- A theme switch cancels the roll tween, so each reel settles on its target.
 	ThemeManager.OnThemeApplied(function()
 		self:_settle()
 	end, parent)
@@ -108,7 +102,6 @@ function Odometer.new(parent, opts)
 	return self
 end
 
--- Jump every reel to the digit it was rolling towards.
 function Odometer:_settle()
 	for _, slot in pairs(self.slots) do
 		if slot.reel then
@@ -117,7 +110,6 @@ function Odometer:_settle()
 	end
 end
 
--- Lazily build the reel: a clipped cell + a strip of 20 themed digit labels.
 function Odometer:_reel(index)
 	local slot = self.slots[index]
 	if slot.reel then
@@ -208,7 +200,7 @@ function Odometer:_reelSnap(reel, digit)
 end
 
 function Odometer:_reelRoll(reel, digit, up)
-	-- Finalise any in-flight roll so we start from a clean resting digit.
+	-- Finish any in-flight roll so the next starts from a resting digit.
 	if reel.target ~= reel.digit then
 		self:_reelSnap(reel, reel.target)
 	end
@@ -278,7 +270,6 @@ function Odometer:_hide(index)
 	end
 end
 
--- Render text, animating digit changes in the direction implied by `up`.
 function Odometer:_render(text, animate, up)
 	text = tostring(text)
 
@@ -287,7 +278,7 @@ function Odometer:_render(text, animate, up)
 	end
 	self._lastText = text
 
-	-- Whole UTF-8 characters, not bytes, so suffixes like "°" survive.
+	-- Whole UTF-8 characters, not bytes, so unit suffixes survive.
 	local chars = {}
 	for _, code in utf8.codes(text) do
 		table.insert(chars, utf8.char(code))

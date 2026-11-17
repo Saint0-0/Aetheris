@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Core/Settings/Configs.luau
 
-	Settings page for the per-game config system: save the current component
-	values under a name, load or delete them from a dropdown, toggle
-	auto-save, and preview the selected config's JSON in a CodeView.
+	Settings page for the per-game config system.
+	Save, load, delete and preview configs, and toggle auto-save.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -23,8 +22,8 @@ function Configs.Build(window, tab)
 	end
 
 	local selectedName = nil
-	local refreshAll -- forward declared: Save also refreshes the list
-	local refreshPreview -- forward declared: the dropdown callback previews
+	local refreshAll
+	local refreshPreview
 
 	local saveSection = tab:Section({ Name = "Save" })
 	local nameInput = saveSection:TextInput({
@@ -47,8 +46,7 @@ function Configs.Build(window, tab)
 			end
 		end,
 	})
-	-- Saves straight over the loaded config so a quick tweak doesn't need the
-	-- name retyped (Save Config with the same name does the same thing).
+	-- Saves over the loaded config, so a tweak needs no retyping.
 	saveSection:Button({
 		Name = "Overwrite Config",
 		NoSave = true,
@@ -70,8 +68,7 @@ function Configs.Build(window, tab)
 	})
 
 	local loadSection = tab:Section({ Name = "Load" })
-	-- Shows which config is currently loaded; sits above the dropdown, bare
-	-- text with no container.
+	-- Shows the loaded config above the dropdown, without a container.
 	local currentLabel = loadSection:Label({
 		Text = "No config loaded",
 		ShowContainer = false,
@@ -149,7 +146,7 @@ function Configs.Build(window, tab)
 			preview:SetText("{}")
 			return
 		end
-		-- Flush any pending auto-save so the preview shows what's on disk now.
+		-- Flush the pending auto-save so the preview matches the file on disk.
 		manager:Flush()
 		local content = manager:Preview(name)
 		preview:SetText(content or "{}")
@@ -162,7 +159,7 @@ function Configs.Build(window, tab)
 			table.insert(items, { name = configName, value = configName })
 		end
 		configDropdown:SetValues(items, false)
-		-- keep the selection if it still exists, else fall back to the first
+		-- Keep the selection if it still exists, else take the first.
 		if selectedName and table.find(names, selectedName) then
 			configDropdown:SetValue(selectedName, true)
 		else
@@ -178,7 +175,7 @@ function Configs.Build(window, tab)
 		end
 	end
 
-	-- deferred so it runs after Window.new's current thread
+	-- Deferred so it runs after Window.new's current thread.
 	task.defer(refreshAll)
 end
 

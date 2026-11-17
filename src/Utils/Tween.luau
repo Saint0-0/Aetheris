@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Utils/Tween.luau
 
-	Central tween registry and spin manager. Play replaces conflicting tweens
-	per instance/property and tracks them weakly so destroyed instances do not leak.
-	Spins are infinite linear sweeps (gradient rotation, sheen offsets) with
-	visibility gating so a hidden component costs nothing.
+	Central tween registry and spin manager. Play replaces conflicting tweens per
+	instance and property, and spins are infinite sweeps gated by visibility.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -14,7 +12,6 @@ local TweenService = game:GetService("TweenService")
 
 local TweenUtil = {}
 
--- Spin* presets are linear infinite sweeps for gradient rotation and sheen offsets.
 TweenUtil.Presets = {
 	Fast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	Smooth = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
@@ -29,8 +26,6 @@ TweenUtil.Presets = {
 	HoverIn = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 	HoverOut = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	Hover = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	-- design-notes 4: white hover lift (0.18s Quint Out both ways) and icon
-	-- press (0.08s in, 0.3s Back out) for the pill buttons.
 	Lift = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 	PressIn = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	PressOut = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -41,11 +36,10 @@ TweenUtil.Presets = {
 	MinimizeSnappy = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	WindowToggle = TweenInfo.new(0.38, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	WindowToggleSnappy = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	-- Window open/close/minimize shell fade: quick, so toggling the window feels immediate.
+	-- Shell fade for window open, close and minimize.
 	WindowFade = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 }
 
--- Weak keys: a destroyed instance's tween bookkeeping must not keep it alive.
 local activeTweens = setmetatable({}, { __mode = "k" })
 
 -- Declared here so Cancel/CancelAll can clear spin handles; defined further down.
@@ -64,7 +58,7 @@ local function propertyKey(properties)
 	return table.concat(keys, ",")
 end
 
--- Returns a handle; replace (default true) cancels a conflicting tween on the same properties.
+-- Returns a handle; replace cancels a conflicting tween on the same properties.
 function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 	if replace == nil then
 		replace = true
@@ -82,7 +76,7 @@ function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 	local existing = activeTweens[instance][key]
 	if existing and replace then
 		existing.Tween:Cancel()
-		-- Cancel fires the old tween's Completed synchronously, which may have nil'd the bucket.
+		-- Cancel fires the old tween's Completed synchronously, possibly nil-ing the bucket.
 		activeTweens[instance] = activeTweens[instance] or {}
 	end
 
@@ -109,7 +103,6 @@ function TweenUtil.Play(instance, tweenInfoOrPresetName, properties, replace)
 	return handle
 end
 
--- Pause mid-motion without losing progress; cheap to Resume.
 function TweenUtil.Pause(handle)
 	if handle and handle.Tween then
 		handle.Tween:Pause()
@@ -124,7 +117,6 @@ function TweenUtil.Resume(handle)
 	end
 end
 
--- Full stop: drops the tween from the registry so it can be collected.
 function TweenUtil.Cancel(handle)
 	if not handle or not handle.Tween then
 		return
@@ -144,7 +136,6 @@ function TweenUtil.Cancel(handle)
 	end
 end
 
--- Stop every tracked tween on one instance at once.
 function TweenUtil.CancelAll(instance)
 	local bucket = activeTweens[instance]
 	if not bucket then
@@ -160,7 +151,7 @@ function TweenUtil.CancelAll(instance)
 	activeTweens[instance] = nil
 end
 
--- Cancel one property's tween without touching the others' (PageFade relies on this).
+-- Cancels one property's tween without touching the others.
 function TweenUtil.CancelProperty(instance, propertyName)
 	local bucket = activeTweens[instance]
 	if not bucket then
@@ -177,7 +168,6 @@ function TweenUtil.CancelProperty(instance, propertyName)
 	end
 end
 
--- Cancel every tween under root by scanning the registry, preserving infinite spins.
 function TweenUtil.CancelAllUnder(root)
 	if not root then
 		return
@@ -204,7 +194,6 @@ function TweenUtil.CancelAllUnder(root)
 	end
 end
 
--- Play a list of tweens as one batch; returns handles for the helpers below.
 function TweenUtil.Group(list)
 	local handles = {}
 	for _, entry in ipairs(list) do
@@ -251,7 +240,6 @@ local function launchSpinSegment(instance, data)
 	data.handle = handle
 end
 
--- Start an infinite spin on one property (e.g. { Rotation = 360 }); returns a handle.
 function TweenUtil.StartSpin(instance, propertyTable, presetName)
 	TweenUtil.StopSpin(instance)
 
@@ -272,7 +260,6 @@ function TweenUtil.StartSpin(instance, propertyTable, presetName)
 
 	launchSpinSegment(instance, data)
 	local handle = data.handle
-	-- Spins pause while their instance is off screen.
 	TweenUtil.GateSpinOnVisibility(instance)
 	return handle
 end
@@ -300,7 +287,6 @@ function TweenUtil.PauseSpin(instance)
 	end
 end
 
--- Resume a paused spin from its frozen angle; false if it was never registered.
 function TweenUtil.ResumeSpin(instance)
 	local data = spinHandles[instance]
 	if not data then
@@ -310,7 +296,7 @@ function TweenUtil.ResumeSpin(instance)
 	if not TweenUtil.SpinsEnabled then
 		return true
 	end
-	-- A blanket CancelAll can leave a dead handle; rebuild in that case.
+	-- A blanket CancelAll can leave a stale handle; rebuild in that case.
 	if data.handle and data.handle.Tween and data.handle.Tween.PlaybackState ~= Enum.PlaybackState.Cancelled then
 		TweenUtil.Resume(data.handle)
 	else
@@ -319,7 +305,6 @@ function TweenUtil.ResumeSpin(instance)
 	return true
 end
 
--- Spins run only while their instance is on screen.
 local spinGates = setmetatable({}, { __mode = "k" })
 
 local function spinOnScreen(instance)
@@ -431,7 +416,7 @@ function TweenUtil.RestartSpins()
 		local data = entry.data
 		if instance and instance.Parent and data.properties then
 			if data.paused then
-				-- A paused spin stays paused; drop the dead handle so ResumeSpin rebuilds it.
+				-- A paused spin stays paused; drop the stale handle so ResumeSpin rebuilds it.
 				data.handle = nil
 			else
 				TweenUtil.StartSpin(instance, data.properties, data.preset)
@@ -440,7 +425,6 @@ function TweenUtil.RestartSpins()
 	end
 end
 
--- Global on/off; disabling stops every spin and resets it to 0.
 function TweenUtil.SetSpinsEnabled(enabled)
 	TweenUtil.SpinsEnabled = enabled
 	if enabled then

@@ -1,9 +1,10 @@
 --[[
-	Tooltip  ·  Aetheris UI Library
+	Aetheris/Components/Tooltip.luau
 
-	Theme-matched floating tooltip. Created once and reused; position it
-	relative to any instance via :ShowAt(anchor, text, side). Call :SetTheme()
-	to keep it in sync after a theme switch, and :Hide() to dismiss it.
+	Floating tooltip created once and reused; :ShowAt positions it, :SetTheme
+	recolours it and :Hide dismisses it.
+	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
+	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("../Utils/Tween")
@@ -99,7 +100,7 @@ function Tooltip:SetTheme(theme)
 	end
 end
 
--- Place relative to an anchor instance. side = "Left"|"Right"|"Top"|"Bottom".
+-- Places relative to an anchor; side is Left, Right, Top or Bottom.
 function Tooltip:ShowAt(anchor, text, side, gap)
 	if not anchor or not anchor.Parent then
 		return

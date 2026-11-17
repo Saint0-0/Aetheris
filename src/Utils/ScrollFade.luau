@@ -1,13 +1,9 @@
 --[[
 	Aetheris/Utils/ScrollFade.luau
 
-	Scroll edge fade (design-notes 2/9): wrap a ScrollingFrame in a
-	CanvasGroup whose Rotation-90 transparency gradient is rebuilt from the
-	frame's CanvasPosition over an 18 px span, so content melts into the
-	surface at both edges. The wrapper inherits the frame's rect, layout
-	slot and z-order, and the frame fills it - callers keep using the same
-	scroll instance. Returns the wrapper. One global gate (UI Settings >
-	Visuals) shows or hides every attached fade at once.
+	Scroll edge fade: wraps a ScrollingFrame in a CanvasGroup whose gradient is
+	rebuilt from CanvasPosition. The wrapper inherits the frame's rect, layout
+	slot and z-order, and one gate shows or hides every fade at once.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -19,8 +15,7 @@ local ScrollFade = {}
 
 local EDGE_FADE_PX = 18
 
--- Every attached fade, so the Visuals toggle can flip them all live; dead
--- entries (destroyed popups) are pruned on the next pass.
+-- Attached fades for the Visuals toggle; stale entries prune on the next pass.
 local attached = {}
 local edgeFadeEnabled = nil -- lazily resolved once, then owned by SetEnabled
 
@@ -31,7 +26,6 @@ local function isEnabled()
 	return edgeFadeEnabled
 end
 
--- Show/hide every scroll edge fade from one switch (UI Settings > Visuals).
 function ScrollFade.SetEnabled(state)
 	edgeFadeEnabled = state == true
 	local live = {}
@@ -61,8 +55,7 @@ function ScrollFade.Attach(scroll)
 	fade.ZIndex = scroll.ZIndex
 	fade.Parent = parent
 
-	-- The frame fills the wrapper now; geometry, layout slot and z-order
-	-- live on the wrapper so nothing outside the frame notices the swap.
+	-- Geometry, layout slot and z-order live on the wrapper so the swap is invisible.
 	scroll.AnchorPoint = Vector2.new(0, 0)
 	scroll.Position = UDim2.fromScale(0, 0)
 	scroll.Size = UDim2.fromScale(1, 1)

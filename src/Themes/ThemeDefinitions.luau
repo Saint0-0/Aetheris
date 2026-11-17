@@ -11,8 +11,7 @@
 
 local ThemeDefinitions = {}
 
--- Base is the merge fallback for every theme; ThemeManager.DefaultTheme is the
--- launch theme.
+-- Base is the merge fallback for every theme.
 ThemeDefinitions.Base = {
 	WindowColor = Color3.fromRGB(15, 15, 16),
 	WindowTransparency = 0.1,
@@ -88,7 +87,7 @@ ThemeDefinitions.Base = {
 	NotificationAlertAccent = Color3.fromRGB(249, 115, 22),
 	NotificationErrorAccent = Color3.fromRGB(226, 42, 42),
 	NotificationVariableAccent = Color3.fromRGB(74, 200, 120),
-	-- Aurora wash colours: tinted further toward the accent than the accents so they match the theme.
+	-- Aurora washes lean further toward the accent so they match the theme.
 	NotificationAlertAurora = Color3.fromRGB(249, 115, 22),
 	NotificationErrorAurora = Color3.fromRGB(226, 42, 42),
 
@@ -96,8 +95,7 @@ ThemeDefinitions.Base = {
 	WallpaperEnabled = true,
 }
 
--- Umbral: true navy. Near-black blue chrome with a saturated steel-blue
--- accent, the darkest and most saturated blue in the roster.
+-- Umbral: true navy with a saturated steel-blue accent.
 ThemeDefinitions.Umbral = {
 	WindowColor = Color3.fromRGB(13, 15, 21),
 	WindowTransparency = 0.15,
@@ -159,8 +157,7 @@ ThemeDefinitions.Umbral = {
 	WallpaperEnabled = true,
 }
 
--- Ember: cool slate with vivid lava. Slate-blue-black chrome makes the
--- molten orange accent pop like lava falls against a night cliff.
+-- Ember: slate-blue-black chrome with a molten orange accent.
 ThemeDefinitions.Ember = {
 	WindowColor = Color3.fromRGB(15, 17, 23),
 	WindowTransparency = 0.22,
@@ -222,8 +219,7 @@ ThemeDefinitions.Ember = {
 	WallpaperEnabled = true,
 }
 
--- Vesper: violet dusk. Deep indigo-violet chrome with translucent content
--- floating over the wallpaper and a solid sidebar to keep nav legible.
+-- Vesper: deep indigo-violet chrome with translucent content.
 ThemeDefinitions.Vesper = {
 	WindowColor = Color3.fromRGB(20, 16, 30),
 	WindowTransparency = 0.28,
@@ -285,8 +281,7 @@ ThemeDefinitions.Vesper = {
 	WallpaperEnabled = true,
 }
 
--- Duskfall: coral-red sky with a gold sun over plum hills. Plum-dark chrome,
--- a plum-berry primary drawn from the hills, and a warm gold sun accent.
+-- Duskfall: plum-dark chrome with a plum-berry primary and gold accent.
 ThemeDefinitions.Duskfall = {
 	WindowColor = Color3.fromRGB(24, 17, 24),
 	WindowTransparency = 0.28,
@@ -348,8 +343,7 @@ ThemeDefinitions.Duskfall = {
 	WallpaperEnabled = true,
 }
 
--- Canopy: pale mint mist over piny woods; a dark theme carrying a light-value
--- mint-green lane. Forest-dark chrome with sage-green secondaries.
+-- Canopy: forest-dark chrome with sage-green secondaries and a mint accent.
 ThemeDefinitions.Canopy = {
 	WindowColor = Color3.fromRGB(14, 21, 18),
 	WindowTransparency = 0.28,
@@ -411,8 +405,7 @@ ThemeDefinitions.Canopy = {
 	WallpaperEnabled = true,
 }
 
--- Tidewater: dark teal lake with mountain reflection. Desaturated teal chrome
--- with a cool mint-teal accent, deliberately kept away from bright cyan.
+-- Tidewater: desaturated teal chrome with a cool mint-teal accent.
 ThemeDefinitions.Tidewater = {
 	WindowColor = Color3.fromRGB(13, 21, 23),
 	WindowTransparency = 0.28,
@@ -474,8 +467,7 @@ ThemeDefinitions.Tidewater = {
 	WallpaperEnabled = true,
 }
 
--- Nocturne: black forest under a magenta-purple aurora. Near-black violet
--- chrome with a deep purple-magenta primary, hue leaning toward 300.
+-- Nocturne: near-black violet chrome with a deep purple-magenta primary.
 ThemeDefinitions.Nocturne = {
 	WindowColor = Color3.fromRGB(15, 13, 22),
 	WindowTransparency = 0.22,
@@ -537,8 +529,7 @@ ThemeDefinitions.Nocturne = {
 	WallpaperEnabled = true,
 }
 
--- Solace: white-blue winter forest. The softest, palest ice-blue light theme:
--- near-white chrome, gentlest saturation, cool slate-blue text.
+-- Solace: near-white ice-blue chrome with cool slate-blue text.
 ThemeDefinitions.Solace = {
 	WindowColor = Color3.fromRGB(245, 248, 252),
 	WindowTransparency = 0.22,
@@ -600,8 +591,7 @@ ThemeDefinitions.Solace = {
 	WallpaperEnabled = true,
 }
 
--- Cielo: sky cobalt with a coral spark. Pale blue-white chrome over a bright
--- cobalt primary, with a warm coral accent drawn from the red wave in its wallpaper.
+-- Cielo: pale blue-white chrome with a cobalt primary and coral accent.
 ThemeDefinitions.Cielo = {
 	WindowColor = Color3.fromRGB(246, 248, 252),
 	WindowTransparency = 0.22,
@@ -663,8 +653,7 @@ ThemeDefinitions.Cielo = {
 	WallpaperEnabled = true,
 }
 
--- Honey: warm morning light. Cream chrome, frosted sidebar over opaque
--- content, amber-gold accent.
+-- Honey: cream chrome with a frosted sidebar and amber-gold accent.
 ThemeDefinitions.Honey = {
 	WindowColor = Color3.fromRGB(250, 247, 240),
 	WindowTransparency = 0.22,
@@ -726,8 +715,7 @@ ThemeDefinitions.Honey = {
 	WallpaperEnabled = true,
 }
 
--- Dawn: warm orchid silk. Pink-cast white chrome with an orchid-violet primary
--- and a soft rose accent, the warm violet answer to Lilac's cool periwinkle.
+-- Dawn: pink-white chrome with an orchid-violet primary and rose accent.
 ThemeDefinitions.Dawn = {
 	WindowColor = Color3.fromRGB(250, 245, 246),
 	WindowTransparency = 0.22,
@@ -789,8 +777,7 @@ ThemeDefinitions.Dawn = {
 	WallpaperEnabled = true,
 }
 
--- Alpine: slate-teal mountain mist. Cool slate-white chrome with a grey-cyan
--- cast throughout and a slate-teal accent, away from the pure-blue lane.
+-- Alpine: slate-white chrome with a grey-cyan cast and slate-teal accent.
 ThemeDefinitions.Alpine = {
 	WindowColor = Color3.fromRGB(242, 247, 247),
 	WindowTransparency = 0.28,
@@ -852,8 +839,7 @@ ThemeDefinitions.Alpine = {
 	WallpaperEnabled = true,
 }
 
--- Peony: coral bloom. Soft blush-white chrome, translucent content over the
--- wallpaper, solid sidebar, warm coral accent.
+-- Peony: blush-white chrome with translucent content and a coral accent.
 ThemeDefinitions.Peony = {
 	WindowColor = Color3.fromRGB(251, 244, 242),
 	WindowTransparency = 0.28,
@@ -915,8 +901,7 @@ ThemeDefinitions.Peony = {
 	WallpaperEnabled = true,
 }
 
--- Sakura: soft rose pink. Airy blush-white chrome, translucent content over
--- the wallpaper, solid sidebar, warm rose accent.
+-- Sakura: airy blush-white chrome with translucent content and rose accent.
 ThemeDefinitions.Sakura = {
 	WindowColor = Color3.fromRGB(252, 245, 247),
 	WindowTransparency = 0.28,
@@ -978,8 +963,7 @@ ThemeDefinitions.Sakura = {
 	WallpaperEnabled = true,
 }
 
--- Blush: fuchsia-magenta bloom. Pale pink-white chrome with a crimson-fuchsia
--- primary and a bright fuchsia accent, deeper and bluer than Nebula's pink.
+-- Blush: pale pink-white chrome with a crimson-fuchsia primary.
 ThemeDefinitions.Blush = {
 	WindowColor = Color3.fromRGB(252, 245, 248),
 	WindowTransparency = 0.22,
@@ -1041,8 +1025,7 @@ ThemeDefinitions.Blush = {
 	WallpaperEnabled = true,
 }
 
--- Cinder: ash and muted ember. Warm-black ash chrome with a dim, desaturated
--- ember accent, the quiet and darker cousin of Ember.
+-- Cinder: warm-black ash chrome with a dim, desaturated ember accent.
 ThemeDefinitions.Cinder = {
 	WindowColor = Color3.fromRGB(17, 16, 17),
 	WindowTransparency = 0.22,
@@ -1104,8 +1087,7 @@ ThemeDefinitions.Cinder = {
 	WallpaperEnabled = true,
 }
 
--- Mauve: dusky purple castle under a pink moon. The desaturated violet lane:
--- warm-grey plum chrome, dusty low-saturation plum accent, warm off-white text.
+-- Mauve: warm-grey plum chrome with a dusty low-saturation plum accent.
 ThemeDefinitions.Mauve = {
 	WindowColor = Color3.fromRGB(22, 18, 28),
 	WindowTransparency = 0.22,
@@ -1167,8 +1149,7 @@ ThemeDefinitions.Mauve = {
 	WallpaperEnabled = true,
 }
 
--- Iris: purple cloud sea under a field of stars. Classic mid violet: deeper
--- and less bright than Vesper, bluer than Mauve's plum, on black-violet chrome.
+-- Iris: black-violet chrome with a classic mid-violet accent.
 ThemeDefinitions.Iris = {
 	WindowColor = Color3.fromRGB(18, 16, 33),
 	WindowTransparency = 0.22,
@@ -1230,8 +1211,7 @@ ThemeDefinitions.Iris = {
 	WallpaperEnabled = true,
 }
 
--- Sundown: charcoal with a coral-red glow. Warm charcoal surfaces and a
--- coral accent, the last light band under black mountains.
+-- Sundown: warm charcoal surfaces with a coral-red accent.
 ThemeDefinitions.Sundown = {
 	WindowColor = Color3.fromRGB(22, 16, 18),
 	WindowTransparency = 0.22,
@@ -1293,8 +1273,7 @@ ThemeDefinitions.Sundown = {
 	WallpaperEnabled = true,
 }
 
--- Twilight: navy sky with rose-pink glow clouds. The roster's only dark theme
--- with a rose-pink primary, resting on deep navy chrome outside the purples.
+-- Twilight: deep navy chrome with a rose-pink primary.
 ThemeDefinitions.Twilight = {
 	WindowColor = Color3.fromRGB(16, 18, 32),
 	WindowTransparency = 0.22,
@@ -1356,8 +1335,7 @@ ThemeDefinitions.Twilight = {
 	WallpaperEnabled = true,
 }
 
--- Nebula: pink-magenta aurora over dark pines, violet-blue at the top. A
--- pink-magenta primary paired with the periwinkle blue accent on black-plum chrome.
+-- Nebula: black-plum chrome with a pink-magenta primary and periwinkle accent.
 ThemeDefinitions.Nebula = {
 	WindowColor = Color3.fromRGB(17, 14, 26),
 	WindowTransparency = 0.22,
@@ -1419,8 +1397,7 @@ ThemeDefinitions.Nebula = {
 	WallpaperEnabled = true,
 }
 
--- Monterey: blue-grey neutral. Charcoal with a faint blue cast and a
--- desaturated slate-blue accent, between Base's grey and Umbral's navy.
+-- Monterey: charcoal with a faint blue cast and desaturated slate-blue accent.
 ThemeDefinitions.Monterey = {
 	WindowColor = Color3.fromRGB(17, 19, 24),
 	WindowTransparency = 0.22,
@@ -1482,8 +1459,7 @@ ThemeDefinitions.Monterey = {
 	WallpaperEnabled = true,
 }
 
--- Sonoma: sea-glass. Deep pine-teal chrome with a mint accent and an ocean-blue
--- secondary, matching the green-over-blue water of its wallpaper.
+-- Sonoma: deep pine-teal chrome with a mint accent and ocean-blue secondary.
 ThemeDefinitions.Sonoma = {
 	WindowColor = Color3.fromRGB(13, 22, 20),
 	WindowTransparency = 0.15,
@@ -1545,8 +1521,7 @@ ThemeDefinitions.Sonoma = {
 	WallpaperEnabled = true,
 }
 
--- Ventura: burnt orange silk. Warm dark chrome with a burnt-orange accent
--- drawn from the smooth silk waves of its wallpaper.
+-- Ventura: warm dark chrome with a burnt-orange accent.
 ThemeDefinitions.Ventura = {
 	WindowColor = Color3.fromRGB(20, 17, 16),
 	WindowTransparency = 0.22,
@@ -1608,8 +1583,7 @@ ThemeDefinitions.Ventura = {
 	WallpaperEnabled = true,
 }
 
--- Vermilion: orange-leaning red. Warm black chrome with a vermilion accent,
--- red kept with green above blue so it never drifts toward crimson.
+-- Vermilion: warm black chrome with an orange-leaning vermilion accent.
 ThemeDefinitions.Vermilion = {
 	WindowColor = Color3.fromRGB(26, 15, 17),
 	WindowTransparency = 0.22,
@@ -1671,8 +1645,7 @@ ThemeDefinitions.Vermilion = {
 	WallpaperEnabled = true,
 }
 
--- Grove: deep pine forest under a chartreuse sky. Near-black pine chrome with
--- a deep pine primary and a punchy yellow-green chartreuse accent.
+-- Grove: near-black pine chrome with a chartreuse accent.
 ThemeDefinitions.Grove = {
 	WindowColor = Color3.fromRGB(13, 22, 17),
 	WindowTransparency = 0.22,
@@ -1734,8 +1707,7 @@ ThemeDefinitions.Grove = {
 	WallpaperEnabled = true,
 }
 
--- Prism: deep indigo-violet silk waves. Electric indigo-blue chrome, the
--- roster's most blue-leaning violet: B highest and R held close to G.
+-- Prism: electric indigo-blue chrome, the most blue-leaning violet.
 ThemeDefinitions.Prism = {
 	WindowColor = Color3.fromRGB(16, 17, 30),
 	WindowTransparency = 0.22,
@@ -1797,8 +1769,7 @@ ThemeDefinitions.Prism = {
 	WallpaperEnabled = true,
 }
 
--- Sage: misty white-and-teal forest. The pale grey-teal lane: the most teal of
--- the greens (hue ~168, desaturated), cool white chrome, slate-teal text.
+-- Sage: cool white chrome with slate-teal text, the most teal of the greens.
 ThemeDefinitions.Sage = {
 	WindowColor = Color3.fromRGB(244, 248, 246),
 	WindowTransparency = 0.22,
@@ -1860,8 +1831,7 @@ ThemeDefinitions.Sage = {
 	WallpaperEnabled = true,
 }
 
--- Blossom: airy blossom pink. Blush-white chrome with the gentlest pink primary
--- and a pale petal accent.
+-- Blossom: blush-white chrome with a soft pink primary and pale petal accent.
 ThemeDefinitions.Blossom = {
 	WindowColor = Color3.fromRGB(252, 245, 246),
 	WindowTransparency = 0.22,
@@ -1923,8 +1893,7 @@ ThemeDefinitions.Blossom = {
 	WallpaperEnabled = true,
 }
 
--- Petal: salmon-rose warmth. Warm cream chrome with a deep salmon primary and
--- a warm coral accent, the orange-leaning pink of the roster.
+-- Petal: warm cream chrome with a deep salmon primary and coral accent.
 ThemeDefinitions.Petal = {
 	WindowColor = Color3.fromRGB(251, 243, 241),
 	WindowTransparency = 0.22,
@@ -1986,8 +1955,7 @@ ThemeDefinitions.Petal = {
 	WallpaperEnabled = true,
 }
 
--- Frost: icy blue-white above a vivid red wave. Pale ice chrome with a cool
--- icy-cyan primary; the vivid red accent stays on highlight keys, not the whole theme.
+-- Frost: pale ice chrome with an icy-cyan primary and a vivid red accent.
 ThemeDefinitions.Frost = {
 	WindowColor = Color3.fromRGB(244, 247, 251),
 	WindowTransparency = 0.22,
@@ -2049,8 +2017,7 @@ ThemeDefinitions.Frost = {
 	WallpaperEnabled = true,
 }
 
--- Amber: white, pale blue and pink with one yellow accent — the palette its
--- wallpaper shows; porcelain chrome with a vivid amber-yellow active control.
+-- Amber: porcelain chrome with blue, pink and amber-yellow accents.
 ThemeDefinitions.Amber = {
 	WindowColor = Color3.fromRGB(247, 249, 253),
 	WindowTransparency = 0.22,
@@ -2112,8 +2079,7 @@ ThemeDefinitions.Amber = {
 	WallpaperEnabled = true,
 }
 
--- Rosa: pastel pink peaks over periwinkle shadow. Pale pink chrome with a
--- pastel-pink primary and the periwinkle accent from its snow-peak wallpaper.
+-- Rosa: pale pink chrome with a pastel-pink primary and periwinkle accent.
 ThemeDefinitions.Rosa = {
 	WindowColor = Color3.fromRGB(252, 243, 246),
 	WindowTransparency = 0.22,
@@ -2175,8 +2141,7 @@ ThemeDefinitions.Rosa = {
 	WallpaperEnabled = true,
 }
 
--- Gruvbox: warm retro terminal. Earthy greys with a mustard yellow primary
--- and burnt orange secondary, the roster's only warm-neutral theme.
+-- Gruvbox: earthy greys with a mustard-yellow primary and burnt-orange secondary.
 ThemeDefinitions.Gruvbox = {
 	WindowColor = Color3.fromRGB(29, 32, 33),
 	WindowTransparency = 0.15,
@@ -2237,8 +2202,7 @@ ThemeDefinitions.Gruvbox = {
 	Wallpaper = nil,
 	WallpaperEnabled = true,
 }
--- Graphite: the neutral. Zero hue anywhere — pure grey chrome with a single
--- cool silver accent, deliberately colourless.
+-- Graphite: pure grey chrome with a single cool silver accent.
 ThemeDefinitions.Graphite = {
 	WindowColor = Color3.fromRGB(28, 28, 30),
 	WindowTransparency = 0.12,
@@ -2300,8 +2264,7 @@ ThemeDefinitions.Graphite = {
 	WallpaperEnabled = true,
 }
 
--- Mint: light and green. Soft mint paper with a deeper teal-green accent so
--- controls still read on white; the airy counterpart to the dark greens.
+-- Mint: soft mint paper with a deeper teal-green accent.
 ThemeDefinitions.Mint = {
 	WindowColor = Color3.fromRGB(245, 250, 247),
 	WindowTransparency = 0.2,
@@ -2363,8 +2326,7 @@ ThemeDefinitions.Mint = {
 	WallpaperEnabled = true,
 }
 
--- Lilac: light violet. Lilac paper with a saturated periwinkle accent so it
--- stays legible instead of washing out like a tint would.
+-- Lilac: lilac paper with a saturated periwinkle accent.
 ThemeDefinitions.Lilac = {
 	WindowColor = Color3.fromRGB(248, 246, 253),
 	WindowTransparency = 0.2,
@@ -2426,8 +2388,7 @@ ThemeDefinitions.Lilac = {
 	WallpaperEnabled = true,
 }
 
--- Crimson: deep red on near-black. A blood-red accent on a cold graphite base,
--- sitting on the cool-red side rather than the orange half of the wheel.
+-- Crimson: blood-red accent on a cold graphite base.
 ThemeDefinitions.Crimson = {
 	WindowColor = Color3.fromRGB(24, 18, 20),
 	WindowTransparency = 0.15,
@@ -2489,8 +2450,7 @@ ThemeDefinitions.Crimson = {
 	WallpaperEnabled = true,
 }
 
--- Umber: dark warm bronze. Desaturated umber brown with a brushed bronze
--- accent, deliberately flatter than Gruvbox's saturated yellow.
+-- Umber: desaturated umber brown with a brushed bronze accent.
 ThemeDefinitions.Umber = {
 	WindowColor = Color3.fromRGB(26, 22, 19),
 	WindowTransparency = 0.14,
@@ -2552,8 +2512,7 @@ ThemeDefinitions.Umber = {
 	WallpaperEnabled = true,
 }
 
--- Linen: neutral warm grey, light. Warm off-white paper with a slate accent,
--- the calm default for anyone who doesn't want their UI to have a mood.
+-- Linen: warm off-white paper with a slate accent.
 ThemeDefinitions.Linen = {
 	WindowColor = Color3.fromRGB(248, 247, 244),
 	WindowTransparency = 0.18,
@@ -2615,8 +2574,7 @@ ThemeDefinitions.Linen = {
 	WallpaperEnabled = true,
 }
 
--- Slate: cool blue-grey dark mode. Near-black slate surfaces with a
--- silver-blue accent; grey done properly dark, not tinted to the wallpaper.
+-- Slate: near-black slate surfaces with a silver-blue accent.
 ThemeDefinitions.Slate = {
 	WindowColor = Color3.fromRGB(18, 20, 25),
 	WindowTransparency = 0.13,
@@ -2678,8 +2636,7 @@ ThemeDefinitions.Slate = {
 	WallpaperEnabled = true,
 }
 
--- Onyx: the starkest dark we ship. Neutral near-black chrome, silver-white
--- accent — no cast at all.
+-- Onyx: neutral near-black chrome with a silver-white accent.
 ThemeDefinitions.Onyx = {
 	WindowColor = Color3.fromRGB(14, 14, 15),
 	WindowTransparency = 0.12,
@@ -2741,8 +2698,7 @@ ThemeDefinitions.Onyx = {
 	WallpaperEnabled = true,
 }
 
--- Ash: soft smoke grey, a lighter step than Graphite. The quiet, low-contrast
--- one of the five.
+-- Ash: soft smoke grey, a lighter step than Graphite.
 ThemeDefinitions.Ash = {
 	WindowColor = Color3.fromRGB(36, 36, 38),
 	WindowTransparency = 0.14,
@@ -2804,8 +2760,7 @@ ThemeDefinitions.Ash = {
 	WallpaperEnabled = true,
 }
 
--- Gunmetal: dark steel. Cool neutral greys with a brushed-steel accent —
--- machined, no colour cast.
+-- Gunmetal: cool neutral greys with a brushed-steel accent.
 ThemeDefinitions.Gunmetal = {
 	WindowColor = Color3.fromRGB(17, 18, 21),
 	WindowTransparency = 0.13,
@@ -2867,8 +2822,7 @@ ThemeDefinitions.Gunmetal = {
 	WallpaperEnabled = true,
 }
 
--- Charcoal: warm dark grey. Graphite with the blue pulled out and the
--- brightness dialled down.
+-- Charcoal: warm dark grey, Graphite with the blue removed.
 ThemeDefinitions.Charcoal = {
 	WindowColor = Color3.fromRGB(28, 26, 25),
 	WindowTransparency = 0.13,
@@ -3235,7 +3189,6 @@ ThemeDefinitions.Khaki = {
 	WallpaperEnabled = true,
 }
 
--- Wallpaper asset ids per theme; the tab/backdrop images use them when present.
 local WALLPAPERS = {
 	Base = "rbxassetid://126475867393987",
 	Umbral = "rbxassetid://108134687422467",
@@ -3290,14 +3243,12 @@ local WALLPAPERS = {
 	Khaki = "rbxassetid://116321051235221",
 }
 
--- Wire each wallpaper id onto its theme so the render path picks it up.
 for name, assetId in pairs(WALLPAPERS) do
 	if ThemeDefinitions[name] then
 		ThemeDefinitions[name].Wallpaper = assetId
 	end
 end
 
--- Window control icon colors: dark themes get light icons and vice versa so they stay visible.
 local WINDOW_CONTROLS = {
 	Base = Color3.fromRGB(255, 255, 255),
 	Umbral = Color3.fromRGB(226, 232, 240),
@@ -3358,9 +3309,9 @@ for name, controlColor in pairs(WINDOW_CONTROLS) do
 	end
 end
 
--- Per-theme transparency as { WindowTransparency, SidebarTransparency, ContentBackgroundTransparency }; never both the sidebar and the content washed out.
+-- Per-theme { Window, Sidebar, Content } transparency; never both washed out.
 local THEME_TRANSPARENCY = {
-	-- Profiles: A = deeply frosted sidebar with a faint content tint, B = frosted sidebar with opaque content, C = solid sidebar with translucent content.
+	-- Profiles: A frosted sidebar plus faint content tint, B frosted, C solid sidebar.
 
 	-- Profile A: flagship darks.
 	Base = { 0.15, 0.72, 0.1 },
@@ -3402,7 +3353,6 @@ local THEME_TRANSPARENCY = {
 	Amber = { 0.22, 0.62, 0 },
 	Rosa = { 0.28, 0, 0.42 },
 
-	-- Darks take the frosted-sidebar profiles; the light additions take B.
 	Gruvbox = { 0.22, 0.62, 0 },
 	Graphite = { 0.15, 0.72, 0.1 },
 	Crimson = { 0.22, 0.62, 0 },
@@ -3416,7 +3366,7 @@ local THEME_TRANSPARENCY = {
 	Gunmetal = { 0.22, 0.62, 0 },
 	Charcoal = { 0.22, 0.62, 0 },
 
-	-- The minimalist set: Void stays near-opaque (true dark mode), Bone sits between A and B, Khaki keeps its mid-tone solid.
+	-- Minimalist set: Void near-opaque, Bone between A and B, Khaki mid-tone.
 	Void = { 0.06, 0.4, 0.02 },
 	Volt = { 0.16, 0.66, 0.06 },
 	Bone = { 0.18, 0.55, 0 },
@@ -3433,7 +3383,7 @@ for name, t in pairs(THEME_TRANSPARENCY) do
 	end
 end
 
--- Lift each theme's chrome off flat black/white with a small amount of its own accent; surfaces stay neutral enough for text.
+-- Each chrome is lifted toward its own accent while staying text-neutral.
 local DARK_SURFACE_TINT = {
 	Window = 0.045,
 	Sidebar = 0.085,
@@ -3489,12 +3439,12 @@ for name, def in pairs(ThemeDefinitions) do
 	end
 end
 
--- Notifications derive their surface colors from each theme's popup/text colors so every theme stays coherent.
+-- Notification surfaces derive from each theme's popup and text colors.
 for _, t in pairs(ThemeDefinitions) do
 	if t.NotificationBackgroundColor == nil then
 		t.NotificationBackgroundColor = t.PopupBackgroundColor or t.WindowColor
 		t.NotificationBackgroundTransparency = math.clamp((t.PopupBackgroundTransparency or 0) + 0.1, 0, 1)
-		-- Shadow depth follows the surface so light themes don't get a soot-black halo.
+		-- Shadow depth follows the surface so light themes avoid a soot-black halo.
 		local surface = t.NotificationBackgroundColor
 		local shadowDepth = luminance(surface) < 0.4 and 0.7 or 0.42
 		t.NotificationShadowColor = surface:Lerp(Color3.fromRGB(0, 0, 0), shadowDepth)
@@ -3513,14 +3463,14 @@ for _, t in pairs(ThemeDefinitions) do
 		local notifAccent = t.AccentColor or t.PrimaryColor or Color3.new(1, 1, 1)
 		t.NotificationAlertAccent = Color3.fromRGB(249, 115, 22):Lerp(notifAccent, 0.25)
 		t.NotificationErrorAccent = Color3.fromRGB(226, 42, 42):Lerp(notifAccent, 0.25)
-		-- The card washes sit deeper in the theme so alerts feel themed first and alarming second.
+		-- Card washes sit deeper in the theme so alerts read as themed first.
 		t.NotificationAlertAurora = Color3.fromRGB(249, 115, 22):Lerp(notifAccent, 0.6)
 		t.NotificationErrorAurora = Color3.fromRGB(226, 42, 42):Lerp(notifAccent, 0.6)
 		t.NotificationVariableAccent = t.PrimaryColor or Color3.fromRGB(74, 200, 120)
 	end
 end
 
--- Each theme gets its own section-card tint (popup/window surface blended toward the accent) and opacity, from fully opaque to nearly transparent.
+-- Section cards blend the popup surface toward the accent at a per-theme opacity.
 local SECTION_OPACITY = {
 	Base = 0.86,
 	Umbral = 0.88,
@@ -3586,14 +3536,13 @@ for name, def in pairs(ThemeDefinitions) do
 	local accent = def.AccentColor or def.PrimaryColor or Color3.fromRGB(108, 140, 255)
 	def.SectionBackgroundColor = blendColor(base, accent, SECTION_TINT)
 	def.SectionBackgroundTransparency = opacity
-	-- Border leans further toward the accent so the card edge reads as part of the same theme.
 	def.SectionStrokeColor = blendColor(base, accent, SECTION_TINT * 1.8)
 	if def.SectionStrokeTransparency == nil then
 		def.SectionStrokeTransparency = 0.9
 	end
 end
 
--- Component containers get a white-to-accent wash: dark themes read as a subtle raised card, light themes as a near-opaque tinted well.
+-- Component containers get a white-to-accent wash in both light and dark themes.
 local COMPONENT_WASH_TINT_DARK = 0.18
 local COMPONENT_WASH_TINT_LIGHT = 0.12
 local WHITE = Color3.fromRGB(255, 255, 255)

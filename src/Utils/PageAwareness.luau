@@ -2,9 +2,7 @@
 	Aetheris/Utils/PageAwareness.luau
 
 	Tracks which page is currently visible so components can react when their
-	page is shown or hidden (video pauses, viewport stops orbiting, controls
-	dim to zero and tween back on focus). A tiny singleton registry, single
-	window, like SettingsStore.
+	page is shown or hidden. A singleton registry for a single window.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -46,8 +44,7 @@ local function isActiveRoot(root)
 	return root == page or root:IsDescendantOf(page)
 end
 
--- OnActive always restores; OnInactive is gated by a settings key. `instant`
--- lets a collapse bypass its tween (registration priming).
+-- OnActive always restores; OnInactive is gated by a settings key.
 local function fire(entry, active, instant)
 	if active then
 		if entry.OnActive then
@@ -77,7 +74,6 @@ function PageAwareness.Detach()
 	nextToken = 0
 end
 
--- Recompute every registration's active state and fire handlers on change.
 function PageAwareness.Refresh()
 	if not attachedWindow then
 		return
@@ -98,10 +94,7 @@ function PageAwareness.Refresh()
 	end
 end
 
--- handlers = { OnActive, OnInactive(instant?), Gate? }. Primes the entry so the
--- first reveal has distance to cover: OnInactive collapses instantly, and a
--- visible page gets a deferred restore so startup paints a tween-in.
--- Returns a token for Unregister; the registration auto-removes on root destroy.
+-- Primes the entry so the first reveal has distance to cover; returns a token.
 function PageAwareness.Register(root, handlers)
 	if not root then
 		return nil
@@ -132,7 +125,7 @@ function PageAwareness.Register(root, handlers)
 		fire(entry, false, true)
 	end
 	if entry.active then
-		-- Restore next resumption so the pair reads as a tween-in rather than a snap.
+		-- Deferred restore so the pair reads as a tween-in.
 		task.defer(function()
 			local live = entries[token]
 			if live and live.active then
@@ -143,8 +136,7 @@ function PageAwareness.Register(root, handlers)
 	return token
 end
 
--- Re-apply gated handlers for off-page entries after a gate setting changed;
--- Refresh can't catch this because the visible page hasn't changed.
+-- Re-applies gated handlers for off-page entries after a gate change.
 function PageAwareness.ReapplyGates()
 	local snapshot = {}
 	for _, entry in pairs(entries) do

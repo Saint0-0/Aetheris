@@ -1,10 +1,9 @@
 --[[
 	Aetheris/Components/Divider.luau
 
-	A visual divider line parented to a fully transparent holder frame so it can
-	create its own vertical breathing room; Padding sets the holder's Y size in
-	offset pixels (default 1px). A caller-supplied Color or Transparency
-	overrides the theme value and survives every theme pass.
+	Divider line parented to a transparent holder that supplies vertical room.
+	Padding sets the holder height, and a caller Color or Transparency wins over
+	the theme across switches.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -24,7 +23,6 @@ function Divider.new(parent, Settings, theme)
 	local color = Settings.Color or theme.SectionDividerColor
 	local transparency = Settings.Transparency or theme.SectionDividerTransparency
 	local thickness = Settings.Thickness or 1
-	-- Padding gives equal breathing room above and below the line.
 	local padding = Settings.Padding or 1
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("DividerHolder")
@@ -46,11 +44,11 @@ function Divider.new(parent, Settings, theme)
 	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionDividerColor")
 	local transparencyBinding =
 		ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionDividerTransparency")
-	-- A caller-supplied Color is a theme override, so it wins over the binding.
+	-- A caller Color is a theme override and wins over the binding.
 	if hasCustomColor then
 		ThemeManager.SetColorOverride(frame, "BackgroundColor3", color)
 	end
-	-- A caller-supplied Transparency disables the binding so the theme stops driving it.
+	-- A caller Transparency disables the binding.
 	if hasCustomTransparency then
 		transparencyBinding:SetEnabled(false)
 		frame.BackgroundTransparency = transparency

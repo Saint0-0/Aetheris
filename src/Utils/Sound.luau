@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Utils/Sound.luau
 
-	Central audio layer for the UI. One reusable Sound instance per named
-	asset (no per-play allocation), all routed through a single 'AetherisUI'
-	SoundGroup so one master volume controls the whole UI.
+	Central audio layer for the UI. One reusable Sound per named asset, all
+	routed through a single AetherisUI SoundGroup.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -16,8 +15,6 @@ local UUID = require("../Utils/UUID")
 local SoundUtil = {}
 
 -- Every sound the UI can play, keyed by name; Preload walks this table.
--- Ids adopted from the Novoline reference (open/close clip, boot, nav-tab
--- clip for theme switches); per-use Tuning below.
 SoundUtil.Assets = {
 	UIStart = "rbxassetid://6958727243",
 	Notification = "rbxassetid://255881176",
@@ -29,9 +26,7 @@ SoundUtil.Assets = {
 	ThemeChange = "rbxassetid://1180994874",
 }
 
--- Novoline's per-use tuning for those ids: open plays faster than close,
--- the toast plays quieter. Applied on build and re-applied on every Play,
--- so a call-site override in `properties` still wins for that one play.
+-- Per-use tuning re-applied on every Play, so call-site properties still win.
 SoundUtil.Tuning = {
 	UIStart = { Volume = 1 },
 	UIOpen = { Volume = 0.8, PlaybackSpeed = 0.9 },
@@ -43,13 +38,11 @@ SoundUtil.Tuning = {
 	ThemeChange = { Volume = 0.8 },
 }
 
--- One reusable Sound per name, built once so repeated plays don't allocate.
 local sounds = {}
 local preloaded = false
 local preloadedCount = 0
 local totalCount = 0
 
--- One SoundGroup so a single master volume controls every UI sound.
 local soundGroup
 local function getSoundGroup()
 	if soundGroup and soundGroup.Parent then
@@ -105,13 +98,7 @@ local function buildSoundInstances()
 	end
 end
 
---[[
-	Preload(progressCallback)
-
-	Loads every sound via ContentProvider so the first Play() has zero delay.
-	progressCallback, if given, receives (loaded, total, name, status) after
-	each asset. A second call after a successful preload is a no-op.
-]]
+-- Loads every sound so the first Play has no delay; a second call is a no-op.
 function SoundUtil.Preload(progressCallback)
 	if preloaded then
 		if progressCallback then
@@ -148,7 +135,7 @@ function SoundUtil.Preload(progressCallback)
 	preloaded = true
 end
 
--- 0-1 progress for a loading bar that would rather poll than take the callback.
+-- 0-1 progress for callers that poll instead of taking the callback.
 function SoundUtil.GetProgress()
 	if totalCount == 0 then
 		return 1
@@ -160,13 +147,7 @@ function SoundUtil.IsPreloaded()
 	return preloaded and preloadedCount >= totalCount
 end
 
---[[
-	Play(name, properties)
-
-	Plays a named sound, reusing its preloaded instance. `properties` sets
-	one-off overrides (e.g. { Volume = 0.5, PlaybackSpeed = 1.1 }). Re-triggering
-	while still playing restarts it rather than layering overlapping copies.
-]]
+-- Plays a named sound, reusing its instance; properties override tuning for one play.
 function SoundUtil.Play(name, properties)
 	local s = sounds[name]
 	if not s then
@@ -183,7 +164,6 @@ function SoundUtil.Play(name, properties)
 		sounds[name] = s
 	end
 
-	-- Tuning first, then the call-site override, so per-play properties win.
 	applyTuning(name, s)
 	if properties then
 		for prop, value in pairs(properties) do
@@ -191,7 +171,7 @@ function SoundUtil.Play(name, properties)
 		end
 	end
 
-	-- Stop() first: Play() on a paused sound does NOT restart it.
+	-- Stop() first; Play() on a paused sound does not restart it.
 	s:Stop()
 	s.TimePosition = 0
 	s:Play()
@@ -211,7 +191,6 @@ function SoundUtil.StopAll()
 	end
 end
 
--- Destroys the instance so it can be GC'd, not just silenced.
 function SoundUtil.Release(name)
 	local s = sounds[name]
 	if s then

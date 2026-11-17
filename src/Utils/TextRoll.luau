@@ -1,10 +1,9 @@
 --[[
 	Aetheris/Utils/TextRoll.luau
 
-	Per-glyph roll for arbitrary text: takes over a TextLabel and renders its
-	string as a row of glyph cells, rolling only the characters that changed
-	(the new glyph rises from below). The username-mask toggle uses it.
-	Static glyphs are plain labels; rolled ones tween a two-glyph strip.
+	Per-glyph roll for arbitrary text, taking over a TextLabel and rolling only
+	the characters that changed. Static glyphs are plain labels; rolled ones
+	tween a two-glyph strip.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -18,7 +17,7 @@ local TextService = game:GetService("TextService")
 local TextRoll = {}
 TextRoll.__index = TextRoll
 
--- Clipped cells shave glyph edges, so widen slightly (same as Odometer).
+-- Clipped cells shave glyph edges, so cells are widened slightly.
 local CELL_PAD = 2
 
 local function measure(text, font, size)
@@ -33,7 +32,7 @@ local function measure(text, font, size)
 	return math.ceil((ok and bounds or Vector2.new(size * 0.6, size)).X)
 end
 
--- Split a string into characters (multibyte-safe for unicode display names).
+-- Multibyte-safe split for unicode display names.
 local function toChars(text)
 	local chars = {}
 	for ch in string.gmatch(text or "", utf8.charpattern) do
@@ -42,8 +41,6 @@ local function toChars(text)
 	return chars
 end
 
--- Take over a TextLabel: glyphs render as child rows and the label's own Text
--- is cleared. Style is mirrored live, so a theme switch restamps every glyph.
 function TextRoll.new(label)
 	local self = setmetatable({}, TextRoll)
 	self.label = label
@@ -109,7 +106,7 @@ function TextRoll:_setStatic(index, char)
 	self.cells[index] = { frame = glyph, char = char, rolling = false }
 end
 
--- A clipped two-glyph strip rolls newChar up from below, then settles into a static label.
+-- A clipped two-glyph strip rolls the new glyph up, then settles into a label.
 function TextRoll:_setRolling(index, oldChar, newChar)
 	local old = self.cells[index]
 	if old then
@@ -147,14 +144,13 @@ function TextRoll:_setRolling(index, oldChar, newChar)
 
 	local handle = Tween.Play(strip, "Smooth", { Position = UDim2.fromOffset(0, -self.height) })
 	handle.Tween.Completed:Once(function()
-		-- Only settle if this cell wasn't replaced by a newer roll.
+		-- Only settle if this cell was not replaced by a newer roll.
 		if self.cells[index] and self.cells[index].frame == cell then
 			self:_setStatic(index, newChar)
 		end
 	end)
 end
 
--- Reconcile the rendered glyphs to text. Changed glyphs roll; instant = snap.
 function TextRoll:SetText(text, instant)
 	local chars = toChars(tostring(text or ""))
 	self.text = text
@@ -162,7 +158,6 @@ function TextRoll:SetText(text, instant)
 	for i, ch in ipairs(chars) do
 		local cell = self.cells[i]
 		if instant then
-			-- Snap: rebuild anything missing, mismatched, or mid-roll.
 			if not cell or cell.char ~= ch or cell.rolling then
 				self:_setStatic(i, ch)
 			end
@@ -186,7 +181,7 @@ function TextRoll:GetText()
 	return self.text
 end
 
--- Mirror live style changes onto every glyph; widths aren't re-measured.
+-- Mirrors live style changes onto every glyph; widths are not re-measured.
 function TextRoll:_restyle()
 	for _, glyph in ipairs(self.label:GetDescendants()) do
 		if glyph:IsA("TextLabel") then

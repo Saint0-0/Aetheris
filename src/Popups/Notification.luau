@@ -1,15 +1,9 @@
 --[[
 	Aetheris/Popups/Notification.luau
 
-	Self-destroying toast notifications in three flavours: Alert (amber),
-	Error (red), and Variable (green; custom icon, colours, background image
-	and up to MAX_ACTIONS action buttons). Created via window:Alert() /
-	window:Error() / window:Toast().
-
-	Motion follows the Novoline toast: the glass shell grows in from a small
-	square pill and rounds out, the body fades in behind it, hovering pauses
-	the countdown while a progress bar drains, then the card shrinks back
-	down and destroys itself.
+	Self-destroying toast notifications in three flavours: Alert, Error and
+	Variable, which also accepts actions. The shell grows in from a pill, the
+	body fades in behind it, and hovering pauses the countdown.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -30,21 +24,21 @@ Notification.__index = Notification
 
 local MAX_ACTIONS = 2
 
--- Card geometry: height derives from the row's content via syncHeight, so these are the only fixed numbers.
+-- Height derives from the row, so only these numbers are fixed.
 local TOAST_WIDTH = 280
 local ROW_TOP_INSET = 17
 local TOAST_MIN_HEIGHT = 40
--- Extra height below the row so a one-line toast isn't cramped; applied in syncHeight only.
+-- Extra height below the row, applied in syncHeight only.
 local TOAST_EXTRA_HEIGHT = 7
 local HEADER_HEIGHT = 16
--- Novoline tint tile: a 34px pill with the glyph inside, 10px clear of the text column.
+-- Tile is a pill with the glyph inside, clear of the text column.
 local TILE_SIZE = 34
 local TILE_GAP = 10
-local TEXT_X = 14 + TILE_SIZE + TILE_GAP -- left edge of the text column (58, like the reference)
+local TEXT_X = 14 + TILE_SIZE + TILE_GAP -- Left edge of the text column.
 local DISMISS_GUTTER = 30
 local CARD_CORNER = 20
 
--- Open: the shell grows from a small square pill, the body fades in behind it.
+-- Open: the shell grows from a pill, the body fades in behind.
 local OPEN_W = 132
 local OPEN_H = 30
 local OPEN_GROW = 0.55
@@ -76,7 +70,7 @@ local function new(className, props)
 	return inst
 end
 
--- Snapshot decorations CanvasGroup transparency does not cover (UIStroke/UIShadow) so they can fade along.
+-- CanvasGroup transparency skips UIStroke and UIShadow, so capture them.
 local function captureFade(root)
 	local targets = {}
 	local function scan(inst)
@@ -107,17 +101,13 @@ local function tweenAll(targets, value, duration)
 	end
 end
 
--- Novoline tint recipe: the tile washes to a dark tint of the flavour accent so the bright glyph reads.
+-- The tile washes to a dark tint so the bright glyph reads.
 local function darkTint(color)
 	local h, s = color:ToHSV()
 	return Color3.fromHSV(h, math.min(s, 0.75), 0.24)
 end
 
--- Height is measured from the row (which converges on offset content), not auto-sized.
--- While the shell grows, root.Size belongs to the open tween, so this retargets that
--- tween instead of snapping: wrapped text converges a layout pass after build, and
--- freezing the pass (the old guard) left the card short until the grow finished.
--- During close the shrink tween owns root.Size, so the pass is skipped entirely.
+-- Retargets the grow tween while it owns Size, so wrapped text cannot snap it.
 function Notification:_syncHeight()
 	local root = self.Root
 	if not root or self._closing then
@@ -125,8 +115,7 @@ function Notification:_syncHeight()
 	end
 	local height = math.max(TOAST_MIN_HEIGHT, self._row.AbsoluteSize.Y + ROW_TOP_INSET + TOAST_EXTRA_HEIGHT)
 	local size = UDim2.fromOffset(TOAST_WIDTH, height)
-	-- Content width never changes, so updating it mid-open only moves the vertical
-	-- rhythm (progress track, bottom band) — no horizontal reflow of the text.
+	-- Content width is fixed, so a mid-open size change never reflows text.
 	self._content.Size = size
 	self._fullSize = size
 	if self._openTweening then
@@ -142,14 +131,14 @@ local ACCENT_KEY = {
 	Variable = "NotificationVariableAccent",
 }
 
--- The card wash uses the aurora keys so Alert/Error read as themed colours first, warning/danger second.
+-- Wash uses aurora keys so each type reads as a themed colour.
 local WASH_KEY = {
 	Alert = "NotificationAlertAurora",
 	Error = "NotificationErrorAurora",
 	Variable = "NotificationVariableAccent",
 }
 
--- Per-type fallbacks so a theme missing its Notification*Accent keys still colour-matches each flavour.
+-- Fallbacks so a theme missing its accent keys still colour-matches.
 local FALLBACK_ACCENT = {
 	Alert = Color3.fromRGB(249, 115, 22),
 	Error = Color3.fromRGB(226, 42, 42),
@@ -162,7 +151,7 @@ local DEFAULT_TITLE = {
 	Variable = "Changes saved!",
 }
 
--- Default icon per type; all full images, so no rect offset/size is set.
+-- All full images, so no rect offset or size is needed.
 local DEFAULT_ICON = {
 	Alert = Icons["triangle-alert"] or "rbxassetid://125920361880643",
 	Error = Icons["shield-alert"] or "rbxassetid://114995877719925",
@@ -187,7 +176,7 @@ function Notification.new(container, Settings, theme)
 	local iconColor = Settings.IconColor or accent
 	local washColor = Settings.GradientColor or theme[WASH_KEY[ntype]] or accent
 
-	-- Sized by syncHeight from the row below, not AutomaticSize: scale(1,1) wash frames measured against this card and grew it every pass.
+	-- Sized by syncHeight, not AutomaticSize: the wash would grow the card.
 	local root = new("CanvasGroup", {
 		Name = UUID.Generate("Toast"),
 		ZIndex = 999,
@@ -195,7 +184,7 @@ function Notification.new(container, Settings, theme)
 		GroupTransparency = 1,
 		BackgroundColor3 = theme.NotificationBackgroundColor or Color3.fromRGB(16, 16, 17),
 		BackgroundTransparency = theme.NotificationBackgroundTransparency or 0.1,
-		-- No ClipsDescendants: it would clip this card's own UIShadow glow; the wash/background already clip themselves.
+		-- No ClipsDescendants: it would clip the card's own glow.
 		Size = UDim2.fromOffset(TOAST_WIDTH, TOAST_MIN_HEIGHT),
 		BorderColor3 = Color3.fromRGB(41, 41, 41),
 		LayoutOrder = 2,
@@ -206,7 +195,7 @@ function Notification.new(container, Settings, theme)
 	local rootCorner = new("UICorner", { Parent = root, CornerRadius = UDim.new(0, CARD_CORNER) })
 	self._corners = { rootCorner }
 
-	-- Card chrome colour-matched to the flavour accent; theme keys only tune transparency.
+	-- Chrome matches the accent; theme keys only tune transparency.
 	local stroke = new("UIStroke", {
 		Parent = root,
 		Color = accent,
@@ -215,7 +204,7 @@ function Notification.new(container, Settings, theme)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 
-	-- The card's glow, colour-matched to the accent; captureFade carries it with the group fade.
+	-- Glow matches the accent and fades with the group.
 	local shadow = new("UIShadow", {
 		Parent = root,
 		Color = accent,
@@ -223,11 +212,11 @@ function Notification.new(container, Settings, theme)
 		BlurRadius = UDim.new(0, 18),
 		Offset = UDim2.fromOffset(0, 6),
 	})
-	-- Stamp PageFadeBase so any FadeDecorations sweep that reaches out-of-tree toasts returns to the rest state.
+	-- Records the rest state for page-fade sweeps that reach this toast.
 	shadow:SetAttribute(UUID.Static("PageFadeBase"), shadow.Transparency)
 	self._shadow = shadow
 
-	-- Accent bloom wash clipped to the toast; ColorKey binds it to the live theme accent unless the caller overrode the gradient.
+	-- ColorKey binds the wash to the live accent unless it was overridden.
 	local wash = Aurora.Wash(root, {
 		Color = washColor,
 		ColorKey = (Settings.GradientColor == nil) and WASH_KEY[ntype] or nil,
@@ -269,12 +258,10 @@ function Notification.new(container, Settings, theme)
 		})
 	end
 
-	-- Shell-only scan: Content does not exist yet, so this captures just the rim and glow.
+	-- Captured before Content exists, so only the rim and glow are included.
 	self._shellFade = captureFade(root)
 
-	-- Body layer: fades in behind the shell on open and out before the shrink, so the
-	-- card reads as glass first and text second (Novoline ordering). Fixed-size and
-	-- centre-anchored so it never reflows while the shell grows around it.
+	-- Fades in after the shell and is centre-anchored so it never reflows.
 	local content = new("CanvasGroup", {
 		Name = UUID.Static("Content"),
 		BorderSizePixel = 0,
@@ -288,7 +275,7 @@ function Notification.new(container, Settings, theme)
 	})
 	self._content = content
 
-	-- Tile + one in-flow text column; all-offset children so AutomaticSize.Y converges and syncHeight can copy it (14px left margin, 30px right gutter for the dismiss).
+	-- All children are offset so AutomaticSize.Y converges for syncHeight.
 	local row = new("Frame", {
 		Name = UUID.Static("Row"),
 		BorderSizePixel = 0,
@@ -305,7 +292,7 @@ function Notification.new(container, Settings, theme)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		FillDirection = Enum.FillDirection.Horizontal,
 	})
-	-- Bottom band rides in the row's AutomaticSize.Y (root UIPadding would break the wash), so the progress track clears the description.
+	-- The bottom band rides the row's AutomaticSize; root padding would break the wash.
 	new("UIPadding", { Parent = row, PaddingBottom = UDim.new(0, ROW_TOP_INSET) })
 
 	local tile = new("Frame", {
@@ -344,7 +331,7 @@ function Notification.new(container, Settings, theme)
 		Name = UUID.Static("Column"),
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
-		-- Tile (34) + gap (10); the dismiss button sits outside the row, so no extra reserve.
+		-- Tile plus gap; the dismiss sits outside the row, so nothing extra.
 		Size = UDim2.new(1, -(TILE_SIZE + TILE_GAP), 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = 2,
@@ -432,7 +419,7 @@ function Notification.new(container, Settings, theme)
 			btn:SetAttribute(UUID.Static("ToastBaseBackground"), baseBg)
 			new("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
 
-			-- Button-component motion 1:1: hover 1.02, press 0.97, click wash in/out.
+			-- Hover 1.02, press 0.97, click wash in and out.
 			local btnScale = new("UIScale", { Parent = btn, Scale = 1 })
 
 			local btnShadow = new("UIShadow", {
@@ -473,7 +460,7 @@ function Notification.new(container, Settings, theme)
 			end)
 
 			btn.MouseButton1Click:Connect(function()
-				-- Overlay in over 0.12s, out over 0.5s; rapid clicks restart it instead of locking.
+				-- Rapid clicks restart the flash instead of locking it.
 				Tween.CancelAll(btnFlash)
 				Tween.Play(btnFlash, "Click", { BackgroundTransparency = 0.15 })
 				task.delay(0.12, function()
@@ -482,7 +469,7 @@ function Notification.new(container, Settings, theme)
 					end
 					Tween.Play(btnFlash, "Release", { BackgroundTransparency = 1 })
 				end)
-				-- Callback fires immediately; the toast exits just after the flash-in lands.
+				-- The callback fires now; the toast exits after the flash lands.
 				if action.Callback then
 					action.Callback(self)
 				end
@@ -495,7 +482,7 @@ function Notification.new(container, Settings, theme)
 		end
 	end
 
-	-- Centre-pinned so hover growth stays centred against the card's right edge.
+	-- Centred on the right edge so hover growth stays centred.
 	local dismiss = new("ImageButton", {
 		Name = UUID.Static("DismissButton"),
 		BorderSizePixel = 0,
@@ -530,7 +517,7 @@ function Notification.new(container, Settings, theme)
 		self:Close()
 	end)
 
-	-- Countdown track: a hairline under the text that drains with the timer.
+	-- Hairline track drains with the countdown.
 	local track = new("Frame", {
 		Name = UUID.Static("ProgressTrack"),
 		BorderSizePixel = 0,
@@ -554,13 +541,13 @@ function Notification.new(container, Settings, theme)
 	new("UICorner", { Parent = fill, CornerRadius = UDim.new(1, 0) })
 	self._fill = fill
 
-	-- Body scan (tile rim, action glows) captured with everything already inside Content.
+	-- Captures the body rim and glows once Content is populated.
 	self._contentFade = captureFade(content)
 
 	self._shown = false
 	self._closing = false
 
-	-- Retained so ApplyTheme can recolour a toast already on screen (toasts live outside the window tree).
+	-- Retained so ApplyTheme can recolour a toast already on screen.
 	self._type = ntype
 	self._accent = accent
 	self._iconOverride = Settings.IconColor
@@ -574,7 +561,7 @@ function Notification.new(container, Settings, theme)
 	self._dismiss = dismiss
 	self._row = row
 
-	-- Hovering anywhere on the card (children included) pauses the countdown.
+	-- Hovering anywhere on the card pauses the countdown.
 	root.MouseEnter:Connect(function()
 		self._hovered = true
 	end)
@@ -582,8 +569,7 @@ function Notification.new(container, Settings, theme)
 		self._hovered = false
 	end)
 
-	-- Re-sync on reflow so text changes and font/theme swaps resize the card too;
-	-- mid-open this retargets the grow tween (see _syncHeight) instead of being dropped.
+	-- Re-syncs on reflow; mid-open this retargets the grow tween.
 	self:_syncHeight()
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		if root.Parent then
@@ -594,16 +580,14 @@ function Notification.new(container, Settings, theme)
 	return self
 end
 
--- Live theme switch: recolour in place so an open toast follows the UI instead of being rebuilt.
+-- Recolours in place so an open toast follows a theme switch.
 function Notification:ApplyTheme(themeInput)
 	if not self.Root then
 		return
 	end
 	local theme = ThemeManager.GetTheme(themeInput)
 
-	-- A theme switch sweeps CancelAllUnder the ScreenGui; if it lands mid-open the
-	-- grow tweens die, so snap the card to its final open state first (the recolour
-	-- below then overwrites anything this restored).
+	-- Theme sweeps cancel tweens, so snap the open state before recolouring.
 	if self._openTweening and not self._closing then
 		self._openTweening = false
 		self.Root.GroupTransparency = 0
@@ -630,7 +614,7 @@ function Notification:ApplyTheme(themeInput)
 	self.Root.BackgroundColor3 = theme.NotificationBackgroundColor or self.Root.BackgroundColor3
 	self.Root.BackgroundTransparency = theme.NotificationBackgroundTransparency or self.Root.BackgroundTransparency
 
-	-- Rim and glow follow the flavour accent; theme keys only tune transparency.
+	-- Rim and glow follow the accent; theme keys tune transparency.
 	self._shadow.Color = accent
 	if theme.NotificationShadowTransparency then
 		self._shadow.Transparency = theme.NotificationShadowTransparency
@@ -641,7 +625,7 @@ function Notification:ApplyTheme(themeInput)
 		self._wash:SetColor(washColor)
 	end
 
-	-- Wallpaper is an asset id, not a colour binding, so re-stamp it on every switch.
+	-- Wallpaper is an asset id, so it is restamped on every switch.
 	if self._background then
 		self._background.Image = self._backgroundOverride or theme.Wallpaper or FallbackImage
 		self._background.Visible = (self._backgroundOverride ~= nil) or theme.WallpaperEnabled ~= false
@@ -694,8 +678,7 @@ function Notification:ApplyTheme(themeInput)
 	end
 end
 
--- Frame-step countdown (not a tween) so a theme switch's tween sweep can't kill it;
--- hovering the card pauses the drain until the mouse leaves.
+-- A frame-step countdown, so tween sweeps cannot kill it.
 function Notification:_runTimer()
 	task.spawn(function()
 		local left = self.Duration
@@ -726,9 +709,7 @@ function Notification:Show()
 		return self
 	end
 
-	-- Open: the shell starts as a small square pill and grows/rounds out to the
-	-- measured card. _openTweening hands Size to the tween: reflows during the grow
-	-- retarget it (see _syncHeight) rather than snapping the card mid-animation.
+	-- Grows from a pill; _openTweening lets reflows retarget the tween.
 	self._openTweening = true
 	local full = root.Size
 	root.Size = UDim2.fromOffset(math.min(full.X.Offset, OPEN_W), OPEN_H)
@@ -790,7 +771,6 @@ function Notification:Close()
 		return
 	end
 
-	-- Body out first, then the shell shrinks back toward a pill and fades.
 	Tween.Play(
 		self._content,
 		TweenInfo.new(CLOSE_BODY_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),

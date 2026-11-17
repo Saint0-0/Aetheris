@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Utils/VideoFade.luau
 
-	VideoFrame.Transparency doesn't affect the rendered video, so the Video
-	component fades a tagged UIGradient instead. UIGradient.Transparency is a
-	NumberSequence TweenService can't interpolate, so it's lerped per frame.
+	Fades video through a tagged UIGradient, since VideoFrame.Transparency does
+	not affect the rendered video. The NumberSequence is lerped per frame.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -34,8 +33,7 @@ function VideoFade.get(grad)
 	return 0
 end
 
--- Matches the UI's Tween presets so the video fades in lockstep; a raw
--- linear lerp lingers visibly at the start.
+-- Easing matches the UI's tween presets; a raw linear lerp lingers at the start.
 local EASING = {
 	Out = function(t)
 		return 1 - (1 - t) * (1 - t)

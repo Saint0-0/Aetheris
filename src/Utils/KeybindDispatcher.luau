@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Utils/KeybindDispatcher.luau
 
-	Single shared InputBegan listener for every Keybind row: one O(1) map
-	lookup per keystroke instead of N connections each comparing key names.
-	Register returns an opaque token; Unregister drops it and removes a key's
-	bucket once it empties.
+	Single shared InputBegan listener for every Keybind row, with one map lookup
+	per keystroke. Register returns a token and Unregister drops it.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -23,7 +21,7 @@ local function ensureConnection()
 		return
 	end
 	connection = UserInputService.InputBegan:Connect(function(input, processed)
-		-- ignore chat / focused TextBox input
+		-- Skip input consumed by chat or a focused TextBox.
 		if processed then
 			return
 		end

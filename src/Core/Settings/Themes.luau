@@ -1,11 +1,8 @@
 --[[
 	Aetheris/Core/Settings/Themes.luau
 
-	Builds the "Themes" page: a header row (page title, ghost chip naming the
-	current theme) over a grid of image-blend preview cards — wallpaper melting
-	out under a window-colour scrim, palette dots over the image, accent rim and
-	glow when active. Cards re-prime and reveal in a cascade each time the page
-	shows. THEME_ORDER sets the render order.
+	Builds the Themes page: header row over a grid of preview cards.
+	Cards re-prime and reveal in a cascade each time the page shows.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -74,7 +71,7 @@ local THEME_ORDER = {
 	"Khaki",
 }
 
--- short enough to fit a card without wrapping
+-- Short enough to fit a card without wrapping.
 local THEME_DESCRIPTIONS = {
 	Umbral = "Deep navy night",
 	Ember = "Lava on slate",
@@ -128,11 +125,11 @@ local THEME_DESCRIPTIONS = {
 	Khaki = "Field olive",
 }
 
--- Card geometry and the settle the reveal cascade rides (design-notes 4).
+-- Card geometry and the reveal settle tween.
 local CARD_W, CARD_H, CARD_RADIUS = 145, 84, 10
 local SETTLE = TweenInfo.new(0.36, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
--- {time, value} pairs -> NumberSequence for the scrim, melt and rim ramps.
+-- Build a NumberSequence from {time, value} pairs.
 local function ramp(points)
 	local keypoints = {}
 	for _, point in ipairs(points) do
@@ -141,7 +138,7 @@ local function ramp(points)
 	return NumberSequence.new(keypoints)
 end
 
--- design-notes 10: dark grounds take the stronger wash multiplier, light the softer one.
+-- Dark grounds take the stronger wash multiplier, light the softer one.
 local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
 end
@@ -167,11 +164,9 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	corner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	corner.Parent = card
 
-	-- No per-card UIScale: a scale ~= 1 under the grid's automatic canvas
-	-- makes the engine re-size scaled descendants (the Batch 7 changelog
-	-- reflow bug, reproduced here on the card text labels).
+	-- No per-card UIScale; a scale under the automatic canvas reflows descendants.
 
-	-- Fill: the card's own window colour, washed top-light to bottom-dark (design-notes 10).
+	-- Card fill, washed from top-light to bottom-dark.
 	local fill = Instance.new("Frame")
 	fill.Name = UUID.Static("CardFill")
 	fill.BorderSizePixel = 0
@@ -189,7 +184,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	wash.Color = ColorSequence.new(white, isDark(base) and Color3.new(0.72, 0.72, 0.72) or Color3.new(0.9, 0.9, 0.9))
 	wash.Parent = fill
 
-	-- Accent glow hangs off the fill so it rounds with the card; off until painted.
+	-- The glow hangs off the fill, so it rounds with the card.
 	local shadow = Instance.new("UIShadow")
 	shadow.BlurRadius = UDim.new(0, 18)
 	shadow.Color = accent
@@ -197,7 +192,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	shadow.Enabled = false
 	shadow.Parent = fill
 
-	-- Wallpaper: full-bleed crop melting out toward the text zone.
+	-- Full-bleed wallpaper crop melting toward the text zone.
 	local image = Instance.new("ImageLabel")
 	image.Name = UUID.Static("CardWallpaper")
 	image.BorderSizePixel = 0
@@ -217,7 +212,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	melt.Transparency = ramp({ { 0, 0 }, { 0.3, 0 }, { 0.5, 0.4 }, { 0.7, 0.85 }, { 0.85, 1 }, { 1, 1 } })
 	melt.Parent = image
 
-	-- Scrim: window colour rising from the bottom so the text sits on solid ground.
+	-- Window colour rises from the bottom so the text sits on solid ground.
 	local scrim = Instance.new("Frame")
 	scrim.Name = UUID.Static("CardScrim")
 	scrim.BorderSizePixel = 0
@@ -306,7 +301,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		table.insert(dots, dot)
 	end
 
-	-- Hover lift: a white veil that only exists under the cursor.
+	-- White hover veil under the cursor.
 	local lift = Instance.new("Frame")
 	lift.Name = UUID.Static("CardLift")
 	lift.BorderSizePixel = 0
@@ -319,8 +314,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	liftCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	liftCorner.Parent = lift
 
-	-- Rim: inactive = white top-edge ramp, active = flat accent (design-notes 1).
-	-- Border mode because the card itself is a TextButton (contextual = text outline).
+	-- Inactive rim is a white top-edge ramp; active is flat accent.
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = white
 	stroke.Transparency = 1
@@ -336,7 +330,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	local hovered = false
 	local primed = false
 
-	-- The glow is the expensive layer, so it switches off once faded out.
+	-- The glow switches off once faded out.
 	local function applyShadow(target, instant, info)
 		if instant then
 			shadow.Transparency = target
@@ -360,8 +354,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		end
 	end
 
-	-- Resting state for every layer. `instant` stamps (theme sweep); otherwise
-	-- `info` paces the tween — the reveal passes SETTLE so it rides the cascade.
+	-- Resting state for every layer; instant stamps, otherwise info paces the tween.
 	local function paint(instant, info)
 		info = info or "Fast"
 		local function apply(inst, prop, value)
@@ -381,8 +374,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		end
 		apply(lift, "BackgroundTransparency", hovered and 0.95 or 1)
 
-		-- The rim swap can't interpolate: colour + gradient land instantly, only
-		-- the transparency joins the tween (fading up from prime's 1).
+		-- The rim swap cannot interpolate, so only its transparency is tweened.
 		if active then
 			rim.Parent = nil
 			stroke.Color = accent
@@ -395,9 +387,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		applyShadow(active and 0.45 or (hovered and 0.35 or 1), instant, info)
 	end
 
-	-- Prime hides everything the reveal brings back, so each page entry has
-	-- distance to cascade over (design-notes 4). Input is off while primed so
-	-- an invisible card can't be clicked mid-cascade.
+	-- Prime hides every layer and disables input so the reveal has distance.
 	local function prime()
 		primed = true
 		Tween.CancelAllUnder(card)
@@ -452,8 +442,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	card.MouseLeave:Connect(function()
 		hover(false)
 	end)
-	-- Press reads as a white tint on the lift (design-notes 3) instead of a
-	-- scale dip: the UIScale reflowed the grid's scaled text labels.
+	-- Press tints the lift white instead of scaling, which reflowed labels.
 	card.MouseButton1Down:Connect(function()
 		if primed then
 			return
@@ -467,9 +456,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		paint(false)
 	end)
 
-	-- A theme switch sweeps CancelAllUnder the window, which could freeze a
-	-- mid-flight card half-faded; re-stamp the resting state afterwards.
-	-- Primed cards stay hidden — their reveal owns the paint.
+	-- Restamp the resting state after a theme switch; primed cards stay hidden.
 	ThemeManager.OnThemeApplied(function()
 		if primed then
 			return
@@ -492,8 +479,7 @@ function Themes.Build(window, tab)
 	local page = tab.Page
 	local pageTheme = ThemeManager.GetTheme(tab._theme)
 
-	-- Fixed layout the rest of the settings page assumes: hangs from the top,
-	-- with the docked tab pill bar's reserve subtracted from the bottom.
+	-- Fixed layout: top-anchored, minus the docked tab bar reserve.
 	page.Size = UDim2.new(1, 0, 1, -Constants.SettingsBottomReserve)
 	page.Position = UDim2.fromScale(0.5, 0)
 	page.AnchorPoint = Vector2.new(0.5, 0)
@@ -516,7 +502,7 @@ function Themes.Build(window, tab)
 	pageTitle.Position = UDim2.fromScale(0, 0)
 	pageTitle.Parent = page
 
-	-- Ghost chip: names the current theme on the title line, right-aligned.
+	-- Ghost chip naming the current theme, right-aligned.
 	local chip = Instance.new("Frame")
 	chip.Name = UUID.Static("CurrentThemeChip")
 	chip.BorderSizePixel = 0
@@ -563,8 +549,7 @@ function Themes.Build(window, tab)
 	chipName.Text = "Umbral"
 	chipName.Parent = chip
 
-	-- scrolling container for the cards; ThemeManager's ScrollingFrame pass
-	-- re-colors its scrollbar on theme switch
+	-- Card container; ThemeManager recolors its scrollbar on theme switch.
 	local pageHolder = Instance.new("ScrollingFrame")
 	pageHolder.Name = UUID.Static("PageHolder")
 	pageHolder.BorderSizePixel = 0
@@ -579,7 +564,7 @@ function Themes.Build(window, tab)
 	pageHolder.ScrollBarImageColor3 = pageTheme.TertiaryColor
 	pageHolder.ScrollBarImageTransparency = 1
 	pageHolder.Parent = page
-	-- Cards melt into the page at both scroll edges (design-notes 9).
+	-- Cards melt into the page at both scroll edges.
 	ScrollFade.Attach(pageHolder)
 
 	local holderScrollbarTimer
@@ -597,7 +582,7 @@ function Themes.Build(window, tab)
 	local holderPadding = Instance.new("UIPadding")
 	holderPadding.PaddingTop = UDim.new(0, 10)
 	holderPadding.PaddingBottom = UDim.new(0, 20)
-	-- side padding keeps card glow shadows from clipping
+	-- Side padding keeps the glow shadows from clipping.
 	holderPadding.PaddingLeft = UDim.new(0, 10)
 	holderPadding.PaddingRight = UDim.new(0, 10)
 	holderPadding.Parent = pageHolder
@@ -653,11 +638,10 @@ function Themes.Build(window, tab)
 		table.insert(cardStates, state)
 	end
 
-	-- follows the active theme even when it isn't in the ordered list
+	-- Follows the active theme even when it is not in the ordered list.
 	chipName.Text = tab._activeThemeName
 
-	-- Reveal cascade: each visit re-primes the grid and staggers the cards back
-	-- in; leaving mid-cascade bumps the token so stale reveals can't fire.
+	-- Each visit re-primes the grid and staggers the cards back in.
 	local cascadeToken = 0
 	PageAwareness.Register(page, {
 		OnActive = function()
@@ -682,8 +666,7 @@ function Themes.Build(window, tab)
 		end,
 	})
 
-	-- header texts and scrollbar follow the theme; the cards themselves are
-	-- left alone, since each previews a specific theme's colors
+	-- Header texts and scrollbar follow the theme; cards keep their own colors.
 	local themesPageComponent = {}
 	function themesPageComponent:ApplyTheme(newTheme)
 		local t = ThemeManager.GetTheme(newTheme)
@@ -692,8 +675,7 @@ function Themes.Build(window, tab)
 		chipName.TextColor3 = t.TitleTextColor or chipName.TextColor3
 		pageHolder.ScrollBarImageColor3 = t.TertiaryColor or pageHolder.ScrollBarImageColor3
 
-		-- External switches (API, config) skip the card click path, so re-sync
-		-- the chip and highlight from the window's theme here.
+		-- External theme switches skip the card path, so re-sync the chip here.
 		local name = window._themeName
 		if type(name) == "string" and name ~= tab._activeThemeName then
 			local oldName = tab._activeThemeName

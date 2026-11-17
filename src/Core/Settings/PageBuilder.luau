@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Core/Settings/PageBuilder.luau
 
-	Registers the default settings pages (Themes, UI Settings, Configs) on a
-	window's SettingsTabGroup. Called by Window.new via BuildDefaultPages;
-	developer-added pages are appended afterwards from CreateWindow options.
+	Registers the default settings pages on a window's SettingsTabGroup.
+	CreateWindow options append developer pages afterwards.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]

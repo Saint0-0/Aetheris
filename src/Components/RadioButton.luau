@@ -1,8 +1,8 @@
 --[[
 	Aetheris/Components/RadioButton.luau
 
-	Single radio row; create through RadioButtonGroup so selection stays unique.
-	An IsSelected attribute preserves the selected look across theme switches.
+	Single radio row; create it through RadioButtonGroup so selection stays
+	unique. An IsSelected attribute keeps the look across theme switches.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -30,8 +30,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		Theme = theme,
 		LabelWidth = 0.48591,
 	})
-	-- unactivated pill carries the same InputBackground tint as Keybind/TextInput;
-	-- the selected button paints opaque over it
+	-- Unselected pill uses the InputBackground tint; painted over when selected.
 	local holder = Instance.new("Frame")
 	holder.Name = UUID.Static("RadioHolderFrame")
 	holder.BorderSizePixel = 0
@@ -103,8 +102,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	activatedImage.Image = "rbxassetid://8445470984"
 	activatedImage.ImageRectSize = Vector2.new(96, 96)
 	activatedImage.ImageRectOffset = Vector2.new(804, 904)
-	-- Settings.Icon replaces the default mark; a plain asset id clears the
-	-- sprite-sheet crop, while omitting it keeps the built-in glyph
+	-- Settings.Icon replaces the default mark and clears the sprite crop.
 	local iconOverride = Settings.Icon
 	if type(iconOverride) == "string" and iconOverride ~= "" then
 		activatedImage.Image = iconOverride
@@ -133,8 +131,7 @@ function RadioButton.new(parent, group, Settings, theme)
 	local expandedSize =
 		UDim2.new(baseSize.X.Scale * 1.20, baseSize.X.Offset, baseSize.Y.Scale * 1.20, baseSize.Y.Offset)
 
-	-- transparencies are never set instantly here: current values are the
-	-- tween's starting point
+	-- Transparencies are tweened; current values are the starting point.
 	local function playOn()
 		Tween.Play(label, "OnOff", {
 			TextTransparency = theme.PrimaryTextTransparency,
@@ -153,8 +150,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		Tween.Play(holderStroke, "OnOff", {
 			Transparency = 1,
 		})
-		-- selection changes the stroke outside ApplyTheme, so the cached
-		-- PageFade base must follow or a page switch leaves it hidden
+		-- Selection changes the stroke, so keep the PageFade base in sync.
 		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), 1)
 	end
 
@@ -179,8 +175,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		holderStroke:SetAttribute(UUID.Static("PageFadeBase"), theme.StrokeTransparency or 0.4)
 	end
 
-	-- hovering or pressing either the holder frame or the inner button drives
-	-- the same visuals; selection is idempotent so bubbling is harmless
+	-- Hovering either the holder or the button drives the same visuals.
 	local function enterHover()
 		Tween.Play(bounceScale, "HoverIn", { Scale = 1.02 })
 		if self.IsSelected then
@@ -224,8 +219,7 @@ function RadioButton.new(parent, group, Settings, theme)
 		hit.MouseEnter:Connect(enterHover)
 		hit.MouseLeave:Connect(leaveHover)
 	end
-	-- holder is a Frame (no MouseButton members); the button fills it, so
-	-- button-only click connections still cover the whole pill
+	-- The button fills the holder, so its click covers the whole pill.
 	button.MouseButton1Down:Connect(pressDown)
 	button.MouseButton1Up:Connect(pressUp)
 	button.MouseButton1Click:Connect(handleClick)
@@ -242,15 +236,14 @@ function RadioButton.new(parent, group, Settings, theme)
 	if default then
 		self._default = true
 	end
-	-- stateless themed properties are bindings, so a theme switch re-resolves
-	-- them with no ApplyTheme body
+	-- Stateless properties are bindings, needing no ApplyTheme body.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(button, "BackgroundColor3", "PrimaryColor")
 	ThemeManager.BindColor(holder, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindTransparency(holder, "BackgroundTransparency", "InputBackgroundTransparency")
 	ThemeManager.BindColor(holderStroke, "Color", "StrokeColor")
-	-- Selected is a literal 1 (stroke hidden), Unselected reads the theme value
+	-- Selected hides the stroke; Unselected reads the theme value.
 	self._strokeHandle = ThemeManager.BindTransparency(
 		holderStroke,
 		"Transparency",
@@ -297,8 +290,7 @@ function RadioButton.new(parent, group, Settings, theme)
 				holderStroke:SetAttribute(UUID.Static("PageFadeBase"), holderStroke.Transparency)
 				backImage.Image = theme.Wallpaper or FallbackImage
 				backImage.Visible = not (theme.WallpaperEnabled == false)
-				-- re-apply the selected state directly: ApplyTheme cancels in-flight
-				-- tweens, which could leave a just-selected button looking unselected
+				-- Re-apply state directly; ApplyTheme cancels in-flight tweens.
 				if me.IsSelected then
 					button.BackgroundTransparency = 0
 					activatedImage.ImageTransparency = 0

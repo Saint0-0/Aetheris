@@ -1,13 +1,8 @@
 --[[
 	Aetheris/Utils/Aurora.luau
 
-	Soft accent bloom behind the window. Prefers a single uploaded glow
-	texture (Constants.AuroraGlow or Aurora.SetTexture), which makes every
-	bloom one tinted ImageLabel; without a texture it falls back to layered
-	circles that fake a radial falloff. Blooms drift on long TweenService
-	loops and the static Wash variant is used inside notifications.
-	Disabling the aurora tears its instances and tweens down completely;
-	re-enabling rebuilds them.
+	Soft accent bloom behind the window. Uses one tinted glow texture when
+	configured, and layered circles otherwise.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -21,7 +16,7 @@ local UUID = require("./UUID")
 local Aurora = {}
 Aurora.__index = Aurora
 
--- Procedural fallback: nested circles fake a radial falloff without a blur pass.
+-- Fallback layers fake a radial falloff without a blur pass.
 local LAYERS = {
 	{ scale = 1.0, transparency = 0.988 },
 	{ scale = 0.76, transparency = 0.978 },
@@ -32,10 +27,8 @@ local LAYERS = {
 -- Shared transparency for textured blooms; the baked falloff carries the depth.
 local GLOW_TRANSPARENCY = 0.5
 
--- Runtime override via SetTexture; nil falls back to Constants.AuroraGlow.
 Aurora.Texture = nil
 
--- Resolve to an rbxassetid:// string, or nil when nothing is configured.
 function Aurora.GetTexture()
 	local id = Aurora.Texture or Constants.AuroraGlow
 	if type(id) == "number" then
@@ -47,7 +40,6 @@ function Aurora.GetTexture()
 	return nil
 end
 
--- Pass nil or "" to go back to the procedural fallback.
 function Aurora.SetTexture(id)
 	Aurora.Texture = id
 end
@@ -88,7 +80,6 @@ local function makeCircle(parent, color, x, y, width, height, transparency)
 	return circle
 end
 
--- One tinted image, optionally bound to a theme color.
 local function makeGlow(parent, texture, color, x, y, width, height, transparency, colorKey)
 	local glow = Instance.new("ImageLabel")
 	glow.Name = UUID.Generate("AuroraGlow")
@@ -109,8 +100,7 @@ local function makeGlow(parent, texture, color, x, y, width, height, transparenc
 	return glow
 end
 
--- One tinted image when a texture is set, layered circles otherwise; pieces
--- come back as { inst, prop } so callers can recolor without knowing the path.
+-- One tinted image or layered circles, returned as { inst, prop } pieces.
 local function makeBloom(parent, texture, color, x, y, width, height, intensity, colorKey, transparency)
 	local t = transparency or GLOW_TRANSPARENCY
 	if texture then
@@ -138,9 +128,9 @@ function Aurora.Wash(parent, opts)
 	local texture = Aurora.GetTexture()
 	local color = opts.Color or Color3.fromRGB(122, 156, 210)
 	local intensity = opts.Intensity or 1
-	-- When set, every bloom binds to this theme key so the wash repaints live.
+	-- Binds every bloom to this key so the wash repaints live.
 	local colorKey = opts.ColorKey
-	-- Blooms stay inside the parent's bottom edge; an overhang would stretch an AutomaticSize parent.
+	-- Kept inside the parent edge; an overhang would stretch an AutomaticSize parent.
 	local blobs = opts.Blobs
 		or {
 			{ x = 0.02, y = 0.18, size = 0.95, intensity = 1 },
@@ -275,7 +265,7 @@ function Aurora:_build()
 	end
 end
 
--- Full teardown so an "off" aurora costs nothing at all.
+-- Full teardown so a disabled aurora costs nothing.
 function Aurora:_teardown()
 	self:_stop()
 	self._blobs = {}
@@ -300,8 +290,7 @@ end
 
 function Aurora:_play()
 	for _, blob in ipairs(self._blobs) do
-		-- Target by distance from the current position, not a flip flag: a theme
-		-- re-apply mid-drift could otherwise collapse the pendulum range to zero.
+		-- Targets by distance travelled; a mid-drift theme re-apply would collapse a flip flag.
 		local pos = blob.holder.Position
 		local px, py = pos.X.Scale, pos.Y.Scale
 		local dStart = (px - blob.x) ^ 2 + (py - blob.y) ^ 2
@@ -336,7 +325,6 @@ function Aurora:SetEnabled(on)
 	end
 end
 
--- Live-update every bloom's transparency without rebuilding.
 function Aurora:SetTransparency(value)
 	local t = tonumber(value)
 	if t == nil then

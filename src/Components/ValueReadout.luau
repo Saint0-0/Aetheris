@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Components/ValueReadout.luau
 
-	The numeric readout shared by Slider and Stepper: at rest the value
-	renders through an odometer with no card behind it (the bare percentage-
-	readout look); focusing swaps in a themed text field. Focus loss commits
-	the typed number through OnCommit(value), then the readout snaps back.
+	The numeric readout shared by Slider and Stepper: at rest the value renders
+	through an odometer, and focusing swaps in a themed text field.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -19,9 +17,7 @@ local UUID = require("../Utils/UUID")
 local ValueReadout = {}
 ValueReadout.__index = ValueReadout
 
--- Bare at rest: no outline until the pointer or focus lands on it, so the
--- chip reads like the percentage stat. The resting alpha doubles as the
--- PageFade base so a page fade can never restore a transient brighten.
+-- Bare at rest; the resting alpha doubles as the PageFade base.
 local REST_STROKE = 1
 local HOVER_STROKE = 0.45
 local FOCUS_STROKE = 0.3
@@ -29,8 +25,7 @@ local FOCUS_STROKE = 0.3
 local STROKE_THICKNESS = 0.7
 local STROKE_COLOR = Color3.fromRGB(80, 80, 80)
 
--- opts: Theme, Size or Width/Height, Position, AnchorPoint, LayoutOrder,
---       TextSize, OdometerHeight, CornerRadius, Weight, ClearTextOnFocus
+-- Accepted options: theme, size, position, text and layout settings.
 function ValueReadout.new(parent, opts)
 	opts = opts or {}
 	local self = setmetatable({}, ValueReadout)
@@ -40,8 +35,7 @@ function ValueReadout.new(parent, opts)
 	local weight = opts.Weight or Enum.FontWeight.Medium
 	local cornerRadius = opts.CornerRadius or 4
 
-	-- child layers paint above the TextBox's own text, so the odometer reel
-	-- wins over it and focus crossfades reel vs typed text
+	-- Child layers paint above the box text, so the reel wins at rest.
 	local box = Instance.new("TextBox")
 	box.Name = UUID.Generate("ValueReadout")
 	box.AnchorPoint = opts.AnchorPoint or Vector2.new(0, 0)
@@ -69,9 +63,7 @@ function ValueReadout.new(parent, opts)
 	corner.CornerRadius = UDim.new(0, cornerRadius)
 	corner.Parent = box
 
-	-- At rest the digits sit bare on the row (matching the percentage
-	-- readout); the box's own input well is what shows up on focus.
-	-- above the text, hidden while the text field is showing
+	-- Above the text; hidden while the field is showing.
 	local reel = Instance.new("Frame")
 	reel.Name = UUID.Static("Reel")
 	reel.BackgroundTransparency = 1
@@ -96,19 +88,17 @@ function ValueReadout.new(parent, opts)
 	stroke.Thickness = STROKE_THICKNESS
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = box
-	-- page fades restore the resting alpha, never a hover/focus brighten
+	-- Page fades restore the resting alpha, never a brighten.
 	stroke:SetAttribute(UUID.Static("PageFadeBase"), REST_STROKE)
 	self.Stroke = stroke
 
 	local focused = false
 	local hovered = false
-	-- off-page the glyphs are forced transparent, so the value reads as zeroed
-	-- until the page is focused again
+	-- Off-page the glyphs are transparent, so the value reads as zeroed.
 	local dimmed = false
 	self._text = ""
 
-	-- glyph transparencies snap so odometer and typed text never overlap;
-	-- field and stroke fade
+	-- Glyphs snap so reel and text never overlap; field and stroke fade.
 	local function sync(animate)
 		local live = ActiveTheme.theme or theme
 		local strokeColor = live.StrokeColor or STROKE_COLOR
@@ -138,8 +128,7 @@ function ValueReadout.new(parent, opts)
 		if num ~= nil and self.OnCommit then
 			self.OnCommit(num)
 		end
-		-- snap to the last committed text: an OnCommit that changed the value
-		-- re-stamped it (normalising e.g. "007" -> "7")
+		-- Snap to the last committed text, which OnCommit may have normalised.
 		box.Text = self._text
 		focused = false
 		sync(true)
@@ -159,7 +148,7 @@ function ValueReadout.new(parent, opts)
 		end
 	end)
 
-	-- up = nil snaps, otherwise the digits roll in that direction (true = up)
+	-- A nil direction snaps; otherwise the digits roll the given way.
 	self.SetValue = function(me, text, up)
 		text = tostring(text)
 		me._text = text
@@ -175,8 +164,7 @@ function ValueReadout.new(parent, opts)
 		return me._text
 	end
 
-	-- `instant` skips the tween (registration priming: snap so the first
-	-- restore has distance to cover)
+	-- The instant flag skips the tween so the first restore has distance.
 	self.SetDimmed = function(_, on, instant)
 		local target = on == true
 		if target == dimmed then
@@ -199,8 +187,7 @@ function ValueReadout.new(parent, opts)
 		end
 	end
 
-	-- stroke's live colour, state alphas and page-fade base are re-stamped on
-	-- every theme apply instead (owner = box auto-unregisters on destroy)
+	-- Stroke colour and alphas are re-stamped on every theme apply.
 	ThemeManager.BindColor(box, "BackgroundColor3", "InputBackgroundColor")
 	ThemeManager.BindColor(box, "TextColor3", "SecondaryTextColor")
 	ThemeManager.OnThemeApplied(function(liveTheme)

@@ -67,8 +67,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	thumb.TextTransparency = 1
 	thumb.AutoButtonColor = false
 	thumb.Parent = track
-	-- Seed the live-theme attributes so applyState reads current colours even
-	-- before the first theme apply stamps them.
+	-- Seed live-theme attributes so applyState has colours before first apply.
 	thumb:SetAttribute(UUID.Static("ThemePrimary"), theme.PrimaryColor)
 	thumb:SetAttribute(UUID.Static("ThemeSecondary"), theme.SecondaryColor)
 
@@ -91,8 +90,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	local onPos = UDim2.new(0, 41, 0.5, 0)
 	local confirmationPending = false
 
-	-- Label colour is pure theme; thumb/track/stroke are bindings whose key
-	-- applyState swaps between PrimaryColor (ON) and SecondaryColor (OFF).
+	-- The state apply swaps thumb, track and stroke bindings between accents.
 	local FAST = { duration = 0.2 }
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local thumbColorBinding =
@@ -117,8 +115,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		local targetStrokeTransparency = state and 0 or 0.7
 		local targetTrackTransparency = state and 0 or 0.9
 		local targetLabelTransparency = state and 0.1 or 0.45
-		-- PageFade caches its fade-base from ApplyTheme, but applyState changes
-		-- the stroke here, so keep the cached base in sync.
+		-- The state apply changes the stroke, so keep the PageFade base in sync.
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), targetStrokeTransparency)
 		if animate then
 			Tween.Play(thumb, "Fast", {
@@ -147,15 +144,13 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		end
 	end
 
-	-- Page-focus dim is visual only; `state` (GetState, the saved setting) is
-	-- never touched, so the restore tween can return to the real value.
+	-- Dimming is visual only; state keeps the real value for restore.
 	local dimmed = false
 	local function setDimmed(on, instant)
 		dimmed = on
 		if on then
 			if instant then
-				-- Snap at registration so the very first restore tween has real
-				-- distance to cover.
+				-- Snap at registration so the first restore has distance to cover.
 				thumb.Position = offPos
 				thumb.BackgroundTransparency = 1
 				stroke.Transparency = 1
@@ -171,13 +166,12 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 	end
 
 	local function handleClick()
-		-- One confirmation at a time; extra clicks while one is open are ignored.
+		-- One confirmation at a time; further clicks are ignored.
 		if confirmationPending then
 			return
 		end
 		local intendedState = not state
-		-- Confirmation only guards turning ON; OFF (or no confirm) applies
-		-- immediately.
+		-- Confirmation guards turning on; off applies immediately.
 		if confirmEnabled and ShowNotification and intendedState then
 			confirmationPending = true
 			ShowNotification({
@@ -188,8 +182,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 				CancelText = Locale.resolve(confirm.CancelText or "No"),
 				OnConfirm = function()
 					confirmationPending = false
-					-- Apply the state captured when the prompt opened rather than
-					-- re-reading `state`.
+					-- Apply the state captured when the prompt opened.
 					applyState(intendedState, true, true)
 				end,
 				OnCancel = function()
@@ -209,21 +202,19 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		handleClick()
 	end)
 
-	-- Apply the default look without firing the callback during construction.
+	-- Apply the default look without firing the callback.
 	applyState(default, false, false)
 
-	-- A theme switch cancels applyState's transparencies tweens, so re-stamp
-	-- the resting state to avoid a half-faded toggle.
+	-- Re-stamp the resting state; a switch cancels the tweens mid-fade.
 	local unregisterTheme = ThemeManager.OnThemeApplied(function()
 		applyState(state, false, false)
-		-- Re-collapse too, so an off-page toggle doesn't pop back to full.
+		-- Re-collapse so an off-page toggle does not pop back.
 		if dimmed then
 			setDimmed(true)
 		end
 	end, row)
 
-	-- Collapse off-page and tween back to `state` on focus. "Page Animations"
-	-- gates the tweens; OnActive always restores.
+	-- Collapse off-page and tween back to state on focus.
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
 		OnInactive = function(instant)
@@ -244,7 +235,7 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 					warn("[Toggle] UpdateState expected a boolean, got:", typeof(newState))
 					return
 				end
-				-- Programmatic updates bypass confirmation; that is only for user clicks.
+				-- Programmatic updates bypass confirmation, which is for clicks.
 				if newState ~= state then
 					applyState(newState, true, true)
 				end

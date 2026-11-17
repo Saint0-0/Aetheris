@@ -1,12 +1,10 @@
 --[[
 	Aetheris/Components/ColorPicker.luau
 
-	Color swatch row for a section. Clicking it opens PopUps/ColorPickerPopUp
-	(created lazily via the supplied ShowPopup factory). The swatch itself is
-	kept opaque across theme switches (protected in ThemeManager).
+	Color swatch row: clicking opens PopUps/ColorPickerPopUp, created lazily
+	through the supplied ShowPopup factory. Callback receives a Color3 and an
+	alpha, seeded by Settings.Alpha.
 
-	Alpha travels beside the colour (Color3 has no alpha): Callback receives
-	(Color3, alpha 0-255), and Settings.Alpha seeds it.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -20,7 +18,7 @@ local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
--- design-notes 4: icon hover lifts in over 0.15s, settles back over 0.2s.
+-- Icon hover lifts in over 0.15s and settles back over 0.2s.
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ALPHA_MAX = 255
@@ -38,7 +36,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	local defaultColor = Settings.Default or Color3.fromRGB(255, 0, 0)
 	local defaultAlpha = clamp(tonumber(Settings.Alpha) or ALPHA_MAX, 0, ALPHA_MAX)
 	local callback = Settings.Callback or function() end
-	-- whole row is clickable; container styling matches Dropdown
+	-- The whole row is clickable and styled like Dropdown.
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. " [ColorPicker]",
@@ -70,7 +68,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.Text = ""
 	display.Parent = headerBar
 	local displayCorner = Instance.new("UICorner")
-	displayCorner.CornerRadius = UDim.new(0.5, 0) -- swatch chip pill (design-notes 8.10)
+	displayCorner.CornerRadius = UDim.new(0.5, 0) -- Pill-shaped swatch chip.
 	displayCorner.Parent = display
 	local displayScale = Instance.new("UIScale")
 	displayScale.Parent = display
@@ -93,7 +91,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	chevron.Image = Icons["chevron-down"]
 	chevron.Size = UDim2.fromOffset(20, 20)
 	chevron.Position = UDim2.new(1, -40, 0.5, 0)
-	-- Rest points down; open flips it up so the state reads at a glance.
+	-- Rest points down; open flips it up.
 	chevron.Parent = headerBar
 	self.Row = row
 	self.Label = label
@@ -107,8 +105,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	self.Callback = callback
 	self.ShowPopup = ShowPopup
 	self._popupId = name .. "ColorPicker"
-	-- re-asserted (not just at construction) because PageFade walks every
-	-- UIShadow on fades and can otherwise leave it stuck invisible at 1
+	-- Re-asserted because PageFade walks UIShadows and can leave one invisible.
 	local SHADOW_TRANSPARENCY = 0.5
 	displayShadow:SetAttribute(UUID.Static("PageFadeBase"), SHADOW_TRANSPARENCY)
 	local function updateDisplay()
@@ -122,7 +119,6 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 	display.MouseButton1Click:Connect(function()
 		self:TogglePopup()
 	end)
-	-- Icon hover lift + swatch press (design-notes 4).
 	row.MouseEnter:Connect(function()
 		Tween.Play(chevron, ICON_IN, { ImageTransparency = 0 })
 	end)
@@ -150,7 +146,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 			row:Destroy()
 		end
 	end
-	-- the swatch fill itself is left alone: it shows the user's colour
+	-- The fill is not bound; it carries the user's colour.
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
@@ -199,7 +195,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 				local targetRotation = me._isOpen and 180 or 0
 				Tween.Play(me.Chevron, "Smooth", { Rotation = targetRotation })
 				if me._isOpen and me.ShowPopup then
-					-- kept so clicking the row again can close it
+					-- Kept so a second row click can close it.
 					me._popup = me.ShowPopup(me._popupId, {
 						Title = me.Label.Text,
 						CurrentColor = me._currentColor,
@@ -216,7 +212,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 						end,
 					})
 				elseif me._popup and me._popup.Close then
-					-- row clicked again while open: actually close it, don't just flip the flag
+					-- Close the popup rather than only flipping the flag.
 					me._popup:Close()
 				end
 			end,

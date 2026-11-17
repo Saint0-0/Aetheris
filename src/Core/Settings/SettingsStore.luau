@@ -1,23 +1,20 @@
 --[[
 	Aetheris/Core/Settings/SettingsStore.luau
 
-	Central store for user-adjustable settings (theme, UI scale, minimize key,
-	spin toggle, confirm-on-close, UI volume), persisted as JSON to
-	Aetheris/UI Settings/ when an executor file API exists, session-only
-	otherwise. Load, Get, Set, Save (debounced), SaveNow, Flush, Defaults.
+	Central store for user settings, persisted as JSON to Aetheris/UI Settings/.
+	Without an executor file API the values are session-only.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 --# selene: allow(undefined_variable)
--- Executor file APIs (writefile/readfile/isfile) are injected by the host and
--- probed with type() checks before every use.
+-- Executor file APIs are injected by the host and probed before every use.
 
 local HttpService = game:GetService("HttpService")
 
 local SettingsStore = {}
 
--- Settings live in their own folder; the old root-level file migrates in-place
+-- Settings live in their own folder; the root-level file migrates in place.
 local SETTINGS_FOLDER = "Aetheris/UI Settings"
 local FILE_NAME = SETTINGS_FOLDER .. "/UI Settings.json"
 local LEGACY_FILE = "Aetheris_settings.json"
@@ -36,26 +33,26 @@ local function ensureFolder(path)
 	end)
 end
 
-local migratedFromLegacy = false -- Load read the old root file; SaveNow rewrites then deletes it
+local migratedFromLegacy = false -- Set by Load; SaveNow deletes the legacy file.
 
 SettingsStore.Defaults = {
-	Theme = nil, -- nil = whatever CreateWindow was given
-	UIScale = 1, -- window scale, 0.8 - 1.25
-	MinimizeKey = nil, -- nil = whatever CreateWindow was given
+	Theme = nil, -- nil uses CreateWindow's value.
+	UIScale = 1, -- Window scale, 0.8 to 1.25.
+	MinimizeKey = nil, -- nil uses CreateWindow's value.
 	SpinsEnabled = true,
 	ConfirmClose = true,
 	Volume = 1,
-	PillPosition = "right", -- minimize pill: "right" | "left" | "top" | "bottom"
-	CompactMode = "auto", -- "auto" (by width) | "always" | "never"
-	PageAnimations = true, -- toggle/slider/stepper focus animations on page switch
-	Font = nil, -- nil = built-in Aetheris font (see Constants.FontChoices)
-	MaskDisplayName = false, -- auto-mask on: display name / username open masked
-	AutoSaveConfigs = false, -- auto-save the active config on component change
-	Locale = "en", -- active UI locale id (see Utils/Locale)
-	WindowWallpaperEnabled = false, -- shell wallpaper art behind translucent fills (UI Settings > Visuals)
-	ContentWallpaperEnabled = false, -- wallpaper art over the content fill, melting into it
-	WallpaperTransparency = 0.85, -- wallpaper art ImageTransparency (0 solid - 1 gone)
-	EdgeFadeEnabled = false, -- scroll edge content-melt fades (Utils/ScrollFade)
+	PillPosition = "right", -- Minimize pill side.
+	CompactMode = "auto", -- "auto", "always" or "never".
+	PageAnimations = true,
+	Font = nil, -- nil uses the built-in font.
+	MaskDisplayName = false,
+	AutoSaveConfigs = false,
+	Locale = "en", -- Active UI locale id.
+	WindowWallpaperEnabled = false, -- Shell wallpaper behind translucent fills.
+	ContentWallpaperEnabled = false, -- Wallpaper over the content fill.
+	WallpaperTransparency = 0.85, -- Wallpaper transparency, 0 solid to 1 gone.
+	EdgeFadeEnabled = false, -- Scroll edge fades.
 }
 
 SettingsStore.Data = {}
@@ -63,9 +60,7 @@ for k, v in pairs(SettingsStore.Defaults) do
 	SettingsStore.Data[k] = v
 end
 
--- nil defaults (Theme / MinimizeKey / Font) can't round-trip through a Lua
--- table or the saved JSON on their own; list them so Load keeps them.
--- ChangelogVersion is nil until the script's changelog has been shown once.
+-- Nil defaults cannot round-trip through JSON, so Load keeps them explicitly.
 SettingsStore.NilDefaultKeys = { "Theme", "MinimizeKey", "Font", "ChangelogVersion" }
 
 function SettingsStore.Load()
@@ -79,7 +74,7 @@ function SettingsStore.Load()
 		return readfile(FILE_NAME)
 	end)
 	if not (ok and content and content ~= "") then
-		-- fall back to the old root-level file (migrated below)
+		-- Fall back to the legacy root-level file.
 		local okLegacy, legacy = pcall(function()
 			if isfile and not isfile(LEGACY_FILE) then
 				return nil
@@ -117,7 +112,7 @@ function SettingsStore.Load()
 	return SettingsStore.Data
 end
 
--- Immediate write; most callers want the debounced Save() instead.
+-- Immediate write; most callers want the debounced Save instead.
 function SettingsStore.SaveNow()
 	if not hasFileAPI then
 		return
@@ -131,7 +126,7 @@ function SettingsStore.SaveNow()
 			ensureFolder(SETTINGS_FOLDER)
 			writefile(FILE_NAME, encoded)
 		end)
-		-- Drop the legacy root file only after the new path has the data.
+		-- Drop the legacy file only after the new path has the data.
 		if wrote and migratedFromLegacy then
 			migratedFromLegacy = false
 			pcall(function()
@@ -143,8 +138,7 @@ function SettingsStore.SaveNow()
 	end
 end
 
--- Debounced write: a UI Scale / Volume slider drag fires Set() per mouse
--- move, so coalesce into one write ~300ms after the last change.
+-- Coalesce slider drags into one write about 300ms after the last change.
 local SAVE_DEBOUNCE = 0.3
 local pendingSave = nil
 

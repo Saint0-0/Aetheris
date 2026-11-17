@@ -19,14 +19,12 @@ local Constants = require("../Constants")
 local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 
--- Medium via a rich-text weight span: <b> would force bold and ignore the
--- label's FontFace.
+-- Medium via a rich-text weight span; <b> would force bold.
 local function titleWrap(resolved)
 	return '<font weight="500">' .. resolved .. "</font>"
 end
 
--- PageTitle is chrome: stamped with the wrap so a live locale change
--- re-resolves the title in place instead of leaving the old language up.
+-- Stamp the wrap so a live locale change re-resolves the title in place.
 local function setPageTitle(label, tab)
 	Locale.set(label, "Text", tab.Name, titleWrap)
 end
@@ -49,19 +47,18 @@ function TabGroup.new(window, theme)
 	self.ActiveTab = nil
 	self._transitioning = false
 	self._spinHandles = {}
-	-- Registered with ThemeManager so ApplyTheme reaches this group's tab
-	-- buttons, dividers and scrollbars without name-matching.
+	-- Registered with ThemeManager so ApplyTheme reaches this group's chrome.
 	ThemeManager.Register(self.Window.TabList, self)
 	return self
 end
--- Pause a tab backdrop's spin so it resumes from the same angle later.
+-- Pause a backdrop's spin; it resumes from the same angle.
 function TabGroup:_pauseSpin(gradient)
 	if not gradient then
 		return
 	end
 	Tween.PauseSpin(gradient)
 end
--- Resume from the paused angle; start fresh only if this gradient was never registered.
+-- Resume the paused spin, starting it only when unregistered.
 function TabGroup:_resumeSpin(gradient, _reset)
 	if not gradient then
 		return
@@ -120,11 +117,9 @@ function TabGroup:Tab(Settings)
 	BackImage.BackgroundTransparency = 1
 	BackImage.Position = UDim2.fromScale(0.5, 0.5)
 	BackImage.Parent = Button
-	-- Marked as a true backdrop so ThemeManager updates its image/visibility
-	-- without touching the component sheens.
+	-- Marked as a backdrop so ThemeManager skips the component sheens.
 	BackImage:SetAttribute(UUID.Static("IsTabBackdrop"), true)
-	-- `~= false` matches TabGroup:ApplyTheme so construction and a live theme
-	-- switch agree on a nil value.
+	-- Matches ApplyTheme's ~= false so construction and live switches agree.
 	BackImage.Visible = theme.WallpaperEnabled ~= false
 	local BackImageCorner = Instance.new("UICorner")
 	BackImageCorner.CornerRadius = UDim.new(0, 6)
@@ -155,8 +150,7 @@ function TabGroup:Tab(Settings)
 	TabImage.BackgroundTransparency = 1
 	TabImage.Position = UDim2.new(0, 15, 0.5, 0)
 	TabImage.Parent = Button
-	-- Always exists (even when inactive) so we tween its transparency instead
-	-- of creating it on every switch.
+	-- Created once so switches tween transparency instead of rebuilding it.
 	local SelectionStatus = Instance.new("Frame")
 	SelectionStatus.Name = UUID.Static("SelectionStatus")
 	SelectionStatus.BorderSizePixel = 0
@@ -181,15 +175,13 @@ function TabGroup:Tab(Settings)
 	ContentScroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	ContentScroller.ScrollBarThickness = 1
 	ContentScroller.ScrollBarImageColor3 = theme.TertiaryColor
-	-- The FadeLayer below owns visibility: the scroller stays Visible=true
-	-- inside it and the layer is what fades in/out.
+	-- The fade layer owns visibility; the scroller stays visible inside it.
 	ContentScroller.Visible = true
-	-- One CanvasGroup per tab owns the page fade; nothing inside a page is
-	-- transparency-faded, so radio/slider state can never be stomped.
+	-- One CanvasGroup per tab owns the page fade.
 	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate("TabFade"))
 	FadeLayer.Visible = false
 	ContentScroller.Parent = FadeLayer
-	-- Content melts into the page at both scroll edges (design-notes 9).
+	-- Content melts into the page at both scroll edges.
 	ScrollFade.Attach(ContentScroller)
 	local scrollerScrollbarTimer
 	ContentScroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
@@ -256,8 +248,7 @@ function TabGroup:Tab(Settings)
 		_scrollerPadding = ContentScrollerPadding,
 		_theme = theme,
 	}, TabHandle)
-	-- Tab visuals use state-aware color bindings so theme and tab switches
-	-- resolve through one path without color tween stomps.
+	-- State-aware bindings resolve theme and tab switches through one path.
 	tab._bgHandle = ThemeManager.BindColor(
 		Button,
 		"BackgroundColor3",
@@ -300,13 +291,11 @@ function TabGroup:Tab(Settings)
 		self.Window.SettingsPages.Visible = false
 		self.Window.TabContent.Visible = true
 		self:SetActiveTab(tab)
-		-- Refresh AFTER SetActiveTab so the early "same tab" return still picks
-		-- up the SettingsPages flip above.
+		-- Refresh after SetActiveTab so the early same-tab return still sees the settings flip.
 		PageAwareness.Refresh()
 	end)
 	table.insert(self.Tabs, tab)
-	-- A tab created while the window is already compact must not start in the
-	-- 2-column layout.
+	-- A tab created while compact starts in the one-column layout.
 	if self._compact then
 		self:_applyTabCompact(tab, true)
 	end
@@ -316,8 +305,7 @@ function TabGroup:Tab(Settings)
 	return tab
 end
 local EXPANDED_COLUMN_SIZE = UDim2.new(0.5, -10, 0, 0)
--- Compact gives the single column more right padding so it isn't flush
--- against the scrollbar edge.
+-- Compact adds right padding so the column clears the scrollbar.
 local EXPANDED_SCROLLER_PAD_RIGHT = UDim.new(0, 3)
 local COMPACT_SCROLLER_PAD_RIGHT = UDim.new(0, 10)
 function TabGroup:_applyTabCompact(tab, on)
@@ -358,8 +346,7 @@ function TabGroup:Divider()
 	local Divider = Instance.new("Frame")
 	Divider.Name = UUID.Static("Divider")
 	Divider.BorderSizePixel = 0
-	-- Dividers share the Divider component's theme keys, so there is one notion
-	-- of divider styling.
+	-- Dividers share the Divider component's theme keys.
 	Divider.BackgroundColor3 = theme.SectionDividerColor or theme.TertiaryColor
 	Divider.BackgroundTransparency = theme.SectionDividerTransparency or 0.5
 	Divider.Size = UDim2.new(0.85227, 0, 0, 1)
@@ -369,8 +356,7 @@ function TabGroup:Divider()
 	Divider.Parent = self.Window.TabList
 	return Divider
 end
--- Called by ThemeManager after a blanket CancelAll (a theme switch) cancels
--- in-flight page fades; restores the active tab to its natural state.
+-- Called after a theme switch cancels in-flight page fades.
 function TabGroup:RestoreActiveTab()
 	local tab = self.ActiveTab
 	if not tab then
@@ -409,8 +395,7 @@ function TabGroup:_applyTabVisuals(t, active)
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState(state)
 	end
-	-- The backdrop reveal and the indicator's size/spin are fixed constants,
-	-- not theme keys, so they stay imperative.
+	-- Backdrop reveal and indicator size are constants, so they stay imperative.
 	if active then
 		Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
 		Tween.Play(t.SelectionStatus, "OnOff", { BackgroundTransparency = 0, Size = UDim2.new(0, 2, 0.7, 0) })
@@ -425,8 +410,7 @@ end
 function TabGroup:SetActiveTab(tab)
 	local previous = self.ActiveTab
 	if previous == tab then
-		-- Re-selecting the active tab still has to restore the page title:
-		-- settings overwrites it with "Settings | ..." and nothing else does.
+		-- Re-selecting restores the title, which settings overwrites.
 		local title = self.Window and self.Window.PageTitle
 		if title then
 			setPageTitle(title, tab)
@@ -434,18 +418,15 @@ function TabGroup:SetActiveTab(tab)
 		return
 	end
 	self.ActiveTab = tab
-	-- Fire page-awareness handlers now; the crossfade below is purely visual
-	-- and doesn't change which page is active.
+	-- Fire page-awareness now; the crossfade is purely visual.
 	PageAwareness.Refresh()
 
-	-- A page switch dismisses any open popup so it can never linger over the
-	-- newly shown page.
+	-- Dismiss any open popup so it cannot linger over the new page.
 	if self.Window and self.Window.HidePopups then
 		self.Window:HidePopups()
 	end
 
-	-- Keep the sidebar search consistent across a tab switch: restore the page
-	-- we leave, then re-apply the query to the page we enter.
+	-- Clear the previous page's search, then apply the query to the new one.
 	if previous and previous.ContentScroller then
 		SearchFilter.Clear(previous.ContentScroller)
 	end
@@ -461,8 +442,7 @@ function TabGroup:SetActiveTab(tab)
 	self:_applyTabVisuals(tab, true)
 
 	if self.Window and self.Window._windowFaded then
-		-- Visible alone does NOT reset GroupTransparency: snap each layer fully
-		-- to its end state or a page left at 1 renders blank when shown.
+		-- Visible does not reset GroupTransparency; snap each layer to its end state.
 		for _, other in ipairs(self.Tabs) do
 			if other.FadeLayer then
 				local isTarget = (other == tab)
@@ -498,8 +478,7 @@ function TabGroup:SetActiveTab(tab)
 	end)
 end
 
--- Rewrite the window title to the active sidebar tab's name; the settings
--- overlay owns it while open and hands it back on close.
+-- Name the window title after the active tab.
 function TabGroup:SyncTitle()
 	local w = self.Window
 	if w and w.PageTitle and self.ActiveTab then
@@ -507,15 +486,13 @@ function TabGroup:SyncTitle()
 	end
 end
 
--- Called by ThemeManager via the component registry; applies colors directly
--- (no animation) so the surrounding crossfade still produces the old -> new fade.
+-- Apply colors without animation; the surrounding crossfade supplies the fade.
 function TabGroup:ApplyTheme(newTheme)
 	local theme = ThemeManager.GetTheme(newTheme)
 	self._theme = theme
 	for _, t in ipairs(self.Tabs) do
 		t._theme = theme
-		-- SetState re-resolves every state-aware binding, so the active tab
-		-- picks up the new theme's key values at once.
+		-- SetState re-resolves every state-aware binding at once.
 		if t._bgHandle then
 			t._bgHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
 		end
@@ -534,8 +511,7 @@ function TabGroup:ApplyTheme(newTheme)
 		if t._iconTransHandle then
 			t._iconTransHandle:SetState((t == self.ActiveTab) and "Active" or "Inactive")
 		end
-		-- Wallpaper Image/Visible aren't Color3/number and use nil-safe
-		-- fallbacks, so they stay imperative here.
+		-- Wallpaper image and visibility are not color bindings, so they stay here.
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	end

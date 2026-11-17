@@ -1,12 +1,8 @@
 --[[
 	Aetheris/Core/Settings/SettingsTabGroup.luau
 
-	Docked settings tab bar: a bottom pill of circular icon-only buttons
-	(same recipe as the floating minimize pill) over a single-column content
-	area per page. It mirrors Core/TabGroup without the two-column split,
-	and owns tab creation, the active/inactive theme bindings, and page
-	crossfades. Tabs carry no labels - the shared tooltip names them on
-	hover and Window.PageTitle names the active page.
+	Docked settings tab bar of circular icon-only buttons over one column per page.
+	Owns tab creation, active/inactive bindings and page crossfades.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -22,20 +18,15 @@ local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
 
--- Circular icon button: the same 40px pill the floating minimize strip uses,
--- so both bars read as one family.
+-- Circular icon button, matching the floating minimize strip.
 local TAB_SIZE = 40
-local TAB_HOVER_SCALE = 1.18 -- pill hover grow
-local TAB_PRESS_SCALE = 0.94 -- press dips the current scale (design-notes 4)
-local BAR_HEIGHT = 56 -- buttons + 8px breathing above/below
-local BAR_BOTTOM = 16 -- gap between the bar and the pages' bottom edge
+local TAB_HOVER_SCALE = 1.18 -- Hover grow factor.
+local TAB_PRESS_SCALE = 0.94 -- Press factor.
+local BAR_HEIGHT = 56 -- Pill height.
+local BAR_BOTTOM = 16 -- With BAR_HEIGHT this matches SettingsBottomReserve.
 local TOOLTIP_GAP = 11
--- BAR_HEIGHT + BAR_BOTTOM = Constants.SettingsBottomReserve (72): the bar's
--- top edge lands exactly on the pages' content clip line, so scrolled content
--- is cut behind the pill instead of hanging in mid-air above it.
 
--- design-notes 10: the shell wash multiplies what it paints, so the top stop
--- is a gray multiplier - stronger on dark themes, gentler on light.
+-- Shell wash multiplies what it paints; dark themes take a stronger stop.
 local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
 end
@@ -49,8 +40,7 @@ local function stampWash(gradient, base)
 	})
 end
 
--- "Settings | " is Medium (weight 500); the page name stays Regular. Stamped
--- so a live locale change re-resolves both halves in place.
+-- "Settings | " is Medium and the page name Regular; the wrap re-resolves both.
 local function settingsTitleWrap(resolved)
 	return '<font weight="500">' .. Locale.resolve("Settings") .. " | </font>" .. resolved
 end
@@ -63,7 +53,7 @@ SettingsTabHandle.__index = SettingsTabHandle
 
 function SettingsTabHandle:Section(Settings)
 	Settings = Settings or {}
-	-- noSave: settings-page controls keep their state in SettingsStore, not ConfigManager.
+	-- Settings-page controls store state in SettingsStore, not ConfigManager.
 	return Section.new(self._contentParent or self.Page, Settings, self._theme, self.Window, true)
 end
 
@@ -81,7 +71,7 @@ function SettingsTabHandle:Scroller()
 	scroller.AnchorPoint = Vector2.new(0.5, 0)
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroller.CanvasSize = UDim2.fromScale(0, 0)
-	-- Hangs from the top; the bottom reserve keeps clear of the docked pill bar.
+	-- Hangs from the top, clear of the docked pill bar.
 	scroller.Position = UDim2.fromScale(0.5, 0)
 	scroller.Size = UDim2.new(1, 0, 1, -Constants.SettingsBottomReserve)
 	scroller.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -113,7 +103,7 @@ function SettingsTabHandle:Scroller()
 		end)
 	end)
 
-	-- Content melts into the page at both scroll edges (design-notes 9).
+	-- Content melts into the page at both scroll edges.
 	ScrollFade.Attach(scroller)
 
 	self._scroller = scroller
@@ -131,8 +121,7 @@ function SettingsTabGroup.new(window, theme)
 	self._transitioning = false
 	self._spinHandles = {}
 
-	-- Bottom-docked pill bar: hugs its buttons and floats over the pages'
-	-- content area (shell fill + wash + faint rim, design-notes 1).
+	-- Bottom-docked pill bar over the page content.
 	self.Bar = Instance.new("Frame")
 	self.Bar.Name = UUID.Static("SettingsTabBar")
 	self.Bar.BorderSizePixel = 0
@@ -143,19 +132,18 @@ function SettingsTabGroup.new(window, theme)
 	self.Bar.Size = UDim2.fromOffset(0, BAR_HEIGHT)
 	self.Bar.AutomaticSize = Enum.AutomaticSize.X
 	self.Bar.BorderColor3 = Color3.fromRGB(0, 0, 0)
-	-- Paint above the (transparent) content frame so the bar can never hide.
+	-- Paint above the content frame so the bar cannot hide.
 	self.Bar.ZIndex = 2
 	self.Bar.Parent = window.SettingsPages
 
-	-- Shell wash on the bar itself (a plain Frame, so the gradient only
-	-- touches its background); re-stamped in ApplyTheme.
+	-- Shell wash on the bar itself, restamped in ApplyTheme.
 	local barWash = Instance.new("UIGradient")
 	stampWash(barWash, self.Bar.BackgroundColor3)
 	barWash.Parent = self.Bar
 	self._barWash = barWash
 
 	local BarCorner = Instance.new("UICorner")
-	BarCorner.CornerRadius = UDim.new(1, 0) -- pill (h 56, design-notes 1)
+	BarCorner.CornerRadius = UDim.new(1, 0)
 	BarCorner.Parent = self.Bar
 
 	local BarStroke = Instance.new("UIStroke")
@@ -178,7 +166,7 @@ function SettingsTabGroup.new(window, theme)
 	BarPadding.PaddingRight = UDim.new(0, 6)
 	BarPadding.Parent = self.Bar
 
-	-- Content container above the tab bar
+	-- Content container above the tab bar.
 	self.Content = Instance.new("Frame")
 	self.Content.Name = UUID.Static("SettingsContent")
 	self.Content.BorderSizePixel = 0
@@ -189,18 +177,15 @@ function SettingsTabGroup.new(window, theme)
 	self.Content.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	self.Content.Parent = window.SettingsPages
 
-	-- Register with ThemeManager (root = the tab bar) so this group's tab
-	-- buttons, labels, icons, indicators and backdrops are themed without
-	-- name-matching. The bar lives under window.Base.
+	-- Register with ThemeManager so the bar's controls theme without name-matching.
 	ThemeManager.Register(self.Bar, self)
 
 	return self
 end
 
--- Page transitions are owned by Utils/PageFade; the old per-element
--- transparency cache was removed.
+-- Page transitions are owned by Utils/PageFade.
 
--- Pause a settings backdrop's spin so it resumes from the same angle.
+-- Pause a backdrop's spin; it resumes from the same angle.
 function SettingsTabGroup:_pauseSpin(gradient)
 	if not gradient then
 		return
@@ -223,8 +208,7 @@ function SettingsTabGroup:Tab(Settings)
 	local isFirst = #self.Tabs == 0
 	local theme = self._theme or {}
 
-	-- Fixed-size holder: the hover/press UIScale grows the button visually,
-	-- and the holder keeps that growth from reflowing the bar's layout.
+	-- Fixed-size holder so the hover scale cannot reflow the bar.
 	local Holder = Instance.new("Frame")
 	Holder.Name = UUID.Generate()
 	Holder.BorderSizePixel = 0
@@ -248,8 +232,7 @@ function SettingsTabGroup:Tab(Settings)
 	ButtonCorner.CornerRadius = UDim.new(1, 0)
 	ButtonCorner.Parent = Button
 
-	-- Pill-style hover: one UIScale grows the whole button (same presets as
-	-- the floating pill); press dips it from whatever the hover state owns.
+	-- One UIScale grows the button; press dips from the hover scale.
 	local buttonScale = Instance.new("UIScale")
 	buttonScale.Scale = 1
 	buttonScale.Parent = Button
@@ -267,8 +250,7 @@ function SettingsTabGroup:Tab(Settings)
 	BackImage.Position = UDim2.fromScale(0.5, 0.5)
 	BackImage.Parent = Button
 	BackImage:SetAttribute(UUID.Static("IsTabBackdrop"), true)
-	-- Match SettingsTabGroup:ApplyTheme's `~= false` form so construction and a
-	-- live theme switch agree on WallpaperEnabled (nil => shown).
+	-- Match ApplyTheme's ~= false so construction and live switches agree.
 	BackImage.Visible = theme.WallpaperEnabled ~= false
 
 	local BackImageCorner = Instance.new("UICorner")
@@ -289,7 +271,7 @@ function SettingsTabGroup:Tab(Settings)
 	})
 	BackImageGradient.Parent = BackImage
 
-	-- White hover lift over the backdrop, under the icon (design-notes 1).
+	-- White hover lift between backdrop and icon.
 	local Lift = Instance.new("Frame")
 	Lift.Name = UUID.Static("TabLift")
 	Lift.BorderSizePixel = 0
@@ -317,7 +299,7 @@ function SettingsTabGroup:Tab(Settings)
 	TabImage.Position = UDim2.fromScale(0.5, 0.5)
 	TabImage.Parent = Button
 
-	-- Simple page frame for this settings page (no automatic scroller)
+	-- Page frame for this settings page, without an automatic scroller.
 	local Page = Instance.new("Frame")
 	Page.Name = UUID.Generate()
 	Page.BorderSizePixel = 0
@@ -325,9 +307,7 @@ function SettingsTabGroup:Tab(Settings)
 	Page.Size = UDim2.fromScale(1, 1)
 	Page.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Page.Visible = true
-	-- Page transition layer: ONE CanvasGroup per settings page owns the fade
-	-- (see Utils/PageFade). The Page itself is never transparency-faded, so
-	-- component state encoded as transparency can never be stomped.
+	-- One CanvasGroup per page owns the fade; the page itself is never faded.
 	local FadeLayer = PageFade.Layer(self.Content, UUID.Generate())
 	FadeLayer.Visible = false
 	Page.Parent = FadeLayer
@@ -344,10 +324,7 @@ function SettingsTabGroup:Tab(Settings)
 		FadeLayer = FadeLayer,
 		_theme = theme,
 	}, SettingsTabHandle)
-	-- Declarative STATE-AWARE theming for the settings tab button visuals.
-	-- Same pattern as Core/TabGroup: each handle flips Active<->Inactive via
-	-- SetState, so both a theme switch and a page switch resolve through the
-	-- binding system. duration = 0.2 matches the old "Fast" preset.
+	-- State-aware bindings resolve theme and page switches through one path.
 	tab._bgHandle = ThemeManager.BindColor(
 		Button,
 		"BackgroundColor3",
@@ -377,8 +354,7 @@ function SettingsTabGroup:Tab(Settings)
 		self:SetActiveTab(tab)
 	end)
 
-	-- Pill-style hover grow + white lift + shared tooltip. The bar docks at
-	-- the bottom, so the tip opens upward and names the label-less tab.
+	-- Pill-style hover grow, white lift and a tooltip naming the tab.
 	Button.MouseEnter:Connect(function()
 		tab._hovered = true
 		Tween.Play(buttonScale, "HoverIn", { Scale = TAB_HOVER_SCALE })
@@ -398,8 +374,7 @@ function SettingsTabGroup:Tab(Settings)
 		end
 	end)
 
-	-- Press dips the grown scale and springs back to whichever scale the
-	-- hover state owns (design-notes 4).
+	-- Press dips the grown scale and springs back.
 	local function heldScale(factor)
 		return (tab._hovered and TAB_HOVER_SCALE or 1) * factor
 	end
@@ -420,7 +395,7 @@ function SettingsTabGroup:Tab(Settings)
 end
 
 function SettingsTabGroup:_applyActiveVisuals(t)
-	-- STATE-AWARE theme properties resolve through the bindings.
+	-- State-aware properties resolve through the bindings.
 	if t._bgHandle then
 		t._bgHandle:SetState("Active")
 	end
@@ -433,7 +408,7 @@ function SettingsTabGroup:_applyActiveVisuals(t)
 	if t._iconTransHandle then
 		t._iconTransHandle:SetState("Active")
 	end
-	-- Non-theme / constant visuals stay imperative.
+	-- Constant visuals stay imperative.
 	local theme = self._theme or {}
 	t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	Tween.Play(t.BackImage, "Fast", { ImageTransparency = 0 })
@@ -457,14 +432,14 @@ function SettingsTabGroup:_applyInactiveVisuals(t)
 	self:_pauseSpin(t.BackImageGradient)
 end
 
--- Update Window.PageTitle to "Settings | <page>" for the active page.
+-- Name the active page in the window title.
 function SettingsTabGroup:RefreshTitle()
 	local w = self.Window
 	if not w or not w.PageTitle then
 		return
 	end
 	local name = self.ActiveTab and self.ActiveTab.Name or "Settings"
-	-- Stamped with the wrap so a live locale change re-resolves both halves.
+	-- The wrap lets a live locale change re-resolve both halves.
 	Locale.set(w.PageTitle, "Text", name, settingsTitleWrap)
 end
 
@@ -474,18 +449,17 @@ function SettingsTabGroup:SetActiveTab(tab)
 		return
 	end
 	self.ActiveTab = tab
-	-- Which settings page is active is now decided; fire page-awareness
-	-- handlers immediately (SettingsPages.Visible was set before this call).
+	-- The page is now decided, so fire page-awareness handlers immediately.
 	PageAwareness.Refresh()
 	self:RefreshTitle()
 
-	-- A page switch dismisses any open popup, same as the main TabGroup.
+	-- A page switch dismisses any open popup.
 	if self.Window and self.Window.HidePopups then
 		self.Window:HidePopups()
 	end
 
 	if previous == nil then
-		-- First activation: reveal + fade in.
+		-- First activation reveals the page and fades it in.
 		tab.FadeLayer.Visible = true
 		PageFade.Snap(tab.FadeLayer, 1)
 		PageFade.Show(tab.FadeLayer, false)
@@ -494,13 +468,11 @@ function SettingsTabGroup:SetActiveTab(tab)
 		return
 	end
 
-	-- Tab-button visuals swap immediately so selection feels responsive.
+	-- Tab visuals swap immediately so selection feels responsive.
 	self:_applyInactiveVisuals(previous)
 	self:_applyActiveVisuals(tab)
 
-	-- Standardized crossfade, IDENTICAL to the main TabGroup: incoming fades
-	-- in while outgoing fades out, both over PageFade.TIME. Uses one
-	-- CanvasGroup per page, so nothing inside a page is transparency-faded.
+	-- Crossfade like the main TabGroup, using one CanvasGroup per page.
 	tab.FadeLayer.Visible = true
 	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
 		if previous.FadeLayer then
@@ -509,9 +481,7 @@ function SettingsTabGroup:SetActiveTab(tab)
 	end)
 end
 
--- Called by ThemeManager after a blanket CancelAll (theme switches cancel
--- every tween, including in-flight page fades). Restores the active page to
--- its natural state so nothing is left stuck transparent.
+-- Restore the active page after a theme switch cancels its fades.
 function SettingsTabGroup:RestoreActivePage()
 	local tab = self.ActiveTab
 	if not tab then
@@ -523,7 +493,7 @@ function SettingsTabGroup:RestoreActivePage()
 		end
 	end
 	if tab.FadeLayer then
-		PageFade.Snap(tab.FadeLayer, 0) -- fully visible, no tween
+		PageFade.Snap(tab.FadeLayer, 0)
 	end
 	self:RefreshTitle()
 end
@@ -538,20 +508,17 @@ function SettingsTabGroup:SetActiveTabByName(name)
 	return nil
 end
 
--- Component-owned theming. Called by ThemeManager via the component registry.
--- Applies the tab-bar colors directly (no animation) so the surrounding color
--- crossfade still produces the old -> new fade.
+-- Apply tab-bar colors directly; the surrounding crossfade supplies the fade.
 function SettingsTabGroup:ApplyTheme(newTheme)
 	local theme = ThemeManager.GetTheme(newTheme)
 	self._theme = theme
-	-- The bar's wash is a multiplier ramp; re-stamp it against the new base.
+	-- Restamp the bar wash against the new base.
 	if self._barWash then
 		stampWash(self._barWash, theme.PopupBackgroundColor or Color3.fromRGB(15, 15, 16))
 	end
 	for _, t in ipairs(self.Tabs) do
 		t._theme = theme
-		-- Tab button / icon colors + transparencies are BINDINGS now;
-		-- re-apply SetState so the active page picks up the new theme's keys.
+		-- Re-apply SetState so the active page picks up the new theme's keys.
 		local state = (t == self.ActiveTab) and "Active" or "Inactive"
 		if t._bgHandle then
 			t._bgHandle:SetState(state)
@@ -565,7 +532,7 @@ function SettingsTabGroup:ApplyTheme(newTheme)
 		if t._iconTransHandle then
 			t._iconTransHandle:SetState(state)
 		end
-		-- Wallpaper Image/Visible stay imperative (not Color3/number).
+		-- Wallpaper image and visibility stay imperative.
 		t.BackImage.Image = theme.Wallpaper or FallbackImage
 		t.BackImage.Visible = theme.WallpaperEnabled ~= false
 	end

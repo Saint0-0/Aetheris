@@ -1,8 +1,8 @@
 --[[
 	Aetheris/Utils/PageFade.luau
 
-	Fades whole pages through one CanvasGroup.GroupTransparency per layer.
-	This keeps component-owned transparency state untouched during transitions.
+	Fades whole pages through one CanvasGroup.GroupTransparency per layer, so
+	component-owned transparency state is untouched during transitions.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -18,7 +18,6 @@ PageFade.TIME = 0.2
 -- A preset name (not a TweenInfo) so it routes through Tween.Play's registry.
 PageFade.PRESET = "Fast"
 
--- Window open/close/minimize uses a slower, more deliberate fade than page swaps.
 PageFade.WINDOW_PRESET = "WindowFade"
 
 function PageFade.Layer(parent, name)
@@ -43,7 +42,7 @@ function PageFade.Snap(layer, transparency)
 	PageFade.FadeDecorations(layer, (transparency or 0) >= 0.5, true)
 end
 
--- CanvasGroup doesn't fade UIStroke/UIShadow, so those tween separately; cached per layer.
+-- CanvasGroup leaves UIStroke/UIShadow alone, so those tween separately.
 local decorationCache = setmetatable({}, { __mode = "k" })
 
 local function getDecorations(group)
@@ -103,8 +102,7 @@ function PageFade.FadeDecorations(group, hidden, instant, preset)
 	end
 end
 
--- `instant` snaps; `onComplete` fires only on a normal finish, never on a superseded fade.
--- `preset` overrides the fade preset (e.g. the slower WINDOW_PRESET for the shell).
+-- The callback fires only on a normal finish; preset overrides the fade preset.
 function PageFade.Show(layer, instant, onComplete, preset)
 	if not layer then
 		if onComplete then
@@ -133,7 +131,6 @@ function PageFade.Show(layer, instant, onComplete, preset)
 	end
 end
 
--- `instant` snaps; `onComplete` fires only on a normal finish.
 function PageFade.Hide(layer, instant, onComplete, preset)
 	if not layer then
 		if onComplete then
@@ -162,7 +159,6 @@ function PageFade.Hide(layer, instant, onComplete, preset)
 	end
 end
 
--- Overlapped crossfade; `onComplete` fires once both layers finish.
 function PageFade.Crossfade(outgoing, incoming, onComplete)
 	local expected = 0
 	local completed = 0
@@ -216,7 +212,7 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 	end
 end
 
--- Theme-bound decorations resolve their resting value at fade time, so just re-mark dirty.
+-- Decorations resolve their resting value at fade time; re-mark them dirty.
 function PageFade.InvalidateDecorationBases()
 	for _, entry in pairs(decorationCache) do
 		entry.dirty = true

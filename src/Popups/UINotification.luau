@@ -17,8 +17,7 @@ local UUID = require("../Utils/UUID")
 local UserInputService = game:GetService("UserInputService")
 local UINotification = {}
 UINotification.__index = UINotification
--- design-notes 6/10: shared popup shell — top-down multiplier wash (no rim
--- stroke; fill plus shadow edge it) at radius 12, accent header tile + title.
+-- Shell carries a top-down multiplier wash; fill and shadow form the edge.
 local CORNER_SHELL = 12
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
 
@@ -26,8 +25,7 @@ local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
 end
 
--- UIGradient.Color multiplies what it paints, so the ramp is a gray
--- multiplier pair rather than literal colours (design-notes 10).
+-- UIGradient.Color multiplies, so the ramp is a grey multiplier pair.
 local function stampShellGradient(gradient, t)
 	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
 	local top = if isDark(base) then 0.9 else 0.96
@@ -38,8 +36,7 @@ local function stampShellGradient(gradient, t)
 	})
 end
 
--- Accent-as-text derivation (design-notes 5): hue kept, saturation capped,
--- value forced up on dark grounds; darkened on light ones.
+-- Accent text: hue kept, saturation capped, value forced on dark grounds.
 local function accentText(color, onDark)
 	if onDark then
 		local h, s, v = color:ToHSV()
@@ -48,8 +45,7 @@ local function accentText(color, onDark)
 	return color:Lerp(Color3.new(0, 0, 0), 0.3)
 end
 
--- Tile fills derive from theme slots so they follow light and dark themes
--- (design-notes 10).
+-- Tile fills derive from theme slots so they follow light and dark themes.
 local function tileFill(tint, base)
 	if isDark(base) then
 		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
@@ -65,7 +61,7 @@ local function stampHeaderTile(tile, glyph, t)
 end
 
 local function colorToString(color)
-	-- Roblox RichText accepts hex (#RRGGBB) or named colors, NOT rgb(...).
+	-- RichText accepts hex or named colours, not rgb().
 	if typeof(color) == "string" then
 		return color
 	elseif typeof(color) == "Color3" then
@@ -108,8 +104,7 @@ function UINotification.new(parent, Settings)
 	popup.Visible = false
 	popup.ZIndex = 11
 	popup.Parent = parent
-	-- Shell wash first: a top-down multiplier over the whole CanvasGroup,
-	-- matching the Dropdown/ColorPicker/Changelog shell.
+	-- The CanvasGroup tints its subtree with this top-down multiplier.
 	local shellGradient = Instance.new("UIGradient")
 	stampShellGradient(shellGradient, theme)
 	shellGradient.Parent = popup
@@ -126,7 +121,6 @@ function UINotification.new(parent, Settings)
 	sizeConstraint.MinSize = Vector2.new(320, 277)
 	sizeConstraint.MaxSize = Vector2.new(320, 336)
 	sizeConstraint.Parent = popup
-	-- Accent tile + left-set title, the shared popup header (design-notes 6).
 	local headTile = Instance.new("Frame")
 	headTile.Name = UUID.Static("HeaderTile")
 	headTile.BorderSizePixel = 0
@@ -155,7 +149,7 @@ function UINotification.new(parent, Settings)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.TextYAlignment = Enum.TextYAlignment.Center
 	header.TextTruncate = Enum.TextTruncate.AtEnd
-	header.TextTransparency = 0.2 -- stamped-title rest (design-notes 7)
+	header.TextTransparency = 0.2 -- Stamped-title rest.
 	header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	header.BackgroundTransparency = 1
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
@@ -289,7 +283,7 @@ function UINotification.new(parent, Settings)
 	self.OnConfirm = onConfirm
 	self.OnCancel = onCancel
 	self.Settings = Settings
-	-- Remember the origin so ApplyTheme doesn't clobber a caller-supplied TitleColor.
+	-- Lets ApplyTheme keep a caller-supplied TitleColor.
 	self._title = title
 	self._customTitleColor = Settings.TitleColor ~= nil
 	self._Confirm = function(_self)
@@ -330,7 +324,7 @@ function UINotification.new(parent, Settings)
 			Transparency = 1,
 		})
 	end)
-	-- Resting value must match what Open() restores, so unhovering returns to the same state.
+	-- Resting values must match what Open restores.
 	local CANCEL_TEXT_REST = 0.5
 	local CANCEL_TEXT_HOVER = 0.2
 	cancelBtn.MouseEnter:Connect(function()
@@ -341,7 +335,7 @@ function UINotification.new(parent, Settings)
 	end)
 	return self
 end
--- Connected only while the popup is open: armed in Open(), dropped in Close/Hide/Destroy.
+-- Armed in Open, dropped in Close, Hide and Destroy.
 function UINotification:_connectOutsideClick()
 	if self._outsideConn then
 		return
@@ -358,7 +352,7 @@ function UINotification:_connectOutsideClick()
 			return
 		end
 		local p = input.Position
-		-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
+		-- Descendants count as inside so overhanging content is not misread.
 		local pos = self.Popup.AbsolutePosition
 		local size = self.Popup.AbsoluteSize
 		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -384,8 +378,7 @@ function UINotification:_disconnectOutsideClick()
 		self._outsideConn = nil
 	end
 end
--- Cross-popup dismissal (Window): treat it as a click-off, so no input was
--- given and the caller's default/cancel path runs.
+-- Cross-popup dismissal; treated as a click-off, so Cancel runs.
 function UINotification:Dismiss()
 	self:_Cancel()
 end
@@ -470,7 +463,7 @@ function UINotification:Close()
 	Tween.Play(self.CancelShadow, "Fast", {
 		Transparency = 1,
 	})
-	-- Disarm click-outside immediately so a click during the fade-out can't re-trigger it.
+	-- Disarmed before the fade so a click during it cannot re-trigger.
 	self:_disconnectOutsideClick()
 	Tween.Play(self.Popup, "Fast", {
 		BackgroundTransparency = 1,
@@ -482,7 +475,7 @@ function UINotification:Close()
 		end
 	end)
 end
--- Set content without rebuilding the UI (reuse instance)
+-- Sets content without rebuilding the instance.
 function UINotification:SetContent(Settings)
 	if type(Settings) ~= "table" then
 		warn("[UINotification:SetContent] Settings is not a table, defaulting to empty table")
@@ -523,14 +516,14 @@ function UINotification:Destroy()
 		self.Popup:Destroy()
 	end
 end
--- Hide the popup (keep it alive for reuse)
+-- Hides the popup but keeps it for reuse.
 function UINotification:Hide()
 	self.Popup.Visible = false
 	self.IsOpen = false
 	self:_disconnectOutsideClick()
 end
 
--- Live theme switch: recolour in place so an open dialog follows the window instead of being rebuilt.
+-- Recolours in place so an open dialog follows a theme switch.
 function UINotification:ApplyTheme(themeInput)
 	local t = ThemeManager.GetTheme(themeInput)
 	if not t or not self.Popup then
@@ -549,7 +542,7 @@ function UINotification:ApplyTheme(themeInput)
 		stampHeaderTile(self._headTile, self._headGlyph, t)
 	end
 	self.Header.TextColor3 = t.PopupTextColor
-	self.Header.TextTransparency = 0.2 -- stamped-title rest (design-notes 7)
+	self.Header.TextTransparency = 0.2 -- Stamped-title rest.
 	if not self._customTitleColor then
 		local colorStr = colorToString(t.PopupTextColor or Color3.fromRGB(255, 255, 255))
 		self.Header.Text = string.format('<font color="%s">%s</font>', colorStr, self._title or "Notification")

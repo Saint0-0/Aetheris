@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Core/Section.luau
 
-	A card inside a tab column that hosts components (Toggle, Slider, etc.).
-	Section is the component factory: each builder forwards the section theme to
-	the component, and windowed sections register their controls with the
-	window's config manager so configs can save and restore their values.
+	A card inside a tab column that hosts components.
+	Builders forward the section theme; windowed sections register controls for configs.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -37,9 +35,7 @@ local UUID = require("../Utils/UUID")
 local Section = {}
 Section.__index = Section
 
--- design-notes 1/2/7: sections are group cards — fill wash (never a flat
--- fill), top-lit rim, radius 6 (matches the sidebar tabs, user call),
--- SemiBold 13 title. The wash recipe mirrors the changelog cards.
+-- Section card: wash fill, top-lit rim, radius 6, SemiBold 13 title.
 local CORNER_SECTION = 6
 local AURORA_TINT = 0.14
 
@@ -47,9 +43,7 @@ local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
 end
 
--- UIGradient.Color multiplies what it paints, so the keypoints are
--- multipliers: accent-tinted top-left corner (the aurora) falling to a
--- darker bottom (design-notes 10).
+-- Gradient keypoints are multipliers: accent tint fading to a darker bottom.
 local function stampFillGradient(gradient, t)
 	local base = (t and t.SectionBackgroundColor) or Color3.fromRGB(30, 30, 34)
 	local bottom = if isDark(base) then 0.72 else 0.9
@@ -74,12 +68,10 @@ function Section.new(parent, Settings, theme, window, noSave)
 	local self = setmetatable({}, Section)
 	self._theme = theme
 	self._window = window
-	-- Settings pages pass noSave so game configs never capture UI settings
-	-- through the window's ConfigManager.
+	-- Settings pages pass noSave so configs never capture UI settings.
 	self._noSave = noSave == true
 	self._sectionName = Settings.Name or ""
-	-- Popup engines come from the owning window, so components never need a
-	-- helper passed as a trailing argument.
+	-- Popup engines come from the owning window.
 	if window then
 		self._notify = function(s)
 			return window:UINotification(s)
@@ -106,22 +98,19 @@ function Section.new(parent, Settings, theme, window, noSave)
 	corner.Name = UUID.Static("SectionUICorner")
 	corner.CornerRadius = UDim.new(0, CORNER_SECTION)
 	corner.Parent = frame
-	-- Fill wash: the card never reads flat (design-notes 1), restamped on
-	-- every theme switch below.
+	-- The fill wash is restamped on every theme switch.
 	local fillGradient = Instance.new("UIGradient")
 	fillGradient.Name = UUID.Static("SectionFill")
 	stampFillGradient(fillGradient, theme)
 	fillGradient.Parent = frame
-	-- Prefer the section-specific stroke keys so a freshly built section
-	-- matches a theme-switched one; general stroke keys are the fallback.
+	-- Prefer the section stroke keys; general stroke keys are the fallback.
 	local stroke = Instance.new("UIStroke")
 	stroke.Name = UUID.Static("SectionUIStroke")
 	stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or 0.985
 	stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
-	-- Rim ramp (design-notes 2): the top edge keeps the theme's full paint
-	-- and the sides/bottom fade off it, so the card reads top-lit.
+	-- The rim ramp keeps the top edge painted and fades the sides and bottom.
 	local rim = Instance.new("UIGradient")
 	rim.Name = UUID.Static("SectionRim")
 	rim.Rotation = 90
@@ -149,8 +138,7 @@ function Section.new(parent, Settings, theme, window, noSave)
 	self.Layout = layout
 	self.Padding = padding
 	self.Parent = parent
-	-- LayoutOrder -1 keeps the title above the section's components (which
-	-- default to LayoutOrder 0).
+	-- LayoutOrder -1 keeps the title above the components.
 	if Settings.Name and Settings.Name ~= "" then
 		local title = Instance.new("TextLabel")
 		title.Name = UUID.Static("SectionTitle")
@@ -169,8 +157,7 @@ function Section.new(parent, Settings, theme, window, noSave)
 		title.Parent = frame
 		self.Title = title
 	end
-	-- Declarative theming: every themed property is a BINDING, so the section is
-	-- themed on the first frame and crossfades on every theme switch.
+	-- Themed properties are bindings, so the section crossfades on theme switch.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "SectionStrokeColor")
@@ -178,15 +165,13 @@ function Section.new(parent, Settings, theme, window, noSave)
 	if self.Title then
 		ThemeManager.BindColor(self.Title, "TextColor3", "TitleTextColor")
 	end
-	-- The wash is a derived tint mix (fill x accent), not a theme slot, so
-	-- it rides the callback; owner = frame drops it when the section dies.
+	-- The wash mixes fill and accent, so it rides the theme callback.
 	ThemeManager.OnThemeApplied(function(applied)
 		stampFillGradient(fillGradient, applied)
 	end, frame)
 	return self
 end
--- Windowed sections register with the window's ConfigManager so configs can
--- save and restore their values.
+-- Route control changes through the window config manager.
 function Section:_wrapCallback(kind, Settings)
 	local manager = self._noSave and nil or (self._window and self._window.ConfigManager)
 	if not manager then
@@ -227,8 +212,7 @@ end
 
 function Section:Toggle(Settings, ShowNotification)
 	Settings = self:_wrapCallback("Toggle", Settings)
-	-- The 2nd argument is optional; the owning window's notification engine
-	-- is used when it is omitted.
+	-- Defaults to the owning window's notification engine.
 	ShowNotification = ShowNotification or self._notify
 	return self:_register("Toggle", Settings, Toggle.new(self.Frame, Settings, ShowNotification, self._theme))
 end
@@ -300,6 +284,5 @@ function Section:ColorPicker(Settings, ShowPopup)
 	return self:_register("ColorPicker", Settings, ColorPicker.new(self.Frame, Settings, ShowPopup, self._theme))
 end
 
--- Section chrome is themed declaratively in Section.new, so there is no
--- Section:ApplyTheme and no registry entry.
+-- Section chrome is themed in Section.new; there is no ApplyTheme entry.
 return Section

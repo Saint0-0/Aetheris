@@ -1,12 +1,9 @@
 --[[
 	Aetheris/Components/TextInput.luau
 
-	The TextBox IS the field -- every visual (background, stroke, corner, glow)
-	lives on the TextBox itself, flush to the row's right edge. The pill hugs
-	its content: the shown string is measured once and cached, then Size.X is
-	tweened, capped so the field's left edge always stays LABEL_GAP clear of
-	the name label. Supports Numeric (strips non-numbers, parses "5^3" and
-	"9e9") and ClearOnFocus.
+	Text field that hugs its content: the shown string is measured once and
+	cached, then the width tweens within limits. Supports Numeric input and
+	ClearOnFocus.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
@@ -41,7 +38,7 @@ local SETTLE_INFO = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirec
 local REST_TEXT_TRANSPARENCY = 0.6
 local REST_FIELD_TRANSPARENCY = 0.9
 
--- "5^3" -> 125; falls back to tonumber for plain numbers and "9e9"
+-- Parses "5^3"; plain numbers and exponents fall back to tonumber.
 local function parseExp(text)
 	local a, b = text:match("^([%d%.%-]+)%^([%d%.%-]+)$")
 	if a and b then
@@ -53,8 +50,7 @@ local function parseExp(text)
 	return tonumber(text)
 end
 
--- measured once per (family, size, string), then served from the cache so the
--- pill hugs text without re-measuring every keystroke
+-- Cached per family, size and text so keystrokes do not re-measure.
 local widthCache = {}
 local function measure(font, size, text)
 	text = tostring(text)
@@ -92,8 +88,7 @@ function TextInput.new(parent, Settings, theme)
 	local numeric = Settings.Numeric == true
 	local clearOnFocus = Settings.ClearOnFocus == true
 
-	-- LabelAutoSize gives the name a variable-width working space, so the
-	-- field's cap keys off its real width
+	-- LabelAutoSize makes the field cap key off the label's real width.
 	local row, label = ComponentRow.new(parent, {
 		Name = name,
 		RowName = name .. "TextInput",
@@ -136,8 +131,7 @@ function TextInput.new(parent, Settings, theme)
 	stroke.Transparency = theme.StrokeTransparency or 0.95
 	stroke.Thickness = 0.7
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	-- snapshot the resting transparency so PageFade restores to the theme value,
-	-- never a mid-fade one (same as Keybind's stroke)
+	-- Snapshot the resting alpha so PageFade never restores a mid-fade value.
 	stroke:SetAttribute(UUID.Static("PageFadeBase"), theme.StrokeTransparency or 0.95)
 	stroke.Parent = field
 
@@ -149,7 +143,7 @@ function TextInput.new(parent, Settings, theme)
 	glow.Spread = UDim2.fromOffset(1, 1)
 	glow.Parent = field
 
-	-- the field's left edge must stay at least LABEL_GAP right of the label
+	-- The field stays at least LABEL_GAP right of the label.
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MinSize = Vector2.new(FIELD_MIN_W, FIELD_HEIGHT)
 	constraint.MaxSize = Vector2.new(FIELD_MAX_W, FIELD_HEIGHT)
@@ -166,13 +160,12 @@ function TextInput.new(parent, Settings, theme)
 		return (t and t.InputBackgroundTransparency) or REST_FIELD_TRANSPARENCY
 	end
 
-	-- the same resting base as Keybind, so the two read as one family
 	local function restStrokeTransparency()
 		local t = activeTheme()
 		return (t and t.StrokeTransparency) or 0.95
 	end
 
-	-- bright stroke while hovered or focused, matching Keybind
+	-- Bright stroke while hovered or focused, matching Keybind.
 	local function brightStroke(bright)
 		local t = activeTheme()
 		local rest = (t and t.StrokeTransparency) or 0.95
@@ -180,8 +173,7 @@ function TextInput.new(parent, Settings, theme)
 			Transparency = bright and 0.3 or rest,
 			Color = (t and t.StrokeColor) or Color3.fromRGB(80, 80, 80),
 		})
-		-- keep PageFade's cached base at REST so a page fade never restores a
-		-- transient brighten
+		-- Keep the PageFade base at rest, never a transient brighten.
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), rest)
 	end
 
@@ -194,7 +186,7 @@ function TextInput.new(parent, Settings, theme)
 		return math.max(FIELD_MIN_W, math.min(FIELD_MAX_W, cap))
 	end
 
-	-- hug: measured shown text + PAD_X*2, clamped to [min, cap], tweened in
+	-- Measured text plus padding, clamped to the min and cap, then tweened.
 	local function sizeBox(animate)
 		local shown = (field.Text ~= "" and field.Text) or placeholder
 		local w = math.clamp(measure(font, TEXT_SIZE, shown) + PAD_X * 2, FIELD_MIN_W, maxWidth())
@@ -210,7 +202,6 @@ function TextInput.new(parent, Settings, theme)
 		Tween.Play(field, FOCUS_INFO, {
 			TextTransparency = lookFocused and 0 or REST_TEXT_TRANSPARENCY,
 		})
-		-- bright while focused or hovered, resting otherwise
 		brightStroke(lookFocused or hovered)
 	end
 
@@ -229,8 +220,7 @@ function TextInput.new(parent, Settings, theme)
 			if not field.Parent then
 				return
 			end
-			-- settle to the bright stroke if the field was refocused during the
-			-- flash, otherwise back to rest
+			-- Settle bright if refocused during the flash, otherwise to rest.
 			brightStroke(field:IsFocused() or hovered)
 			Tween.Play(glow, SETTLE_INFO, { Transparency = 1 })
 		end)
@@ -242,7 +232,7 @@ function TextInput.new(parent, Settings, theme)
 			local cleaned = (field.Text:gsub("[^%d%.%-eE%^]", ""))
 			if cleaned ~= field.Text then
 				field.Text = cleaned
-				return -- reassignment re-fires this; we resize on that pass
+				return -- Reassignment re-fires this, which resizes on that pass.
 			end
 		end
 		sizeBox(true)
@@ -286,7 +276,7 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- bright while unfocused; focus owns the bright state while it's active
+	-- Hover brightens while unfocused; focus owns the bright state.
 	field.MouseEnter:Connect(function()
 		hovered = true
 		brightStroke(true)
@@ -298,7 +288,7 @@ function TextInput.new(parent, Settings, theme)
 		end
 	end)
 
-	-- recompute the cap (and re-hug) if the row or the label resizes
+	-- Recompute the cap when the row or label resizes.
 	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		sizeBox(false)
 	end)
@@ -313,8 +303,7 @@ function TextInput.new(parent, Settings, theme)
 	ThemeManager.BindColor(field, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(field, "PlaceholderColor3", "PrimaryTextColor")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
-	-- theme-bound so PageFade reads the correct resting value and re-resolves
-	-- it on a theme switch
+	-- Bound so PageFade reads the resting value and re-resolves on a switch.
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 	ThemeManager.BindColor(glow, "Color", "AccentColor")
 

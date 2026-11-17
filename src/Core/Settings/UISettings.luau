@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Core/Settings/UISettings.luau
 
-	Builds the "UI Settings" page as one vertical column of named Sections
-	(Interface, Compact Mode, Behaviour, Visuals, Minimize Pill, Actions);
-	every control is created through the Section component factories.
+	Builds the UI Settings page as a column of named sections.
+	Every control is created through the Section factories.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -30,7 +29,7 @@ function UISettings.Build(window, tab)
 	page.Position = UDim2.fromScale(0, 0)
 	page.LayoutOrder = 1
 
-	-- no page heading: the settings tab bar already names the page
+	-- No page heading; the tab bar already names the page.
 	tab:Scroller()
 
 	local interfaceSection = tab:Section({ Name = "Interface" })
@@ -50,7 +49,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- first entry is the built-in font, stored as nil so it stays "unset"
+	-- The first entry is the built-in font, stored as nil.
 	local fontChoices = Constants.FontChoices
 	local fontItems = {}
 	local storedFont = SettingsStore.Get("Font") or fontChoices[1].Value
@@ -78,8 +77,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- chrome locale: applied live -- setActive + refresh re-resolves every
-	-- stamped string in place, so the change lands now, not on the next launch
+	-- Locale applies live; refresh re-resolves every stamped string in place.
 	local localeItems = {
 		{ name = "English", value = "en" },
 		{ name = "Español", value = "es" },
@@ -101,8 +99,7 @@ function UISettings.Build(window, tab)
 			local value = (pick and pick.value) or "en"
 			Locale.setActive(value)
 			SettingsStore.Set("Locale", value)
-			-- Re-resolve the live UI in place: chrome strings are stamped with
-			-- their source, so every label swaps language on this frame.
+			-- Stamped strings carry their source, so the swap lands on this frame.
 			Locale.refresh()
 			window:Toast({
 				Title = Locale.resolve("Locale"),
@@ -111,10 +108,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- Decides auto-mask: on means the name lines open masked and clicks only
-	-- toast, off means free clicking with no toast. The callback routes through
-	-- Window:SetMaskEnabled so the store, the toggle and the name lines stay
-	-- in sync from one place.
+	-- Routes through Window:SetMaskEnabled so store, toggle and names stay in sync.
 	local maskToggle = interfaceSection:Toggle({
 		Name = "Auto Mask User/Display Name",
 		Default = SettingsStore.Get("MaskDisplayName"),
@@ -130,7 +124,7 @@ function UISettings.Build(window, tab)
 
 	local compactSection = tab:Section({ Name = "Compact Mode" })
 	local currentCompact = SettingsStore.Get("CompactMode") or "auto"
-	-- guard a stale stored value so one option is always selected
+	-- Guard a stale stored value so one option is always selected.
 	if currentCompact ~= "auto" and currentCompact ~= "always" and currentCompact ~= "never" then
 		currentCompact = "auto"
 	end
@@ -166,7 +160,7 @@ function UISettings.Build(window, tab)
 		Default = SettingsStore.Get("PageAnimations") ~= false,
 		Callback = function(state)
 			SettingsStore.Set("PageAnimations", state)
-			-- no page transition fires on this click, so re-apply the gates now
+			-- No transition fires here, so re-apply the gates now.
 			PageAwareness.ReapplyGates()
 		end,
 	})
@@ -185,7 +179,7 @@ function UISettings.Build(window, tab)
 				window.ToggleMinimize()
 			end
 		end,
-		-- rebind updates the live window key and persists it for next session
+		-- Persist the rebind and update the live window key.
 		OnRebind = function(key)
 			if key and key ~= "" then
 				window._minimizeKey = key
@@ -205,7 +199,7 @@ function UISettings.Build(window, tab)
 			end
 		end,
 	})
-	-- aurora glow transparency: 0 = solid accent, 100 = gone
+	-- 0 is a solid accent, 100 is gone.
 	visualsSection:Slider({
 		Name = "Aurora Transparency",
 		Min = 10,
@@ -220,7 +214,7 @@ function UISettings.Build(window, tab)
 			end
 		end,
 	})
-	-- Content melts into the surface at scroll edges; one gate for every fade.
+	-- One gate for every scroll edge fade.
 	visualsSection:Toggle({
 		Name = "Scroll Edge Fade",
 		Default = SettingsStore.Get("EdgeFadeEnabled") == true,
@@ -229,7 +223,7 @@ function UISettings.Build(window, tab)
 			ScrollFade.SetEnabled(state)
 		end,
 	})
-	-- Plain hint (no card, no stroke) so the radios below read as one group.
+	-- Plain hint so the radios below read as one group.
 	visualsSection:Label({
 		Text = "Where the theme wallpaper shows: Window paints the shell behind the sidebar, Content paints behind the pages. Off hides it entirely.",
 		ShowContainer = false,
@@ -237,9 +231,7 @@ function UISettings.Build(window, tab)
 		TextSize = 12,
 		Padding = { Top = 0, Bottom = 2, Left = 0, Right = 0 },
 	})
-	-- Wallpaper source: mutually exclusive (user call, Batch 8) — Off, shell
-	-- only, or content only. Both stored keys are written together so a stale
-	-- pair from the old two-toggle UI can never show two layers at once.
+	-- Wallpaper source; both stored keys are written so two layers never show.
 	local wallpaperDefault = if SettingsStore.Get("ContentWallpaperEnabled") == true
 		then "content"
 		elseif SettingsStore.Get("WindowWallpaperEnabled") == true then "window"
@@ -267,7 +259,7 @@ function UISettings.Build(window, tab)
 			end,
 		})
 	end
-	-- art opacity: 0 = solid art, 100 = gone (default 85)
+	-- 0 is solid art, 100 is gone.
 	visualsSection:Slider({
 		Name = "Wallpaper Transparency",
 		Min = 0,
@@ -318,7 +310,7 @@ function UISettings.Build(window, tab)
 		end,
 	})
 
-	-- no page-level theme wrapper: every control themes itself via the registry
+	-- Every control themes itself through the registry.
 end
 
 return UISettings

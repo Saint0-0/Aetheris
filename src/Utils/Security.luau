@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Utils/Security.luau
 
-	Optional hardening for AETHERIS_SECUREMODE. Parenting prefers gethui,
-	then CoreGui, then PlayerGui; protection hooks are called when the
-	executor exposes them. All calls are pcall-guarded so the UI still loads
-	in a plain Studio session.
+	Optional hardening for AETHERIS_SECUREMODE. Parenting prefers gethui, then
+	CoreGui, then PlayerGui, and every call is pcall-guarded.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -24,9 +22,7 @@ end
 function Security.ParentHidden(gui, player)
 	-- selene: allow(global_usage)
 	local globals = _G
-	-- Executors expose these as plain environment globals more often than as
-	-- _G entries; a _G-only lookup missed gethui and silently degraded to
-	-- CoreGui parenting. Bare reads are nil in Studio, everything's pcall'd.
+	-- Executors often expose these as bare globals rather than _G entries.
 	local function tryContainer(containerFn)
 		if type(containerFn) ~= "function" then
 			return false
@@ -72,8 +68,7 @@ function Security.Protect(gui)
 	if syn and type(syn.protect_gui) == "function" then
 		pcall(syn.protect_gui, gui)
 	end
-	-- Bare reads catch executors that only define the hook as an environment
-	-- global rather than mirroring it into _G.
+	-- Bare reads catch executors that only define the hook as a global.
 	-- selene: allow(undefined_variable)
 	local protect = globals.protect_gui or protect_gui
 	if type(protect) == "function" then

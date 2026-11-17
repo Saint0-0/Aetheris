@@ -1,10 +1,8 @@
 --[[
 	Aetheris/Components/Stepper.luau
 
-	Numeric input with +/- buttons. Clamps to Min/Max, advances by Step, and
-	rounds to Precision. The value shows on a shared chip (ValueReadout):
-	focusing its odometer swaps in a text field, and the typed number commits
-	on focus loss.
+	Numeric input with +/- buttons, clamped to Min/Max and advanced by Step. The
+	value sits on a shared ValueReadout chip whose typed number commits on blur.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -48,8 +46,6 @@ function Stepper.new(parent, Settings, theme)
 		ClearTextOnFocus = false,
 	})
 
-	-- bare icon buttons at the right edge: no chrome, 20x20 targets with a
-	-- 6px gap so the cluster stays compact but tappable
 	local controls = Instance.new("Frame")
 	controls.Name = UUID.Static("StepControls")
 	controls.AnchorPoint = Vector2.new(1, 0.5)
@@ -128,7 +124,7 @@ function Stepper.new(parent, Settings, theme)
 	stepDown.MouseButton1Click:Connect(function()
 		stepValue(-1)
 	end)
-	-- typed values take the same clamp/round path as the buttons
+	-- Typed values take the same clamp and round path as the buttons.
 	readout.OnCommit = function(num)
 		self:SetValue(num, false)
 	end
@@ -182,14 +178,12 @@ function Stepper.new(parent, Settings, theme)
 			end,
 		},
 	})
-	-- the chip runs its own theme pass (accent card, state alphas, colours)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(stepUp, "ImageColor3", "AccentColor")
 	ThemeManager.BindColor(stepDown, "ImageColor3", "AccentColor")
 
-	-- off-page the readout dims and the step icons fade; `instant` snaps at
-	-- registration so the first restore has distance to cover
+	-- Off-page the readout dims and icons fade; instant snaps at registration.
 	PageAwareness.Register(row, {
 		Gate = "PageAnimations",
 		OnInactive = function(instant)

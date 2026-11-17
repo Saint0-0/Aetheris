@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Utils/UUID.luau
 
-	Names interface elements. Secure mode hashes fixed keys to deterministic
-	UUIDs and randomizes per-instance ones; normal mode keeps readable names
-	so Explorer stays usable.
+	Names interface elements. Secure mode hashes fixed keys and randomizes
+	per-instance ones; normal mode keeps readable names.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]

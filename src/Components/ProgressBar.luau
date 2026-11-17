@@ -1,8 +1,8 @@
 --[[
 	Aetheris/Components/ProgressBar.luau
 
-	Read-only progress bar: label, track, spinning-gradient fill, and an
-	optional value/percentage readout. Use SetValue to animate the fill.
+	Read-only progress bar: label, track, spinning gradient fill and an optional
+	readout. SetValue animates the fill.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -119,7 +119,7 @@ function ProgressBar.new(parent, Settings, theme)
 	self.MinValue = minValue
 	self.MaxValue = maxValue
 	self.Color = color
-	-- a custom colour is override-locked so theme switches leave it alone
+	-- A custom colour is override-locked against theme switches.
 	if color then
 		ThemeManager.SetColorOverride(visual, "BackgroundColor3", color)
 	end
@@ -127,7 +127,7 @@ function ProgressBar.new(parent, Settings, theme)
 	self._spinTween = nil
 	self._currentValue = nil
 	local function updateStats(value)
-		-- Read the live bounds: SetMin/SetMax move them after construction.
+		-- Read live bounds; SetMin and SetMax move them after construction.
 		local lo, hi = self.MinValue, self.MaxValue
 		local span = hi - lo
 		local percent = if span > 0 then (value - lo) / span * 100 else 0
@@ -168,9 +168,7 @@ function ProgressBar.new(parent, Settings, theme)
 		Name = name,
 		Methods = {
 			SetValue = function(me, value, noAnimate)
-				-- A value past the current max means the bound target changed
-				-- (a stronger NPC, a new XP tier): grow the max so the bar
-				-- rescales instead of clamping into a permanent 100%.
+				-- Grow the max so the bar rescales instead of clamping at 100%.
 				if value > me.MaxValue then
 					me.MaxValue = value
 				end
@@ -226,7 +224,6 @@ function ProgressBar.new(parent, Settings, theme)
 			end,
 		},
 	})
-	-- first paint now that the methods exist
 	self:SetValue(currentValue, true)
 	return self
 end

@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/Keybind.luau
 
-	Captures one key into a focused box and dispatches press/rebind callbacks
-	through the shared KeybindDispatcher, so every row listens with one
-	keystroke lookup instead of its own InputBegan handler.
+	Captures one key into a focused box and dispatches press and rebind callbacks
+	through the shared KeybindDispatcher, so rows need no own InputBegan handler.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -20,7 +19,7 @@ local UUID = require("../Utils/UUID")
 local Keybind = {}
 Keybind.__index = Keybind
 
--- display labels for long KeyCode names; stored values stay the full name
+-- Short display labels; stored values stay the full KeyCode name.
 local KEY_DISPLAY = {
 	LeftControl = "LtCtrl",
 	RightControl = "RtCtrl",
@@ -50,7 +49,7 @@ local KEY_DISPLAY = {
 	Semicolon = ";",
 }
 
--- what the user may bind: A-Z, 0-9, Control/Shift/Alt, and ` = - [ ] \ ' , . ;
+-- Bindable keys: A-Z, 0-9, Control/Shift/Alt and punctuation.
 local ALLOWED = {}
 for _, kc in ipairs({
 	Enum.KeyCode.A,
@@ -151,20 +150,17 @@ function Keybind.new(parent, Settings, theme)
 	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = inputBox
-	-- State
 	local currentKey = default or ""
 	local previousKey = currentKey -- key before binding started, restored on cancel
 	local isBinding = false
 	local connection = nil
 	local pressToken = nil -- KeybindDispatcher registration token (gameplay press)
-	-- forward-declared: setKey re-registers the dispatcher entry whenever the
-	-- bind changes, so it needs a function defined below
+	-- Forward declared: setKey re-registers the dispatcher entry below.
 	local updatePressRegistration
 	local function setKey(key)
 		currentKey = key
 		if key and key ~= "" then
-			-- display shortens long names (LeftControl -> LtCtrl) and uppercases
-			-- single letters; the stored/callback value stays the full name
+			-- Display shortens names; the stored and callback value stays full.
 			inputBox.Text = KEY_DISPLAY[key] or ((#key == 1) and string.upper(key) or key)
 		else
 			inputBox.Text = ""
@@ -176,8 +172,7 @@ function Keybind.new(parent, Settings, theme)
 			Settings.OnRebind(currentKey)
 		end
 	end
-	-- Callback = bound key pressed during gameplay; OnRebind = the bind changed.
-	-- One shared dispatcher owns the single InputBegan listener for every row.
+	-- Callback fires on a gameplay press; OnRebind fires when the bind changes.
 	updatePressRegistration = function()
 		if pressToken then
 			KeybindDispatcher.Unregister(pressToken)
@@ -185,7 +180,6 @@ function Keybind.new(parent, Settings, theme)
 		end
 		if currentKey and currentKey ~= "" then
 			pressToken = KeybindDispatcher.Register(currentKey, function()
-				-- ignore while the box is capturing a new bind
 				if isBinding then
 					return
 				end
@@ -195,14 +189,14 @@ function Keybind.new(parent, Settings, theme)
 			end)
 		end
 	end
-	-- Brighten stroke (hover/focus effect)
+	-- Brighten the stroke for hover and focus.
 	local function setStrokeBright(bright)
 		local liveTheme = ActiveTheme.theme or theme
 		local restTrans = liveTheme and liveTheme.StrokeTransparency or 0.95
 		local targetTrans = bright and 0.3 or restTrans
 		local targetColor = liveTheme.StrokeColor
 		Tween.Play(stroke, "Fast", { Transparency = targetTrans, Color = targetColor })
-		-- keep PageFade's base at the resting alpha so it never restores a brighten
+		-- Keep the PageFade base at rest so a fade never restores a brighten.
 		stroke:SetAttribute(UUID.Static("PageFadeBase"), restTrans)
 	end
 	local function onHoverEnter()
@@ -223,18 +217,15 @@ function Keybind.new(parent, Settings, theme)
 		isBinding = true
 		inputBox.Text = "" -- clear the box for new input
 		connection = UserInputService.InputBegan:Connect(function(input, _)
-			-- no early return on `processed` here: while this box is focused,
-			-- keystrokes are consumed as text entry, but a bind capture still
-			-- needs to see them (setKey overwrites whatever the box typed)
+			-- No early return on processed: a bind capture still consumes the keys.
 			if not isBinding then
 				return
 			end
 			if input.UserInputType == Enum.UserInputType.Keyboard then
 				local keyCode = input.KeyCode
-				-- Backspace clears the bind; outside the allowed set is ignored
-				-- and we keep listening
+				-- Backspace clears the bind; disallowed keys are ignored.
 				if keyCode == Enum.KeyCode.Backspace then
-					setKey("") -- clear the key
+					setKey("")
 					isBinding = false
 					inputBox:ReleaseFocus()
 					if connection then
@@ -254,7 +245,7 @@ function Keybind.new(parent, Settings, theme)
 		end)
 	end)
 	inputBox.FocusLost:Connect(function()
-		-- still in binding mode means no key was captured: revert
+		-- Still binding means no key was captured, so revert.
 		if isBinding then
 			isBinding = false
 			if connection then
@@ -271,7 +262,6 @@ function Keybind.new(parent, Settings, theme)
 	end)
 	setKey(default)
 
-	-- drop the input listeners so nothing fires on a dead UI
 	local function disconnectAll()
 		if pressToken then
 			KeybindDispatcher.Unregister(pressToken)

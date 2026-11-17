@@ -1,10 +1,9 @@
 --[[
 	Aetheris/Components/Label.luau
 
-	Styled text label with an optional container (background, corner, and
-	stroke). A label built with ShowStroke = false stamps a theme-override
-	attribute so ThemeManager treats the stroke as caller-owned and leaves it
-	hidden across theme switches.
+	Styled text label with an optional container, corner and stroke. With
+	ShowStroke = false the stroke is marked caller-owned, so ThemeManager leaves
+	it hidden across switches.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -59,7 +58,7 @@ function Label.new(parent, Settings, theme)
 		stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
 	else
 		stroke.Transparency = 1
-		-- Tag the stroke caller-owned so ThemeManager skips it on every theme switch.
+		-- Mark the stroke caller-owned; ThemeManager then skips it.
 		stroke:SetAttribute(UUID.Static("ThemeOverride_Transparency"), 1)
 	end
 	stroke.Color = (theme and theme.StrokeColor)
@@ -109,8 +108,7 @@ function Label.new(parent, Settings, theme)
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
-	-- A binding drives its value only while its condition holds; otherwise
-	-- disable it and set the value directly.
+	-- Disable bindings whose condition fails and set the value directly.
 	if not showContainer then
 		bgTransBinding:SetEnabled(false)
 		container:SetAttribute(UUID.Static("ThemeOverride_BackgroundTransparency"), 1)
@@ -166,7 +164,7 @@ function Label.new(parent, Settings, theme)
 				end
 			end,
 			Destroy = function(_self)
-				-- Drop the bindings so a destroyed label leaves nothing in the ThemeManager registry.
+				-- Drop the bindings so nothing stays in the ThemeManager registry.
 				ThemeManager.UnbindInstance(label)
 				ThemeManager.UnbindInstance(container)
 				ThemeManager.UnbindInstance(stroke)

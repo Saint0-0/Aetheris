@@ -1,26 +1,21 @@
 --[[
 	Aetheris/Core/KeyServices.luau
 
-	Key validation backends for the optional key system: a static key list or
-	function, remote services (Platoboost, Panda), a custom hook, and a stub
-	for testing. Also owns the saved-key record that KeySystem.SaveKey writes,
-	so a valid key survives re-execution and its check history can be shown in
-	the key screen's Information card.
+	Key validation backends for the optional key system.
+	Also owns the saved-key record written by KeySystem.SaveKey.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 --# selene: allow(undefined_variable)
--- The executor APIs (request, loadstring, writefile, ...) are injected by
--- the host at runtime, not defined in source.
+-- Executor APIs are injected by the host, not defined in source.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local KeyServices = {}
 
--- Platoboost identifiers and nonce hashes are sha256 hex digests; a straight
--- FIPS 180-4 implementation over bit32, so no service hash library is needed.
+-- SHA-256 over bit32; Platoboost identifiers and nonces are hex digests.
 
 local bit32_band, bit32_bnot, bit32_bxor = bit32.band, bit32.bnot, bit32.bxor
 local bit32_lshift, bit32_rshift, bit32_rrotate = bit32.lshift, bit32.rshift, bit32.rrotate
@@ -271,7 +266,7 @@ function Platoboost:_send(options)
 	return res
 end
 
--- With a nonce the server signs its answer with the secret; check the stamp.
+-- Nonce responses are signed with the secret; verify the stamp.
 function Platoboost:_integrityOk(data, nonce)
 	if not self.useNonce then
 		return true
@@ -319,7 +314,7 @@ function Platoboost:_verify(key)
 		return true
 	end
 
-	-- Keys minted on the Platoboost site start with KEY_ and must be redeemed first
+	-- Site-minted keys start with KEY_ and must be redeemed first.
 	if key:sub(1, 4) == "KEY_" then
 		return self:_redeem(key)
 	end
@@ -463,7 +458,7 @@ function Panda:_load()
 	end
 
 	-- selene: allow(incorrect_standard_library_use)
-	-- HttpGet is a real DataModel method; older selene stds don't list it.
+	-- HttpGet is a real DataModel method; older selene stds omit it.
 	local okFetch, src = pcall(function()
 		return game:HttpGet(PANDA_LIB_URL)
 	end)
@@ -543,8 +538,7 @@ function Panda:GetKeyLink()
 	return nil, "couldn't get the key link."
 end
 
--- { Type = "custom", Validate = function(key) -> valid, reason, GetLink =
--- function() -> url } -- both hooks optional
+-- { Type = "custom", Validate = fn(key), GetLink = fn() }; both hooks optional.
 local Custom = {}
 Custom.__index = Custom
 
@@ -583,8 +577,7 @@ function Custom:GetKeyLink()
 	return nil, "couldn't get the key link."
 end
 
--- { Type = "stub", Keys = { "TEST" }, Link = "https://..." }; any non-empty
--- key passes when Keys is omitted.
+-- { Type = "stub", Keys = {...}, Link = url }; empty Keys accepts any non-empty key.
 local Stub = {}
 Stub.__index = Stub
 
@@ -647,7 +640,7 @@ function KeyServices.Create(config)
 	local staticKey = config.Key
 	local validator = { Services = services, Config = config }
 
-	-- nil = nothing configured here, true/false = checked and the answer stands
+	-- A nil value means no static key is configured; true or false is final.
 	local function checkStatic(key)
 		if staticKey == nil then
 			return nil

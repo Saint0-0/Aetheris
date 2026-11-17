@@ -1,13 +1,9 @@
 --[[
 	Aetheris/Popups/ColorPickerPopUp.luau
 
-	Modal colour picker: saturation/value square, hue and alpha pills, a hex
-	field with a live swatch, RGB fields, preset/recent swatches and an
-	original -> new footer pair. Cached per id by Window and reused; theme
-	switches recolor it in place.
-
-	Alpha is carried beside the colour (0-255) because Color3 has no alpha;
-	OnConfirm receives (Color3, alpha).
+	Modal colour picker with a saturation/value square, hue and alpha bars,
+	hex and RGB fields, presets and recents. Alpha is passed beside the
+	colour as 0-255, so OnConfirm receives both.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
@@ -30,8 +26,7 @@ local function clamp(v, min, max)
 	return math.max(min, math.min(max, v))
 end
 
--- design-notes 6/10: the shell carries a top-down multiplier wash (no rim
--- stroke - fill plus shadow edge it, same as the Changelog) at radius 12.
+-- Shell carries a top-down multiplier wash; fill and shadow form the edge.
 local CORNER_SHELL = 12
 local CORNER_CARD = 10
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
@@ -54,12 +49,10 @@ local RECENT_LIMIT = 8
 local ALPHA_MAX = 255
 -- Preset clicks glide the picker across instead of snapping.
 local GLIDE_TWEEN = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
--- The card is authored at the geometry above and rendered 1.3x so captions
--- and fields stay legible; computeFit keeps the scaled card inside the layer.
+-- The card is authored at this geometry and rendered 1.3x; computeFit fits it.
 local BASE_SCALE = 1.3
 
--- Neutral-to-hue row, twice four: grays then hues. Presets are fixed colour
--- references, not theme slots (design-notes 10: colour lives in the chips).
+-- Presets are fixed colours, not theme slots: greys first, then hues.
 local PRESETS = {
 	Color3.fromRGB(255, 255, 255),
 	Color3.fromRGB(160, 160, 168),
@@ -78,8 +71,7 @@ local function isDark(color)
 	return (color.R * 0.299 + color.G * 0.587 + color.B * 0.114) < 0.5
 end
 
--- UIGradient.Color multiplies what it paints, so the ramp is a gray
--- multiplier pair rather than literal colours (design-notes 10).
+-- UIGradient.Color multiplies, so the ramp is a grey multiplier pair.
 local function stampShellGradient(gradient, t)
 	local base = (t and t.PopupBackgroundColor) or FALLBACK_POPUP
 	local top = if isDark(base) then 0.9 else 0.96
@@ -90,8 +82,7 @@ local function stampShellGradient(gradient, t)
 	})
 end
 
--- Accent-as-text derivation (design-notes 5): hue kept, saturation capped,
--- value forced up on dark grounds; darkened on light ones.
+-- Accent text: hue kept, saturation capped, value forced on dark grounds.
 local function accentText(color, onDark)
 	if onDark then
 		local h, s, v = color:ToHSV()
@@ -100,8 +91,7 @@ local function accentText(color, onDark)
 	return color:Lerp(Color3.new(0, 0, 0), 0.3)
 end
 
--- Tile fills derive from theme slots so they follow light and dark themes
--- (design-notes 10) instead of copying Novoline's fixed dark tints.
+-- Tile fills derive from theme slots so they follow light and dark themes.
 local function tileFill(tint, base)
 	if isDark(base) then
 		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
@@ -130,8 +120,7 @@ local function formatHex(color)
 	return string.format("#%02X%02X%02X", r, g, b)
 end
 
--- Accepts #abc, abc, aabbcc and 8-digit aabbccaa; leading # and spaces drop.
--- Returns the colour plus an optional alpha (nil when the text had none).
+-- Accepts 3, 4, 6 or 8 hex digits; returns the colour and an optional alpha.
 local function parseHex(text)
 	if type(text) ~= "string" then
 		return nil
@@ -156,8 +145,7 @@ local function parseHex(text)
 	return Color3.fromRGB(r, g, b), alpha
 end
 
--- Checkerboard backing for translucent surfaces: frame-scale tiles behind the
--- alpha bar.
+-- Checkerboard backing for the translucent alpha bar.
 local function newChecker(parent, cols, rows)
 	local tiles = {}
 	for row = 0, rows - 1 do
@@ -222,8 +210,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local barStrokes = {}
 	local checkers = {}
 
-	-- Shell wash first: a top-down multiplier over the whole group (the
-	-- CanvasGroup tints its subtree with it, matching the Changelog shell).
+	-- The CanvasGroup tints its subtree with this top-down multiplier.
 	local shellGradient = Instance.new("UIGradient")
 	stampShellGradient(shellGradient, theme)
 	shellGradient.Parent = popup
@@ -237,7 +224,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	scale.Scale = 1
 	scale.Parent = popup
 
-	-- Accent tile + left-set title, the Changelog header (design-notes 6).
 	local headTile = Instance.new("Frame")
 	headTile.Name = UUID.Static("HeaderTile")
 	headTile.BorderSizePixel = 0
@@ -273,9 +259,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	header.Text = "Color Picker"
 	texts[#texts + 1] = header
 
-	-- =====================================================================
-	--  Left column: saturation/value square, hue pill, alpha pill
-	-- =====================================================================
+	-- Left column: saturation/value square, hue and alpha bars.
 	local colorSquare = Instance.new("TextButton")
 	colorSquare.Name = UUID.Static("ColorSquare")
 	colorSquare.AutoButtonColor = false
@@ -289,7 +273,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local squareShadow = Instance.new("UIShadow")
 	squareShadow.Color = (theme and theme.PopupShadowColor)
 	squareShadow.Parent = colorSquare
-	-- Gradients, not a texture, so the rendered pixels match the s = x, v = 1 - y maths exactly.
+	-- Gradients keep the rendered pixels exact against the s and v maths.
 	local satOverlay = Instance.new("Frame")
 	satOverlay.Name = UUID.Static("SaturationOverlay")
 	satOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -366,7 +350,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hueBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
 	hueBar.Position = UDim2.fromOffset(SIDE_PAD, HUE_TOP + 16)
 	hueBar.Parent = popup
-	-- The hue bar stays a pill; the alpha bar is intentionally square.
+	-- The hue bar is a pill; the alpha bar is intentionally square.
 	addCorner(hueBar, UDim.new(0.5, 0))
 	local hueGradient = Instance.new("UIGradient")
 	hueGradient.Color = ColorSequence.new({
@@ -431,7 +415,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	alphaStroke.Parent = alphaBar
 	barStrokes[#barStrokes + 1] = alphaStroke
-	-- The knob lives beside the bar, not inside it: the bar clips its checker.
+	-- Knob sits beside the bar, which clips its checker.
 	local alphaKnob = Instance.new("Frame")
 	alphaKnob.Name = UUID.Static("AlphaKnob")
 	alphaKnob.BorderSizePixel = 0
@@ -448,9 +432,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaKnobStroke.Parent = alphaKnob
 	addCorner(alphaKnob, UDim.new(1, 0))
 
-	-- =====================================================================
-	--  Right column: hex + swatch dot, RGB fields, presets, recents
-	-- =====================================================================
+	-- Right column: hex field, RGB fields, presets and recents.
 	local hexShell = Instance.new("Frame")
 	hexShell.Name = UUID.Static("HexField")
 	hexShell.BorderSizePixel = 0
@@ -552,7 +534,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	end
 
 	newCaption("Presets", RIGHT_X, 160, RIGHT_WIDTH)
-	-- Four swatches per row keeps the gray set above the hue set.
 	local swatchCell = 26
 	local swatchGap = 6
 	local swatchGridWidth = 4 * swatchCell + 3 * swatchGap
@@ -586,9 +567,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	recentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	recentLayout.Parent = recentGrid
 
-	-- =====================================================================
-	--  Footer: original -> new pair, cancel + confirm
-	-- =====================================================================
+	-- Footer: original and new wells, cancel and confirm.
 	local interactions = Instance.new("Frame")
 	interactions.Name = UUID.Static("Interactions")
 	interactions.BorderSizePixel = 0
@@ -677,9 +656,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		stampChecker(tiles, theme)
 	end
 
-	-- =====================================================================
-	--  State + shared refreshers
-	-- =====================================================================
 	self.Popup = popup
 	self.Shadow = shadow
 	self.Header = header
@@ -781,7 +757,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		refreshAll()
 	end
 
-	-- Keep the dragged HSV verbatim (not ToHSV of the rebuilt colour) so the handles never snap at the s/v/h boundaries.
+	-- Keep the dragged HSV verbatim so the handles never snap at boundaries.
 	self._setHSVAndUpdate = function(me, h, s, v)
 		me._hue = clamp(h, 0, 1)
 		me._sat = clamp(s, 0, 1)
@@ -795,8 +771,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		refreshVisuals()
 	end
 
-	-- Preset/recent clicks glide hue, sat, value and the target handle together
-	-- over GLIDE_TWEEN instead of snapping; a newer set cancels the run.
+	-- Preset clicks glide the handles together; a newer set cancels the run.
 	self._glideToColor = function(me, color)
 		if typeof(color) ~= "Color3" then
 			return
@@ -805,7 +780,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local token = me._glideToken
 		local h0, s0, v0 = me._hue, me._sat, me._val
 		local h1, s1, v1 = color:ToHSV()
-		-- Short way round the wheel, so red -> magenta doesn't sweep past yellow.
+		-- Short way round the wheel, so the hue never sweeps the long arc.
 		local dh = h1 - h0
 		if dh > 0.5 then
 			dh -= 1
@@ -893,7 +868,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me:_rebuildRecent()
 	end
 
-	-- Recolor in place without rebuilding so an open or cached picker follows a live theme switch.
+	-- Recolours in place so an open or cached picker follows a theme switch.
 	self.ApplyTheme = function(me, newTheme)
 		if not me.Popup then
 			return
@@ -936,8 +911,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me.CancelShadow.Color = newTheme.PopupNeutralColor or me.CancelShadow.Color
 	end
 
-	-- Fits the scaled card, not the authored one: the ratios shrink first, then
-	-- BASE_SCALE lifts the result so the card never renders below its design size.
+	-- Fits the scaled card so it never renders below its design size.
 	local function computeFit()
 		local area = parent.AbsoluteSize
 		if area.X <= 0 or area.Y <= 0 then
@@ -970,7 +944,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me:_connectOutsideClick()
 	end
 
-	-- Connected only while the popup is open: armed in Open(), dropped in Close/Destroy.
+	-- Armed in Open, dropped in Close and Destroy.
 	self._connectOutsideClick = function(me)
 		if me._outsideConn then
 			return
@@ -987,7 +961,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				return
 			end
 			local p = input.Position
-			-- Inside if the point hits the popup's rect or any descendant, so overhanging content isn't misread as outside.
+			-- Descendants count as inside so overhanging content is not misread.
 			local pos = me.Popup.AbsolutePosition
 			local size = me.Popup.AbsoluteSize
 			local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
@@ -1003,7 +977,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				end
 			end
 			if not inside then
-				-- Click-off keeps what the user settled on, same as Confirm.
+				-- Click-off confirms, keeping the current colour.
 				me:_Confirm()
 			end
 		end)
@@ -1022,9 +996,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 		me.IsOpen = false
 		me._isOpen = false
-		-- Stop a preset glide so it can't repaint a closing popup.
+		-- Stops a glide so it cannot repaint a closing popup.
 		me:_cancelGlide()
-		-- Disarm the click-outside listener immediately on close.
 		me:_disconnectOutsideClick()
 		if me._hideTimer then
 			task.cancel(me._hideTimer)
@@ -1061,12 +1034,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me.OnCancel()
 	end
 
-	-- Hide without firing callbacks (used by Window when another popup opens)
+	-- Hides without firing callbacks, as when another popup opens.
 	self.Hide = function(me)
 		me:Close()
 	end
 
-	-- Cross-popup dismissal: resolves like a click-off, keeping the colour.
+	-- Cross-popup dismissal; resolves like a click-off.
 	self.Dismiss = function(me)
 		me:_Confirm()
 	end
@@ -1095,9 +1068,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		end
 	end
 
-	-- =====================================================================
-	--  Interactions
-	-- =====================================================================
 	confirmBtn.MouseButton1Click:Connect(function()
 		self:_Confirm()
 	end)
@@ -1125,7 +1095,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local squarePos = colorSquare.AbsolutePosition
 		local x = clamp((screenPosition.X - squarePos.X) / size.X, 0, 1)
 		local y = clamp((screenPosition.Y - squarePos.Y) / size.Y, 0, 1)
-		-- Keep the existing hue; saturation = x, value = 1 - y, set via the HSV-preserving path so the handle never snaps.
+		-- Keeps the hue; saturation is x and value is 1 - y.
 		self:_setHSVAndUpdate(self._hue, x, 1 - y)
 	end
 	local function setFromHuePosition(screenPosition)
@@ -1146,7 +1116,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		local t = clamp((screenPosition.X - barPos.X) / size.X, 0, 1)
 		self:_setAlphaAndUpdate(t * ALPHA_MAX)
 	end
-	-- Click-and-drag anywhere on the square/bars: UIDragDetector only drags its own instance, so the whole surface is tracked manually.
+	-- The whole surface is tracked manually; UIDragDetector drags only its instance.
 	local squareDragging = false
 	local hueDragging = false
 	local alphaDragging = false
@@ -1180,7 +1150,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 			setFromAlphaPosition(input.Position)
 		end
 	end)
-	-- Follow the drag globally so it survives the cursor leaving the square/bars; disconnected in Destroy().
+	-- Global drag survives the cursor leaving the bars; dropped in Destroy.
 	self._dragChangedConnection = UserInputService.InputChanged:Connect(function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseMovement
@@ -1207,7 +1177,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	end)
 
 	local function setStrokeBright(stroke, bright)
-		-- Read the live theme (ApplyTheme keeps self._theme current) so hover/focus after a switch doesn't write old colours back.
+		-- Read the live theme so hover after a switch does not write old colours.
 		local liveTheme = ThemeManager.GetTheme(self._theme)
 		local baseTrans = liveTheme.StrokeTransparency or 0.95
 		local baseColor = liveTheme.StrokeColor or Color3.fromRGB(255, 255, 255)
@@ -1227,7 +1197,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 				self:_setAlphaAndUpdate(parsedAlpha)
 			end
 		end
-		-- Always rewrite canonical state: invalid text snaps back, valid text normalizes.
+		-- Rewrite canonical state, so invalid text snaps back and valid text normalises.
 		refreshInputs()
 		setStrokeBright(hexStroke, false)
 	end)

@@ -1,9 +1,8 @@
 --[[
 	Aetheris/Components/RadioButtonGroup.luau
 
-	Manages a set of radio buttons, enforcing single selection. Create buttons
-	through the group so selection state stays consistent; the first button (or
-	any marked Default) is selected automatically.
+	Manages a set of radio buttons and enforces single selection. Create buttons
+	through the group so selection state stays consistent.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -21,7 +20,7 @@ function RadioButtonGroup.new(parent, theme)
 	self.Selected = nil
 	self._hasSelection = false
 	self._theme = theme
-	-- No root of its own: visibility fans out to every button in the group.
+	-- No root; visibility fans out to every button in the group.
 	ComponentAPI.Apply(self, {
 		Children = function(me)
 			return me.Buttons
