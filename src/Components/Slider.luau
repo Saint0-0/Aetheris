@@ -378,7 +378,8 @@ function Slider.new(parent, Settings, theme)
 		local ratio = (span ~= 0) and math.clamp((value - min) / span, 0, 1) or 0
 		renderProgress(snapSmooth and TWEEN_INFO or nil)
 		percentLabel.Text = math.round(ratio * 100) .. "%"
-		readout:SetValue(formatValue(value), up)
+		-- The first paint has no previous digit to roll from, so it snaps.
+		readout:SetValue(formatValue(value), snapSmooth and up or nil)
 		if Settings.Callback then
 			Settings.Callback(value)
 		end

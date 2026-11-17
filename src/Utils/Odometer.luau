@@ -100,7 +100,21 @@ function Odometer.new(parent, opts)
 	layout.Parent = parent
 	self.layout = layout
 
+	-- A theme switch cancels the roll tween; settle each reel on its target.
+	ThemeManager.OnThemeApplied(function()
+		self:_settle()
+	end, parent)
+
 	return self
+end
+
+-- Jump every reel to the digit it was rolling towards.
+function Odometer:_settle()
+	for _, slot in pairs(self.slots) do
+		if slot.reel then
+			self:_reelSnap(slot.reel, slot.reel.target)
+		end
+	end
 end
 
 -- Lazily build the reel: a clipped cell + a strip of 20 themed digit labels.
