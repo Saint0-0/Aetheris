@@ -73,7 +73,7 @@ local window = Aetheris:CreateWindow({
 			AccentColor = Color3.fromRGB(149, 255, 188),
 		},
 	},
-	Theme = "Gruvbox", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
+	Theme = "Linen", -- any name from ThemeDefinitions ("Default" still aliases the launch theme)
 	-- Shown in the changelog popup; the stored ChangelogVersion decides whether
 	-- the popup auto-opens (it stamps itself the first time it actually shows).
 	Version = "1.2.0",
