@@ -39,13 +39,13 @@ local FALLBACK_NEUTRAL = Color3.fromRGB(46, 46, 46)
 
 -- Fixed card geometry, scaled down on small windows by the UIScale below.
 local POPUP_WIDTH = 440
-local POPUP_HEIGHT = 460
+local POPUP_HEIGHT = 400
 local SIDE_PAD = 16
 local LEFT_WIDTH = 224
 local RIGHT_X = SIDE_PAD + LEFT_WIDTH + 12
 local RIGHT_WIDTH = POPUP_WIDTH - SIDE_PAD - RIGHT_X
-local HUE_TOP = 312
-local ALPHA_TOP = 352
+local HUE_TOP = 254
+local ALPHA_TOP = 292
 local FOOTER_HEIGHT = 54
 local FOOTER_TOP = POPUP_HEIGHT - FOOTER_HEIGHT
 
@@ -156,8 +156,8 @@ local function parseHex(text)
 	return Color3.fromRGB(r, g, b), alpha
 end
 
--- Checkerboard backing for translucent surfaces: frame-scale tiles, so the
--- same helper works for the alpha bar and the swatch wells.
+-- Checkerboard backing for translucent surfaces: frame-scale tiles behind the
+-- alpha bar.
 local function newChecker(parent, cols, rows)
 	local tiles = {}
 	for row = 0, rows - 1 do
@@ -282,7 +282,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	colorSquare.BackgroundTransparency = 0
 	colorSquare.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	colorSquare.Text = ""
-	colorSquare.Size = UDim2.fromOffset(LEFT_WIDTH, 220)
+	colorSquare.Size = UDim2.fromOffset(LEFT_WIDTH, 186)
 	colorSquare.Position = UDim2.fromOffset(SIDE_PAD, 62)
 	colorSquare.Parent = popup
 	addCorner(colorSquare, UDim.new(0, CORNER_CARD))
@@ -338,13 +338,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Name = UUID.Static("RowLabel")
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
-		label.TextSize = 13
+		label.TextSize = 14
 		label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		label.TextColor3 = (theme and theme.PopupTextColor)
 		label.TextTransparency = 0.45
 		label.TextXAlignment = alignment or Enum.TextXAlignment.Left
 		label.TextYAlignment = Enum.TextYAlignment.Center
-		label.Size = UDim2.fromOffset(width, 14)
+		label.Size = UDim2.fromOffset(width, 16)
 		label.Position = UDim2.fromOffset(x, y)
 		label.Text = text
 		label.Parent = popup
@@ -366,10 +366,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hueBar.Size = UDim2.fromOffset(LEFT_WIDTH, 16)
 	hueBar.Position = UDim2.fromOffset(SIDE_PAD, HUE_TOP + 16)
 	hueBar.Parent = popup
-	-- One radius for the bars, their checkers and the alpha fill: every layer
-	-- has to end in the same pill or the transparent half shows a square edge.
-	local barCorner = UDim.new(0.5, 0)
-	addCorner(hueBar, barCorner)
+	-- The hue bar stays a pill; the alpha bar is intentionally square.
+	addCorner(hueBar, UDim.new(0.5, 0))
 	local hueGradient = Instance.new("UIGradient")
 	hueGradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0.000, Color3.fromRGB(255, 0, 0)),
@@ -413,7 +411,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaBar.Position = UDim2.fromOffset(SIDE_PAD, ALPHA_TOP + 16)
 	alphaBar.ClipsDescendants = true
 	alphaBar.Parent = popup
-	addCorner(alphaBar, barCorner)
 	checkers[#checkers + 1] = newChecker(alphaBar, 24, 2)
 	local alphaFill = Instance.new("Frame")
 	alphaFill.Name = UUID.Static("AlphaFill")
@@ -421,7 +418,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	alphaFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	alphaFill.Size = UDim2.fromScale(1, 1)
 	alphaFill.Parent = alphaBar
-	addCorner(alphaFill, barCorner)
 	local alphaGradient = Instance.new("UIGradient")
 	alphaGradient.Rotation = 0
 	alphaGradient.Transparency = NumberSequence.new({
@@ -474,18 +470,11 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local hexDot = Instance.new("Frame")
 	hexDot.Name = UUID.Static("HexDot")
 	hexDot.BorderSizePixel = 0
-	hexDot.BackgroundTransparency = 1
+	hexDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	hexDot.Size = UDim2.fromOffset(26, 26)
 	hexDot.Position = UDim2.fromOffset(9, 7)
-	hexDot.ClipsDescendants = true
 	hexDot.Parent = hexShell
 	addCorner(hexDot, UDim.new(1, 0))
-	local hexFill = Instance.new("Frame")
-	hexFill.Name = UUID.Static("HexFill")
-	hexFill.BorderSizePixel = 0
-	hexFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	hexFill.Size = UDim2.fromScale(1, 1)
-	hexFill.Parent = hexDot
 	local hexInput = Instance.new("TextBox")
 	hexInput.Name = UUID.Static("HexInput")
 	hexInput.BorderSizePixel = 0
@@ -509,7 +498,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexTag.AnchorPoint = Vector2.new(1, 0.5)
 	hexTag.Position = UDim2.new(1, -6, 0.5, 0)
 	hexTag.Size = UDim2.fromOffset(28, 14)
-	hexTag.TextSize = 12
+	hexTag.TextSize = 13
 	hexTag.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	hexTag.TextColor3 = (theme and theme.PopupTextColor)
 	hexTag.TextTransparency = 0.55
@@ -527,13 +516,13 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		caption.Name = UUID.Static("ChannelLabel")
 		caption.BorderSizePixel = 0
 		caption.BackgroundTransparency = 1
-		caption.TextSize = 13
+		caption.TextSize = 14
 		caption.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		caption.TextColor3 = (theme and theme.PopupTextColor)
 		caption.TextTransparency = 0.5
 		caption.Text = channel
-		caption.Size = UDim2.fromOffset(fieldWidth, 14)
-		caption.Position = UDim2.fromOffset(x, 117)
+		caption.Size = UDim2.fromOffset(fieldWidth, 16)
+		caption.Position = UDim2.fromOffset(x, 110)
 		caption.Parent = popup
 		texts[#texts + 1] = caption
 		local box = Instance.new("TextBox")
@@ -547,8 +536,8 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		box.TextTransparency = 0.15
 		box.ClearTextOnFocus = false
 		box.ClipsDescendants = true
-		box.Size = UDim2.fromOffset(fieldWidth, 28)
-		box.Position = UDim2.fromOffset(x, 134)
+		box.Size = UDim2.fromOffset(fieldWidth, 26)
+		box.Position = UDim2.fromOffset(x, 126)
 		box.Text = "255"
 		box.Parent = popup
 		texts[#texts + 1] = box
@@ -562,31 +551,36 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		channelBoxes[channel] = { Box = box, Stroke = stroke }
 	end
 
-	newCaption("Presets", RIGHT_X, 190, RIGHT_WIDTH)
+	newCaption("Presets", RIGHT_X, 160, RIGHT_WIDTH)
+	-- Four swatches per row keeps the gray set above the hue set.
+	local swatchCell = 26
+	local swatchGap = 6
+	local swatchGridWidth = 4 * swatchCell + 3 * swatchGap
+	local swatchGridX = RIGHT_X + (RIGHT_WIDTH - swatchGridWidth) / 2
 	local presetsGrid = Instance.new("Frame")
 	presetsGrid.Name = UUID.Static("PresetsGrid")
 	presetsGrid.BorderSizePixel = 0
 	presetsGrid.BackgroundTransparency = 1
-	presetsGrid.Size = UDim2.fromOffset(RIGHT_WIDTH, 62)
-	presetsGrid.Position = UDim2.fromOffset(RIGHT_X, 206)
+	presetsGrid.Size = UDim2.fromOffset(swatchGridWidth, 58)
+	presetsGrid.Position = UDim2.fromOffset(swatchGridX, 176)
 	presetsGrid.Parent = popup
 	local presetsLayout = Instance.new("UIGridLayout")
-	presetsLayout.CellSize = UDim2.fromOffset(28, 28)
-	presetsLayout.CellPadding = UDim2.fromOffset(6, 6)
+	presetsLayout.CellSize = UDim2.fromOffset(swatchCell, swatchCell)
+	presetsLayout.CellPadding = UDim2.fromOffset(swatchGap, swatchGap)
 	presetsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	presetsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	presetsLayout.Parent = presetsGrid
 
-	newCaption("Recent", RIGHT_X, 282, RIGHT_WIDTH)
+	newCaption("Recent", RIGHT_X, 242, RIGHT_WIDTH)
 	local recentGrid = Instance.new("Frame")
 	recentGrid.Name = UUID.Static("RecentGrid")
 	recentGrid.BorderSizePixel = 0
 	recentGrid.BackgroundTransparency = 1
-	recentGrid.Size = UDim2.fromOffset(RIGHT_WIDTH, 62)
-	recentGrid.Position = UDim2.fromOffset(RIGHT_X, 298)
+	recentGrid.Size = UDim2.fromOffset(swatchGridWidth, 58)
+	recentGrid.Position = UDim2.fromOffset(swatchGridX, 258)
 	recentGrid.Parent = popup
 	local recentLayout = Instance.new("UIGridLayout")
-	recentLayout.CellSize = UDim2.fromOffset(28, 28)
+	recentLayout.CellSize = UDim2.fromOffset(swatchCell, swatchCell)
 	recentLayout.CellPadding = UDim2.fromOffset(6, 6)
 	recentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	recentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -610,31 +604,19 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	interactionsCorner.TopRightRadius = UDim.new(0, 0)
 	interactionsCorner.Parent = interactions
 
-	local function newWell(name, x)
+	local function makeWell(name, x)
 		local well = Instance.new("Frame")
 		well.Name = UUID.Static(name)
 		well.BorderSizePixel = 0
-		well.BackgroundTransparency = 1
+		well.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		well.Size = UDim2.fromOffset(26, 26)
 		well.Position = UDim2.fromOffset(x, 14)
-		well.ClipsDescendants = true
 		well.Parent = interactions
 		addCorner(well, UDim.new(1, 0))
-		local fill = Instance.new("Frame")
-		fill.Name = UUID.Static("WellFill")
-		fill.BorderSizePixel = 0
-		fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		fill.Size = UDim2.fromScale(1, 1)
-		fill.Parent = well
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(255, 255, 255)
-		stroke.Transparency = 0.7
-		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		stroke.Parent = well
-		return fill
+		return well
 	end
 
-	local oldFill = newWell("OldWell", 16)
+	local oldWell = makeWell("OldWell", 16)
 	local arrow = Instance.new("ImageLabel")
 	arrow.Name = UUID.Static("WellArrow")
 	arrow.BorderSizePixel = 0
@@ -646,7 +628,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	arrow.Position = UDim2.fromOffset(46, 20)
 	arrow.Parent = interactions
 	texts[#texts + 1] = arrow
-	local newFill = newWell("NewWell", 66)
+	local newWell = makeWell("NewWell", 66)
 
 	local cancelBtn = Instance.new("TextButton")
 	cancelBtn.Name = UUID.Static("Cancel")
@@ -716,12 +698,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self.AlphaFill = alphaFill
 	self.HexShell = hexShell
 	self.HexInput = hexInput
-	self.HexFill = hexFill
+	self.HexDot = hexDot
 	self.ChannelBoxes = channelBoxes
 	self.PresetsGrid = presetsGrid
 	self.RecentGrid = recentGrid
-	self.OldFill = oldFill
-	self.NewFill = newFill
+	self.OldWell = oldWell
+	self.NewWell = newWell
 	self.Interactions = interactions
 	self.ConfirmBtn = confirmBtn
 	self.ConfirmShadow = confirmShadow
@@ -761,12 +743,12 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		self.AlphaFill.BackgroundColor3 = color
 		self.AlphaKnob.BackgroundColor3 = color
 		self.AlphaKnob.Position = UDim2.fromOffset(SIDE_PAD + (self._alpha / ALPHA_MAX) * LEFT_WIDTH, ALPHA_TOP + 24)
-		self.HexFill.BackgroundColor3 = color
-		self.HexFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
-		self.NewFill.BackgroundColor3 = color
-		self.NewFill.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
-		self.OldFill.BackgroundColor3 = self._oldColor
-		self.OldFill.BackgroundTransparency = 1 - self._oldAlpha / ALPHA_MAX
+		self.HexDot.BackgroundColor3 = color
+		self.HexDot.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		self.NewWell.BackgroundColor3 = color
+		self.NewWell.BackgroundTransparency = 1 - self._alpha / ALPHA_MAX
+		self.OldWell.BackgroundColor3 = self._oldColor
+		self.OldWell.BackgroundTransparency = 1 - self._oldAlpha / ALPHA_MAX
 		hueValue.Text = string.format("%d°", math.floor(h * 360 + 0.5))
 		alphaValue.Text = string.format("%d%%", math.floor(self._alpha / ALPHA_MAX * 100 + 0.5))
 	end
@@ -862,11 +844,6 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		chip.LayoutOrder = layoutOrder
 		chip.Parent = parentFrame
 		addCorner(chip, UDim.new(1, 0))
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(255, 255, 255)
-		stroke.Transparency = 0.75
-		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		stroke.Parent = chip
 		local chipScale = Instance.new("UIScale")
 		chipScale.Parent = chip
 		chip.MouseButton1Click:Connect(function()
