@@ -502,6 +502,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 		me.CancelBtn.TextColor3 = t.PopupTextColor or me.CancelBtn.TextColor3
 		me.CancelBtn.BackgroundColor3 = t.PopupNeutralColor or me.CancelBtn.BackgroundColor3
 		me.CancelShadow.Color = t.PopupNeutralColor or me.CancelShadow.Color
+		me.Interactions.BackgroundColor3 = t.PopupShadowColor or me.Interactions.BackgroundColor3
 		me.SelectedText.TextColor3 = t.PopupTextColor or me.SelectedText.TextColor3
 		me.Divider.BackgroundColor3 = t.AccentColor or me.Divider.BackgroundColor3
 		me.SearchBox.TextColor3 = t.PopupTextColor or me.SearchBox.TextColor3

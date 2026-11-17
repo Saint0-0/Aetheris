@@ -128,6 +128,7 @@ function Button.new(parent, Settings, theme)
 	end
 	row.MouseButton1Click:Connect(performClick)
 	ThemeManager.BindColor(row, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindTransparency(row, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	ThemeManager.BindColor(buttonColor, "BackgroundColor3", "PrimaryColor")
