@@ -8,7 +8,7 @@
   <a href="https://dsc.gg/saintx"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
-Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI3, maclib and Fluent. Everything is built at runtime with `Instance.new` - there is nothing to import or pre-build, the whole interface comes from code.
+Aetheris is a UI library for Roblox with a clean, modern look, inspired by WinUI3, maclib and Fluent.
 
 ## Download
 
