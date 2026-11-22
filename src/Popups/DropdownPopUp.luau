@@ -37,6 +37,7 @@ end
 -- Shell carries a top-down multiplier wash; fill and shadow form the edge.
 local CORNER_SHELL = 12
 local CORNER_ROW = 10
+local BUTTON_SIZE = 26
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
 local LIFT = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
@@ -335,12 +336,17 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearBtn.AutoButtonColor = false
 	clearBtn.BackgroundColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(100, 116, 139)
 	clearBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-	clearBtn.Size = UDim2.fromScale(0.09462, 1)
+	-- Fixed pixel circle: a scaled size would stretch into an oval on resize.
+	clearBtn.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
 	clearBtn.Position = UDim2.fromScale(0.96018, 0.5)
 	clearBtn.Parent = searchArea
 	local clearCorner = Instance.new("UICorner")
-	clearCorner.CornerRadius = UDim.new(0.5, 0)
+	clearCorner.CornerRadius = UDim.new(1, 0)
 	clearCorner.Parent = clearBtn
+	local clearShape = Instance.new("UIAspectRatioConstraint")
+	clearShape.AspectRatio = 1
+	clearShape.DominantAxis = Enum.DominantAxis.Width
+	clearShape.Parent = clearBtn
 	local clearIcon = Instance.new("ImageLabel")
 	clearIcon.Name = UUID.Static("ButtonImage")
 	clearIcon.ImageTransparency = 0.2
@@ -366,12 +372,17 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllBtn.AutoButtonColor = false
 	selectAllBtn.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
 	selectAllBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-	selectAllBtn.Size = UDim2.fromScale(0.09462, 1)
+	-- Fixed pixel circle, same as the clear button.
+	selectAllBtn.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
 	selectAllBtn.Position = UDim2.fromScale(0.83689, 0.5)
 	selectAllBtn.Parent = searchArea
 	local selectAllCorner = Instance.new("UICorner")
-	selectAllCorner.CornerRadius = UDim.new(0.5, 0)
+	selectAllCorner.CornerRadius = UDim.new(1, 0)
 	selectAllCorner.Parent = selectAllBtn
+	local selectAllShape = Instance.new("UIAspectRatioConstraint")
+	selectAllShape.AspectRatio = 1
+	selectAllShape.DominantAxis = Enum.DominantAxis.Width
+	selectAllShape.Parent = selectAllBtn
 	local selectAllIcon = Instance.new("ImageLabel")
 	selectAllIcon.Name = UUID.Static("ButtonImage")
 	selectAllIcon.ImageTransparency = 0.2

@@ -8,6 +8,9 @@
 	Copyright (c) 2026 Saint0-0
 ]]
 
+--# selene: allow(undefined_variable)
+-- setclipboard is an executor global, injected at runtime.
+
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
@@ -33,6 +36,7 @@ local SettingsStore = require("./Settings/SettingsStore")
 local ConfigManager = require("./Settings/ConfigManager")
 local PageAwareness = require("../Utils/PageAwareness")
 local ScrollFade = require("../Utils/ScrollFade")
+local Hyperlinks = require("../Utils/Hyperlinks")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
 
@@ -2400,6 +2404,11 @@ function Window.new(Settings)
 				end
 			end
 		end
+
+		-- Highlight colors ride the accent, so a theme switch re-applies search.
+		if me.SearchBox and me.SearchBox.Text ~= "" and me.ApplySearch then
+			me:ApplySearch()
+		end
 	end
 
 	-- Run the shell theme pass now that it exists.
@@ -2486,6 +2495,64 @@ function Window:SetTitle(text)
 	self.ScriptName.Text = text
 end
 
+-- Close the window from code; same teardown as the title-bar button.
+function Window:Close()
+	self:Destroy()
+end
+
+-- Open a settings page by name first, then a sidebar tab. Returns true on a hit.
+function Window:NavigateTo(name)
+	if type(name) ~= "string" or name == "" then
+		return false
+	end
+	local settingsTab = self.SettingsTabGroup and self.SettingsTabGroup:SetActiveTabByName(name)
+	if settingsTab then
+		if self.TabContent then
+			self.TabContent.Visible = false
+		end
+		if self.SettingsPages then
+			self.SettingsPages.Visible = true
+		end
+		-- Match the settings button: the overlay owns the title.
+		self.SettingsTabGroup:RefreshTitle()
+		PageAwareness.Refresh()
+		return true
+	end
+	local tab = self.TabGroup and self.TabGroup:SetActiveTabByName(name)
+	if tab then
+		if self.SettingsPages then
+			self.SettingsPages.Visible = false
+		end
+		if self.TabContent then
+			self.TabContent.Visible = true
+		end
+		-- Hand the title back to the sidebar tab.
+		self.TabGroup:SyncTitle()
+		PageAwareness.Refresh()
+		return true
+	end
+	return false
+end
+
+-- Copy text and confirm with a toast. Returns true when the clipboard write worked.
+function Window:CopyToClipboard(text, label)
+	if type(text) ~= "string" or text == "" then
+		return false
+	end
+	local copied = false
+	if type(setclipboard) == "function" then
+		copied = pcall(setclipboard, text)
+	end
+	self:Toast({
+		Title = copied and "Copied" or "Copy failed",
+		Description = copied
+				and ((label and label ~= "") and (label .. " copied to clipboard") or "Copied to clipboard")
+			or "Your executor does not support setclipboard.",
+		Duration = 2.5,
+	})
+	return copied
+end
+
 function Window:SetTheme(themeInput)
 	-- Only user-triggered switches play a sound; boot applies its theme silently.
 	Sound.Play("ThemeChange")
@@ -2522,6 +2589,7 @@ function Window:SetFont(asset)
 			end
 		end
 	end
+	Hyperlinks.RefreshFonts()
 end
 
 -- Register teardown cleanup; callbacks are pcall-guarded against failure.

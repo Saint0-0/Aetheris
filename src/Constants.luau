@@ -14,18 +14,34 @@ Constants.FallbackImage = "rbxassetid://11094025229"
 Constants.AuroraGlow = "rbxassetid://90267840908213"
 
 -- Space reserved at the bottom of settings pages for the docked tab bar.
-Constants.SettingsBottomReserve = 64
+Constants.SettingsBottomReserve = 60
 
 -- Shared font family; SetFontAsset swaps it live, and nil restores the default.
 Constants.FontAsset = "rbxassetid://12187365364"
 local DEFAULT_FONT_ASSET = Constants.FontAsset
 
+-- Font objects are immutable, so one per family/weight/style is enough.
+local fontCache = {}
+
 function Constants.Font(weight, style)
-	return Font.new(Constants.FontAsset, weight or Enum.FontWeight.Regular, style or Enum.FontStyle.Normal)
+	weight = weight or Enum.FontWeight.Regular
+	style = style or Enum.FontStyle.Normal
+	local key = weight.Name .. "\0" .. style.Name
+	local cached = fontCache[key]
+	if cached then
+		return cached
+	end
+	local font = Font.new(Constants.FontAsset, weight, style)
+	fontCache[key] = font
+	return font
 end
 
 function Constants.SetFontAsset(asset)
-	Constants.FontAsset = (asset and asset ~= "") and asset or DEFAULT_FONT_ASSET
+	local nextAsset = (asset and asset ~= "") and asset or DEFAULT_FONT_ASSET
+	if nextAsset ~= Constants.FontAsset then
+		Constants.FontAsset = nextAsset
+		fontCache = {}
+	end
 	return Constants.FontAsset
 end
 

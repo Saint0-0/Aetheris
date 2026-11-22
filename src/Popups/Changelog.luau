@@ -313,8 +313,8 @@ function Changelog.new(parent, Settings)
 				iconId = Icons[entry.Icon]
 			end
 
-			-- Fill sits on the inner frame so the gradient paints only the background.
-			local card = Instance.new("CanvasGroup")
+			-- Plain wrapper owns Y autosize; the CanvasGroup fades without clipping.
+			local card = Instance.new("Frame")
 			card.Name = UUID.Generate("ChangeCard")
 			card.BorderSizePixel = 0
 			card.BackgroundTransparency = 1
@@ -322,10 +322,9 @@ function Changelog.new(parent, Settings)
 			card.Size = UDim2.fromScale(1, 0)
 			card.LayoutOrder = i
 			card.ZIndex = 13
-			card.GroupTransparency = 1
 			card.Parent = scroll
 
-			local visual = Instance.new("Frame")
+			local visual = Instance.new("CanvasGroup")
 			visual.Name = UUID.Static("CardBody")
 			visual.BorderSizePixel = 0
 			visual.BackgroundColor3 = self._cardBase
@@ -333,6 +332,7 @@ function Changelog.new(parent, Settings)
 			visual.AutomaticSize = Enum.AutomaticSize.Y
 			visual.Size = UDim2.fromScale(1, 0)
 			visual.ZIndex = 2
+			visual.GroupTransparency = 1
 			visual.Parent = card
 			local visualCorner = Instance.new("UICorner")
 			visualCorner.CornerRadius = UDim.new(0, CORNER_CARD)
@@ -431,7 +431,7 @@ function Changelog.new(parent, Settings)
 			ThemeManager.BindColor(titleLabel, "TextColor3", "PopupTextColor")
 			ThemeManager.BindColor(descLabel, "TextColor3", "PopupTextColor")
 
-			self._cards[#self._cards + 1] = { Group = card }
+			self._cards[#self._cards + 1] = { Group = visual }
 		end
 	end
 
@@ -455,6 +455,7 @@ function Changelog.new(parent, Settings)
 
 	-- Gradients, tiles and accent text are derived, so they restamp here.
 	ThemeManager.BindColor(popup, "BackgroundColor3", "PopupBackgroundColor")
+	ThemeManager.BindColor(shadow, "Color", "PopupShadowColor")
 	ThemeManager.BindColor(header, "TextColor3", "PopupTextColor")
 	ThemeManager.BindColor(closeIcon, "ImageColor3", "PopupTextColor")
 	ThemeManager.OnThemeApplied(function(applied)

@@ -52,7 +52,10 @@ A saved setting always beats the value you pass here: if the player changed the 
 | `:DropdownPopUp(id, settings)` | Open a dropdown popup directly. |
 | `:ColorPickerPopUp(id, settings)` | Open a picker popup directly. |
 | `:HidePopups()` | Close any open popup. |
+| `:NavigateTo(name)` | Open a settings page, then a sidebar tab, by name. |
+| `:CopyToClipboard(text, label)` | Copy text and show a toast. Returns whether it worked. |
 | `:OnDestroy(callback)` | Run something when the window is destroyed. |
+| `:Close()` | Close the window from code. Same as `:Destroy()`. |
 | `:Destroy()` | Tear the window down. |
 
 ## Changelog

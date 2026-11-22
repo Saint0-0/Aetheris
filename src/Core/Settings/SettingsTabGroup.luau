@@ -14,6 +14,7 @@ local ThemeManager = require("../../Themes/ThemeManager")
 local PageFade = require("../../Utils/PageFade")
 local PageAwareness = require("../../Utils/PageAwareness")
 local ScrollFade = require("../../Utils/ScrollFade")
+local SearchFilter = require("../SearchFilter")
 local Constants = require("../../Constants")
 local Locale = require("../../Utils/Locale")
 local UUID = require("../../Utils/UUID")
@@ -23,7 +24,7 @@ local TAB_SIZE = 40
 local TAB_HOVER_SCALE = 1.18 -- Hover grow factor.
 local TAB_PRESS_SCALE = 0.94 -- Press factor.
 local BAR_HEIGHT = 56 -- Pill height.
-local BAR_BOTTOM = 6 -- Pill gap; BAR_HEIGHT plus this fits in SettingsBottomReserve.
+local BAR_BOTTOM = 2 -- Pill gap; BAR_HEIGHT plus this fits in SettingsBottomReserve.
 local TOOLTIP_GAP = 11
 
 -- Shell wash multiplies what it paints; dark themes take a stronger stop.
@@ -456,6 +457,17 @@ function SettingsTabGroup:SetActiveTab(tab)
 	-- A page switch dismisses any open popup.
 	if self.Window and self.Window.HidePopups then
 		self.Window:HidePopups()
+	end
+
+	-- Keep an active query applied while moving between settings pages.
+	local w = self.Window
+	if w and w.SearchBox and w.SearchBox.Text ~= "" then
+		if previous and previous.Page then
+			SearchFilter.Clear(previous.Page)
+		end
+		if tab.Page then
+			SearchFilter.Apply(tab.Page, w.SearchBox.Text, w._theme)
+		end
 	end
 
 	if previous == nil then

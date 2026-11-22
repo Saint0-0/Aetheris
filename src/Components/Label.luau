@@ -11,6 +11,8 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Hyperlinks = require("../Utils/Hyperlinks")
+local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local Label = {}
 Label.__index = Label
@@ -28,12 +30,13 @@ local function getFontWeight(weight)
 	}
 	return weightMap[weight] or Enum.FontWeight.Regular
 end
-function Label.new(parent, Settings, theme)
+function Label.new(parent, Settings, theme, window)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Label)
 	self._theme = theme
 	local text = Settings.Text or "Label"
+	local hasLinks = Hyperlinks.hasLinks(text)
 	local showContainer = (Settings.ShowContainer == nil) and true or Settings.ShowContainer
 	local showStroke = ((Settings.ShowStroke == nil) and true or Settings.ShowStroke) and showContainer
 	local fontWeight = getFontWeight(Settings.FontWeight or "Regular")
@@ -94,6 +97,39 @@ function Label.new(parent, Settings, theme)
 	label.Size = UDim2.fromScale(1, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.Parent = container
+
+	local renderer
+	if hasLinks then
+		-- Hide the plain label but keep it as the locale/search proxy.
+		label.Visible = false
+		label.Size = UDim2.fromOffset(0, 0)
+		label.AutomaticSize = Enum.AutomaticSize.None
+		Locale.set(label, "Text", Hyperlinks.plain(text))
+		renderer = Hyperlinks.render(container, {
+			Text = text,
+			Position = UDim2.fromOffset(0, 0),
+			Width = UDim2.fromScale(1, 0),
+			TextSize = textSize,
+			FontFace = Constants.Font(fontWeight),
+			TextColor3 = theme and theme.PrimaryTextColor,
+			LinkColor3 = theme and theme.AccentColor,
+			TextTransparency = customTextTransparency or ((theme and theme.PrimaryTextTransparency) or 0.45),
+			TextThemeKey = "PrimaryTextColor",
+			LinkThemeKey = "AccentColor",
+			TransparencyThemeKey = customTextTransparency == nil and "PrimaryTextTransparency" or nil,
+			OnAction = function(action, target, linkLabel)
+				if not window then
+					return
+				end
+				if action == "copy" then
+					window:CopyToClipboard(target or linkLabel, linkLabel)
+				elseif action == "page" then
+					window:NavigateTo(target or linkLabel)
+				end
+			end,
+		})
+	end
+
 	self.Container = container
 	self.Corner = corner
 	self.Stroke = stroke
@@ -126,6 +162,12 @@ function Label.new(parent, Settings, theme)
 		Root = container,
 		Label = label,
 		Name = Settings.Text,
+		OnName = hasLinks and function(_, newName)
+			Locale.set(label, "Text", Hyperlinks.plain(newName))
+			if renderer then
+				renderer:SetText(newName)
+			end
+		end or nil,
 		Methods = {
 			SetTextTransparency = function(_, transparency)
 				self._hasCustomTextTransparency = (transparency ~= nil)
@@ -135,11 +177,17 @@ function Label.new(parent, Settings, theme)
 				else
 					textTransBinding:SetEnabled(true)
 				end
+				if renderer then
+					renderer:SetTransparency(transparency)
+				end
 			end,
 			SetFontWeight = function(_, weight)
 				local newWeight = getFontWeight(weight)
 				self._fontWeight = newWeight
 				label.FontFace = Constants.Font(newWeight)
+				if renderer then
+					renderer:SetFont(Constants.Font(newWeight))
+				end
 			end,
 			SetShowContainer = function(_, show)
 				self._showContainer = show

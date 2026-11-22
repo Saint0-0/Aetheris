@@ -10,6 +10,7 @@
 
 local ComponentAPI = {}
 local Locale = require("./Locale")
+local UUID = require("./UUID")
 
 local function resolve(me, value)
 	if type(value) == "function" then
@@ -28,6 +29,12 @@ function ComponentAPI.Apply(component, opts)
 
 	if name ~= nil then
 		component._name = name
+	end
+
+	-- SearchFilter treats every component root as an individual result.
+	local resolvedRoot = resolve(component, root)
+	if typeof(resolvedRoot) == "Instance" then
+		resolvedRoot:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	end
 
 	local setName = function(me, newName)

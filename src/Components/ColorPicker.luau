@@ -43,6 +43,7 @@ function ColorPicker.new(parent, Settings, ShowPopup, theme)
 		Theme = theme,
 		Clickable = true,
 		LabelWidth = 0.486,
+		LabelTextSize = 13,
 		BackgroundColor = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 1,
 		CornerRadius = 6,

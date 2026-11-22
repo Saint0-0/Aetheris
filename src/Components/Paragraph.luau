@@ -10,17 +10,19 @@
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local ComponentAPI = require("../Utils/ComponentAPI")
+local Hyperlinks = require("../Utils/Hyperlinks")
 local Locale = require("../Utils/Locale")
 local UUID = require("../Utils/UUID")
 local Paragraph = {}
 Paragraph.__index = Paragraph
-function Paragraph.new(parent, Settings, theme)
+function Paragraph.new(parent, Settings, theme, window)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, Paragraph)
 	self._theme = theme
 	local title = Settings.Title or "Paragraph"
 	local description = Settings.Description or ""
+	local hasLinks = Hyperlinks.hasLinks(description)
 	local container = Instance.new("Frame")
 	container.Name = UUID.Generate("Paragraph")
 	container.BorderSizePixel = 0
@@ -57,7 +59,6 @@ function Paragraph.new(parent, Settings, theme)
 	titleLabel.Parent = container
 	local descLabel = Instance.new("TextLabel")
 	descLabel.Name = UUID.Static("LabelDescription")
-	descLabel.TextWrapped = true
 	descLabel.BorderSizePixel = 0
 	descLabel.TextSize = 14
 	descLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -66,14 +67,58 @@ function Paragraph.new(parent, Settings, theme)
 	descLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	descLabel.TextColor3 = (theme and theme.SecondaryTextColor)
 	descLabel.BackgroundTransparency = 1
-	descLabel.Size = UDim2.fromScale(0.91, 0)
-	descLabel.AutomaticSize = Enum.AutomaticSize.Y
-	Locale.set(descLabel, "Text", description)
 	descLabel.Position = UDim2.fromOffset(11, 38)
 	descLabel.Parent = container
-	local descPadding = Instance.new("UIPadding")
-	descPadding.PaddingBottom = UDim.new(0, 15)
-	descPadding.Parent = descLabel
+
+	local linkRenderer
+	local setDescription
+	if hasLinks then
+		-- The proxy keeps the full text for search; the renderer owns the visuals.
+		descLabel.TextWrapped = false
+		descLabel.Size = UDim2.fromOffset(0, 0)
+		descLabel.Visible = false
+		Locale.set(descLabel, "Text", Hyperlinks.plain(description))
+		linkRenderer = Hyperlinks.render(container, {
+			Text = description,
+			Position = UDim2.fromOffset(11, 38),
+			Width = UDim2.fromScale(0.91, 0),
+			TextSize = 14,
+			FontFace = Constants.Font(Enum.FontWeight.Medium),
+			TextColor3 = theme and theme.SecondaryTextColor,
+			LinkColor3 = theme and theme.AccentColor,
+			TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.45,
+			TextThemeKey = "SecondaryTextColor",
+			LinkThemeKey = "AccentColor",
+			TransparencyThemeKey = "SecondaryTextTransparency",
+			BottomPadding = 15,
+			OnAction = function(action, target, label)
+				if not window then
+					return
+				end
+				if action == "copy" then
+					window:CopyToClipboard(target or label, label)
+				elseif action == "page" then
+					window:NavigateTo(target or label)
+				end
+			end,
+		})
+		setDescription = function(newDesc)
+			Locale.set(descLabel, "Text", Hyperlinks.plain(newDesc))
+			linkRenderer:SetText(newDesc)
+		end
+	else
+		descLabel.TextWrapped = true
+		descLabel.Size = UDim2.fromScale(0.91, 0)
+		descLabel.AutomaticSize = Enum.AutomaticSize.Y
+		Locale.set(descLabel, "Text", description)
+		local descPadding = Instance.new("UIPadding")
+		descPadding.PaddingBottom = UDim.new(0, 15)
+		descPadding.Parent = descLabel
+		setDescription = function(newDesc)
+			Locale.set(descLabel, "Text", newDesc)
+		end
+	end
+
 	self.Container = container
 	self.TitleLabel = titleLabel
 	self.DescLabel = descLabel
@@ -94,7 +139,7 @@ function Paragraph.new(parent, Settings, theme)
 				Locale.set(titleLabel, "Text", newTitle)
 			end,
 			SetDescription = function(_, newDesc)
-				Locale.set(descLabel, "Text", newDesc)
+				setDescription(newDesc)
 			end,
 			Destroy = function(_self)
 				if container and container.Parent then

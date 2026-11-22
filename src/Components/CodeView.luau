@@ -7,6 +7,9 @@
 	Copyright (c) 2026 Saint0-0
 ]]
 
+--# selene: allow(undefined_variable)
+-- setclipboard is an executor global, injected at runtime.
+
 local ThemeManager = require("../Themes/ThemeManager")
 local Constants = require("../Constants")
 local SyntaxHighlight = require("../Utils/SyntaxHighlight")
@@ -280,8 +283,13 @@ function CodeView:_build()
 				end
 				copyIcon.Image = Icons["clipboard"] or copyIcon.Image
 			end)
+			-- Copy even when no OnCopy handler is supplied.
+			local content = self:GetContent()
+			if type(setclipboard) == "function" then
+				pcall(setclipboard, content)
+			end
 			if type(self._onCopy) == "function" then
-				local ok, err = pcall(self._onCopy, self:GetContent(), self)
+				local ok, err = pcall(self._onCopy, content, self)
 				if not ok then
 					warn("[Aetheris] CodeView OnCopy error: " .. tostring(err))
 				end

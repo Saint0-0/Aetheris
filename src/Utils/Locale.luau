@@ -200,6 +200,16 @@ function Locale.sourceOf(token)
 	return token[tokenTag]
 end
 
+-- Resolved strings are memoized per locale; a dev translator opts out so its
+-- output is never frozen. Every mutation point clears the cache.
+local resolveCache = {}
+local cacheLocale = "en"
+
+function Locale.invalidate()
+	resolveCache = {}
+	cacheLocale = Locale.current
+end
+
 -- Dev translator, exact locale, language-only table, then the source.
 function Locale.resolve(value)
 	local source = value
@@ -214,15 +224,26 @@ function Locale.resolve(value)
 			return translated
 		end
 	end
+	if cacheLocale ~= Locale.current then
+		resolveCache = {}
+		cacheLocale = Locale.current
+	end
+	local cached = resolveCache[source]
+	if cached ~= nil then
+		return cached
+	end
+	local resolved = source
 	local exact = Locale.strings[Locale.current]
 	if exact and exact[source] then
-		return exact[source]
+		resolved = exact[source]
+	else
+		local language = Locale.strings[languageOf(Locale.current)]
+		if language and language[source] then
+			resolved = language[source]
+		end
 	end
-	local language = Locale.strings[languageOf(Locale.current)]
-	if language and language[source] then
-		return language[source]
-	end
-	return source
+	resolveCache[source] = resolved
+	return resolved
 end
 
 -- Merges dev tables by lowercased locale id; non-string entries are rejected.
@@ -247,6 +268,7 @@ function Locale.register(tables)
 			end
 		end
 	end
+	Locale.invalidate()
 end
 
 -- Sets the active locale; call refresh() afterwards to repaint live UI.
@@ -256,6 +278,7 @@ function Locale.setActive(localeId)
 	else
 		Locale.current = "en"
 	end
+	Locale.invalidate()
 	return Locale.current
 end
 
@@ -288,11 +311,35 @@ function Locale.set(inst, property, source, wrap)
 	inst[property] = paint(source)
 end
 
+-- Components with custom text layouts re-resolve themselves after refresh().
+local changeListeners = {}
+
 function Locale.refresh()
 	for inst, list in pairs(stamped) do
 		for _, entry in ipairs(list) do
 			local resolved = Locale.resolve(entry.source)
 			inst[entry.property] = entry.wrap and entry.wrap(resolved) or resolved
+		end
+	end
+	for _, listener in ipairs(changeListeners) do
+		local ok, err = pcall(listener)
+		if not ok then
+			warn("[Aetheris] locale listener failed: " .. tostring(err))
+		end
+	end
+end
+
+function Locale.onChanged(listener)
+	if type(listener) == "function" then
+		table.insert(changeListeners, listener)
+	end
+	return listener
+end
+
+function Locale.offChanged(listener)
+	for i = #changeListeners, 1, -1 do
+		if changeListeners[i] == listener then
+			table.remove(changeListeners, i)
 		end
 	end
 end

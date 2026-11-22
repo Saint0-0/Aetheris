@@ -10,6 +10,7 @@
 local Themes = require("./Themes")
 local UISettings = require("./UISettings")
 local Configs = require("./Configs")
+local Info = require("./Info")
 local Icons = require("../../Assets/Icons")
 
 local SettingsInit = {}
@@ -35,6 +36,12 @@ function SettingsInit.BuildDefaultPages(window)
 		Icon = Icons["save"],
 	})
 	Configs.Build(window, configsTab)
+
+	local infoTab = group:Tab({
+		Name = "Info",
+		Icon = Icons["info"],
+	})
+	Info.Build(window, infoTab)
 end
 
 return SettingsInit

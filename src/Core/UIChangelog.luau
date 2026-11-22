@@ -10,12 +10,42 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.2.0"
+UIChangelog.Version = "1.3.0"
 
 UIChangelog.Entries = {
 	{
+		Title = "Hyperlinks and Info page",
+		Description = "Paragraphs and Labels accept {label:page} and {label:copy} links. A new Info page links to the repo, Discord and creator, and copying confirms with a toast.",
+		Icon = "link",
+		Tint = "blue",
+	},
+	{
+		Title = "Search narrows components",
+		Description = "Search now fades sections and shows or hides individual components with a fade, instead of hiding whole sections only. Matches are highlighted in titles and descriptions.",
+		Icon = "search",
+		Tint = "teal",
+	},
+	{
+		Title = "Close and clipboard helpers",
+		Description = "window:Close() closes from code, window:NavigateTo(name) jumps to a page, and window:CopyToClipboard(text, label) copies with feedback. CodeView copies without an OnCopy handler.",
+		Icon = "clipboard",
+		Tint = "purple",
+	},
+	{
+		Title = "Live theme details",
+		Description = "The changelog shadow follows theme switches, the dropdown select-all and clear buttons stay circular on resize, and search highlights repaint with the accent.",
+		Icon = "palette",
+		Tint = "orange",
+	},
+	{
+		Title = "Lighter text work",
+		Description = "Font objects are cached per family, weight and style, and locale lookups are memoized until the language changes.",
+		Icon = "type",
+		Tint = "yellow",
+	},
+	{
 		Title = "Aetheris changelog",
-		Description = "The library keeps its own changelog and shows it once per version, with a button in Settings to open it again.",
+		Description = "The library keeps its own changelog and shows it once per version, with a button on the new Info page to open it again.",
 		Icon = "scroll-text",
 		Tint = "yellow",
 	},

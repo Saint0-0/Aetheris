@@ -83,11 +83,12 @@ function Section.new(parent, Settings, theme, window, noSave)
 			return window:ColorPickerPopUp(id, s)
 		end
 	end
-	local frame = Instance.new("Frame")
+	local frame = Instance.new("CanvasGroup")
 	frame.Name = UUID.Generate("Section")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = theme.SectionBackgroundColor
 	frame.BackgroundTransparency = theme.SectionBackgroundTransparency
+	frame.GroupTransparency = 0
 	frame.ClipsDescendants = true
 	frame.AutomaticSize = Enum.AutomaticSize.Y
 	frame.Size = UDim2.fromScale(1, 0)
@@ -228,7 +229,7 @@ function Section:Button(Settings)
 	return Button.new(self.Frame, Settings, self._theme)
 end
 function Section:Label(Settings)
-	return Label.new(self.Frame, Settings, self._theme)
+	return Label.new(self.Frame, Settings, self._theme, self._window)
 end
 function Section:Divider(Settings)
 	return Divider.new(self.Frame, Settings, self._theme)
@@ -276,7 +277,7 @@ function Section:Stepper(Settings)
 	return self:_register("Stepper", Settings, Stepper.new(self.Frame, Settings, self._theme))
 end
 function Section:Paragraph(Settings)
-	return Paragraph.new(self.Frame, Settings, self._theme)
+	return Paragraph.new(self.Frame, Settings, self._theme, self._window)
 end
 function Section:ColorPicker(Settings, ShowPopup)
 	Settings = self:_wrapCallback("ColorPicker", Settings)

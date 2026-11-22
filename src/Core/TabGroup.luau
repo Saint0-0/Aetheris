@@ -478,6 +478,16 @@ function TabGroup:SetActiveTab(tab)
 	end)
 end
 
+function TabGroup:SetActiveTabByName(name)
+	for _, tab in ipairs(self.Tabs) do
+		if tab.Name == name then
+			self:SetActiveTab(tab)
+			return tab
+		end
+	end
+	return nil
+end
+
 -- Name the window title after the active tab.
 function TabGroup:SyncTitle()
 	local w = self.Window

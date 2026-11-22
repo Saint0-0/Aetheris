@@ -54,7 +54,10 @@ Everything hangs off that one table, so day to day work never needs a deep requi
 | `:DropdownPopUp(id, settings)` | Open the dropdown popup stored under `id`, creating it on first use. |
 | `:ColorPickerPopUp(id, settings)` | Open the colour picker popup stored under `id`, creating it on first use. |
 | `:HidePopups()` | Close the open dialog and both popup types. |
+| `:NavigateTo(name)` | Open a settings page by name first, then a sidebar tab. Returns `true` on a hit. |
+| `:CopyToClipboard(text, label)` | Copy `text` and show a confirmation toast. Returns whether the clipboard write worked. |
 | `:OnDestroy(callback)` | Register cleanup that runs when the window closes. Several callbacks can be registered. |
+| `:Close()` | Close the window from code, the same teardown as the title-bar button. |
 | `:Destroy()` | Run teardown hooks, fade the window out and destroy it. |
 
 The window also carries helpers the library calls itself:

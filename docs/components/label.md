@@ -23,6 +23,23 @@ section:Label({
 
 Setting `ShowContainer = false` leaves just the bare text, which reads better over a busy background.
 
+## Links
+
+Text can contain inline links using `{label:destination}`:
+
+```lua
+section:Label({
+	Text = "Open {UI Settings:UI Settings} or {copy the repo:copy:https://github.com/Saint0-0/Aetheris}.",
+	ShowContainer = false,
+})
+```
+
+- `{label:page}` opens a settings page first, then a sidebar tab with that name.
+- `{label:copy}` copies the label text.
+- `{label:copy:value}` copies `value` instead.
+
+Links are drawn in the theme accent with an underline and show a toast after copying.
+
 ## Methods
 
 | Method | Description |

@@ -18,6 +18,23 @@ section:Paragraph({
 
 `Description` accepts rich text, so you can bold or colour parts of it with `<font>` and `<b>` tags.
 
+## Links
+
+Inline links work in the body with `{label:destination}`:
+
+```lua
+section:Paragraph({
+	Title = "Aetheris",
+	Description = "Visit {the GitHub repository:copy:https://github.com/Saint0-0/Aetheris} or open {UI Settings:UI Settings}.",
+})
+```
+
+- `{label:page}` opens a settings page first, then a sidebar tab with that name.
+- `{label:copy}` copies the label text.
+- `{label:copy:value}` copies `value` instead.
+
+Links are clickable inside wrapped text, styled with the theme accent, and copying shows a toast.
+
 ## Methods
 
 | Method | Description |

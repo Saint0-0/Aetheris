@@ -245,7 +245,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	local header = Instance.new("TextLabel")
 	header.Name = UUID.Static("Header")
 	header.BorderSizePixel = 0
-	header.TextSize = 15
+	header.TextSize = 13
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.TextYAlignment = Enum.TextYAlignment.Center
 	header.TextTruncate = Enum.TextTruncate.AtEnd
@@ -322,7 +322,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		label.Name = UUID.Static("RowLabel")
 		label.BorderSizePixel = 0
 		label.BackgroundTransparency = 1
-		label.TextSize = 14
+		label.TextSize = 13
 		label.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		label.TextColor3 = (theme and theme.PopupTextColor)
 		label.TextTransparency = 0.45
@@ -462,7 +462,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexInput.BorderSizePixel = 0
 	hexInput.BackgroundTransparency = 1
 	hexInput.TextXAlignment = Enum.TextXAlignment.Left
-	hexInput.TextSize = 15
+	hexInput.TextSize = 14
 	hexInput.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	hexInput.TextColor3 = (theme and theme.PopupTextColor)
 	hexInput.TextTransparency = 0.15
@@ -480,7 +480,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	hexTag.AnchorPoint = Vector2.new(1, 0.5)
 	hexTag.Position = UDim2.new(1, -6, 0.5, 0)
 	hexTag.Size = UDim2.fromOffset(28, 14)
-	hexTag.TextSize = 13
+	hexTag.TextSize = 12
 	hexTag.FontFace = Constants.Font(Enum.FontWeight.Bold)
 	hexTag.TextColor3 = (theme and theme.PopupTextColor)
 	hexTag.TextTransparency = 0.55
@@ -498,7 +498,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		caption.Name = UUID.Static("ChannelLabel")
 		caption.BorderSizePixel = 0
 		caption.BackgroundTransparency = 1
-		caption.TextSize = 14
+		caption.TextSize = 13
 		caption.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		caption.TextColor3 = (theme and theme.PopupTextColor)
 		caption.TextTransparency = 0.5
@@ -512,7 +512,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		box.BorderSizePixel = 0
 		box.BackgroundTransparency = 1
 		box.TextXAlignment = Enum.TextXAlignment.Center
-		box.TextSize = 15
+		box.TextSize = 14
 		box.FontFace = Constants.Font(Enum.FontWeight.Medium)
 		box.TextColor3 = (theme and theme.PopupTextColor)
 		box.TextTransparency = 0.15
@@ -613,7 +613,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	cancelBtn.Name = UUID.Static("Cancel")
 	cancelBtn.BorderSizePixel = 0
 	cancelBtn.TextTransparency = 0.5
-	cancelBtn.TextSize = 15
+	cancelBtn.TextSize = 14
 	cancelBtn.AutoButtonColor = false
 	cancelBtn.TextColor3 = (theme and theme.PopupTextColor)
 	cancelBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
@@ -635,7 +635,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	confirmBtn.Name = UUID.Static("Confirm")
 	confirmBtn.BorderSizePixel = 0
 	confirmBtn.TextTransparency = 0.2
-	confirmBtn.TextSize = 15
+	confirmBtn.TextSize = 14
 	confirmBtn.AutoButtonColor = false
 	confirmBtn.TextColor3 = (theme and theme.PopupTextColor)
 	confirmBtn.BackgroundColor3 = (theme and theme.PrimaryColor) or Color3.fromRGB(14, 45, 178)
@@ -664,6 +664,7 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 	self._shellGradient = shellGradient
 	self._scale = scale
 	self.ColorSquare = colorSquare
+	self.SquareShadow = squareShadow
 	self.SatOverlay = satOverlay
 	self.ValOverlay = valOverlay
 	self.Target = target
@@ -879,6 +880,9 @@ function ColorPickerPopUp.new(parent, Settings, cleanupCallback)
 		me.Popup.BackgroundTransparency = newTheme.PopupBackgroundTransparency or 0.07
 		if me.Shadow then
 			me.Shadow.Color = newTheme.PopupShadowColor or me.Shadow.Color
+		end
+		if me.SquareShadow then
+			me.SquareShadow.Color = newTheme.PopupShadowColor or me.SquareShadow.Color
 		end
 		if me._shellGradient then
 			stampShellGradient(me._shellGradient, newTheme)
