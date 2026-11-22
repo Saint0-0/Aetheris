@@ -415,9 +415,13 @@ function ThemeManager.UnbindInstance(instance)
 	end
 end
 
+-- The live theme, falling back to the default before the first apply.
+function ThemeManager.GetCurrent()
+	return ActiveTheme.theme or ThemeManager.GetTheme(ThemeManager.DefaultTheme)
+end
+
 function ThemeManager.Get(themeKey)
-	local theme = ActiveTheme.theme or ThemeManager.GetTheme(ThemeManager.DefaultTheme)
-	return theme[themeKey]
+	return ThemeManager.GetCurrent()[themeKey]
 end
 
 -- For non-theme state that CancelAll can freeze mid-tween.

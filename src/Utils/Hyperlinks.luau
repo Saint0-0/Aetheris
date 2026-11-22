@@ -378,7 +378,8 @@ function Hyperlinks.render(parent, opts)
 				buildLine(line, index, spaceWidth)
 			end
 			root.Size = UDim2.new(width.X.Scale, width.X.Offset, 0, #lines * lineHeight + bottomPadding)
-			applyColors(renderer, ThemeManager.GetTheme(nil))
+			-- Use the live theme: GetTheme(nil) is only the default palette.
+			applyColors(renderer, ThemeManager.GetCurrent())
 		end)
 	end
 
@@ -391,7 +392,7 @@ function Hyperlinks.render(parent, opts)
 	function renderer:SetTransparency(transparency)
 		renderer._textTransparency = transparency
 		renderer._transparencyThemeKey = transparency == nil and renderer._defaultTransparencyThemeKey or nil
-		applyColors(renderer, ThemeManager.GetTheme(nil))
+		applyColors(renderer, ThemeManager.GetCurrent())
 	end
 
 	function renderer:SetFont(font)
