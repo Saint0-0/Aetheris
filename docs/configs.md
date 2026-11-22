@@ -14,9 +14,15 @@ configs:Load("default")
 
 print(unpack(configs:List())) -- every saved config name
 configs:Delete("old")
+
+-- Apply JSON text without touching the active file.
+local ok, err = configs:Apply(jsonText)
+
+-- Write JSON text to a named file without making it the active config.
+local written, name = configs:Write("shared", jsonText)
 ```
 
-Files live under `Aetheris/Games/<placeId>/<window title>/` as JSON, one per config name.
+Files live under `Aetheris/Games/<placeId>/<window title>/` as JSON, one per config name. Saved files are pretty-printed with sorted keys so they stay readable and easy to share.
 
 ## What gets saved
 
@@ -36,7 +42,8 @@ Switch on `AutoSaveConfigs` on the UI Settings page and every change is written 
 
 The built-in Configs settings page is a small manager UI over all this:
 
-* **Save** — a name box with a Save Config button, plus Overwrite Config, which saves straight over the loaded config so a quick tweak doesn't need the name retyped.
-* **Load** — a bare "Loaded: …" label at the top showing which config is active, then a Config Files dropdown with load and delete buttons.
-* **Options** — the auto-save toggle.
-* **Preview** — the selected config's raw JSON in a code view, flushed to disk first so it matches what's actually saved.
+* **Active Config** — a bare "Loaded: …" label showing which config the UI reflects, the auto-save toggle, a name box, and Save Current Settings (a blank name saves over the loaded config).
+* **Config Library** — a Config Files dropdown with Load Selected, Delete Selected and Refresh List.
+* **JSON Editor** — the selected config in an editable code view. Click the code to edit, then Apply Editor to UI, Save Editor to File, or Revert Editor. Paste from Clipboard drops a shared config straight into the editor, so players can import a preset without touching the file system.
+
+Saving from the editor validates the JSON first and writes it back pretty-printed. The editor keeps its content after Apply so you can still save it under a new name.

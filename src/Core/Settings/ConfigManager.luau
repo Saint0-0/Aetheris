@@ -153,6 +153,49 @@ local function ensureFolder(path)
 	end)
 end
 
+-- Recursive, key-sorted JSON so saved files stay readable and diffable.
+local function encodePretty(value, indent)
+	indent = indent or 0
+	local valueType = type(value)
+	if valueType == "table" then
+		if #value > 0 then
+			local parts = {}
+			for _, item in ipairs(value) do
+				table.insert(parts, encodePretty(item, indent + 1))
+			end
+			return "[" .. table.concat(parts, ", ") .. "]"
+		end
+		local keys = {}
+		for key in pairs(value) do
+			table.insert(keys, key)
+		end
+		if #keys == 0 then
+			return "{}"
+		end
+		table.sort(keys, function(a, b)
+			return tostring(a) < tostring(b)
+		end)
+		local pad = string.rep("  ", indent)
+		local childPad = string.rep("  ", indent + 1)
+		local parts = {}
+		for _, key in ipairs(keys) do
+			local encodedKey = HttpService:JSONEncode(tostring(key))
+			table.insert(parts, childPad .. encodedKey .. ": " .. encodePretty(value[key], indent + 1))
+		end
+		return "{\n" .. table.concat(parts, ",\n") .. "\n" .. pad .. "}"
+	end
+	if valueType == "string" then
+		return HttpService:JSONEncode(value)
+	end
+	if valueType == "number" then
+		return tostring(value)
+	end
+	if valueType == "boolean" then
+		return value and "true" or "false"
+	end
+	return "null"
+end
+
 function ConfigManager.new(window)
 	local self = setmetatable({}, ConfigManager)
 	self._window = window
@@ -250,7 +293,7 @@ function ConfigManager:Save(name)
 	end
 	self:_ensureFolders()
 	local ok, encoded = pcall(function()
-		return HttpService:JSONEncode(self:Serialize())
+		return encodePretty(self:Serialize())
 	end)
 	if not ok then
 		return false, "encode failed"
@@ -262,7 +305,29 @@ function ConfigManager:Save(name)
 		return false, "write failed"
 	end
 	self.Active = name
-	return true
+	return true, name
+end
+
+-- Shared by Load and Apply so both restore theme and component values the same way.
+function ConfigManager:_applyData(data, name)
+	if name then
+		self.Active = name
+	end
+	-- Callbacks fire during load; the guard keeps them from triggering an auto-save.
+	self._loading = true
+	local themeName = data[THEME_KEY]
+	if type(themeName) == "string" and self._window and self._window.SetTheme then
+		pcall(function()
+			self._window:SetTheme(themeName)
+		end)
+	end
+	for _, entry in ipairs(self._entries) do
+		local value = data[entry.key]
+		if value ~= nil then
+			pcall(entry.parser.Load, entry.comp, value)
+		end
+	end
+	self._loading = false
 end
 
 function ConfigManager:Load(name)
@@ -282,23 +347,53 @@ function ConfigManager:Load(name)
 	if not okDecode or type(data) ~= "table" then
 		return false, "decode failed"
 	end
-	-- Callbacks fire during load; the guard keeps them from triggering an auto-save.
-	self._loading = true
-	self.Active = name
-	local themeName = data[THEME_KEY]
-	if type(themeName) == "string" and self._window and self._window.SetTheme then
-		pcall(function()
-			self._window:SetTheme(themeName)
-		end)
-	end
-	for _, entry in ipairs(self._entries) do
-		local value = data[entry.key]
-		if value ~= nil then
-			pcall(entry.parser.Load, entry.comp, value)
-		end
-	end
-	self._loading = false
+	self:_applyData(data, name)
 	return true
+end
+
+-- Applies JSON text without touching the active file, for the config editor.
+function ConfigManager:Apply(content)
+	local okDecode, data = pcall(function()
+		return HttpService:JSONDecode(content)
+	end)
+	if not okDecode or type(data) ~= "table" then
+		return false, "invalid JSON"
+	end
+	-- Nothing on disk matches the UI until the player saves it again.
+	self.Active = nil
+	self:_applyData(data, nil)
+	return true
+end
+
+-- Writes editor JSON to a named file without making it the active config.
+function ConfigManager:Write(name, content)
+	if not hasFileAPI then
+		return false, "no file API"
+	end
+	name = sanitizeName(name)
+	if name == "" then
+		return false, "invalid name"
+	end
+	local okDecode, data = pcall(function()
+		return HttpService:JSONDecode(content)
+	end)
+	if not okDecode or type(data) ~= "table" then
+		return false, "invalid JSON"
+	end
+	local okEncode, encoded = pcall(function()
+		return encodePretty(data)
+	end)
+	if not okEncode then
+		return false, "encode failed"
+	end
+	self:_ensureFolders()
+	local wrote = pcall(function()
+		writefile(self.Folder .. "/" .. name .. ".json", encoded)
+	end)
+	if not wrote then
+		return false, "write failed"
+	end
+	return true, name
 end
 
 function ConfigManager:Delete(name)
@@ -326,10 +421,21 @@ function ConfigManager:Preview(name)
 	local ok, content = pcall(function()
 		return readfile(self.Folder .. "/" .. name .. ".json")
 	end)
-	if ok and content then
-		return content
+	if not ok or not content then
+		return nil
 	end
-	return nil
+	local okDecode, data = pcall(function()
+		return HttpService:JSONDecode(content)
+	end)
+	if okDecode and type(data) == "table" then
+		local okEncode, pretty = pcall(function()
+			return encodePretty(data)
+		end)
+		if okEncode then
+			return pretty
+		end
+	end
+	return content
 end
 
 -- Debounced auto-save, about 0.5s after the last change on the active config.

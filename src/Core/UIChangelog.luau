@@ -10,9 +10,21 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.3.0"
+UIChangelog.Version = "1.4.0"
 
 UIChangelog.Entries = {
+	{
+		Title = "Config editor",
+		Description = "The Configs page now has an editable JSON view: click the code, apply it to the UI, save it to a file, or paste a shared config from the clipboard. Saved files are pretty-printed with sorted keys.",
+		Icon = "save",
+		Tint = "teal",
+	},
+	{
+		Title = "Config helpers",
+		Description = "window.ConfigManager:Apply(json) restores component values from text without touching a file, and :Write(name, json) validates and saves editor JSON under a new name.",
+		Icon = "clipboard",
+		Tint = "purple",
+	},
 	{
 		Title = "Hyperlinks and Info page",
 		Description = "Paragraphs and Labels accept {label:page} and {label:copy} links. A new Info page links to the repo, Discord and creator, and copying confirms with a toast.",
