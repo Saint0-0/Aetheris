@@ -67,4 +67,6 @@ The loading phase does real work and reports it on the progress bar:
 3. **Starting key services** — initialises each entry in `API`.
 4. **Checking saved key** — re-validates a stored key, if any.
 
+The card shows the running step in a status row (step icon, title, step counter and a live percent chip), a thin progress rail with a moving highlight, and a task list whose rows fill in as each step finishes: a tinted tile and `Working`, then a check and `Done`. The list is built from the same steps, so it always matches what is actually running.
+
 If you configured a `KeySystem` with nothing to validate against, the card runs the loading phase and then continues straight into the window.

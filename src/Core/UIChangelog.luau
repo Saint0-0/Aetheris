@@ -10,9 +10,15 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.4.0"
+UIChangelog.Version = "1.5.0"
 
 UIChangelog.Entries = {
+	{
+		Title = "Loading screen refresh",
+		Description = "The key card now shows the running step in a status row with its own icon, a step counter and a live percent chip, over a thin progress rail and a task list that fills in with checks as each step finishes.",
+		Icon = "loader-circle",
+		Tint = "blue",
+	},
 	{
 		Title = "Config editor",
 		Description = "The Configs page now has an editable JSON view: click the code, apply it to the UI, save it to a file, or paste a shared config from the clipboard. Saved files are pretty-printed with sorted keys.",

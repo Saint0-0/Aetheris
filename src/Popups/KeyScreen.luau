@@ -60,6 +60,13 @@ local PRELOAD_IMAGES = {
 	Icons["triangle-alert"],
 	Icons["shield-alert"],
 	Icons["minimize-2"],
+	Icons["check"],
+	Icons["x"],
+	Icons["image"],
+	Icons["volume-2"],
+	Icons["shield-check"],
+	Icons["key-round"],
+	Icons["circle"],
 }
 
 local SUCCESS_COLOR = Color3.fromRGB(74, 200, 120)
@@ -199,6 +206,14 @@ local function tileFill(tint, base)
 		return base:Lerp(tint, 0.4):Lerp(Color3.new(0, 0, 0), 0.35)
 	end
 	return base:Lerp(tint, 0.3)
+end
+
+-- Pending rows sit a hair off the card fill so the tile still reads as one.
+local function neutralTile(base)
+	if isDark(base) then
+		return base:Lerp(Color3.new(1, 1, 1), 0.1)
+	end
+	return base:Lerp(Color3.new(0, 0, 0), 0.06)
 end
 
 -- Accent text: hue kept, saturation capped, value forced on dark grounds.
@@ -592,12 +607,29 @@ local function buildIntro(self)
 		Color = ColorSequence.new(theme.AccentColor or Color3.fromRGB(14, 45, 178)),
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.3, 0),
-			NumberSequenceKeypoint.new(0.45, 0.75),
-			NumberSequenceKeypoint.new(1, 0.9),
+			NumberSequenceKeypoint.new(0.14, 0.28),
+			NumberSequenceKeypoint.new(0.32, 0.86),
+			NumberSequenceKeypoint.new(1, 0.86),
 		}),
 		Rotation = 0,
 		Parent = ringStroke,
+	})
+
+	-- Soft accent disc behind the mark so the ring reads as lit, not drawn.
+	local halo = new("Frame", {
+		Name = UUID.Static("IntroHalo"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(62, 62),
+		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(96, 165, 250),
+		BackgroundTransparency = 0.9,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = ring,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = halo })
+	Tween.Play(halo, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true), {
+		BackgroundTransparency = 0.95,
 	})
 
 	local tile = new("Frame", {
@@ -654,12 +686,15 @@ local function buildIntro(self)
 	})
 
 	self._introComet = comet
+	self._introHalo = halo
 	self._introSpin = Tween.StartSpin(comet, { Rotation = 360 }, "SpinBurst")
 	self._introFadeTargets = captureFade(body)
 end
 
 local function buildLoading(self)
 	local theme = self._theme
+	local base = cardBase(theme)
+	local accent = theme.AccentColor or Color3.fromRGB(96, 165, 250)
 
 	-- One GroupTransparency carries the phase crossfade; starts hidden.
 	local body = new("CanvasGroup", {
@@ -674,101 +709,135 @@ local function buildLoading(self)
 	})
 	self._loadingBody = body
 
-	local rows = {}
-	local column = new("Frame", {
-		Name = UUID.Static("Steps"),
-		Position = UDim2.fromOffset(CONTENT_PAD, 8),
-		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 124),
-		BackgroundColor3 = cardBase(theme),
-		BackgroundTransparency = 0,
-		BorderSizePixel = 0,
+	-- Live status: current step icon, title, counter and percent chip.
+	local statusRow = new("Frame", {
+		Name = UUID.Static("StatusRow"),
+		Position = UDim2.fromOffset(CONTENT_PAD, 10),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 40),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
 		Parent = body,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = column })
-	local columnGradient = new("UIGradient", { Parent = column })
-	stampCardGradient(columnGradient, theme)
-	rememberGradient(self, columnGradient)
-	ThemeManager.BindColor(column, "BackgroundColor3", "PopupNeutralColor")
-	local columnPad = new("UIPadding", { Parent = column })
-	columnPad.PaddingTop = UDim.new(0, 10)
-	columnPad.PaddingBottom = UDim.new(0, 10)
-	columnPad.PaddingLeft = UDim.new(0, 12)
-	columnPad.PaddingRight = UDim.new(0, 12)
-	local layout = new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Vertical,
-		Padding = UDim.new(0, 6),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = column,
+
+	local statusTile = new("Frame", {
+		Name = UUID.Static("StatusTile"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundColor3 = tileFill(accent, base),
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = statusRow,
 	})
-	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		-- 20 covers the card's vertical padding around the rows.
-		column.Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, layout.AbsoluteContentSize.Y + 20)
-	end)
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = statusTile })
+	local statusGlyph = new("ImageLabel", {
+		Name = UUID.Static("StatusGlyph"),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundTransparency = 1,
+		Image = Icons["sparkles"] or "rbxassetid://138635884129147",
+		ImageColor3 = accentText(accent, isDark(base)),
+		ZIndex = 3,
+		Parent = statusTile,
+	})
+	local statusScale = new("UIScale", { Scale = 1, Parent = statusTile })
 
-	for index, step in ipairs(self._steps) do
-		local row = new("Frame", {
-			Name = UUID.Static("StepRow"),
-			Size = UDim2.new(1, 0, 0, 20),
-			BackgroundTransparency = 1,
-			LayoutOrder = index,
-			Parent = column,
-		})
-		local dot = new("Frame", {
-			Name = UUID.Static("Dot"),
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 3, 0.5, 0),
-			Size = UDim2.fromOffset(7, 7),
-			BackgroundColor3 = theme.StrokeColor or Color3.fromRGB(255, 255, 255),
-			BackgroundTransparency = 0.6,
-			BorderSizePixel = 0,
-			Parent = row,
-		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
-		local label = new("TextLabel", {
-			Name = UUID.Static("StepLabel"),
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 20, 0.5, 0),
-			Size = UDim2.new(1, -20, 1, 0),
-			BackgroundTransparency = 1,
-			FontFace = Constants.Font(Enum.FontWeight.Medium),
-			Text = step.Label,
-			TextSize = 12,
-			TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Parent = row,
-		})
-		rows[index] = { Dot = dot, Label = label }
-	end
+	local statusTitle = new("TextLabel", {
+		Name = UUID.Static("StatusTitle"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 52, 0.5, -9),
+		Size = UDim2.new(1, -(52 + 58), 0, 18),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.SemiBold),
+		Text = Locale.resolve("Preparing"),
+		TextSize = 14,
+		TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 3,
+		Parent = statusRow,
+	})
+	local statusSub = new("TextLabel", {
+		Name = UUID.Static("StatusSub"),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 52, 0.5, 9),
+		Size = UDim2.new(1, -(52 + 58), 0, 14),
+		BackgroundTransparency = 1,
+		FontFace = Constants.Font(Enum.FontWeight.Medium),
+		Text = Locale.resolve("Getting things ready"),
+		TextSize = 10,
+		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 3,
+		Parent = statusRow,
+	})
 
+	local chipTransparency = math.min((theme.InputBackgroundTransparency or 0.9) + 0.03, 1)
+	local percentChip = new("Frame", {
+		Name = UUID.Static("PercentChip"),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromOffset(48, 22),
+		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = chipTransparency,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = statusRow,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = percentChip })
+	local chipStroke = new("UIStroke", {
+		Color = theme.StrokeColor or Color3.new(1, 1, 1),
+		Transparency = 0.9,
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = percentChip,
+	})
+	local percentHolder = new("Frame", {
+		Name = UUID.Static("Percent"),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = percentChip,
+	})
+	local percent = Odometer.new(percentHolder, {
+		textSize = 11,
+		height = 14,
+		alignment = Enum.HorizontalAlignment.Center,
+		textColor = theme.PrimaryTextColor,
+	})
+	percent:snap("0%")
+
+	-- Progress rail: accent fill plus one moving highlight wave.
 	local barTrack = new("Frame", {
 		Name = UUID.Static("BarTrack"),
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, CONTENT_PAD, 1, -44),
+		Position = UDim2.fromOffset(CONTENT_PAD, 58),
 		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 6),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
+		BackgroundTransparency = math.min((theme.InputBackgroundTransparency or 0.9) + 0.03, 1),
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
+		ZIndex = 3,
 		Parent = body,
 	})
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = barTrack })
 	local fill = new("Frame", {
 		Name = UUID.Static("BarFill"),
 		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178),
+		BackgroundColor3 = accent,
 		BorderSizePixel = 0,
 		Parent = barTrack,
 	})
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = fill })
 	local fillGradient = new("UIGradient", {
 		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, theme.AccentColor or Color3.fromRGB(14, 45, 178)),
+			ColorSequenceKeypoint.new(0, accent),
 			ColorSequenceKeypoint.new(1, theme.PrimaryColor or Color3.fromRGB(13, 44, 177)),
 		}),
 		Rotation = 25,
 		Parent = fill,
 	})
-
 	local sheen = new("Frame", {
 		Name = UUID.Static("BarSheen"),
 		Size = UDim2.fromScale(1, 1),
@@ -780,85 +849,221 @@ local function buildLoading(self)
 		Color = ColorSequence.new(Color3.new(1, 1, 1)),
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.35, 0.85),
-			NumberSequenceKeypoint.new(0.5, 0.55),
-			NumberSequenceKeypoint.new(0.65, 0.85),
+			NumberSequenceKeypoint.new(0.3, 1),
+			NumberSequenceKeypoint.new(0.5, 0.2),
+			NumberSequenceKeypoint.new(0.7, 1),
 			NumberSequenceKeypoint.new(1, 1),
 		}),
-		Offset = Vector2.new(-0.5, 0),
+		Offset = Vector2.new(-0.6, 0),
 		Parent = sheen,
 	})
 
-	local currentLabel = new("TextLabel", {
-		Name = UUID.Static("CurrentStep"),
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.new(0, CONTENT_PAD, 1, -30),
-		Size = UDim2.new(1, -(CONTENT_PAD * 2 + 50), 0, 14),
+	-- Step list: one tinted tile per task, filled as the run advances.
+	local stepsCard = new("Frame", {
+		Name = UUID.Static("Steps"),
+		Position = UDim2.fromOffset(CONTENT_PAD, 72),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 112),
+		BackgroundColor3 = base,
+		BackgroundTransparency = 0,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = body,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = stepsCard })
+	local stepsGradient = new("UIGradient", { Parent = stepsCard })
+	stampCardGradient(stepsGradient, theme)
+	rememberGradient(self, stepsGradient)
+	ThemeManager.BindColor(stepsCard, "BackgroundColor3", "PopupNeutralColor")
+	local stepsStroke = new("UIStroke", {
+		Color = theme.StrokeColor or Color3.new(1, 1, 1),
+		Transparency = 0.9,
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = stepsCard,
+	})
+	local stepsPad = new("UIPadding", { Parent = stepsCard })
+	stepsPad.PaddingTop = UDim.new(0, 6)
+	stepsPad.PaddingBottom = UDim.new(0, 6)
+	stepsPad.PaddingLeft = UDim.new(0, 8)
+	stepsPad.PaddingRight = UDim.new(0, 10)
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		Padding = UDim.new(0, 0),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = stepsCard,
+	})
+
+	local rows = {}
+	for index, step in ipairs(self._steps) do
+		local row = new("Frame", {
+			Name = UUID.Static("StepRow"),
+			Size = UDim2.new(1, 0, 0, 25),
+			BackgroundTransparency = 1,
+			LayoutOrder = index,
+			Parent = stepsCard,
+		})
+		local tile = new("Frame", {
+			Name = UUID.Static("StepTile"),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromScale(0, 0.5),
+			Size = UDim2.fromOffset(18, 18),
+			BackgroundColor3 = neutralTile(base),
+			BorderSizePixel = 0,
+			Parent = row,
+		})
+		new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = tile })
+		local glyph = new("ImageLabel", {
+			Name = UUID.Static("StepGlyph"),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(11, 11),
+			BackgroundTransparency = 1,
+			Image = Icons[step.Icon] or Icons["circle"],
+			ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+			ImageTransparency = 0.35,
+			Parent = tile,
+		})
+		local scale = new("UIScale", { Scale = 1, Parent = tile })
+		local label = new("TextLabel", {
+			Name = UUID.Static("StepLabel"),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 28, 0.5, 0),
+			Size = UDim2.new(1, -(28 + 66), 1, 0),
+			BackgroundTransparency = 1,
+			FontFace = Constants.Font(Enum.FontWeight.Medium),
+			Text = step.Label,
+			TextSize = 12,
+			TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+			TextTransparency = 0.15,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = row,
+		})
+		local status = new("TextLabel", {
+			Name = UUID.Static("StepStatus"),
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -2, 0.5, 0),
+			Size = UDim2.fromOffset(58, 14),
+			BackgroundTransparency = 1,
+			FontFace = Constants.Font(Enum.FontWeight.Medium),
+			Text = Locale.resolve("Queued"),
+			TextSize = 10,
+			TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+			TextTransparency = 0.45,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = row,
+		})
+		rows[index] = {
+			Tile = tile,
+			Glyph = glyph,
+			Label = label,
+			Status = status,
+			Scale = scale,
+			Icon = Icons[step.Icon] or Icons["circle"],
+			State = "pending",
+		}
+	end
+
+	new("TextLabel", {
+		Name = UUID.Static("LoadingHint"),
+		Position = UDim2.fromOffset(CONTENT_PAD, 192),
+		Size = UDim2.new(1, -(CONTENT_PAD * 2), 0, 12),
 		BackgroundTransparency = 1,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
-		Text = "",
-		TextSize = 11,
+		Text = Locale.resolve("This only takes a moment."),
+		TextSize = 10,
 		TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
+		TextTransparency = 0.3,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 3,
 		Parent = body,
 	})
-	-- The odometer rolls the digits as loading advances.
-	local percentHolder = new("Frame", {
-		Name = UUID.Static("Percent"),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -CONTENT_PAD, 1, -30),
-		Size = UDim2.fromOffset(46, 14),
-		BackgroundTransparency = 1,
-		Parent = body,
-	})
-	local percent = Odometer.new(percentHolder, {
-		textSize = 11,
-		height = 14,
-		alignment = Enum.HorizontalAlignment.Right,
-		textColor = theme.PrimaryTextColor,
-	})
-	percent:snap("0%")
 
 	self._stepRows = rows
+	self._stepIndex = 1
+	self._statusRow = statusRow
+	self._statusTile = statusTile
+	self._statusGlyph = statusGlyph
+	self._statusScale = statusScale
+	self._statusTitle = statusTitle
+	self._statusSub = statusSub
+	self._percentChip = percentChip
+	self._percentChipStroke = chipStroke
+	self._barTrack = barTrack
 	self._barFill = fill
 	self._barGradient = fillGradient
 	self._sheenGradient = sheenGradient
-	self._sheenSpin = Tween.StartSpin(sheenGradient, { Offset = Vector2.new(0.5, 0) }, "SpinBurst")
-	self._currentLabel = currentLabel
+	self._sheenSpin = Tween.StartSpin(sheenGradient, { Offset = Vector2.new(1, 0) }, "SpinBurst")
+	self._stepsStroke = stepsStroke
+	self._stepsCard = stepsCard
 	self._percent = percent
 end
 
-local function setStepState(self, index, state)
-	local row = self._stepRows[index]
-	if not row or not self._card then
+-- Row states: pending, active, done or failed. Repaint is shared with theming.
+local function paintStepRow(self, row, state, animate)
+	if not row then
 		return
 	end
 	local theme = self._theme
-	if state == "active" then
-		row.Dot.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(14, 45, 178)
-		row.Dot.BackgroundTransparency = 0
-		row.Label.TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1)
-		row._pulse =
-			Tween.Play(row.Dot, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true), {
-				BackgroundTransparency = 0.45,
-			})
-	elseif state == "done" then
-		if row._pulse then
-			Tween.Cancel(row._pulse)
-			row._pulse = nil
-		end
-		row.Dot.BackgroundColor3 = SUCCESS_COLOR
-		row.Dot.BackgroundTransparency = 0
-		row.Label.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
-	elseif state == "failed" then
-		if row._pulse then
-			Tween.Cancel(row._pulse)
-			row._pulse = nil
-		end
-		row.Dot.BackgroundColor3 = ERROR_COLOR
-		row.Dot.BackgroundTransparency = 0
+	local base = cardBase(theme)
+	local accent = theme.AccentColor or Color3.fromRGB(96, 165, 250)
+	local onDark = isDark(base)
+	row.State = state
+	if row.Pulse then
+		Tween.Cancel(row.Pulse)
+		row.Pulse = nil
 	end
+	row.Tile.BackgroundTransparency = 0
+	row.Glyph.ImageTransparency = 0
+	row.Label.TextTransparency = 0
+	row.Status.TextTransparency = 0
+
+	if state == "done" then
+		row.Tile.BackgroundColor3 = tileFill(SUCCESS_COLOR, base)
+		row.Glyph.Image = Icons["check"] or row.Icon
+		row.Glyph.ImageColor3 = accentText(SUCCESS_COLOR, onDark)
+		row.Label.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		row.Status.Text = Locale.resolve("Done")
+		row.Status.TextColor3 = accentText(SUCCESS_COLOR, onDark)
+	elseif state == "failed" then
+		row.Tile.BackgroundColor3 = tileFill(ERROR_COLOR, base)
+		row.Glyph.Image = Icons["x"] or row.Icon
+		row.Glyph.ImageColor3 = accentText(ERROR_COLOR, onDark)
+		row.Label.TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1)
+		row.Status.Text = Locale.resolve("Failed")
+		row.Status.TextColor3 = accentText(ERROR_COLOR, onDark)
+	elseif state == "active" then
+		row.Tile.BackgroundColor3 = tileFill(accent, base)
+		row.Glyph.Image = row.Icon
+		row.Glyph.ImageColor3 = accentText(accent, onDark)
+		row.Label.TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1)
+		row.Status.Text = Locale.resolve("Working")
+		row.Status.TextColor3 = accentText(accent, onDark)
+		row.Pulse =
+			Tween.Play(row.Tile, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true), {
+				BackgroundTransparency = 0.3,
+			})
+	else
+		row.Tile.BackgroundColor3 = neutralTile(base)
+		row.Glyph.Image = row.Icon
+		row.Glyph.ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		row.Glyph.ImageTransparency = 0.35
+		row.Label.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		row.Label.TextTransparency = 0.15
+		row.Status.Text = Locale.resolve("Queued")
+		row.Status.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		row.Status.TextTransparency = 0.45
+	end
+
+	if animate ~= false and (state == "done" or state == "failed") then
+		row.Scale.Scale = 0.86
+		Tween.Play(row.Scale, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+	end
+end
+
+local function setStepState(self, index, state)
+	paintStepRow(self, self._stepRows[index], state, true)
 end
 
 local function setProgress(self, fraction, label)
@@ -866,10 +1071,12 @@ local function setProgress(self, fraction, label)
 		return
 	end
 	fraction = math.clamp(fraction, 0, 1)
-	Tween.Play(self._barFill, "Smooth", { Size = UDim2.fromScale(fraction, 1) })
+	Tween.Play(self._barFill, TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		Size = UDim2.fromScale(fraction, 1),
+	})
 	self._percent:to(math.floor(fraction * 100 + 0.5) .. "%", true)
-	if label then
-		self._currentLabel.Text = label
+	if label and self._statusSub then
+		self._statusSub.Text = string.format("Step %d of %d · %s", self._stepIndex or 1, #self._steps, label)
 	end
 end
 
@@ -1410,6 +1617,33 @@ function KeyScreen:_phaseIn(body, targets)
 	fadeRestore(targets, 0.3)
 end
 
+-- Loading blocks fade in with a short rise, so the phase reads as one panel.
+function KeyScreen:_enterLoading()
+	local body = self._loadingBody
+	if not body then
+		return
+	end
+	body.Visible = true
+	body.GroupTransparency = 1
+	local blocks = {
+		{ self._statusRow, 10 },
+		{ self._barTrack, 58 },
+		{ self._stepsCard, 72 },
+	}
+	for _, block in ipairs(blocks) do
+		local frame = block[1]
+		if frame then
+			frame.Position = UDim2.fromOffset(CONTENT_PAD, block[2] + 8)
+			Tween.Play(frame, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Position = UDim2.fromOffset(CONTENT_PAD, block[2]),
+			})
+		end
+	end
+	Tween.Play(body, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		GroupTransparency = 0,
+	})
+end
+
 function KeyScreen:_showKeyPhase()
 	if not self._card then
 		return
@@ -1564,6 +1798,36 @@ function KeyScreen:_destroy()
 	end
 end
 
+-- Swaps the live status row to the step that is running now.
+function KeyScreen:_setCurrentStep(index)
+	self._stepIndex = index
+	local step = self._steps[index]
+	if not step or not self._statusTitle or not self._card then
+		return
+	end
+	local theme = self._theme
+	local base = cardBase(theme)
+	local accent = theme.AccentColor or Color3.fromRGB(96, 165, 250)
+	self._statusTitle.Text = step.Label
+	self._statusSub.Text = string.format("Step %d of %d", index, #self._steps)
+	self._statusGlyph.Image = Icons[step.Icon] or Icons["sparkles"]
+	self._statusTile.BackgroundColor3 = tileFill(accent, base)
+	self._statusGlyph.ImageColor3 = accentText(accent, isDark(base))
+	-- Soft swap so a new step reads without a hard cut.
+	self._statusTitle.TextTransparency = 0.7
+	self._statusSub.TextTransparency = 0.7
+	Tween.Play(self._statusTitle, "Fast", { TextTransparency = 0 })
+	Tween.Play(self._statusSub, "Fast", { TextTransparency = 0 })
+	if self._statusScale then
+		self._statusScale.Scale = 0.9
+		Tween.Play(
+			self._statusScale,
+			TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		)
+	end
+end
+
 function KeyScreen:_runSteps()
 	local totalWeight = 0
 	for _, step in ipairs(self._steps) do
@@ -1576,8 +1840,8 @@ function KeyScreen:_runSteps()
 		if not self._card then
 			return
 		end
+		self:_setCurrentStep(index)
 		setStepState(self, index, "active")
-		self._currentLabel.Text = step.Label .. "..."
 
 		local stepStart = os.clock()
 		local ok, err = pcall(step.Run, function(fraction, label)
@@ -1598,7 +1862,11 @@ function KeyScreen:_runSteps()
 			warn("[Aetheris] loading step failed: " .. step.Label .. " - " .. tostring(err))
 		end
 	end
-	setProgress(self, 1, "Ready")
+	setProgress(self, 1)
+	if self._statusTitle then
+		self._statusTitle.Text = Locale.resolve("Ready")
+		self._statusSub.Text = Locale.resolve("Starting your interface")
+	end
 end
 
 -- Resolves true when the window may build, false when the gate was aborted.
@@ -1650,6 +1918,7 @@ function KeyScreen.Run(keyConfig, opts)
 	self._steps = {
 		{
 			Label = Locale.resolve("Loading assets"),
+			Icon = "image",
 			Weight = 2,
 			Run = function(report)
 				local list, seen = {}, {}
@@ -1680,6 +1949,7 @@ function KeyScreen.Run(keyConfig, opts)
 		},
 		{
 			Label = Locale.resolve("Loading sounds"),
+			Icon = "volume-2",
 			Weight = 4,
 			Run = function(report)
 				Sound.Preload(function(loaded, total)
@@ -1689,6 +1959,7 @@ function KeyScreen.Run(keyConfig, opts)
 		},
 		{
 			Label = "Starting key services",
+			Icon = "shield-check",
 			Weight = 2,
 			Run = function(report)
 				self._validator:Init(function(fraction)
@@ -1696,7 +1967,7 @@ function KeyScreen.Run(keyConfig, opts)
 				end)
 			end,
 		},
-		{ Label = "Checking saved key", Weight = 3, Run = savedKeyStep },
+		{ Label = "Checking saved key", Icon = "key-round", Weight = 3, Run = savedKeyStep },
 	}
 
 	buildCard(self)
@@ -1737,6 +2008,41 @@ function KeyScreen.Run(keyConfig, opts)
 		end
 		restampTiles(self, theme)
 		self._aurora:SetTheme(theme)
+		-- Loading phase: status row, step tiles, rail and chip all derive.
+		if self._statusTitle then
+			self._statusTitle.TextColor3 = theme.PrimaryTextColor or Color3.new(1, 1, 1)
+			self._statusSub.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+		end
+		if self._statusTile and self._statusGlyph then
+			local base = cardBase(theme)
+			local accent = theme.AccentColor or Color3.fromRGB(96, 165, 250)
+			self._statusTile.BackgroundColor3 = tileFill(accent, base)
+			self._statusGlyph.ImageColor3 = accentText(accent, isDark(base))
+		end
+		if self._percentChip then
+			self._percentChip.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+		end
+		if self._percentChipStroke then
+			self._percentChipStroke.Color = theme.StrokeColor or Color3.new(1, 1, 1)
+		end
+		if self._barTrack then
+			self._barTrack.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
+		end
+		if self._barFill then
+			self._barFill.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(96, 165, 250)
+		end
+		if self._stepsStroke then
+			self._stepsStroke.Color = theme.StrokeColor or Color3.new(1, 1, 1)
+		end
+		for _, row in ipairs(self._stepRows or {}) do
+			paintStepRow(self, row, row.State or "pending", false)
+		end
+		if self._introComet then
+			self._introComet.Color = ColorSequence.new(theme.AccentColor or Color3.fromRGB(14, 45, 178))
+		end
+		if self._introHalo then
+			self._introHalo.BackgroundColor3 = theme.AccentColor or Color3.fromRGB(96, 165, 250)
+		end
 	end, self._card)
 
 	local signal = Instance.new("BindableEvent")
@@ -1775,7 +2081,7 @@ function KeyScreen.Run(keyConfig, opts)
 	Tween.StopSpin(self._introComet)
 	self._introSpin = nil
 	Tween.Play(self._headerGroup, "Smooth", { GroupTransparency = 0 })
-	self:_phaseIn(self._loadingBody)
+	self:_enterLoading()
 
 	self:_runSteps()
 
