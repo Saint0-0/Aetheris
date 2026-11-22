@@ -1102,7 +1102,7 @@ local function copyLink(self, url)
 		Notification.new(self._notifHolder, {
 			Type = "Error",
 			Title = "No link",
-			Description = "The key link isn't configured yet.",
+			Description = "The link isn't configured yet.",
 			Duration = 4,
 		}, self._theme):Show()
 		return
