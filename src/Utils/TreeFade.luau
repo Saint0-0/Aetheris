@@ -132,6 +132,17 @@ local function capture(root, skipRoots)
 	return { entries = entries }
 end
 
+local function durationOf(preset)
+	local info = preset
+	if type(info) == "string" then
+		info = Tween.Presets[info]
+	end
+	if info and info.Time then
+		return info.Time
+	end
+	return 0.3
+end
+
 local function apply(state, hidden, instant, preset)
 	local handles = {}
 	local entries = state.entries
@@ -144,11 +155,13 @@ local function apply(state, hidden, instant, preset)
 			end
 			Tween.CancelProperty(inst, prop)
 			if mode == MODE_VIDEO then
-				local sequence = NumberSequence.new(target)
+				-- A NumberSequence cannot be tweened, so the gradient is lerped
+				-- per frame by VideoFade instead.
+				VideoFade.cancel(inst)
 				if instant or math.abs(VideoFade.get(inst) - target) < 0.001 then
-					inst.Transparency = sequence
+					inst.Transparency = NumberSequence.new(target)
 				else
-					local handle = Tween.Play(inst, preset or TreeFade.PRESET, { Transparency = sequence })
+					local handle = VideoFade.fade(inst, target, durationOf(preset or TreeFade.PRESET), "InOut")
 					if handle then
 						table.insert(handles, handle)
 					end
@@ -198,17 +211,6 @@ local function after(handles, onComplete, duration)
 	-- superseded fade from stranding the caller. Generation guards discard it
 	-- when a newer fade on the same root has taken over.
 	task.delay(duration + 0.12, fire)
-end
-
-local function durationOf(preset)
-	local info = preset
-	if type(info) == "string" then
-		info = Tween.Presets[info]
-	end
-	if info and info.Time then
-		return info.Time
-	end
-	return 0.3
 end
 
 TreeFade.PRESET = "Fast"

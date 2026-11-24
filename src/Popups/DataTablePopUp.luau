@@ -30,6 +30,11 @@ local POPUP_HEIGHT = 432
 local SIDE_PAD = 16
 local BASE_SCALE = 1.15
 local SEARCH_WIDTH = 176
+local CLOSE_SIZE = 28
+local CLOSE_GAP = 8
+-- The search field sits left of the close button in the header.
+local SEARCH_INSET = SIDE_PAD + CLOSE_SIZE + CLOSE_GAP
+local HEADER_INSET = SEARCH_INSET + SEARCH_WIDTH + 8
 local HEADER_TOP = 62
 local HEADER_H = 24
 local BODY_TOP = HEADER_TOP + HEADER_H + 6
@@ -249,7 +254,7 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	header.BackgroundTransparency = 1
 	header.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	header.TextColor3 = (theme and theme.PopupTextColor)
-	header.Size = UDim2.new(1, -(56 + SEARCH_WIDTH + SIDE_PAD * 2 + 8), 0, 18)
+	header.Size = UDim2.new(1, -(56 + HEADER_INSET), 0, 18)
 	header.Position = UDim2.fromOffset(56, 10)
 	header.Parent = popup
 	header.Text = "Data"
@@ -267,7 +272,7 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	subtitle.FontFace = Constants.Font(Enum.FontWeight.Medium)
 	subtitle.TextColor3 = (theme and theme.SecondaryTextColor)
 	subtitle.TextTransparency = 0.35
-	subtitle.Size = UDim2.new(1, -(56 + SEARCH_WIDTH + SIDE_PAD * 2 + 8), 0, 14)
+	subtitle.Size = UDim2.new(1, -(56 + HEADER_INSET), 0, 14)
 	subtitle.Position = UDim2.fromOffset(56, 28)
 	subtitle.Parent = popup
 	ThemeManager.BindColor(subtitle, "TextColor3", "SecondaryTextColor")
@@ -281,7 +286,7 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	searchBox.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
 	searchBox.BackgroundTransparency = 0.55
 	searchBox.AnchorPoint = Vector2.new(1, 0)
-	searchBox.Position = UDim2.new(1, -SIDE_PAD, 0, 16)
+	searchBox.Position = UDim2.new(1, -SEARCH_INSET, 0, 16)
 	searchBox.Size = UDim2.fromOffset(SEARCH_WIDTH, 28)
 	searchBox.Parent = popup
 	addCorner(searchBox, UDim.new(0, 8))
@@ -318,6 +323,47 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	ThemeManager.BindColor(searchField, "PlaceholderColor3", "TertiaryColor")
 	self._searchField = searchField
 
+	-- Close button sits at the header's right edge, same height as the search.
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = UUID.Static("Close")
+	closeBtn.BorderSizePixel = 0
+	closeBtn.AutoButtonColor = false
+	closeBtn.Text = ""
+	closeBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
+	closeBtn.BackgroundTransparency = 0.55
+	closeBtn.AnchorPoint = Vector2.new(1, 0)
+	closeBtn.Position = UDim2.new(1, -SIDE_PAD, 0, 16)
+	closeBtn.Size = UDim2.fromOffset(CLOSE_SIZE, 28)
+	closeBtn.Parent = popup
+	addCorner(closeBtn, UDim.new(0, CORNER_CARD))
+	ThemeManager.BindColor(closeBtn, "BackgroundColor3", "PopupNeutralColor")
+	self._closeBtn = closeBtn
+
+	local closeIcon = Instance.new("ImageLabel")
+	closeIcon.Name = UUID.Static("CloseIcon")
+	closeIcon.BorderSizePixel = 0
+	closeIcon.BackgroundTransparency = 1
+	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	closeIcon.Position = UDim2.fromScale(0.5, 0.5)
+	closeIcon.Size = UDim2.fromOffset(12, 12)
+	closeIcon.Image = Icons["x"]
+	closeIcon.ImageColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(150, 150, 150)
+	closeIcon.ImageTransparency = 0.15
+	closeIcon.Parent = closeBtn
+	ThemeManager.BindColor(closeIcon, "ImageColor3", "TertiaryColor")
+
+	closeBtn.MouseEnter:Connect(function()
+		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.4 })
+		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0 })
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.55 })
+		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0.15 })
+	end)
+	closeBtn.MouseButton1Click:Connect(function()
+		self:Close()
+	end)
+
 	-- Column header bar; rebuilt whenever the column set changes.
 	local columnBar = Instance.new("Frame")
 	columnBar.Name = UUID.Static("ColumnBar")
@@ -340,8 +386,9 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	body.CanvasSize = UDim2.fromScale(0, 0)
 	body.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	body.ScrollingDirection = Enum.ScrollingDirection.Y
-	body.ScrollBarThickness = 3
-	body.ScrollBarImageTransparency = 0.45
+	-- Thin library scrollbar: hidden at rest, revealed while scrolling.
+	body.ScrollBarThickness = 1
+	body.ScrollBarImageTransparency = 1
 	body.ScrollBarImageColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(150, 150, 150)
 	body.Position = UDim2.fromOffset(SIDE_PAD, BODY_TOP)
 	body.Size = UDim2.new(1, -SIDE_PAD * 2, 0, bodyHeight)
@@ -353,6 +400,17 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	bodyLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	bodyLayout.Parent = body
 	self._bodyLayout = bodyLayout
+
+	self._scrollConn = body:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		Tween.Play(body, "Fast", { ScrollBarImageTransparency = 0.5 })
+		if self._scrollbarTimer then
+			task.cancel(self._scrollbarTimer)
+		end
+		self._scrollbarTimer = task.delay(1.5, function()
+			Tween.Play(body, "Fast", { ScrollBarImageTransparency = 1 })
+			self._scrollbarTimer = nil
+		end)
+	end)
 
 	local emptyLabel = Instance.new("TextLabel")
 	emptyLabel.Name = UUID.Static("Empty")
@@ -700,13 +758,13 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 				1
 			) * BASE_SCALE
 		end
-		me._fit = fit
-		me._scale.Scale = fit * 0.94
+		-- The scale is applied while the popup is still hidden. Animating it
+		-- re-rasterises the labels, which reads as text snapping to a new size.
+		me._scale.Scale = fit
 		me.Popup.Visible = true
 		me.Popup.GroupTransparency = 1
 		Tween.Play(me.Popup, "Fast", { GroupTransparency = 0 })
 		Tween.Play(me._shadow, "Fast", { Transparency = 0.5 })
-		Tween.Play(me._scale, "Fast", { Scale = fit })
 		me:_connectOutsideClick()
 	end
 
@@ -722,10 +780,8 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 		if me._hideTimer then
 			task.cancel(me._hideTimer)
 		end
-		local fit = me._fit or BASE_SCALE
 		Tween.Play(me.Popup, "Fast", { GroupTransparency = 1 })
 		Tween.Play(me._shadow, "Fast", { Transparency = 1 })
-		Tween.Play(me._scale, "Fast", { Scale = fit * 0.94 })
 		me._hideTimer = task.delay(0.35, function()
 			if not me.IsOpen and me.Popup then
 				me.Popup.Visible = false
@@ -744,6 +800,14 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 
 	self.Destroy = function(me)
 		me:_disconnectOutsideClick()
+		if me._scrollConn then
+			me._scrollConn:Disconnect()
+			me._scrollConn = nil
+		end
+		if me._scrollbarTimer then
+			task.cancel(me._scrollbarTimer)
+			me._scrollbarTimer = nil
+		end
 		if me._hideTimer then
 			task.cancel(me._hideTimer)
 			me._hideTimer = nil

@@ -31,6 +31,7 @@ local INDICATOR_PAD_X = 7
 local INDICATOR_PAD_Y = 6
 local INDICATOR_INSET = 10 -- px between the indicator capsule and the media edge
 local FADE_PRESET = "Smooth"
+local FADE_TIME = Tween.Presets[FADE_PRESET].Time
 local HIDE_DELAY = 0.34
 
 -- Accept "rbxassetid://123", "123" or 123.
@@ -447,7 +448,8 @@ function Carousel:_goTo(index)
 
 	local function setOpacity(page, value)
 		if page.Gradient then
-			Tween.Play(page.Gradient, FADE_PRESET, { Transparency = NumberSequence.new(value) })
+			-- UIGradient.Transparency is a NumberSequence, so VideoFade lerps it.
+			VideoFade.fade(page.Gradient, value, FADE_TIME, "InOut")
 		else
 			Tween.Play(page.Visual, FADE_PRESET, { ImageTransparency = value })
 		end

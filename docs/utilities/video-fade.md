@@ -21,4 +21,7 @@ local value = VideoFade.get(grad)
 | `attach(videoFrame)` | Create and parent the `FadeGradient` UIGradient, and return it. |
 | `set(grad, value)` | Write the transparency at once, 0 visible and 1 hidden. |
 | `get(grad)` | Read the current transparency, 0 when the gradient has no keypoint. |
-| `fade(grad, target, duration?, easing?, onComplete?)` | Move toward `target` over `duration` seconds, 0.3 by default. `easing` is `"Out"` (the default), `"InOut"` or `"Linear"`. `onComplete` runs when the move finishes or the gradient leaves the tree. |
+| `fade(grad, target, duration?, easing?, onComplete?)` | Move toward `target` over `duration` seconds, 0.3 by default. `easing` is `"Out"` (the default), `"InOut"` or `"Linear"`. `onComplete` runs when the move finishes. Returns a handle shaped like `Tween.Play`'s, so `handle.Tween.Completed` fires `Enum.PlaybackState.Completed` on finish. |
+| `cancel(grad)` | Stop the running fade on this gradient. Retired fades report no completion. |
+
+Starting a new fade on the same gradient retires the previous one, so a fast page change cannot leave two loops fighting over the sequence.
