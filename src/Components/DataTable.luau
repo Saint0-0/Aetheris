@@ -1,9 +1,9 @@
 --[[
 	Aetheris/Components/DataTable.luau
 
-	A compact table for changing records: weighted columns, live cell updates,
-	optional per-row action and live sorting. Columns share the row width by
-	Weight (no pixel widths), so the table always fits its section.
+	A compact field card that opens a searchable, sortable table in a modal
+	popup (Popups/DataTablePopUp). Keeping the rows out of the page avoids
+	cramped inline tables while preserving the full row API.
 
 	Rows are plain tables with an `id` (or `Id`) plus one field per column Key.
 
@@ -16,14 +16,14 @@ local ComponentAPI = require("../Utils/ComponentAPI")
 local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
+local Icons = require("../Assets/Icons")
+local DataTablePopUp = require("../Popups/DataTablePopUp")
 
 local DataTable = {}
 DataTable.__index = DataTable
 
-local DEFAULT_ROW_HEIGHT = 26
-local DEFAULT_ROW_GAP = 4
-local HEADER_HEIGHT = 18
-local ACTION_WIDTH = 60
+local CARD_HEIGHT = 58
+local CARD_CORNER = 8
 local MAX_MAX_ROWS = 200
 
 local function copyRow(source)
@@ -63,68 +63,6 @@ local function rankAndValue(value)
 	return 2, tostring(value)
 end
 
-local function formatNumber(value)
-	local n = tonumber(value)
-	if not n then
-		return tostring(value)
-	end
-	local rounded = math.floor(n + 0.5)
-	local text = tostring(math.abs(rounded))
-	text = text:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-	if rounded < 0 then
-		return "-" .. text
-	end
-	return text
-end
-
-local function formatClock(value)
-	local seconds = math.max(0, math.floor((tonumber(value) or 0) + 0.5))
-	return string.format("%d:%02d", seconds // 60, seconds % 60)
-end
-
-local function formatValue(column, value)
-	if value == nil then
-		return column.EmptyText or "—"
-	end
-	local formatter = column.Format
-	if type(formatter) == "function" then
-		local ok, text = pcall(formatter, value)
-		return ok and tostring(text) or tostring(value)
-	end
-	if formatter == "percent" then
-		local n = tonumber(value) or 0
-		if math.abs(n) <= 1 then
-			n *= 100
-		end
-		return string.format("%d%%", math.floor(n + 0.5))
-	elseif formatter == "studs" then
-		return string.format("%d studs", math.floor((tonumber(value) or 0) + 0.5))
-	elseif formatter == "time" then
-		return formatClock(value)
-	elseif formatter == "number" then
-		return formatNumber(value)
-	end
-	return tostring(value)
-end
-
-local function resolveColor(column, value, row, fallback)
-	local color = column.Color
-	if type(color) == "function" then
-		local ok, resolved = pcall(color, value, row)
-		if ok and typeof(resolved) == "Color3" then
-			return resolved
-		end
-	elseif typeof(color) == "Color3" then
-		return color
-	elseif type(color) == "string" then
-		local ok, resolved = pcall(Color3.fromHex, color)
-		if ok then
-			return resolved
-		end
-	end
-	return fallback
-end
-
 local function compileColumns(columns)
 	local compiled = {}
 	for _, column in ipairs(columns or {}) do
@@ -143,35 +81,23 @@ local function compileColumns(columns)
 	return compiled
 end
 
-local function textAlignment(align)
-	if align == "center" then
-		return Enum.TextXAlignment.Center
-	elseif align == "right" then
-		return Enum.TextXAlignment.Right
+local function resolvePopupParent(window, parent)
+	if window and window.PopUpsFolder then
+		return window.PopUpsFolder
 	end
-	return Enum.TextXAlignment.Left
+	local node = parent
+	while node and not node:IsA("LayerCollector") do
+		node = node.Parent
+	end
+	return node or parent
 end
 
--- Weighted cells laid out at explicit scale offsets so the columns always fill
--- the row width, independent of window size.
-local function layoutCells(columns, makeCell)
-	local total = 0
-	for _, column in ipairs(columns) do
-		total += column.Weight
-	end
-	local offset = 0
-	for _, column in ipairs(columns) do
-		local fraction = column.Weight / total
-		makeCell(column, UDim2.fromScale(offset, 0), fraction)
-		offset += fraction
-	end
-end
-
-function DataTable.new(parent, Settings, theme)
+function DataTable.new(parent, Settings, theme, window)
 	theme = ThemeManager.GetTheme(theme)
 	Settings = Settings or {}
 	local self = setmetatable({}, DataTable)
 	self._theme = theme
+	self._window = window
 
 	local name = Settings.Name or "Data Table"
 	self._columns = compileColumns(Settings.Columns)
@@ -181,195 +107,121 @@ function DataTable.new(parent, Settings, theme)
 	self._sortBy = Settings.SortBy
 	self._sortDescending = Settings.SortDescending == true
 	self._maxRows = math.clamp(tonumber(Settings.MaxRows) or 10, 1, MAX_MAX_ROWS)
-	self._rowHeight = tonumber(Settings.RowHeight) or DEFAULT_ROW_HEIGHT
-	self._rowGap = tonumber(Settings.RowGap) or DEFAULT_ROW_GAP
+	self._rowHeight = math.clamp(tonumber(Settings.RowHeight) or 32, 20, 60)
+	self._rowGap = math.clamp(tonumber(Settings.RowGap) or 2, 0, 16)
 	self._showHeader = Settings.ShowHeader ~= false
 	self._striped = Settings.Striped ~= false
 	self._emptyText = Settings.EmptyText or "No rows yet"
 	self._rowColorTransparency = Settings.RowColorTransparency or 0.82
 	self._action = Settings.Action
+	self._popupParent = resolvePopupParent(window, parent)
 
-	local root = Instance.new("Frame")
+	local root = Instance.new("TextButton")
 	root.Name = UUID.Static("DataTable")
 	root.BorderSizePixel = 0
-	root.BackgroundColor3 = theme.ComponentBackgroundColor
-	root.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0.985
-	root.AutomaticSize = Enum.AutomaticSize.Y
-	root.Size = UDim2.fromScale(1, 0)
+	root.AutoButtonColor = false
+	root.Text = ""
+	root.TextTransparency = 1
+	root.BackgroundColor3 = (theme and theme.ComponentBackgroundColor) or Color3.fromRGB(255, 255, 255)
+	root.BackgroundTransparency = (theme and theme.ComponentBackgroundTransparency) or 0.985
+	root.Size = UDim2.new(1, 0, 0, CARD_HEIGHT)
 	root.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	root:SetAttribute(UUID.Static("IsComponentContainer"), true)
 	root.Parent = parent
+	self.Frame = root
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
+	corner.CornerRadius = UDim.new(0, CARD_CORNER)
 	corner.Parent = root
+
 	local stroke = Instance.new("UIStroke")
-	stroke.Transparency = theme.StrokeTransparency or 0.95
-	stroke.Color = theme.StrokeColor
+	stroke.Transparency = (theme and theme.StrokeTransparency) or 0.95
+	stroke.Color = (theme and theme.StrokeColor)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = root
-	local rootPadding = Instance.new("UIPadding")
-	rootPadding.PaddingTop = UDim.new(0, 10)
-	rootPadding.PaddingBottom = UDim.new(0, 10)
-	rootPadding.PaddingLeft = UDim.new(0, 10)
-	rootPadding.PaddingRight = UDim.new(0, 10)
-	rootPadding.Parent = root
-	local rootLayout = Instance.new("UIListLayout")
-	rootLayout.Padding = UDim.new(0, 6)
-	rootLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	rootLayout.Parent = root
 
 	ThemeManager.BindColor(root, "BackgroundColor3", "ComponentBackgroundColor")
 	ThemeManager.BindTransparency(root, "BackgroundTransparency", "ComponentBackgroundTransparency")
 	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
 
-	local title
-	if name and name ~= "" then
-		title = Instance.new("TextLabel")
-		title.Name = UUID.Static("ElementName")
-		title.BackgroundTransparency = 1
-		title.BorderSizePixel = 0
-		title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-		title.Text = name
-		title.TextSize = 13
-		title.TextXAlignment = Enum.TextXAlignment.Left
-		title.TextColor3 = theme.PrimaryTextColor
-		title.TextTransparency = theme.PrimaryTextTransparency or 0.3
-		title.Size = UDim2.new(1, 0, 0, 18)
-		title.LayoutOrder = 0
-		title.Parent = root
-		ThemeManager.BindColor(title, "TextColor3", "PrimaryTextColor")
-		ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
-	end
+	local tile = Instance.new("Frame")
+	tile.Name = UUID.Static("IconTile")
+	tile.BorderSizePixel = 0
+	tile.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+	tile.BackgroundTransparency = 0.8
+	tile.Position = UDim2.fromOffset(12, 12)
+	tile.Size = UDim2.fromOffset(34, 34)
+	tile.Parent = root
+	local tileCorner = Instance.new("UICorner")
+	tileCorner.CornerRadius = UDim.new(0, 9)
+	tileCorner.Parent = tile
+	ThemeManager.BindColor(tile, "BackgroundColor3", "AccentColor")
 
-	local header = Instance.new("Frame")
-	header.Name = UUID.Static("DataTableHeader")
-	header.BorderSizePixel = 0
-	header.BackgroundTransparency = 1
-	header.Size = UDim2.new(1, 0, 0, HEADER_HEIGHT)
-	header.Visible = self._showHeader
-	header.LayoutOrder = 1
-	header.Parent = root
+	local glyph = Instance.new("ImageLabel")
+	glyph.Name = UUID.Static("Icon")
+	glyph.BorderSizePixel = 0
+	glyph.BackgroundTransparency = 1
+	glyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	glyph.Position = UDim2.fromScale(0.5, 0.5)
+	glyph.Size = UDim2.fromOffset(17, 17)
+	glyph.Image = Icons["table"] or Icons["table-2"]
+	glyph.ImageColor3 = (theme and theme.PrimaryTextColor) or Color3.fromRGB(255, 255, 255)
+	glyph.Parent = tile
+	ThemeManager.BindColor(glyph, "ImageColor3", "PrimaryTextColor")
 
-	local body = Instance.new("ScrollingFrame")
-	body.Name = UUID.Static("DataTableBody")
-	body.BorderSizePixel = 0
-	body.BackgroundTransparency = 1
-	body.Active = true
-	body.CanvasSize = UDim2.fromScale(0, 0)
-	body.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	body.ScrollingDirection = Enum.ScrollingDirection.Y
-	body.ScrollBarThickness = 2
-	body.ScrollBarImageTransparency = 0.5
-	body.ScrollBarImageColor3 = theme.TertiaryColor
-	body.Size = UDim2.fromScale(1, 0)
-	body.LayoutOrder = 2
-	body.Parent = root
-	local bodyPadding = Instance.new("UIPadding")
-	bodyPadding.PaddingRight = UDim.new(0, 2)
-	bodyPadding.Parent = body
-	local bodyLayout = Instance.new("UIListLayout")
-	bodyLayout.Padding = UDim.new(0, self._rowGap)
-	bodyLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	bodyLayout.Parent = body
-	ThemeManager.BindColor(body, "ScrollBarImageColor3", "TertiaryColor")
+	local title = Instance.new("TextLabel")
+	title.Name = UUID.Static("ElementName")
+	title.BorderSizePixel = 0
+	title.BackgroundTransparency = 1
+	title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
+	title.Text = name
+	title.TextSize = 13
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextTruncate = Enum.TextTruncate.AtEnd
+	title.TextColor3 = (theme and theme.PrimaryTextColor) or Color3.fromRGB(255, 255, 255)
+	title.TextTransparency = (theme and theme.PrimaryTextTransparency) or 0.2
+	title.Position = UDim2.fromOffset(58, 11)
+	title.Size = UDim2.new(1, -58 - 44, 0, 18)
+	title.Parent = root
+	ThemeManager.BindColor(title, "TextColor3", "PrimaryTextColor")
+	ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
 
-	local emptyLabel = Instance.new("TextLabel")
-	emptyLabel.Name = UUID.Static("DataTableEmpty")
-	emptyLabel.BackgroundTransparency = 1
-	emptyLabel.BorderSizePixel = 0
-	emptyLabel.FontFace = Constants.Font(Enum.FontWeight.Medium)
-	emptyLabel.Text = self._emptyText
-	emptyLabel.TextSize = 12
-	emptyLabel.TextXAlignment = Enum.TextXAlignment.Left
-	emptyLabel.TextColor3 = theme.SecondaryTextColor
-	emptyLabel.TextTransparency = theme.SecondaryTextTransparency or 0.45
-	emptyLabel.Size = UDim2.new(1, 0, 0, 22)
-	emptyLabel.LayoutOrder = 3
-	emptyLabel.Visible = false
-	emptyLabel.Parent = root
-	ThemeManager.BindColor(emptyLabel, "TextColor3", "SecondaryTextColor")
-	ThemeManager.BindTransparency(emptyLabel, "TextTransparency", "SecondaryTextTransparency")
+	local subtitle = Instance.new("TextLabel")
+	subtitle.Name = UUID.Static("Subtitle")
+	subtitle.BorderSizePixel = 0
+	subtitle.BackgroundTransparency = 1
+	subtitle.FontFace = Constants.Font(Enum.FontWeight.Medium)
+	subtitle.Text = ""
+	subtitle.TextSize = 10
+	subtitle.TextXAlignment = Enum.TextXAlignment.Left
+	subtitle.TextTruncate = Enum.TextTruncate.AtEnd
+	subtitle.TextColor3 = (theme and theme.SecondaryTextColor) or Color3.fromRGB(200, 200, 200)
+	subtitle.TextTransparency = (theme and theme.SecondaryTextTransparency) or 0.4
+	subtitle.Position = UDim2.fromOffset(58, 29)
+	subtitle.Size = UDim2.new(1, -58 - 44, 0, 14)
+	subtitle.Parent = root
+	ThemeManager.BindColor(subtitle, "TextColor3", "SecondaryTextColor")
+	ThemeManager.BindTransparency(subtitle, "TextTransparency", "SecondaryTextTransparency")
 
-	self.Frame = root
+	local chevron = Instance.new("ImageLabel")
+	chevron.Name = UUID.Static("Chevron")
+	chevron.BorderSizePixel = 0
+	chevron.BackgroundTransparency = 1
+	chevron.AnchorPoint = Vector2.new(1, 0.5)
+	chevron.Position = UDim2.new(1, -14, 0.5, 0)
+	chevron.Size = UDim2.fromOffset(14, 14)
+	chevron.Image = Icons["chevron-right"]
+	chevron.ImageTransparency = 0.35
+	chevron.ImageColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+	chevron.Parent = root
+	ThemeManager.BindColor(chevron, "ImageColor3", "AccentColor")
+
 	self.Title = title
-	self.Header = header
-	self.Body = body
-	self.EmptyLabel = emptyLabel
-	self._bodyLayout = bodyLayout
+	self.Subtitle = subtitle
+	self._chevron = chevron
 
-	-- Header labels are rebuilt only when the columns change.
-	local function buildHeader()
-		for _, child in ipairs(header:GetChildren()) do
-			if child:IsA("GuiObject") then
-				for _, descendant in ipairs(child:GetDescendants()) do
-					ThemeManager.UnbindInstance(descendant)
-				end
-				ThemeManager.UnbindInstance(child)
-				child:Destroy()
-			end
-		end
-		local actionSpace = self._action and ACTION_WIDTH or 0
-		local holder = Instance.new("Frame")
-		holder.Name = UUID.Static("DataTableHeaderCells")
-		holder.BorderSizePixel = 0
-		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.new(1, -actionSpace, 1, 0)
-		holder.Parent = header
-		layoutCells(self._columns, function(column, position, fraction)
-			local label = Instance.new("TextLabel")
-			label.Name = UUID.Generate("DataTableHeaderCell")
-			label.BackgroundTransparency = 1
-			label.BorderSizePixel = 0
-			label.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-			label.Text = tostring(column.Label)
-			label.TextSize = 11
-			label.TextTruncate = Enum.TextTruncate.AtEnd
-			label.TextXAlignment = textAlignment(column.Align)
-			label.TextColor3 = theme.SecondaryTextColor
-			label.TextTransparency = 0.45
-			label.Position = position
-			label.Size = UDim2.new(fraction, -6, 1, 0)
-			label.Parent = holder
-			local pad = Instance.new("UIPadding")
-			pad.PaddingLeft = UDim.new(0, 3)
-			pad.PaddingRight = UDim.new(0, 3)
-			pad.Parent = label
-			ThemeManager.BindColor(label, "TextColor3", "SecondaryTextColor")
-			ThemeManager.BindTransparency(label, "TextTransparency", "SecondaryTextTransparency")
-		end)
-		if self._action then
-			local actionLabel = Instance.new("TextLabel")
-			actionLabel.Name = UUID.Generate("DataTableHeaderAction")
-			actionLabel.BackgroundTransparency = 1
-			actionLabel.BorderSizePixel = 0
-			actionLabel.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-			actionLabel.Text = ""
-			actionLabel.TextSize = 11
-			actionLabel.TextXAlignment = Enum.TextXAlignment.Center
-			actionLabel.TextColor3 = theme.SecondaryTextColor
-			actionLabel.TextTransparency = 0.45
-			actionLabel.AnchorPoint = Vector2.new(1, 0)
-			actionLabel.Position = UDim2.fromScale(1, 0)
-			actionLabel.Size = UDim2.new(0, ACTION_WIDTH, 1, 0)
-			actionLabel.Parent = header
-			ThemeManager.BindColor(actionLabel, "TextColor3", "SecondaryTextColor")
-			ThemeManager.BindTransparency(actionLabel, "TextTransparency", "SecondaryTextTransparency")
-		end
-	end
-
-	local renderedRows = {}
-
-	local function clearRows()
-		for _, row in ipairs(renderedRows) do
-			for _, descendant in ipairs(row:GetDescendants()) do
-				ThemeManager.UnbindInstance(descendant)
-			end
-			ThemeManager.UnbindInstance(row)
-			row:Destroy()
-		end
-		table.clear(renderedRows)
-	end
+	local popup = nil
 
 	local function sortedRows()
 		local ordered = {}
@@ -400,132 +252,88 @@ function DataTable.new(parent, Settings, theme)
 		return ordered
 	end
 
-	local function makeRow(row, layoutOrder)
-		local rowFrame = Instance.new("Frame")
-		rowFrame.Name = UUID.Generate("DataTableRow")
-		rowFrame.BorderSizePixel = 0
-		rowFrame.BackgroundColor3 = theme.ComponentBackgroundColor
-		rowFrame.BackgroundTransparency = self._striped and (layoutOrder % 2 == 0 and 0.94 or 0.985) or 1
-		rowFrame.Size = UDim2.new(1, 0, 0, self._rowHeight)
-		rowFrame.LayoutOrder = layoutOrder
-		rowFrame.Parent = body
-		local rowCorner = Instance.new("UICorner")
-		rowCorner.CornerRadius = UDim.new(0, 5)
-		rowCorner.Parent = rowFrame
+	local function popupContent()
+		return {
+			Title = name,
+			Columns = self._columns,
+			Rows = sortedRows(),
+			SortBy = self._sortBy,
+			SortDescending = self._sortDescending,
+			Action = self._action,
+			EmptyText = self._emptyText,
+			RowColorTransparency = self._rowColorTransparency,
+			Striped = self._striped,
+			ShowHeader = self._showHeader,
+			MaxRows = self._maxRows,
+			RowHeight = self._rowHeight,
+			RowGap = self._rowGap,
+		}
+	end
 
-		local color = row._color
-		if typeof(color) == "Color3" then
-			rowFrame.BackgroundColor3 = color
-			rowFrame.BackgroundTransparency = self._rowColorTransparency
-		else
-			ThemeManager.BindColor(rowFrame, "BackgroundColor3", "ComponentBackgroundColor")
+	local function refreshCard()
+		local rows = #self._rows
+		local rowsText = rows == 1 and "1 row" or tostring(rows) .. " rows"
+		local columns = #self._columns
+		local columnsText = columns == 1 and "1 column" or tostring(columns) .. " columns"
+		subtitle.Text = rowsText .. " \u{00B7} " .. columnsText
+	end
+
+	local function refreshPopup()
+		if popup and popup.IsOpen then
+			popup:SetContent(popupContent())
 		end
-
-		local anchor = Instance.new("Frame")
-		anchor.Name = UUID.Static("DataTableRowCells")
-		anchor.BorderSizePixel = 0
-		anchor.BackgroundTransparency = 1
-		anchor.Size = UDim2.new(1, -(self._action and ACTION_WIDTH + 4 or 8), 1, 0)
-		anchor.Position = UDim2.fromOffset(4, 0)
-		anchor.Parent = rowFrame
-
-		layoutCells(self._columns, function(column, position, fraction)
-			local cell = Instance.new("TextLabel")
-			cell.Name = UUID.Generate("DataTableCell")
-			cell.BackgroundTransparency = 1
-			cell.BorderSizePixel = 0
-			cell.FontFace = Constants.Font(Enum.FontWeight.Medium)
-			cell.Text = formatValue(column, row[column.Key])
-			cell.TextSize = 12
-			cell.TextTruncate = Enum.TextTruncate.AtEnd
-			cell.TextXAlignment = textAlignment(column.Align)
-			cell.TextColor3 = resolveColor(column, row[column.Key], row, theme.PrimaryTextColor)
-			cell.TextTransparency = 0.2
-			cell.Position = position
-			cell.Size = UDim2.new(fraction, -6, 1, 0)
-			cell.Parent = anchor
-			local pad = Instance.new("UIPadding")
-			pad.PaddingLeft = UDim.new(0, 3)
-			pad.PaddingRight = UDim.new(0, 3)
-			pad.Parent = cell
-			-- A column color is dynamic, so only theme the default text.
-			if column.Color == nil then
-				ThemeManager.BindColor(cell, "TextColor3", "PrimaryTextColor")
-			end
-		end)
-
-		if self._action then
-			local button = Instance.new("TextButton")
-			button.Name = UUID.Generate("DataTableAction")
-			button.BorderSizePixel = 0
-			button.AutoButtonColor = false
-			button.AnchorPoint = Vector2.new(1, 0.5)
-			button.Position = UDim2.new(1, -4, 0.5, 0)
-			button.Size = UDim2.fromOffset(ACTION_WIDTH - 6, self._rowHeight - 6)
-			button.BackgroundColor3 = theme.AccentColor
-			button.BackgroundTransparency = 0.82
-			button.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-			button.Text = self._action.Label or "Action"
-			button.TextSize = 11
-			button.TextColor3 = theme.PrimaryTextColor
-			button.TextTransparency = 0.1
-			button.Parent = rowFrame
-			local buttonCorner = Instance.new("UICorner")
-			buttonCorner.CornerRadius = UDim.new(0, 5)
-			buttonCorner.Parent = button
-			ThemeManager.BindColor(button, "BackgroundColor3", "AccentColor")
-			ThemeManager.BindColor(button, "TextColor3", "PrimaryTextColor")
-			button.MouseEnter:Connect(function()
-				Tween.Play(button, "Fast", { BackgroundTransparency = 0.7 })
-			end)
-			button.MouseLeave:Connect(function()
-				Tween.Play(button, "Fast", { BackgroundTransparency = 0.82 })
-			end)
-			button.MouseButton1Click:Connect(function()
-				if self._action and self._action.Callback then
-					self._action.Callback(row._id, row)
-				end
-			end)
-		end
-
-		rowFrame.MouseEnter:Connect(function()
-			if typeof(row._color) == "Color3" then
-				return
-			end
-			Tween.Play(rowFrame, "Fast", { BackgroundTransparency = 0.9 })
-		end)
-		rowFrame.MouseLeave:Connect(function()
-			if typeof(row._color) == "Color3" then
-				return
-			end
-			local base = self._striped and (layoutOrder % 2 == 0 and 0.94 or 0.985) or 1
-			Tween.Play(rowFrame, "Fast", { BackgroundTransparency = base })
-		end)
-
-		renderedRows[#renderedRows + 1] = rowFrame
-		return rowFrame
 	end
 
 	local function render()
-		clearRows()
-		local ordered = sortedRows()
-		local count = #ordered
-		local visible = math.min(count, self._maxRows)
-		if visible > 0 then
-			local height = visible * self._rowHeight + math.max(visible - 1, 0) * self._rowGap
-			body.Size = UDim2.new(1, 0, 0, height)
-			body.Visible = true
-		else
-			body.Size = UDim2.fromScale(1, 0)
-			body.Visible = false
+		refreshCard()
+		refreshPopup()
+	end
+	self._render = render
+
+	local function ensurePopup()
+		if popup then
+			return popup
 		end
-		emptyLabel.Visible = count == 0
-		for index, row in ipairs(ordered) do
-			makeRow(row, index)
+		popup = DataTablePopUp.new(self._popupParent, { Theme = self._theme })
+		popup.OnSort = function(key)
+			if self._sortBy == key then
+				self._sortDescending = not self._sortDescending
+			else
+				self._sortBy = key
+				self._sortDescending = false
+			end
+			render()
 		end
+		popup.OnAction = function(id, row)
+			if self._action and self._action.Callback then
+				self._action.Callback(id, row)
+			end
+		end
+		return popup
 	end
 
-	self._render = render
+	local function openPopup()
+		local instance = ensurePopup()
+		instance:SetContent(popupContent())
+		if window and window._claimPopup then
+			window:_claimPopup(instance)
+		end
+		instance:Open()
+	end
+
+	root.MouseButton1Click:Connect(openPopup)
+	root.MouseEnter:Connect(function()
+		if popup and popup.IsOpen then
+			return
+		end
+		Tween.Play(root, "Fast", { BackgroundTransparency = 0.94 })
+		Tween.Play(chevron, "Fast", { ImageTransparency = 0.1 })
+	end)
+	root.MouseLeave:Connect(function()
+		local base = (theme and theme.ComponentBackgroundTransparency) or 0.985
+		Tween.Play(root, "Fast", { BackgroundTransparency = base })
+		Tween.Play(chevron, "Fast", { ImageTransparency = 0.35 })
+	end)
 
 	ComponentAPI.Apply(self, {
 		Root = function(me)
@@ -642,24 +450,32 @@ function DataTable.new(parent, Settings, theme)
 			end,
 			SetEmptyText = function(me, text)
 				me._emptyText = tostring(text or "")
-				emptyLabel.Text = me._emptyText
+				render()
 				return me
 			end,
 			SetColumns = function(me, columns)
 				me._columns = compileColumns(columns)
-				buildHeader()
 				render()
 				return me
 			end,
 			SetAction = function(me, action)
 				me._action = action
-				buildHeader()
 				render()
 				return me
 			end,
 			SetHeaderVisible = function(me, visible)
 				me._showHeader = visible == true
-				header.Visible = me._showHeader
+				render()
+				return me
+			end,
+			Open = function(me)
+				openPopup()
+				return me
+			end,
+			Close = function(me)
+				if popup then
+					popup:Close()
+				end
 				return me
 			end,
 			Destroy = function(me)
@@ -669,13 +485,18 @@ function DataTable.new(parent, Settings, theme)
 				ThemeManager.UnbindInstance(me.Frame)
 				me.Frame:Destroy()
 				me.Frame = nil
-				renderedRows = {}
+				if popup then
+					if window and window._activePopUp == popup then
+						window._activePopUp = nil
+					end
+					popup:Destroy()
+					popup = nil
+				end
 			end,
 		},
 	})
 
-	buildHeader()
-	render()
+	refreshCard()
 	return self
 end
 

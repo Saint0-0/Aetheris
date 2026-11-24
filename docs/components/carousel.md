@@ -1,6 +1,6 @@
 # Carousel
 
-A swipeable strip of image and video pages, with a blob indicator over the media.
+A stacked crossfading carousel of image and video pages, with a frosted progress indicator over the media.
 
 ```lua
 local carousel = section:Carousel({
@@ -19,7 +19,7 @@ carousel:Next()
 
 The array part of the settings table is the page list. Each entry is `{ assetId, kind }`, where `kind` is `"image"` or `"video"` and defaults to `"image"`. A carousel accepts at most five pages.
 
-Dragging left or right changes the page. The blob row sits over the bottom of the media; the active blob fills with the current page's progress.
+Clicking the media advances to the next page with a crossfade: the current page fades out while the next fades in. The indicator capsule sits over the bottom of the media; the active pill stretches and fills with the current page's progress.
 
 ## Options
 
@@ -31,7 +31,7 @@ Dragging left or right changes the page. The blob row sits over the bottom of th
 | `AutoAdvance` | boolean | Advance to the next page on a timer. On by default. |
 | `Volume` | number | `0` to `1` for video pages. Muted by default. |
 
-Image pages advance on the interval. A video page advances when its loop restarts, so the blob always fills completely first. Videos on hidden pages pause, and only the current page decodes.
+Image pages advance on the interval. A video page advances when its loop restarts, so the pill always fills completely first. Videos on hidden pages pause, and only the current page decodes.
 
 ## Methods
 

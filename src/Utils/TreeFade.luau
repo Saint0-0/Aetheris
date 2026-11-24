@@ -15,6 +15,7 @@
 
 local Tween = require("./Tween")
 local UUID = require("./UUID")
+local VideoFade = require("./VideoFade")
 
 local TreeFade = {}
 
@@ -30,6 +31,16 @@ local states = setmetatable({}, { __mode = "k" })
 local generations = setmetatable({}, { __mode = "k" })
 
 local HIDDEN_ATTRIBUTE = UUID.Static("FadeHidden")
+local VEIL_ATTRIBUTE = UUID.Static("IsFadeVeil")
+
+-- Fade modes per entry.
+-- VALUE: a numeric opacity property that fades to 1 when hidden.
+-- VIDEO: a tagged UIGradient whose NumberSequence carries video opacity.
+-- VEIL: an opaque cover whose transparency fades to 0 (opaque) when hidden,
+-- so rendering that has no transparency (ViewportFrame) can still fade.
+local MODE_VALUE = 0
+local MODE_VIDEO = 1
+local MODE_VEIL = 2
 
 function TreeFade.MarkRoot(root)
 	if root then
@@ -41,19 +52,35 @@ function TreeFade.IsRoot(root)
 	return roots[root] == true
 end
 
--- Flat triples (instance, property, base) keep a full-window capture cheap:
--- one array instead of thousands of small entry tables per switch.
-local function captureProperty(entries, inst, prop)
-	local value = inst[prop]
+-- Flat 4-tuples (instance, property, base, mode) keep a full-window capture
+-- cheap: one array instead of thousands of small entry tables per switch.
+local function captureProperty(entries, inst, prop, mode, base)
+	local value = base
+	if value == nil then
+		value = inst[prop]
+	end
 	if type(value) == "number" then
 		local index = #entries
 		entries[index + 1] = inst
 		entries[index + 2] = prop
 		entries[index + 3] = value
+		entries[index + 4] = mode or MODE_VALUE
 	end
 end
 
 local function captureInstance(entries, inst)
+	-- ViewportFrame has no transparency, so components cover it with a tagged
+	-- veil and the fade inverts it: opaque when hidden, invisible when shown.
+	if inst:IsA("GuiObject") and inst:GetAttribute(VEIL_ATTRIBUTE) == true then
+		captureProperty(entries, inst, "BackgroundTransparency", MODE_VEIL)
+		return
+	end
+	-- VideoFrame.Transparency does not affect rendered video; its tagged
+	-- UIGradient is the only working fade.
+	if inst:IsA("UIGradient") and inst:GetAttribute(VideoFade.ATTRIBUTE) == true then
+		captureProperty(entries, inst, "Transparency", MODE_VIDEO, VideoFade.get(inst))
+		return
+	end
 	-- CanvasGroups composite their children, so fading the group is enough.
 	if inst:IsA("UIStroke") or inst:IsA("UIShadow") then
 		captureProperty(entries, inst, "Transparency")
@@ -108,12 +135,25 @@ end
 local function apply(state, hidden, instant, preset)
 	local handles = {}
 	local entries = state.entries
-	for index = 1, #entries, 3 do
-		local inst, prop, base = entries[index], entries[index + 1], entries[index + 2]
+	for index = 1, #entries, 4 do
+		local inst, prop, base, mode = entries[index], entries[index + 1], entries[index + 2], entries[index + 3]
 		if inst.Parent then
-			local target = hidden and 1 or base
+			local target = base
+			if hidden then
+				target = mode == MODE_VEIL and 0 or 1
+			end
 			Tween.CancelProperty(inst, prop)
-			if instant or math.abs(inst[prop] - target) < 0.001 then
+			if mode == MODE_VIDEO then
+				local sequence = NumberSequence.new(target)
+				if instant or math.abs(VideoFade.get(inst) - target) < 0.001 then
+					inst.Transparency = sequence
+				else
+					local handle = Tween.Play(inst, preset or TreeFade.PRESET, { Transparency = sequence })
+					if handle then
+						table.insert(handles, handle)
+					end
+				end
+			elseif instant or math.abs(inst[prop] - target) < 0.001 then
 				inst[prop] = target
 			else
 				local handle = Tween.Play(inst, preset or TreeFade.PRESET, { [prop] = target })

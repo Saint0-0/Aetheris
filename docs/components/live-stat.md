@@ -1,6 +1,6 @@
 # Live Stat
 
-A big number with a label, a change indicator and an optional icon. The digits roll like an odometer when the value changes.
+A big number with a label, a change chip and an optional icon. The digits roll like an odometer when the value changes, and the card tints a soft accent wash, bar and icon tile toward the change direction.
 
 ```lua
 local stat = section:LiveStat({
@@ -21,11 +21,11 @@ end)
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Label under the number. |
+| `Name` | string | Card label. |
 | `Value` | number | Starting value. |
 | `Prefix` | string | Text before the number, e.g. `$`. |
 | `Suffix` | string | Text after the number, e.g. ` pts`. |
-| `Icon` | string | Asset id shown beside the value. |
+| `Icon` | string | Asset id shown in the accent icon tile. |
 | `ShowChange` | boolean | Show the change line. On by default. |
 | `ChangeMode` | string | `"percentage"` (default) or `"absolute"`. |
 | `ChangeBaseline` | string | Compare against `"previous"` (default) or `"initial"`. |

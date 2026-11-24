@@ -17,13 +17,13 @@ Most components also share four methods: `:SetName(string)`, `:SetVisible(bool)`
 | [Radio Button](components/radio-button.md) | One standalone choice. |
 | [Progress Bar](components/progress-bar.md) | Filled bar for min-to-max values. |
 | [Status](components/status.md) | Heading plus coloured status lines. |
-| [Live Stat](components/live-stat.md) | Big rolling number with a change line. |
-| [Data Table](components/data-table.md) | Weighted-column table with live rows and sorting. |
+| [Live Stat](components/live-stat.md) | Big rolling number with a change chip. |
+| [Data Table](components/data-table.md) | Field card that opens a searchable, sortable table popup. |
 | [Graph](components/graph.md) | Animated line graph for streaming values. |
 | [Console](components/console.md) | Scrollback log panel. |
 | [Code View](components/code-view.md) | Highlighted code block, optionally editable. |
 | [Video](components/video.md) | Inline video frame. |
-| [Carousel](components/carousel.md) | Swipeable image and video pages. |
+| [Carousel](components/carousel.md) | Crossfading image and video pages. |
 | [Viewport](components/viewport.md) | Renders a player's character. |
 | [Button](components/button.md) | A row you click. |
 | [Label](components/label.md) | One line of text in a container. |

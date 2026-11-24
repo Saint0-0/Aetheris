@@ -1369,9 +1369,9 @@ function Window.new(Settings)
 		local visible = scrollable and math.min(content, limit) or content
 
 		if horizontal then
-			pill.Size = UDim2.fromOffset(visible + 16, PILL_CROSS)
+			pill.Size = UDim2.fromOffset(visible + 8, PILL_CROSS)
 		else
-			pill.Size = UDim2.fromOffset(PILL_CROSS, visible + 16)
+			pill.Size = UDim2.fromOffset(PILL_CROSS, visible + 8)
 		end
 		pillScroll.ScrollingEnabled = scrollable
 		pillScroll.ScrollBarThickness = scrollable and 1 or 0
@@ -1397,10 +1397,11 @@ function Window.new(Settings)
 		end
 		if pillPad then
 			-- Padding follows the dock: the cross axis carries the breathing
-			-- room a hover-scaled button needs, the main axis stays a thin
-			-- inset so the strip keeps the full content length.
+			-- room a hover-scaled button needs, the main axis stays at zero.
+			-- AutomaticCanvasSize counts padding, so any main-axis padding
+			-- adds blank travel past the last tab when the strip scrolls.
 			local cross = 8
-			local main = 4
+			local main = 0
 			pillPad.PaddingTop = UDim.new(0, horizontal and cross or main)
 			pillPad.PaddingBottom = UDim.new(0, horizontal and cross or main)
 			pillPad.PaddingLeft = UDim.new(0, horizontal and main or cross)

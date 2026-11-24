@@ -12,10 +12,13 @@ local UUID = require("./UUID")
 
 local VideoFade = {}
 
+-- Shared tag so fades (including Utils/TreeFade) can find the gradient.
+VideoFade.ATTRIBUTE = UUID.Static("IsVideoFade")
+
 function VideoFade.attach(videoFrame)
 	local grad = Instance.new("UIGradient")
 	grad.Name = UUID.Static("FadeGradient")
-	grad:SetAttribute(UUID.Static("IsVideoFade"), true)
+	grad:SetAttribute(VideoFade.ATTRIBUTE, true)
 	grad.Transparency = NumberSequence.new(0)
 	grad.Parent = videoFrame
 	return grad

@@ -3,6 +3,9 @@
 
 	Animated numeric stat card with Full and Compact layouts. Values roll through
 	the odometer and tint positive, negative or neutral from the theme accent.
+	The surface stays neutral with a soft accent wash, so the card reads as part
+	of the page instead of a solid coloured block.
+
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 	Based on Rayfield Gen 2 code (MPL-2.0)
@@ -24,10 +27,11 @@ LiveStat.__index = LiveStat
 -- 12s per revolution; a shared preset in Utils/Tween.
 local SPIN_PRESET = "SpinStat"
 
-local FULL_HEIGHT = 90
-local COMPACT_HEIGHT = 41
-local FULL_CORNER = 8
-local COMPACT_CORNER = 6
+local FULL_HEIGHT = 92
+local COMPACT_HEIGHT = 42
+local FULL_CORNER = 9
+local COMPACT_CORNER = 7
+local ACCENT_BAR = 3
 
 -- Rising uses the accent; falling rotates that hue to red.
 local POS_FALLBACK = Color3.fromRGB(0, 170, 127)
@@ -159,53 +163,66 @@ function LiveStat:_buildFull()
 	stroke.Transparency = theme.StrokeTransparency or 0.7
 	self._stroke = stroke
 
-	self:_buildAccent(main, FULL_CORNER, 13)
+	self:_buildAccent(main, FULL_CORNER, 14)
 
-	local titleContainer = Instance.new("Frame")
-	titleContainer.Name = UUID.Static("Title")
-	titleContainer.Size = UDim2.new(1, -40, 0, 32)
-	titleContainer.Position = UDim2.fromOffset(20, 15)
-	titleContainer.BackgroundTransparency = 1
-	titleContainer.BorderSizePixel = 0
-	titleContainer.ZIndex = 3
-	titleContainer.Parent = main
-	self._titleContainer = titleContainer
+	local bar = Instance.new("Frame")
+	bar.Name = UUID.Static("AccentBar")
+	bar.BorderSizePixel = 0
+	bar.BackgroundColor3 = self._accent.fill
+	bar.BackgroundTransparency = 0.15
+	bar.Size = UDim2.new(0, ACCENT_BAR, 1, 0)
+	bar.ZIndex = 4
+	bar.Parent = main
+	local barCorner = Instance.new("UICorner")
+	barCorner.TopLeftRadius = UDim.new(0, FULL_CORNER)
+	barCorner.BottomLeftRadius = UDim.new(0, FULL_CORNER)
+	barCorner.Parent = bar
+	self._accentBar = bar
 
-	local list = Instance.new("UIListLayout")
-	list.FillDirection = Enum.FillDirection.Horizontal
-	list.VerticalAlignment = Enum.VerticalAlignment.Center
-	list.HorizontalAlignment = Enum.HorizontalAlignment.Left
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0, 8)
-	list.Parent = titleContainer
-
+	local iconX = 16
 	if self._icon then
+		local tile = Instance.new("Frame")
+		tile.Name = UUID.Static("IconTile")
+		tile.BorderSizePixel = 0
+		tile.BackgroundColor3 = self._accent.fill
+		tile.BackgroundTransparency = 0.74
+		tile.Position = UDim2.fromOffset(iconX, 14)
+		tile.Size = UDim2.fromOffset(34, 34)
+		tile.ZIndex = 3
+		tile.Parent = main
+		local tileCorner = Instance.new("UICorner")
+		tileCorner.CornerRadius = UDim.new(0, 9)
+		tileCorner.Parent = tile
+		self._iconTile = tile
+
 		local icon = Instance.new("ImageLabel")
 		icon.Image = self._icon
-		icon.Size = UDim2.fromOffset(32, 32)
+		icon.Size = UDim2.fromOffset(17, 17)
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.fromScale(0.5, 0.5)
 		icon.BackgroundTransparency = 1
 		icon.BorderSizePixel = 0
-		icon.LayoutOrder = 0
-		icon.ZIndex = 3
 		icon.ImageColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
-		icon.Parent = titleContainer
+		icon.Parent = tile
 		ThemeManager.BindColor(icon, "ImageColor3", "PrimaryTextColor")
 		self._iconLabel = icon
+
+		iconX = 60
 	end
 
 	local title = Instance.new("TextLabel")
 	Locale.set(title, "Text", self._name)
-	title.Size = UDim2.fromOffset(300, 19)
+	title.Position = UDim2.fromOffset(iconX, 14)
+	title.Size = UDim2.new(1, -iconX - 94, 0, 18)
 	title.BackgroundTransparency = 1
 	title.BorderSizePixel = 0
-	title.TextSize = 19
+	title.TextSize = 13
 	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextWrapped = true
-	title.LayoutOrder = 1
-	title.FontFace = Constants.Font(Enum.FontWeight.Medium)
+	title.TextTruncate = Enum.TextTruncate.AtEnd
+	title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	title.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	title.ZIndex = 3
-	title.Parent = titleContainer
+	title.Parent = main
 	ThemeManager.BindColor(title, "TextColor3", "PrimaryTextColor")
 	ThemeManager.BindTransparency(title, "TextTransparency", "PrimaryTextTransparency")
 	self._title = title
@@ -213,33 +230,52 @@ function LiveStat:_buildFull()
 	local valueHost = Instance.new("Frame")
 	valueHost.Name = UUID.Static("Value")
 	valueHost.AnchorPoint = Vector2.new(0, 1)
-	valueHost.Position = UDim2.new(0, 20, 1, -15)
-	valueHost.Size = UDim2.fromOffset(200, 20)
+	valueHost.Position = UDim2.new(0, iconX, 1, -12)
+	valueHost.Size = UDim2.new(0.65, -iconX, 0, 32)
 	valueHost.BackgroundTransparency = 1
 	valueHost.BorderSizePixel = 0
 	valueHost.ZIndex = 3
 	valueHost.Parent = main
 	self._valueOdo = Odometer.new(valueHost, {
-		textSize = 20,
+		textSize = 25,
+		height = 30,
 		weight = Enum.FontWeight.SemiBold,
 		alignment = Enum.HorizontalAlignment.Left,
+		textColor = theme.PrimaryTextColor,
 	})
 	self._valueOdo:snap(self:_format(self._value))
 
 	if self._showChange then
+		local chip = Instance.new("Frame")
+		chip.Name = UUID.Static("ChangeChip")
+		chip.BorderSizePixel = 0
+		chip.BackgroundColor3 = self._accent.fill
+		chip.BackgroundTransparency = 0.84
+		chip.AnchorPoint = Vector2.new(1, 1)
+		chip.Position = UDim2.new(1, -16, 1, -14)
+		chip.Size = UDim2.fromOffset(78, 22)
+		chip.ZIndex = 3
+		chip.Parent = main
+		local chipCorner = Instance.new("UICorner")
+		chipCorner.CornerRadius = UDim.new(0, 7)
+		chipCorner.Parent = chip
+		self._changeChip = chip
+
 		local changeHost = Instance.new("Frame")
 		changeHost.Name = UUID.Static("Change")
-		changeHost.AnchorPoint = Vector2.new(1, 1)
-		changeHost.Position = UDim2.new(1, -20, 1, -15)
-		changeHost.Size = UDim2.fromOffset(200, 15)
+		changeHost.AnchorPoint = Vector2.new(1, 0.5)
+		changeHost.Position = UDim2.new(1, -8, 0.5, 0)
+		changeHost.Size = UDim2.new(1, -16, 1, 0)
 		changeHost.BackgroundTransparency = 1
 		changeHost.BorderSizePixel = 0
-		changeHost.ZIndex = 3
-		changeHost.Parent = main
+		changeHost.ZIndex = 4
+		changeHost.Parent = chip
 		self._changeOdo = Odometer.new(changeHost, {
-			textSize = 15,
+			textSize = 12,
+			height = 14,
 			weight = Enum.FontWeight.SemiBold,
 			alignment = Enum.HorizontalAlignment.Right,
+			textColor = theme.PrimaryTextColor,
 		})
 		self._changeOdo:snap(self:_formatChange(0))
 	end
@@ -254,7 +290,6 @@ function LiveStat:_buildCompact()
 	main.BackgroundColor3 = theme.ComponentBackgroundColor or Color3.fromRGB(30, 30, 34)
 	main.BackgroundTransparency = theme.ComponentBackgroundTransparency or 0
 	main.BorderSizePixel = 0
-	main.ClipsDescendants = true
 	main.ZIndex = 1
 	main.Parent = self._parent
 	self._main = main
@@ -278,33 +313,63 @@ function LiveStat:_buildCompact()
 
 	self:_buildAccent(main, COMPACT_CORNER, 10)
 
-	local pad = 14
+	local bar = Instance.new("Frame")
+	bar.Name = UUID.Static("AccentBar")
+	bar.BorderSizePixel = 0
+	bar.BackgroundColor3 = self._accent.fill
+	bar.BackgroundTransparency = 0.15
+	bar.Size = UDim2.new(0, ACCENT_BAR, 1, 0)
+	bar.ZIndex = 4
+	bar.Parent = main
+	local barCorner = Instance.new("UICorner")
+	barCorner.TopLeftRadius = UDim.new(0, COMPACT_CORNER)
+	barCorner.BottomLeftRadius = UDim.new(0, COMPACT_CORNER)
+	barCorner.Parent = bar
+	self._accentBar = bar
+
+	local textX = 14
 	if self._icon then
+		local tile = Instance.new("Frame")
+		tile.Name = UUID.Static("IconTile")
+		tile.BorderSizePixel = 0
+		tile.BackgroundColor3 = self._accent.fill
+		tile.BackgroundTransparency = 0.76
+		tile.AnchorPoint = Vector2.new(0, 0.5)
+		tile.Position = UDim2.new(0, 11, 0.5, 0)
+		tile.Size = UDim2.fromOffset(26, 26)
+		tile.ZIndex = 3
+		tile.Parent = main
+		local tileCorner = Instance.new("UICorner")
+		tileCorner.CornerRadius = UDim.new(0, 7)
+		tileCorner.Parent = tile
+		self._iconTile = tile
+
 		local icon = Instance.new("ImageLabel")
 		icon.Image = self._icon
-		icon.Size = UDim2.fromOffset(20, 20)
-		icon.Position = UDim2.new(0, pad, 0.5, -10)
+		icon.Size = UDim2.fromOffset(14, 14)
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.fromScale(0.5, 0.5)
 		icon.BackgroundTransparency = 1
 		icon.BorderSizePixel = 0
-		icon.ZIndex = 3
 		icon.ImageColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
-		icon.Parent = main
+		icon.Parent = tile
 		ThemeManager.BindColor(icon, "ImageColor3", "PrimaryTextColor")
 		self._iconLabel = icon
-		pad = pad + 26
+
+		textX = 45
 	end
 
 	local title = Instance.new("TextLabel")
 	Locale.set(title, "Text", self._name)
 	title.AnchorPoint = Vector2.new(0, 0.5)
-	title.Position = UDim2.new(0, pad, 0.5, 0)
-	title.Size = UDim2.new(0.6, -pad, 0, 16)
+	title.Position = UDim2.new(0, textX, 0.5, 0)
+	title.Size = UDim2.new(0.55, -textX - 6, 0, 16)
 	title.BackgroundTransparency = 1
 	title.BorderSizePixel = 0
-	title.TextSize = 16
+	title.TextSize = 12
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextTruncate = Enum.TextTruncate.AtEnd
-	title.FontFace = Constants.Font(Enum.FontWeight.Medium)
+	title.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
 	title.TextColor3 = theme.PrimaryTextColor or Color3.fromRGB(255, 255, 255)
 	title.ZIndex = 3
 	title.Parent = main
@@ -315,49 +380,62 @@ function LiveStat:_buildCompact()
 	local valueHost = Instance.new("Frame")
 	valueHost.Name = UUID.Static("Value")
 	valueHost.AnchorPoint = Vector2.new(1, 0.5)
-	valueHost.Position = UDim2.new(1, -14, 0.5, 0)
-	valueHost.Size = UDim2.new(0.5, -14, 1, 0)
+	valueHost.Position = UDim2.new(1, -12, 0.5, 0)
+	valueHost.Size = UDim2.new(0.45, -12, 1, 0)
 	valueHost.BackgroundTransparency = 1
 	valueHost.BorderSizePixel = 0
 	valueHost.ZIndex = 3
 	valueHost.Parent = main
 	self._valueOdo = Odometer.new(valueHost, {
 		textSize = 17,
+		height = 20,
 		weight = Enum.FontWeight.SemiBold,
 		alignment = Enum.HorizontalAlignment.Right,
+		textColor = theme.PrimaryTextColor,
 	})
 	self._valueOdo:snap(self:_format(self._value))
 end
 
--- Accent overlay spun for sheen, with a UIShadow glow behind the card.
+-- Neutral wash plus a slow sheen sweep; the accent bar, tile and chip carry
+-- the direction colour without flooding the whole card.
 function LiveStat:_buildAccent(main, cornerRadius, blurSize)
-	local overlay = Instance.new("Frame")
-	overlay.Size = UDim2.fromScale(1, 1)
-	overlay.BackgroundColor3 = self._accent.fill
-	overlay.BackgroundTransparency = 0
-	overlay.BorderSizePixel = 0
-	overlay.ZIndex = 2
-	overlay.Parent = main
-	self._overlay = overlay
+	local wash = Instance.new("Frame")
+	wash.Name = UUID.Static("AccentWash")
+	wash.Size = UDim2.fromScale(1, 1)
+	wash.BackgroundColor3 = self._accent.fill
+	wash.BackgroundTransparency = 0.9
+	wash.BorderSizePixel = 0
+	wash.ZIndex = 1
+	wash.Parent = main
+	local washCorner = Instance.new("UICorner")
+	washCorner.CornerRadius = UDim.new(0, cornerRadius)
+	washCorner.Parent = wash
+	self._wash = wash
 
-	local oCorner = Instance.new("UICorner")
-	oCorner.CornerRadius = UDim.new(0, cornerRadius)
-	oCorner.Parent = overlay
-
-	-- Brightness-only ramp; the overlay colour supplies the hue.
+	local sheen = Instance.new("Frame")
+	sheen.Name = UUID.Static("Sheen")
+	sheen.Size = UDim2.fromScale(1, 1)
+	sheen.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	sheen.BackgroundTransparency = 0.94
+	sheen.BorderSizePixel = 0
+	sheen.ZIndex = 2
+	sheen.Parent = main
+	local sheenCorner = Instance.new("UICorner")
+	sheenCorner.CornerRadius = UDim.new(0, cornerRadius)
+	sheenCorner.Parent = sheen
 	local gradient = Instance.new("UIGradient")
-	gradient.Rotation = -55
-	gradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120))
+	gradient.Rotation = 25
 	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(1, 0.12),
+		NumberSequenceKeypoint.new(0, 0.45),
+		NumberSequenceKeypoint.new(0.5, 0.05),
+		NumberSequenceKeypoint.new(1, 0.45),
 	})
-	gradient.Parent = overlay
+	gradient.Parent = sheen
 	self._gradient = gradient
 
 	local glow = Instance.new("UIShadow")
 	glow.Color = self._accent.fill
-	glow.Transparency = 0.6
+	glow.Transparency = 0.72
 	glow.BlurRadius = UDim.new(0, blurSize)
 	glow.Spread = UDim2.fromOffset(1, 1)
 	glow.Parent = main
@@ -397,17 +475,21 @@ function LiveStat:_applyAccent(direction)
 	end
 	self._accent = accent
 
-	-- Solid card base keeps the overlay edges matched.
-	if self._main then
-		ThemeManager.SetColorOverride(self._main, "BackgroundColor3", accent.fill)
-		self._main.BackgroundTransparency = 0
-	end
-	-- Tween the hue so rising and falling crossfade.
+	-- The card base stays neutral; only the wash and small marks recolour.
 	if self._stroke then
 		Tween.Play(self._stroke, "Fast", { Color = accent.stroke })
 	end
-	if self._overlay then
-		Tween.Play(self._overlay, "Fast", { BackgroundColor3 = accent.fill })
+	if self._wash then
+		Tween.Play(self._wash, "Fast", { BackgroundColor3 = accent.fill })
+	end
+	if self._accentBar then
+		Tween.Play(self._accentBar, "Fast", { BackgroundColor3 = accent.fill })
+	end
+	if self._iconTile then
+		Tween.Play(self._iconTile, "Fast", { BackgroundColor3 = accent.fill })
+	end
+	if self._changeChip then
+		Tween.Play(self._changeChip, "Fast", { BackgroundColor3 = accent.fill })
 	end
 	if self._glow then
 		Tween.Play(self._glow, "Fast", { Color = accent.fill })

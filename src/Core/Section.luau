@@ -257,7 +257,7 @@ function Section:Status(Settings)
 	return Status.new(self.Frame, Settings, self._theme)
 end
 function Section:DataTable(Settings)
-	return DataTable.new(self.Frame, Settings, self._theme)
+	return DataTable.new(self.Frame, Settings, self._theme, self._window)
 end
 function Section:Graph(Settings)
 	return Graph.new(self.Frame, Settings, self._theme)

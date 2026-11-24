@@ -23,7 +23,8 @@ end)
 | `ScrollingFrame` | `ScrollBarImageTransparency` |
 | `UIStroke`, `UIShadow` | `Transparency` |
 | `CanvasGroup` | `GroupTransparency` (children are skipped) |
-| `VideoFrame` | `Transparency` |
+| `VideoFrame` | Tagged `UIGradient.Transparency` (the raw frame property has no visual effect) |
+| Tagged fade veil | `BackgroundTransparency`, inverted: opaque when hidden, invisible when shown |
 
 ## Methods
 
@@ -42,3 +43,5 @@ end)
 - Every `Set`/`Snap` on a root bumps a generation, so a callback from a superseded fade (a fast tab double-click, a theme switch) does not run.
 - A cancelled tween never reports `Completed`, so each fade arms a fallback timer to keep callers moving.
 - `skipRoots` makes a parent fade ignore registered child roots; this is how the window shell avoids clobbering page layers.
+- Videos fade through the `<IsVideoFade>` gradient that `Utils/VideoFade` attaches, so the video itself dims rather than just its frame.
+- Viewports have no transparency. Components that render into one (like `Viewport`) can add a frame tagged `<IsFadeVeil>`; the fade covers it when hiding and uncovers it when showing.

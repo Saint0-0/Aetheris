@@ -133,6 +133,22 @@ function Viewport.new(parent, Settings, theme)
 	viewport.Parent = holder
 	newCorner(viewport, 4)
 
+	-- ViewportFrame content ignores transparency, so a tagged veil covers it
+	-- during page fades: TreeFade drives it inverse (opaque when hidden).
+	local veil = Instance.new("Frame")
+	veil.Name = UUID.Static("ViewportFadeVeil")
+	veil.BorderSizePixel = 0
+	veil.BackgroundColor3 = (theme and theme.SectionBackgroundColor) or Color3.fromRGB(28, 33, 44)
+	veil.BackgroundTransparency = 1
+	veil.Position = UDim2.fromScale(0, 0)
+	veil.Size = UDim2.new(1, -viewportRight, 1, 0)
+	veil.ZIndex = 2
+	veil.Active = false
+	veil:SetAttribute(UUID.Static("IsFadeVeil"), true)
+	veil.Parent = holder
+	newCorner(veil, 4)
+	ThemeManager.BindColor(veil, "BackgroundColor3", "SectionBackgroundColor")
+
 	-- Slim bar at the right edge, filled from the bottom by humanoid health.
 	local healthTrack, healthStroke, healthFill
 	if healthBar then

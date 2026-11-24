@@ -1,6 +1,6 @@
 # Data Table
 
-A compact table for changing records. Columns share the row width by weight, so the table always fits its section; there is no fixed-pixel width option.
+A compact field card for changing records. Clicking it opens a modal popup with the rows, a search field and sortable column headers; the card itself shows the name and the current row and column counts. Columns share the row width by weight, so the popup always fits; there is no fixed-pixel width option.
 
 ```lua
 local table = section:DataTable({
@@ -33,18 +33,20 @@ table:SetRows({
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `Name` | string | Heading above the table. |
+| `Name` | string | Label on the field card and in the popup header. |
 | `Columns` | table | Array of column definitions. |
-| `MaxRows` | number | Rows visible before the body scrolls. Default `10`. |
-| `RowHeight` | number | Pixel height of one row. Default `26`. |
-| `RowGap` | number | Space between rows. Default `4`. |
-| `ShowHeader` | boolean | Show the header row. On by default. |
+| `MaxRows` | number | Rows visible before the popup body scrolls. Default `10`. |
+| `RowHeight` | number | Pixel height of one popup row. Default `32`. |
+| `RowGap` | number | Space between popup rows. Default `2`. |
+| `ShowHeader` | boolean | Show the sortable column header in the popup. On by default. |
 | `Striped` | boolean | Alternate row shading. On by default. |
 | `EmptyText` | string | Text shown when there are no rows. |
 | `RowColorTransparency` | number | Transparency of a colour set with `:SetRowColor`. Default `0.82`. |
 | `SortBy` | string | Column key to sort by on creation. |
 | `SortDescending` | boolean | Sort high to low. |
 | `Action` | table | Optional per-row action button: `{ Label, Callback(id, row) }`. |
+
+Clicking a column label in the popup sorts by it; clicking the active column again flips the direction. The search field filters across every column's formatted text.
 
 ### Columns
 
@@ -58,16 +60,20 @@ table:SetRows({
 | `Color` | Color3, string or function | Static colour, hex string, or a function `(value, row) -> Color3`. |
 | `EmptyText` | string | Text for a `nil` value. Defaults to an em dash. |
 
-Columns are weighted, never pixel-sized: every row is divided by the total weight, so the table scales with the window instead of overflowing it.
+Columns are weighted, never pixel-sized: every row is divided by the total weight, so the popup scales with the window instead of overflowing it.
 
 ## Rows
 
 Each row is a plain table with one field per column `Key`. Every row needs a stable unique identifier in `id` (or `Id`); if neither is present the library uses its position, which can change when rows are added or removed.
 
+The popup re-renders live: `:UpdateRow()`, `:AddRow()` and `:RemoveRow()` all refresh an open table without closing it.
+
 ## Methods
 
 | Method | Description |
 | --- | --- |
+| `:Open()` | Open the table popup. |
+| `:Close()` | Close the table popup. |
 | `:SetRows(rows)` | Replace every row. Duplicate identifiers overwrite each other. |
 | `:GetRows()` | Returns a copy of the rows. |
 | `:GetRow(id)` | Returns a copy of one row, or `nil`. |

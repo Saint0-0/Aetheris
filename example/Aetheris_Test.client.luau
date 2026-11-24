@@ -341,8 +341,8 @@ apiSection:Button({
 -- =========================================================================
 --  3b. STATS TAB  -  LiveStat readouts (left) + the buttons that drive them (right)
 -- =========================================================================
--- LiveStat shows ONE number driven via :Set(number). Two shapes: Size = "Full" (90px
--- card) or "Compact" (41px row). Its accent spin auto-pauses off-screen like the sliders.
+-- LiveStat shows ONE number driven via :Set(number). Two shapes: Size = "Full" (92px
+-- card) or "Compact" (42px row). Its accent spin auto-pauses off-screen like the sliders.
 
 local statSection = statsTab:Section({ Name = "Readouts", Side = "Left" })
 
@@ -402,9 +402,10 @@ local STATUS_COLORS = {
 	Trade = Color3.fromRGB(96, 165, 250),
 }
 
-local demoTable = tableSection:DataTable({
+local demoTable
+demoTable = tableSection:DataTable({
 	Name = "Tracked Players",
-	MaxRows = 6, -- viewport caps at six rows; the body scrolls past that
+	MaxRows = 6, -- popup grows to six rows, then the body scrolls
 	SortBy = "Score", -- sort live: UpdateRow re-sorts automatically
 	SortDescending = true,
 	Columns = {
@@ -823,11 +824,11 @@ mediaSection:Paragraph({
 	Description = "The Video component wraps a VideoFrame with the library's stroke, rounding and shadow styling, all theme-aware.",
 })
 
--- Carousel: swipeable image/video pages (drag left/right), hard max 5.
--- Pages auto-advance every 4s (Interval / AutoAdvance = false to change).
--- The blob row tracks the current page — the active blob fills with the
--- video's playback progress (or the dwell countdown for images), off-view
--- videos pause to save decode.
+-- Carousel: stacked image/video pages, hard max 5. Clicking the media
+-- crossfades to the next page. Pages also auto-advance every 4s
+-- (Interval / AutoAdvance = false to change). The indicator capsule tracks
+-- the current page — its pill fills with the video's playback progress (or
+-- the dwell countdown for images), and off-view videos pause to save decode.
 mediaSection:Carousel({
 	{ "rbxassetid://92458734285074", "image" },
 	{ "rbxassetid://5670794788", "video" },

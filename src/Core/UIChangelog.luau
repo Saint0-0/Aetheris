@@ -10,9 +10,39 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.6.0"
+UIChangelog.Version = "1.7.0"
 
 UIChangelog.Entries = {
+	{
+		Title = "Fading video and viewports",
+		Description = "Page switches now fade VideoFrames through their tagged gradient and ViewportFrames through a matching veil, so media no longer pops in or out while the rest of the page fades.",
+		Icon = "video",
+		Tint = "blue",
+	},
+	{
+		Title = "Data Table popup",
+		Description = "section:DataTable is now a compact field card that opens a searchable, sortable table in a modal popup, matching the colour picker and dropdown shells. The full row API is unchanged.",
+		Icon = "table",
+		Tint = "blue",
+	},
+	{
+		Title = "Stat cards redesigned",
+		Description = "LiveStat keeps its rolling values and direction tint but now sits on a neutral card with a soft accent wash, accent bar, icon tile and a change chip instead of a solid coloured fill.",
+		Icon = "activity",
+		Tint = "teal",
+	},
+	{
+		Title = "Carousel crossfade",
+		Description = "The carousel stacks its pages and crossfades between them; clicking cycles forward. The indicator is a frosted capsule with an elongating active pill and playback progress.",
+		Icon = "gallery-horizontal",
+		Tint = "purple",
+	},
+	{
+		Title = "Pill and demo fixes",
+		Description = "The minimize pill no longer scrolls past its last tab, and the demo's Kick action no longer captures a nil table handle during construction.",
+		Icon = "wrench",
+		Tint = "yellow",
+	},
 	{
 		Title = "Crisp fades",
 		Description = "Page and window transitions no longer composite through a CanvasGroup, whose 1024px texture cap blurred wide windows and tall sections. A new tree fade walks each element's own transparency instead, so text stays sharp at any size.",

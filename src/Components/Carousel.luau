@@ -1,13 +1,14 @@
 --[[
 	Aetheris/Components/Carousel.luau
 
-	Horizontal page carousel of up to MAX_ITEMS image or video pages. The
-	floating indicator doubles as playback progress and off-view videos pause.
+	Stacked page carousel of up to MAX_ITEMS image or video pages. Clicking the
+	media crossfades to the next page; the frosted indicator shows the current
+	page (with playback progress) and off-view videos pause.
+
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local ThemeManager = require("../Themes/ThemeManager")
@@ -23,13 +24,14 @@ Carousel.MAX_ITEMS = 5
 
 local DEFAULT_HEIGHT = 160
 local CORNER = 6
-local SLOT_W = 20
-local SLOT_H = 8
 local DOT = 6
-local INDICATOR_PAD_X = 8
-local INDICATOR_PAD_Y = 5
+local ACTIVE_W = 18
+local SLOT_H = 6
+local INDICATOR_PAD_X = 7
+local INDICATOR_PAD_Y = 6
 local INDICATOR_INSET = 10 -- px between the indicator capsule and the media edge
-local SWIPE_COMMIT = 44 -- px of travel before a swipe flips the page
+local FADE_PRESET = "Smooth"
+local HIDE_DELAY = 0.34
 
 -- Accept "rbxassetid://123", "123" or 123.
 local function assetId(value)
@@ -99,7 +101,6 @@ function Carousel.new(parent, Settings, theme)
 	self._theme = theme
 	self._index = 0
 	self._pageCount = count
-	self._conns = {}
 	self._advanceInterval = if autoAdvance then interval else 0
 	self._advanceElapsed = 0
 	self._lastVideoFraction = nil
@@ -135,7 +136,7 @@ function Carousel.new(parent, Settings, theme)
 		return self
 	end
 
-	-- The viewport clips the strip and stays square; media carries the corners.
+	-- The viewport clips the stack; media carries the corners.
 	local viewport = Instance.new("Frame")
 	viewport.Name = UUID.Static("Viewport")
 	viewport.BorderSizePixel = 0
@@ -144,38 +145,39 @@ function Carousel.new(parent, Settings, theme)
 	viewport.Size = UDim2.new(1, 0, 0, height)
 	viewport.Position = UDim2.fromScale(0, 0)
 	viewport.ClipsDescendants = true
-	-- The viewport sinks input so drags land here over any page.
 	viewport.Active = true
 	viewport.Parent = container
 	self._viewport = viewport
 
-	-- Track X scale is in viewport widths, so page i sits at X = i.
-	local track = Instance.new("Frame")
-	track.Name = UUID.Static("Track")
-	track.BorderSizePixel = 0
-	track.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	track.BackgroundTransparency = 1
-	track.Size = UDim2.fromScale(count, 1)
-	track.Position = UDim2.fromScale(0, 0)
-	track.Parent = viewport
-	self._track = track
-
-	-- Dark scrim pill so the dots read over any artwork.
+	-- Frosted capsule indicator; the dots and active pill live inside.
 	local indicator = Instance.new("Frame")
 	indicator.Name = UUID.Static("Blobs")
 	indicator.BorderSizePixel = 0
-	indicator.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	indicator.BackgroundTransparency = 0.72
+	indicator.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+	indicator.BackgroundTransparency = 0.58
 	indicator.AnchorPoint = Vector2.new(0.5, 1)
 	indicator.Position = UDim2.new(0.5, 0, 1, -INDICATOR_INSET)
 	indicator.Size = UDim2.fromOffset(0, SLOT_H + INDICATOR_PAD_Y * 2)
 	indicator.AutomaticSize = Enum.AutomaticSize.X
-	indicator.ZIndex = 5
+	indicator.ZIndex = 11
 	indicator.Parent = viewport
 	pill(indicator)
+
+	local indicatorStroke = Instance.new("UIStroke")
+	indicatorStroke.Color = Color3.fromRGB(255, 255, 255)
+	indicatorStroke.Transparency = 0.84
+	indicatorStroke.Thickness = 1
+	indicatorStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	indicatorStroke.Parent = indicator
+	local indicatorShadow = Instance.new("UIShadow")
+	indicatorShadow.Color = (theme and theme.PopupShadowColor) or Color3.fromRGB(0, 0, 0)
+	indicatorShadow.Transparency = 0.55
+	indicatorShadow.BlurRadius = UDim.new(0, 12)
+	indicatorShadow.Parent = indicator
+
 	local indicatorLayout = Instance.new("UIListLayout")
 	indicatorLayout.FillDirection = Enum.FillDirection.Horizontal
-	indicatorLayout.Padding = UDim.new(0, 4)
+	indicatorLayout.Padding = UDim.new(0, 6)
 	indicatorLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	indicatorLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	indicatorLayout.Parent = indicator
@@ -187,18 +189,17 @@ function Carousel.new(parent, Settings, theme)
 	indicatorPadding.Parent = indicator
 
 	local blobs = {}
-	local videos = {}
+	local visuals = {}
+	local videoFrames = {}
 
 	for i, page in ipairs(pages) do
-		-- Fixed-width slots keep the capsule from reflowing when a dot grows.
 		local slot = Instance.new("Frame")
 		slot.Name = UUID.Static("BlobSlot")
 		slot.BorderSizePixel = 0
-		slot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		slot.BackgroundTransparency = 1
-		slot.Size = UDim2.fromOffset(SLOT_W, SLOT_H)
+		slot.Size = UDim2.fromOffset(if i == 1 then ACTIVE_W else DOT, SLOT_H)
 		slot.LayoutOrder = i
-		slot.ZIndex = 5
+		slot.ZIndex = 12
 		slot.Parent = indicator
 
 		local dot = Instance.new("Frame")
@@ -207,49 +208,62 @@ function Carousel.new(parent, Settings, theme)
 		dot.Position = UDim2.fromScale(0.5, 0.5)
 		dot.Size = UDim2.fromOffset(DOT, DOT)
 		dot.BackgroundColor3 = Color3.new(1, 1, 1)
-		dot.BackgroundTransparency = 0.55
+		dot.BackgroundTransparency = 0.5
 		dot.BorderSizePixel = 0
-		dot.ZIndex = 6
+		dot.Visible = i ~= 1
+		dot.ZIndex = 12
 		dot.Parent = slot
 		pill(dot)
 		ThemeManager.BindColor(dot, "BackgroundColor3", "PrimaryTextColor")
 
-		-- Active pill: faint track plus an accent fill that doubles as progress.
+		-- Active capsule: a soft track plus an accent fill that doubles as
+		-- playback progress.
 		local activePill = Instance.new("Frame")
 		activePill.Name = UUID.Static("Pill")
 		activePill.Size = UDim2.fromScale(1, 1)
 		activePill.BackgroundColor3 = Color3.new(1, 1, 1)
-		activePill.BackgroundTransparency = 0.82
+		activePill.BackgroundTransparency = 0.7
 		activePill.BorderSizePixel = 0
-		activePill.Visible = false
-		activePill.ZIndex = 6
+		activePill.Visible = i == 1
+		activePill.ZIndex = 12
 		activePill.Parent = slot
 		pill(activePill)
+		ThemeManager.BindColor(activePill, "BackgroundColor3", "PrimaryTextColor")
+		local pillGlow = Instance.new("UIShadow")
+		pillGlow.Color = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
+		pillGlow.Transparency = 0.6
+		pillGlow.BlurRadius = UDim.new(0, 6)
+		pillGlow.Parent = activePill
+		ThemeManager.BindColor(pillGlow, "Color", "AccentColor")
 
 		local fill = Instance.new("Frame")
 		fill.Name = UUID.Static("PillFill")
-		fill.Size = UDim2.fromScale(if page.Video then 0 else 1, 1)
+		fill.Size = UDim2.fromScale(if i == 1 then (page.Video and 0 or 1) else 0, 1)
 		fill.BackgroundColor3 = Color3.new(1, 1, 1)
 		fill.BackgroundTransparency = 0
 		fill.BorderSizePixel = 0
-		fill.ZIndex = 7
+		fill.ZIndex = 13
 		fill.Parent = activePill
 		pill(fill)
 		ThemeManager.BindColor(fill, "BackgroundColor3", "AccentColor")
 
-		blobs[i] = { Dot = dot, Pill = activePill, Fill = fill }
+		blobs[i] = { Slot = slot, Dot = dot, Pill = activePill, Fill = fill, Glow = pillGlow }
 
 		local pageFrame = Instance.new("Frame")
 		pageFrame.Name = UUID.Static("Page")
 		pageFrame.BorderSizePixel = 0
 		pageFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		pageFrame.BackgroundTransparency = 1
-		pageFrame.Size = UDim2.fromScale(1 / count, 1)
-		-- Position is relative to the track, so one step is one viewport width.
-		pageFrame.Position = UDim2.fromScale((i - 1) / count, 0)
+		pageFrame.Size = UDim2.fromScale(1, 1)
+		pageFrame.Position = UDim2.fromScale(0, 0)
 		pageFrame.ClipsDescendants = true
-		pageFrame.Parent = track
+		pageFrame.Visible = i == 1
+		pageFrame.ZIndex = 1
+		pageFrame.Parent = viewport
 
+		local visual
+		local video
+		local gradient
 		if page.Video then
 			local videoFrame = Instance.new("VideoFrame")
 			videoFrame.Name = UUID.Static("PageVideo")
@@ -260,11 +274,15 @@ function Carousel.new(parent, Settings, theme)
 			videoFrame.Video = page.Id
 			videoFrame.Looped = true
 			videoFrame.Volume = volume
+			videoFrame.ZIndex = 2
 			videoFrame.Parent = pageFrame
 			round(videoFrame, CORNER)
 			-- Fades tween this gradient because VideoFrame has no transparency.
-			VideoFade.attach(videoFrame)
-			videos[i] = videoFrame
+			gradient = VideoFade.attach(videoFrame)
+			VideoFade.set(gradient, if i == 1 then 0 else 1)
+			video = videoFrame
+			videoFrames[i] = videoFrame
+			visual = videoFrame
 		else
 			local image = Instance.new("ImageLabel")
 			image.Name = UUID.Static("PageImage")
@@ -274,13 +292,36 @@ function Carousel.new(parent, Settings, theme)
 			image.Size = UDim2.fromScale(1, 1)
 			image.Image = page.Id
 			image.ScaleType = Enum.ScaleType.Crop
+			image.ImageTransparency = if i == 1 then 0 else 1
+			image.ZIndex = 2
 			image.Parent = pageFrame
 			round(image, CORNER)
+			visual = image
 		end
+
+		visuals[i] = { Frame = pageFrame, Visual = visual, Gradient = gradient, Video = video }
 	end
 
+	-- A single transparent button over the stack cycles pages on click.
+	local clickCatcher = Instance.new("TextButton")
+	clickCatcher.Name = UUID.Static("ClickCatcher")
+	clickCatcher.BorderSizePixel = 0
+	clickCatcher.BackgroundTransparency = 1
+	clickCatcher.AutoButtonColor = false
+	clickCatcher.Text = ""
+	clickCatcher.Size = UDim2.fromScale(1, 1)
+	clickCatcher.ZIndex = 10
+	clickCatcher.Parent = viewport
+	self._clickCatcher = clickCatcher
+	clickCatcher.MouseButton1Click:Connect(function()
+		if self._pageCount > 1 then
+			self:_goTo((self._index + 1) % self._pageCount)
+		end
+	end)
+
 	self._blobs = blobs
-	self._videos = videos
+	self._visuals = visuals
+	self._videos = videoFrames
 
 	local function sync()
 		self:_syncBlobs()
@@ -294,82 +335,12 @@ function Carousel.new(parent, Settings, theme)
 		OnInactive = sync,
 	})
 
-	-- Drags track through UserInputService so they survive the cursor leaving.
-	local dragging = false
-	local dragStartX = 0
-	local moveConn
-	local endConn
-
-	local function endDrag(ended)
-		dragging = false
-		if moveConn then
-			moveConn:Disconnect()
-			moveConn = nil
-		end
-		if endConn then
-			endConn:Disconnect()
-			endConn = nil
-		end
-		local dx = ended.Position.X - dragStartX
-		if dx <= -SWIPE_COMMIT then
-			self:_goTo(self._index + 1)
-		elseif dx >= SWIPE_COMMIT then
-			self:_goTo(self._index - 1)
-		else
-			self:_goTo(self._index)
-		end
-	end
-
-	viewport.InputBegan:Connect(function(input)
-		if
-			input.UserInputType ~= Enum.UserInputType.MouseButton1
-			and input.UserInputType ~= Enum.UserInputType.Touch
-		then
-			return
-		end
-		dragging = true
-		dragStartX = input.Position.X
-		Tween.CancelProperty(track, "Position")
-		if moveConn then
-			moveConn:Disconnect()
-		end
-		moveConn = UserInputService.InputChanged:Connect(function(changed)
-			if not dragging then
-				return
-			end
-			if
-				changed.UserInputType ~= Enum.UserInputType.MouseMovement
-				and changed.UserInputType ~= Enum.UserInputType.Touch
-			then
-				return
-			end
-			local vpWidth = viewport.AbsoluteSize.X
-			if vpWidth <= 0 then
-				return
-			end
-			local dx = changed.Position.X - dragStartX
-			track.Position = UDim2.fromScale(math.clamp(-self._index + dx / vpWidth, -(count - 1), 0), 0)
-		end)
-		if endConn then
-			endConn:Disconnect()
-		end
-		endConn = UserInputService.InputEnded:Connect(function(ended)
-			if
-				ended.UserInputType ~= Enum.UserInputType.MouseButton1
-				and ended.UserInputType ~= Enum.UserInputType.Touch
-			then
-				return
-			end
-			endDrag(ended)
-		end)
-	end)
-
-	-- Per-frame driver paints the active pill and advances pages when due.
+	-- Per-frame driver paints progress and advances pages when due.
 	local progressConn = RunService.RenderStepped:Connect(function(dt)
 		if not self.Frame or not self.Frame.Parent then
 			return
 		end
-		if dragging or not PageAwareness.IsActive(self.Frame) then
+		if not PageAwareness.IsActive(self.Frame) then
 			return
 		end
 		-- A stalled frame must not teleport the countdown.
@@ -412,15 +383,15 @@ function Carousel.new(parent, Settings, theme)
 		Root = container,
 		Name = Settings.Name,
 		Methods = {
-			-- Public pages are 1-based; the track works in 0-based offsets.
+			-- Public pages are 1-based; the stack works in 0-based indices.
 			SetPage = function(me, page)
 				me:_goTo((tonumber(page) or 1) - 1)
 			end,
 			Next = function(me)
-				me:_goTo(me._index + 1)
+				me:_goTo((me._index + 1) % me._pageCount)
 			end,
 			Prev = function(me)
-				me:_goTo(me._index - 1)
+				me:_goTo((me._index - 1 + me._pageCount) % me._pageCount)
 			end,
 			GetPage = function(me)
 				return me._index + 1
@@ -444,21 +415,9 @@ function Carousel.new(parent, Settings, theme)
 	})
 
 	self.Destroy = function(me)
-		for _, conn in ipairs(me._conns) do
-			conn:Disconnect()
-		end
-		table.clear(me._conns)
 		if progressConn then
 			progressConn:Disconnect()
 			progressConn = nil
-		end
-		if moveConn then
-			moveConn:Disconnect()
-			moveConn = nil
-		end
-		if endConn then
-			endConn:Disconnect()
-			endConn = nil
 		end
 		if me.Frame and me.Frame.Parent then
 			me.Frame:Destroy()
@@ -471,15 +430,54 @@ function Carousel.new(parent, Settings, theme)
 	return self
 end
 
+-- Crossfades the outgoing page out while the incoming page fades in on top.
 function Carousel:_goTo(index)
 	if self._pageCount == 0 then
 		return
 	end
 	index = math.clamp(index, 0, self._pageCount - 1)
+	if index == self._index then
+		return
+	end
+	local previous = self._index
 	self._index = index
+
 	self._advanceElapsed = 0
 	self._lastVideoFraction = nil
-	Tween.Play(self._track, "Smooth", { Position = UDim2.fromScale(-index, 0) })
+
+	local function setOpacity(page, value)
+		if page.Gradient then
+			Tween.Play(page.Gradient, FADE_PRESET, { Transparency = NumberSequence.new(value) })
+		else
+			Tween.Play(page.Visual, FADE_PRESET, { ImageTransparency = value })
+		end
+	end
+
+	-- Fixed ZIndex bands instead of a growing counter: the page stack has to
+	-- stay under the indicator (11) and the click catcher (10) forever.
+	for i, page in ipairs(self._visuals) do
+		if i - 1 == index then
+			page.Frame.Visible = true
+			page.Frame.ZIndex = 2
+			page.Visual.ZIndex = 3
+			setOpacity(page, 0)
+		elseif i - 1 == previous then
+			page.Frame.ZIndex = 1
+			page.Visual.ZIndex = 2
+			setOpacity(page, 1)
+			local pageNumber = i
+			task.delay(HIDE_DELAY, function()
+				if self._pageCount > 0 and pageNumber - 1 ~= self._index and page.Frame then
+					page.Frame.Visible = false
+					page.Frame.ZIndex = 1
+					page.Visual.ZIndex = 2
+				end
+			end)
+		else
+			page.Frame.Visible = false
+		end
+	end
+
 	if self._sync then
 		self._sync()
 	end
@@ -500,6 +498,11 @@ function Carousel:_syncBlobs()
 		local active = i - 1 == self._index
 		blob.Dot.Visible = not active
 		blob.Pill.Visible = active
+		local targetWidth = active and ACTIVE_W or DOT
+		if blob.Active ~= active then
+			blob.Active = active
+			Tween.Play(blob.Slot, "Smooth", { Size = UDim2.fromOffset(targetWidth, SLOT_H) })
+		end
 		if active then
 			local video = self._videos[i]
 			if video then
