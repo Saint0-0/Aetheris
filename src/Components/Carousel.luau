@@ -16,7 +16,6 @@ local ComponentAPI = require("../Utils/ComponentAPI")
 local PageAwareness = require("../Utils/PageAwareness")
 local Tween = require("../Utils/Tween")
 local UUID = require("../Utils/UUID")
-local VideoFade = require("../Utils/VideoFade")
 
 local Carousel = {}
 Carousel.__index = Carousel
@@ -31,7 +30,6 @@ local INDICATOR_PAD_X = 7
 local INDICATOR_PAD_Y = 6
 local INDICATOR_INSET = 10 -- px between the indicator capsule and the media edge
 local FADE_PRESET = "Smooth"
-local FADE_TIME = Tween.Presets[FADE_PRESET].Time
 local HIDE_DELAY = 0.34
 
 -- Accept "rbxassetid://123", "123" or 123.
@@ -250,7 +248,11 @@ function Carousel.new(parent, Settings, theme)
 
 		blobs[i] = { Slot = slot, Dot = dot, Pill = activePill, Fill = fill, Glow = pillGlow }
 
-		local pageFrame = Instance.new("Frame")
+		-- Video pages need a CanvasGroup: a playing VideoFrame ignores both its
+		-- own transparency and a gradient overlay. Image pages stay plain so the
+		-- picture is never rasterised into a group texture.
+		local isVideo = page.Video
+		local pageFrame = Instance.new(if isVideo then "CanvasGroup" else "Frame")
 		pageFrame.Name = UUID.Static("Page")
 		pageFrame.BorderSizePixel = 0
 		pageFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -258,14 +260,16 @@ function Carousel.new(parent, Settings, theme)
 		pageFrame.Size = UDim2.fromScale(1, 1)
 		pageFrame.Position = UDim2.fromScale(0, 0)
 		pageFrame.ClipsDescendants = true
+		if isVideo then
+			pageFrame.GroupTransparency = if i == 1 then 0 else 1
+		end
 		pageFrame.Visible = i == 1
 		pageFrame.ZIndex = 1
 		pageFrame.Parent = viewport
 
 		local visual
 		local video
-		local gradient
-		if page.Video then
+		if isVideo then
 			local videoFrame = Instance.new("VideoFrame")
 			videoFrame.Name = UUID.Static("PageVideo")
 			videoFrame.BorderSizePixel = 0
@@ -278,9 +282,6 @@ function Carousel.new(parent, Settings, theme)
 			videoFrame.ZIndex = 2
 			videoFrame.Parent = pageFrame
 			round(videoFrame, CORNER)
-			-- Fades tween this gradient because VideoFrame has no transparency.
-			gradient = VideoFade.attach(videoFrame)
-			VideoFade.set(gradient, if i == 1 then 0 else 1)
 			video = videoFrame
 			videoFrames[i] = videoFrame
 			visual = videoFrame
@@ -300,7 +301,7 @@ function Carousel.new(parent, Settings, theme)
 			visual = image
 		end
 
-		visuals[i] = { Frame = pageFrame, Visual = visual, Gradient = gradient, Video = video }
+		visuals[i] = { Frame = pageFrame, Visual = visual, Video = video, Grouped = isVideo }
 	end
 
 	-- A single transparent button over the stack cycles pages on click.
@@ -447,9 +448,9 @@ function Carousel:_goTo(index)
 	self._lastVideoFraction = nil
 
 	local function setOpacity(page, value)
-		if page.Gradient then
-			-- UIGradient.Transparency is a NumberSequence, so VideoFade lerps it.
-			VideoFade.fade(page.Gradient, value, FADE_TIME, "InOut")
+		if page.Grouped then
+			-- Video pages fade through their CanvasGroup.
+			Tween.Play(page.Frame, FADE_PRESET, { GroupTransparency = value })
 		else
 			Tween.Play(page.Visual, FADE_PRESET, { ImageTransparency = value })
 		end

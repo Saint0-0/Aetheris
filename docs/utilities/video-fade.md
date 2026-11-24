@@ -2,9 +2,9 @@
 
 Fades a VideoFrame through a UIGradient.
 
-`VideoFrame.Transparency` does not affect the rendered video, so the Video component adds a `UIGradient` named `FadeGradient` and fades that instead. `UIGradient.Transparency` is a NumberSequence that `TweenService` cannot interpolate, so `fade` steps it by hand every frame.
+`VideoFrame.Transparency` does not affect the rendered video, so this utility attaches a `UIGradient` named `FadeGradient` and fades that instead. `UIGradient.Transparency` is a NumberSequence that `TweenService` cannot interpolate, so `fade` steps it by hand every frame.
 
-The window and tab fade systems look for the tagged gradient and fade it along with everything else, so you rarely call these yourself.
+The built-in `Video` and `Carousel` components no longer fade through this: they wrap the frame in a CanvasGroup and tween `GroupTransparency`, which is smoother and works with page fades. `Video` keeps a `FadeGradient` attached so code that drives it directly still works. Reach for `VideoFade` when you own a bare VideoFrame and cannot add a group; the tree fade picks up the tagged gradient automatically.
 
 ```lua
 local VideoFade = require(ReplicatedStorage.Aetheris.Utils.VideoFade)

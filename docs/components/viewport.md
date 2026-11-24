@@ -26,6 +26,8 @@ section:Viewport({
 
 The camera follows the framing you pick: `"Full"` shows the whole character, the others push in. If the character dies or respawns, the viewport tracks it, and the health bar tracks the character's humanoid — it fills from the bottom and shifts red to yellow to green as health drops.
 
+Page fades reach the rendered character through the viewport's `ImageTransparency`, so it dims with the rest of the page instead of popping in or out.
+
 ## Custom info rows
 
 Each row takes a `Caption`, then either a `Key` (any Player property, read live) or a `Text` (fixed text you set). `Suffix` appends to the value.

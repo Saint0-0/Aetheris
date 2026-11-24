@@ -16,6 +16,7 @@ local ComponentAPI = require("../Utils/ComponentAPI")
 local Tween = require("../Utils/Tween")
 local Constants = require("../Constants")
 local UUID = require("../Utils/UUID")
+local Sound = require("../Utils/Sound")
 local Icons = require("../Assets/Icons")
 local DataTablePopUp = require("../Popups/DataTablePopUp")
 
@@ -319,6 +320,8 @@ function DataTable.new(parent, Settings, theme, window)
 			window:_claimPopup(instance)
 		end
 		instance:Open()
+		-- Same open cue as the dropdown and colour picker popups.
+		Sound.Play("Notification")
 	end
 
 	root.MouseButton1Click:Connect(openPopup)

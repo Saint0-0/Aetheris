@@ -36,8 +36,8 @@ local VEIL_ATTRIBUTE = UUID.Static("IsFadeVeil")
 -- Fade modes per entry.
 -- VALUE: a numeric opacity property that fades to 1 when hidden.
 -- VIDEO: a tagged UIGradient whose NumberSequence carries video opacity.
--- VEIL: an opaque cover whose transparency fades to 0 (opaque) when hidden,
--- so rendering that has no transparency (ViewportFrame) can still fade.
+-- VEIL: an opt-in cover whose transparency fades to 0 (opaque) when hidden,
+-- for media in group-less trees that opted into <IsFadeVeil>.
 local MODE_VALUE = 0
 local MODE_VIDEO = 1
 local MODE_VEIL = 2
@@ -69,14 +69,14 @@ local function captureProperty(entries, inst, prop, mode, base)
 end
 
 local function captureInstance(entries, inst)
-	-- ViewportFrame has no transparency, so components cover it with a tagged
-	-- veil and the fade inverts it: opaque when hidden, invisible when shown.
+	-- Opt-in cover for group-less viewports: invert it, opaque when hidden and
+	-- invisible when shown. A bare ViewportFrame fades its own ImageTransparency.
 	if inst:IsA("GuiObject") and inst:GetAttribute(VEIL_ATTRIBUTE) == true then
 		captureProperty(entries, inst, "BackgroundTransparency", MODE_VEIL)
 		return
 	end
 	-- VideoFrame.Transparency does not affect rendered video; its tagged
-	-- UIGradient is the only working fade.
+	-- UIGradient is the group-less fade.
 	if inst:IsA("UIGradient") and inst:GetAttribute(VideoFade.ATTRIBUTE) == true then
 		captureProperty(entries, inst, "Transparency", MODE_VIDEO, VideoFade.get(inst))
 		return
@@ -97,7 +97,7 @@ local function captureInstance(entries, inst)
 		captureProperty(entries, inst, "TextTransparency")
 		captureProperty(entries, inst, "TextStrokeTransparency")
 	end
-	if inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
+	if inst:IsA("ImageLabel") or inst:IsA("ImageButton") or inst:IsA("ViewportFrame") then
 		captureProperty(entries, inst, "ImageTransparency")
 	end
 	if inst:IsA("ScrollingFrame") then

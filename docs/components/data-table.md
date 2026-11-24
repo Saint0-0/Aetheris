@@ -46,7 +46,7 @@ table:SetRows({
 | `SortDescending` | boolean | Sort high to low. |
 | `Action` | table | Optional per-row action button: `{ Label, Callback(id, row) }`. |
 
-Clicking a column label in the popup sorts by it; clicking the active column again flips the direction. The search field filters across every column's formatted text. A close button in the header, click-off and the tab switch all dismiss the popup; the body uses the same thin scrollbar as the rest of the library.
+Clicking a column label in the popup sorts by it; clicking the active column again flips the direction. The search field filters across every column's formatted text. A close button in the header (the same circle as the changelog and key screen), click-off and the tab switch all dismiss the popup; the body uses the same thin scrollbar as the rest of the library, and opening the popup plays the shared popup sound.
 
 ### Columns
 

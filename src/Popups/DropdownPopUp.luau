@@ -37,6 +37,8 @@ end
 -- Shell carries a top-down multiplier wash; fill and shadow form the edge.
 local CORNER_SHELL = 12
 local CORNER_ROW = 10
+-- Header tile and the select-all/clear-all buttons share this radius.
+local CORNER_TILE = 10
 local BUTTON_SIZE = 26
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
 local LIFT = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -128,7 +130,7 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	headTile.Position = UDim2.fromOffset(16, 14)
 	headTile.Parent = popup
 	local headTileCorner = Instance.new("UICorner")
-	headTileCorner.CornerRadius = UDim.new(0, 10)
+	headTileCorner.CornerRadius = UDim.new(0, CORNER_TILE)
 	headTileCorner.Parent = headTile
 	local headGlyph = Instance.new("ImageLabel")
 	headGlyph.Name = UUID.Static("HeaderGlyph")
@@ -343,7 +345,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearBtn.Position = UDim2.new(1, -6, 0.5, 0)
 	clearBtn.Parent = searchArea
 	local clearCorner = Instance.new("UICorner")
-	clearCorner.CornerRadius = UDim.new(1, 0)
+	-- Same radius as the header tile, not a full circle.
+	clearCorner.CornerRadius = UDim.new(0, CORNER_TILE)
 	clearCorner.Parent = clearBtn
 	local clearShape = Instance.new("UIAspectRatioConstraint")
 	clearShape.AspectRatio = 1
@@ -379,7 +382,8 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllBtn.Position = UDim2.new(1, -(6 + BUTTON_SIZE + 6), 0.5, 0)
 	selectAllBtn.Parent = searchArea
 	local selectAllCorner = Instance.new("UICorner")
-	selectAllCorner.CornerRadius = UDim.new(1, 0)
+	-- Same radius as the header tile, not a full circle.
+	selectAllCorner.CornerRadius = UDim.new(0, CORNER_TILE)
 	selectAllCorner.Parent = selectAllBtn
 	local selectAllShape = Instance.new("UIAspectRatioConstraint")
 	selectAllShape.AspectRatio = 1

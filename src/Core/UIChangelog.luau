@@ -15,13 +15,13 @@ UIChangelog.Version = "1.7.0"
 UIChangelog.Entries = {
 	{
 		Title = "Fading video and viewports",
-		Description = "Page switches now fade VideoFrames through their tagged gradient and ViewportFrames through a matching veil, so media no longer pops in or out while the rest of the page fades.",
+		Description = "VideoFrames now sit in a media CanvasGroup and ViewportFrames fade through their own ImageTransparency, so page switches and the carousel crossfade fade the rendered media itself instead of letting it pop in or out.",
 		Icon = "video",
 		Tint = "blue",
 	},
 	{
 		Title = "Data Table popup",
-		Description = "section:DataTable is now a compact field card that opens a searchable, sortable table in a modal popup, matching the colour picker and dropdown shells. The full row API is unchanged.",
+		Description = "section:DataTable is now a compact field card that opens a searchable, sortable table in a modal popup, matching the colour picker and dropdown shells. The popup plays the shared open cue, carries the same close button as every other popup, and the full row API is unchanged.",
 		Icon = "table",
 		Tint = "blue",
 	},

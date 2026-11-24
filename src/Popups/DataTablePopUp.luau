@@ -24,6 +24,11 @@ local CORNER_SHELL = 12
 local CORNER_CARD = 8
 local FALLBACK_POPUP = Color3.fromRGB(15, 15, 16)
 
+-- Close button hover, matching the changelog's icon timing.
+local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local CLOSE_ICON = Icons["circle-x"] or "rbxassetid://76821953846248"
+
 -- Authored at this geometry, then scaled to fit the window by computeFit.
 local POPUP_WIDTH = 520
 local POPUP_HEIGHT = 432
@@ -323,21 +328,19 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	ThemeManager.BindColor(searchField, "PlaceholderColor3", "TertiaryColor")
 	self._searchField = searchField
 
-	-- Close button sits at the header's right edge, same height as the search.
-	local closeBtn = Instance.new("TextButton")
+	-- Close button mirrors the changelog's: a soft white circle with no stroke,
+	-- so every popup's dismiss control reads the same.
+	local closeBtn = Instance.new("ImageButton")
 	closeBtn.Name = UUID.Static("Close")
 	closeBtn.BorderSizePixel = 0
+	closeBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+	closeBtn.BackgroundTransparency = 0.92
 	closeBtn.AutoButtonColor = false
-	closeBtn.Text = ""
-	closeBtn.BackgroundColor3 = (theme and theme.PopupNeutralColor) or Color3.fromRGB(46, 46, 46)
-	closeBtn.BackgroundTransparency = 0.55
 	closeBtn.AnchorPoint = Vector2.new(1, 0)
 	closeBtn.Position = UDim2.new(1, -SIDE_PAD, 0, 16)
-	closeBtn.Size = UDim2.fromOffset(CLOSE_SIZE, 28)
+	closeBtn.Size = UDim2.fromOffset(CLOSE_SIZE, CLOSE_SIZE)
 	closeBtn.Parent = popup
-	addCorner(closeBtn, UDim.new(0, CORNER_CARD))
-	ThemeManager.BindColor(closeBtn, "BackgroundColor3", "PopupNeutralColor")
-	self._closeBtn = closeBtn
+	addCorner(closeBtn, UDim.new(1, 0))
 
 	local closeIcon = Instance.new("ImageLabel")
 	closeIcon.Name = UUID.Static("CloseIcon")
@@ -345,20 +348,20 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	closeIcon.BackgroundTransparency = 1
 	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	closeIcon.Position = UDim2.fromScale(0.5, 0.5)
-	closeIcon.Size = UDim2.fromOffset(12, 12)
-	closeIcon.Image = Icons["x"]
-	closeIcon.ImageColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(150, 150, 150)
-	closeIcon.ImageTransparency = 0.15
+	closeIcon.Size = UDim2.fromOffset(16, 16)
+	closeIcon.Image = CLOSE_ICON
+	closeIcon.ImageColor3 = (theme and theme.PopupTextColor)
+	closeIcon.ImageTransparency = 0.35
 	closeIcon.Parent = closeBtn
-	ThemeManager.BindColor(closeIcon, "ImageColor3", "TertiaryColor")
+	ThemeManager.BindColor(closeIcon, "ImageColor3", "PopupTextColor")
 
 	closeBtn.MouseEnter:Connect(function()
-		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.4 })
-		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0 })
+		Tween.Play(closeBtn, ICON_IN, { BackgroundTransparency = 0.86 })
+		Tween.Play(closeIcon, ICON_IN, { ImageTransparency = 0 })
 	end)
 	closeBtn.MouseLeave:Connect(function()
-		Tween.Play(closeBtn, "Fast", { BackgroundTransparency = 0.55 })
-		Tween.Play(closeIcon, "Fast", { ImageTransparency = 0.15 })
+		Tween.Play(closeBtn, ICON_OUT, { BackgroundTransparency = 0.92 })
+		Tween.Play(closeIcon, ICON_OUT, { ImageTransparency = 0.35 })
 	end)
 	closeBtn.MouseButton1Click:Connect(function()
 		self:Close()

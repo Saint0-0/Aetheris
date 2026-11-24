@@ -36,7 +36,7 @@ The video starts playing on its own and fades with the page like every other com
 | `:GetVolume()` | Returns the current volume. |
 | `:SetLoop(bool)` | Turn looping on or off. |
 | `:SetHeight(number)` | Resize the frame. |
-| `:SetFade(number, duration?)` | Fade the gradient overlay. |
+| `:SetFade(number, duration?)` | Fade the video itself, `0` shown and `1` hidden. |
 | `:SetVisible(bool)` | Show or hide. |
 | `:Destroy()` | Remove the video. |
 

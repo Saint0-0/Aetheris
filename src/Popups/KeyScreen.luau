@@ -45,8 +45,14 @@ local HEADER_HEIGHT = 62
 local CONTENT_PAD = 18
 local HEADER_ROW_Y = HEADER_HEIGHT / 2 - 4
 local HEADER_CHIP = 24
+local HEADER_CLOSE = 28
 local HEADER_CHIP_GAP = 8
 local HEADER_INSET = 12
+
+-- Close button hover, matching the changelog's icon timing.
+local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local CLOSE_ICON = Icons["circle-x"] or "rbxassetid://76821953846248"
 
 -- Images warmed by the first loading step for first paint.
 local PRELOAD_IMAGES = {
@@ -55,7 +61,7 @@ local PRELOAD_IMAGES = {
 	Icons["key"],
 	Icons["link"],
 	Icons["info"],
-	Icons["x"],
+	Icons["circle-x"],
 	Icons["bell"],
 	Icons["triangle-alert"],
 	Icons["shield-alert"],
@@ -469,13 +475,12 @@ local function buildCard(self)
 	local execStatus, execColor = getExecutorStatus()
 	local execWidth = math.clamp(#execName * 6.2 + 34, 70, 150)
 	local chipTransparency = (theme.InputBackgroundTransparency or 0.9) + 0.02
-	local chipHoverTransparency = math.max(chipTransparency - 0.1, 0)
 	-- Chip and close share one pill, fill and hairline stroke.
 	local execChip = new("Frame", {
 		Name = UUID.Static("ExecutorChip"),
 		AnchorPoint = Vector2.new(1, 0.5),
 		-- Inset past the close button so the chip never slides under it.
-		Position = UDim2.new(1, -(HEADER_INSET + HEADER_CHIP + HEADER_CHIP_GAP), 0, HEADER_ROW_Y),
+		Position = UDim2.new(1, -(HEADER_INSET + HEADER_CLOSE + HEADER_CHIP_GAP), 0, HEADER_ROW_Y),
 		Size = UDim2.fromOffset(execWidth, HEADER_CHIP),
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = chipTransparency,
@@ -517,46 +522,40 @@ local function buildCard(self)
 		Parent = execChip,
 	})
 
-	-- Above the drag frame, so a click never starts a drag.
-	local closeButton = new("TextButton", {
+	-- Above the drag frame, so a click never starts a drag. Same treatment as
+	-- the changelog's close: a soft white circle with no stroke.
+	local closeButton = new("ImageButton", {
 		Name = UUID.Static("CloseButton"),
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -HEADER_INSET, 0, HEADER_ROW_Y),
-		Size = UDim2.fromOffset(HEADER_CHIP, HEADER_CHIP),
-		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = chipTransparency,
+		Size = UDim2.fromOffset(HEADER_CLOSE, HEADER_CLOSE),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.92,
 		BorderSizePixel = 0,
-		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 6,
 		Parent = card,
 	})
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = closeButton })
-	local closeStroke = new("UIStroke", {
-		Color = theme.StrokeColor or Color3.new(1, 1, 1),
-		Transparency = 0.9,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Parent = closeButton,
-	})
 	local closeIcon = new("ImageLabel", {
 		Name = UUID.Static("CloseIcon"),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(12, 12),
+		Size = UDim2.fromOffset(16, 16),
 		BackgroundTransparency = 1,
-		Image = Icons["x"] or "rbxassetid://110786993356448",
-		ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
-		ImageTransparency = 0.15,
+		Image = CLOSE_ICON,
+		ImageColor3 = theme.PopupTextColor or Color3.fromRGB(255, 255, 255),
+		ImageTransparency = 0.35,
 		ZIndex = 6,
 		Parent = closeButton,
 	})
 	closeButton.MouseEnter:Connect(function()
-		Tween.Play(closeButton, "Lift", { BackgroundTransparency = chipHoverTransparency })
-		Tween.Play(closeIcon, "Lift", { ImageTransparency = 0 })
+		Tween.Play(closeButton, ICON_IN, { BackgroundTransparency = 0.86 })
+		Tween.Play(closeIcon, ICON_IN, { ImageTransparency = 0 })
 	end)
 	closeButton.MouseLeave:Connect(function()
-		Tween.Play(closeButton, "Lift", { BackgroundTransparency = chipTransparency })
-		Tween.Play(closeIcon, "Lift", { ImageTransparency = 0.15 })
+		Tween.Play(closeButton, ICON_OUT, { BackgroundTransparency = 0.92 })
+		Tween.Play(closeIcon, ICON_OUT, { ImageTransparency = 0.35 })
 	end)
 	closeButton.MouseButton1Click:Connect(function()
 		self:_dismiss()
@@ -565,7 +564,7 @@ local function buildCard(self)
 	self._closeIcon = closeIcon
 	self._execChip = execChip
 	-- One restamp list so a live theme switch keeps the cluster in sync.
-	self._headerStrokes = { chipStroke, closeStroke }
+	self._headerStrokes = { chipStroke }
 
 	self._title = title
 	self._subtitle = subtitle
@@ -1983,14 +1982,12 @@ function KeyScreen.Run(keyConfig, opts)
 		self._title.TextColor3 = theme.TitleTextColor or Color3.new(1, 1, 1)
 		self._subtitle.TextColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
 		if self._closeIcon then
-			self._closeIcon.ImageColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200)
+			self._closeIcon.ImageColor3 = theme.PopupTextColor or Color3.fromRGB(255, 255, 255)
 		end
-		-- Header cluster: chip and close share the fill, so restamp both.
+		-- Header cluster: the chip follows the theme; the close button is the
+		-- fixed white circle shared by every popup.
 		if self._execChip then
 			self._execChip.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
-		end
-		if self._closeButton then
-			self._closeButton.BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255)
 		end
 		for _, headerStroke in ipairs(self._headerStrokes or {}) do
 			headerStroke.Color = theme.StrokeColor or Color3.new(1, 1, 1)
