@@ -1146,6 +1146,7 @@ local function buildKeyPhase(self)
 		BackgroundColor3 = theme.InputBackgroundColor or Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = theme.InputBackgroundTransparency or 0.9,
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		FontFace = Constants.Font(Enum.FontWeight.Medium),
 		PlaceholderText = Locale.resolve("Enter your key"),
 		PlaceholderColor3 = theme.SecondaryTextColor or Color3.fromRGB(200, 200, 200),
@@ -2067,6 +2068,8 @@ function KeyScreen.Run(keyConfig, opts)
 				local members = formatCount(stats.Members)
 				if online and members then
 					self._dcSub.Text = string.format("%s online · %s members", online, members)
+				elseif online then
+					self._dcSub.Text = string.format("%s online", online)
 				end
 			end
 		end)

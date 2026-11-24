@@ -1,14 +1,17 @@
 --[[
 	Aetheris/Utils/PageFade.luau
 
-	Fades whole pages through one CanvasGroup.GroupTransparency per layer, so
-	component-owned transparency state is untouched during transitions.
+	Fades whole pages through Utils/TreeFade instead of a CanvasGroup, so page
+	content is never rasterised into the 1024px group texture that made wide
+	windows and tall sections soft. Component-owned transparency is captured on
+	hide and restored on show.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
 local Tween = require("./Tween")
+local TreeFade = require("./TreeFade")
 local UUID = require("./UUID")
 
 local PageFade = {}
@@ -20,17 +23,24 @@ PageFade.PRESET = "Fast"
 
 PageFade.WINDOW_PRESET = "WindowFade"
 
+-- Plain Frame layer; TreeFade owns the opacity. The window shell marks itself
+-- to skip these roots so window fades and page fades stay independent.
 function PageFade.Layer(parent, name)
-	local cg = Instance.new("CanvasGroup")
-	cg.Name = name or UUID.Generate("PageFadeLayer")
-	cg.BackgroundTransparency = 1
-	cg.BorderSizePixel = 0
-	cg.AnchorPoint = Vector2.new(0, 0)
-	cg.Position = UDim2.fromScale(0, 0)
-	cg.Size = UDim2.fromScale(1, 1)
-	cg.GroupTransparency = 0
-	cg.Parent = parent
-	return cg
+	local layer = Instance.new("Frame")
+	layer.Name = name or UUID.Generate("PageFadeLayer")
+	layer.BackgroundTransparency = 1
+	layer.BorderSizePixel = 0
+	layer.AnchorPoint = Vector2.new(0, 0)
+	layer.Position = UDim2.fromScale(0, 0)
+	layer.Size = UDim2.fromScale(1, 1)
+	layer.Parent = parent
+	TreeFade.MarkRoot(layer)
+	layer:SetAttribute(UUID.Static("FadeHidden"), true)
+	return layer
+end
+
+local function skipRootsFor(layer)
+	return layer:GetAttribute(UUID.Static("SkipFadeRoots")) == true
 end
 
 function PageFade.Snap(layer, transparency)
@@ -38,11 +48,11 @@ function PageFade.Snap(layer, transparency)
 		return
 	end
 	Tween.CancelAll(layer)
-	layer.GroupTransparency = transparency or 0
-	PageFade.FadeDecorations(layer, (transparency or 0) >= 0.5, true)
+	TreeFade.Snap(layer, (transparency or 0) >= 0.5, skipRootsFor(layer))
 end
 
 -- CanvasGroup leaves UIStroke/UIShadow alone, so those tween separately.
+-- Kept for the still-CanvasGroup minimize pill and popups.
 local decorationCache = setmetatable({}, { __mode = "k" })
 
 local function getDecorations(group)
@@ -110,25 +120,7 @@ function PageFade.Show(layer, instant, onComplete, preset)
 		end
 		return
 	end
-	PageFade.FadeDecorations(layer, false, instant, preset)
-	if instant then
-		Tween.CancelAll(layer)
-		layer.GroupTransparency = 0
-		if onComplete then
-			onComplete()
-		end
-	else
-		local h = Tween.Play(layer, preset or PageFade.PRESET, { GroupTransparency = 0 })
-		if h and h.Tween and onComplete then
-			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then
-					onComplete()
-				end
-			end)
-		elseif onComplete then
-			onComplete()
-		end
-	end
+	TreeFade.Set(layer, false, instant, preset or PageFade.PRESET, onComplete, skipRootsFor(layer))
 end
 
 function PageFade.Hide(layer, instant, onComplete, preset)
@@ -138,25 +130,7 @@ function PageFade.Hide(layer, instant, onComplete, preset)
 		end
 		return
 	end
-	PageFade.FadeDecorations(layer, true, instant, preset)
-	if instant then
-		Tween.CancelAll(layer)
-		layer.GroupTransparency = 1
-		if onComplete then
-			onComplete()
-		end
-	else
-		local h = Tween.Play(layer, preset or PageFade.PRESET, { GroupTransparency = 1 })
-		if h and h.Tween and onComplete then
-			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then
-					onComplete()
-				end
-			end)
-		elseif onComplete then
-			onComplete()
-		end
-	end
+	TreeFade.Set(layer, true, instant, preset or PageFade.PRESET, onComplete, skipRootsFor(layer))
 end
 
 function PageFade.Crossfade(outgoing, incoming, onComplete)
@@ -175,36 +149,12 @@ function PageFade.Crossfade(outgoing, incoming, onComplete)
 
 	if outgoing then
 		expected = expected + 1
-		Tween.CancelAll(outgoing)
-		PageFade.FadeDecorations(outgoing, true, false)
-		local h = Tween.Play(outgoing, PageFade.PRESET, { GroupTransparency = 1 })
-		if h and h.Tween then
-			-- A cancelled fade must not count as finished.
-			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then
-					done()
-				end
-			end)
-		else
-			done()
-		end
+		TreeFade.Set(outgoing, true, false, PageFade.PRESET, done, skipRootsFor(outgoing))
 	end
 
 	if incoming then
 		expected = expected + 1
-		Tween.CancelAll(incoming)
-		PageFade.FadeDecorations(incoming, false, false)
-		local h = Tween.Play(incoming, PageFade.PRESET, { GroupTransparency = 0 })
-		if h and h.Tween then
-			-- A cancelled fade must not count as finished.
-			h.Tween.Completed:Connect(function(state)
-				if state == Enum.PlaybackState.Completed then
-					done()
-				end
-			end)
-		else
-			done()
-		end
+		TreeFade.Set(incoming, false, false, PageFade.PRESET, done, skipRootsFor(incoming))
 	end
 
 	if expected == 0 and onComplete then

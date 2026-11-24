@@ -16,6 +16,8 @@ local RadioButtonGroup = require("../Components/RadioButtonGroup")
 local Video = require("../Components/Video")
 local Viewport = require("../Components/Viewport")
 local Status = require("../Components/Status")
+local DataTable = require("../Components/DataTable")
+local Graph = require("../Components/Graph")
 local Dropdown = require("../Components/Dropdown")
 local ProgressBar = require("../Components/ProgressBar")
 local Stepper = require("../Components/Stepper")
@@ -83,12 +85,11 @@ function Section.new(parent, Settings, theme, window, noSave)
 			return window:ColorPickerPopUp(id, s)
 		end
 	end
-	local frame = Instance.new("CanvasGroup")
+	local frame = Instance.new("Frame")
 	frame.Name = UUID.Generate("Section")
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = theme.SectionBackgroundColor
 	frame.BackgroundTransparency = theme.SectionBackgroundTransparency
-	frame.GroupTransparency = 0
 	frame.ClipsDescendants = true
 	frame.AutomaticSize = Enum.AutomaticSize.Y
 	frame.Size = UDim2.fromScale(1, 0)
@@ -254,6 +255,12 @@ function Section:Viewport(Settings)
 end
 function Section:Status(Settings)
 	return Status.new(self.Frame, Settings, self._theme)
+end
+function Section:DataTable(Settings)
+	return DataTable.new(self.Frame, Settings, self._theme)
+end
+function Section:Graph(Settings)
+	return Graph.new(self.Frame, Settings, self._theme)
 end
 function Section:Dropdown(Settings, ShowPopup)
 	Settings = self:_wrapCallback("Dropdown", Settings)

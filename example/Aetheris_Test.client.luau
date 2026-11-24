@@ -15,7 +15,7 @@
     Components : Toggle, Slider, Keybind, TextInput, Stepper, RadioButtonGroup
                  (+ RadioButton), Dropdown, ColorPicker, Status, ProgressBar,
                  Button, Label, Paragraph, Divider, Video, LiveStat, Console,
-                 CodeView
+                 CodeView, DataTable, Graph
     Security   : AETHERIS_SECUREMODE (gethui/CoreGui parenting + UUID rename)
     API        : SetName, SetVisible/GetVisible, Destroy,
                  and Status:AddEntry/SetEntry/SetEntries
@@ -191,6 +191,12 @@ local mediaTab = window:Tab("Media", ico("play"))
 local statsTab = window:Tab("Stats", ico("chart-line"))
 window:Divider()
 local settingsTab = window:Tab("Settings", ico("settings"))
+-- Deliberately more tabs than fit: the minimize pill scrolls past seven, and
+-- these prove the hover-scaled buttons no longer clip at the strip edges.
+local farmTab = window:Tab("Farm", ico("sprout"))
+local followTab = window:Tab("Follow", ico("users"))
+local spotsTab = window:Tab("Spots", ico("map-pin"))
+local extraTab = window:Tab("Extra", ico("box"))
 
 -- =========================================================================
 --  3. HOME TAB  -  Paragraph, Label, Divider, Button
@@ -380,6 +386,158 @@ statControls:Button({
 	Name = "Tick Time",
 	Callback = function()
 		timeStat:Set(timeStat:Get() + 1)
+	end,
+})
+
+-- =========================================================================
+--  3c. DATA TABLE + GRAPH  -  live rows and a streaming line graph
+-- =========================================================================
+-- DataTable columns are weighted, never fixed-width: Weight 1 means an equal
+-- share of the row, 2 twice the share. There is no Width option by design.
+local tableSection = statsTab:Section({ Name = "Live Data", Side = "Left" })
+
+local STATUS_COLORS = {
+	Farming = Color3.fromRGB(74, 200, 120),
+	Idle = Color3.fromRGB(200, 200, 200),
+	Trade = Color3.fromRGB(96, 165, 250),
+}
+
+local demoTable = tableSection:DataTable({
+	Name = "Tracked Players",
+	MaxRows = 6, -- viewport caps at six rows; the body scrolls past that
+	SortBy = "Score", -- sort live: UpdateRow re-sorts automatically
+	SortDescending = true,
+	Columns = {
+		{ Key = "Name", Label = "PLAYER", Weight = 2 },
+		{ Key = "Score", Label = "SCORE", Weight = 1.4, Align = "right", Format = "number" },
+		{
+			Key = "Ping",
+			Label = "PING",
+			Weight = 1,
+			Align = "right",
+			Format = function(value)
+				return tostring(math.floor(value + 0.5)) .. " ms"
+			end,
+		},
+		{
+			Key = "Status",
+			Label = "STATUS",
+			Weight = 1.3,
+			Color = function(value)
+				return STATUS_COLORS[value] or Color3.fromRGB(200, 200, 200)
+			end,
+		},
+	},
+	Action = {
+		Label = "Kick",
+		Callback = function(id, row)
+			demoTable:RemoveRow(id)
+			print("[Demo] DataTable kicked", row.Name)
+		end,
+	},
+})
+
+demoTable:SetRows({
+	{ id = "alpha", Name = "Alpha", Score = 18450, Ping = 42, Status = "Farming" },
+	{ id = "bravo", Name = "Bravo", Score = 9200, Ping = 87, Status = "Idle" },
+	{ id = "charlie", Name = "Charlie", Score = 27800, Ping = 31, Status = "Trade" },
+	{ id = "delta", Name = "Delta", Score = 5400, Ping = 120, Status = "Farming" },
+	{ id = "echo", Name = "Echo", Score = 15100, Ping = 65, Status = "Idle" },
+	{ id = "foxtrot", Name = "Foxtrot", Score = 7300, Ping = 98, Status = "Trade" },
+})
+
+local tableControls = statsTab:Section({ Name = "Data Controls", Side = "Right" })
+
+tableControls:Button({
+	Name = "Bump every score",
+	Callback = function()
+		for _, row in ipairs(demoTable:GetRows()) do
+			-- UpdateRow patches fields and re-sorts against the active SortBy.
+			demoTable:UpdateRow(row._id, { Score = row.Score + math.random(500, 4000) })
+		end
+	end,
+})
+
+tableControls:Button({
+	Name = "Add a row",
+	Callback = function()
+		local id = "row_" .. tostring(os.clock())
+		local statuses = { "Farming", "Idle", "Trade" }
+		demoTable:AddRow({
+			id = id,
+			Name = "Guest",
+			Score = math.random(1000, 20000),
+			Ping = math.random(20, 150),
+			Status = statuses[math.random(#statuses)],
+		})
+	end,
+})
+
+tableControls:Button({
+	Name = "Highlight a row",
+	Callback = function()
+		local rows = demoTable:GetRows()
+		if #rows > 0 then
+			local pick = rows[math.random(#rows)]
+			if demoTable:GetRowColor(pick._id) then
+				demoTable:SetRowColor(pick._id, nil)
+			else
+				demoTable:SetRowColor(pick._id, Color3.fromRGB(96, 165, 250))
+			end
+		end
+	end,
+})
+
+tableControls:Button({
+	Name = "Sort by ping",
+	Callback = function()
+		local key, descending = demoTable:GetSort()
+		local nextDescending = (key == "Ping") and not descending or false
+		demoTable:SetSort("Ping", nextDescending)
+	end,
+})
+
+-- Graph draws straight line segments (no bars) and interpolates between the
+-- old and new values on every Push, so a live feed animates smoothly.
+local graphSection = statsTab:Section({ Name = "Graph", Side = "Right" })
+
+local graphSeed = {}
+for index = 1, 18 do
+	graphSeed[index] = 45 + math.sin(index * 0.55) * 18 + (index % 4) * 2
+end
+
+local demoGraph = graphSection:Graph({
+	Name = "Throughput",
+	Height = 130,
+	MaxPoints = 40,
+	Format = "number",
+	Points = graphSeed,
+})
+
+local graphPaused = false
+local graphTick = 0
+local graphThread = task.spawn(function()
+	while true do
+		task.wait(1)
+		if not graphPaused then
+			graphTick += 1
+			demoGraph:Push(50 + math.sin(graphTick * 0.4) * 25 + math.noise(graphTick * 0.3) * 14)
+		end
+	end
+end)
+
+graphSection:Button({
+	Name = "Push spike",
+	Callback = function()
+		demoGraph:Push(165)
+	end,
+})
+
+graphSection:Button({
+	Name = "Pause / resume feed",
+	Callback = function()
+		graphPaused = not graphPaused
+		print("[Demo] Graph feed paused:", graphPaused)
 	end,
 })
 
@@ -932,12 +1090,30 @@ codeControls:Button({
 })
 
 -- =========================================================================
+--  8d. EXTRA TABS  -  filler pages that push the sidebar past the pill's fit
+-- =========================================================================
+-- Four more tabs than the seven the minimize pill shows at once, so the strip
+-- always scrolls and the edge-clipping fix is visible at rest and on hover.
+local function stubPage(tab, description)
+	local section = tab:Section({ Name = tab.Name .. " Page", Side = "Left" })
+	section:Paragraph({ Title = tab.Name, Description = description })
+	section:Label({ Text = "Placeholder content — this page exists to test pill scrolling." })
+end
+
+stubPage(farmTab, "A stand-in farming page. Scroll the sidebar or the minimize pill to reach it.")
+stubPage(followTab, "A stand-in follow page, kept clickable so tab switching and fades stay exercised.")
+stubPage(spotsTab, "A stand-in teleport-spot page with no live logic behind the controls.")
+stubPage(extraTab, "The last filler page; the pill should scroll cleanly to it without clipping.")
+
+-- =========================================================================
 --  9. STARTUP LOG
 -- =========================================================================
-print("[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Stats, Settings")
+print(
+	"[Aetheris Demo] Window built. Tabs: Home, Controls, Inputs, Feedback, Media, Stats, Settings, Farm, Follow, Spots, Extra"
+)
 print("[Aetheris Demo] Active tab:", window.TabGroup.ActiveTab.Name)
 print(
-	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console, CodeView."
+	"[Aetheris Demo] All components exercised: Toggle, Slider, Keybind, TextInput, Stepper, RadioButton(Group), Dropdown, ColorPicker, Status, ProgressBar, Button, Label, Paragraph, Divider, Video, LiveStat, Console, CodeView, DataTable, Graph."
 )
 print(
 	"[Aetheris Demo] Secure mode off (AETHERIS_SECUREMODE = false); Component API: SetName, SetVisible/GetVisible, Destroy, Status:AddEntry."
@@ -964,5 +1140,6 @@ end)
 
 window:OnDestroy(function()
 	task.cancel(demoLoopThread)
+	task.cancel(graphThread)
 	print(string.format("[Aetheris Demo] OnDestroy: demo loop cancelled after %.1fs", os.clock() - demoLoopStart))
 end)

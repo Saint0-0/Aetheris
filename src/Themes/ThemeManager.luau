@@ -527,6 +527,10 @@ end
 local function isHidden(inst)
 	local node = inst
 	while node and node ~= game do
+		-- TreeFade roots mark themselves when faded out.
+		if node:GetAttribute(UUID.Static("FadeHidden")) == true then
+			return true
+		end
 		if node:IsA("CanvasGroup") then
 			if (node.GroupTransparency or 0) >= 1 then
 				return true

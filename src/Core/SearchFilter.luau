@@ -1,16 +1,16 @@
 --[[
 	Aetheris/Core/SearchFilter.luau
 
-	Filters a page by text. Sections fade as CanvasGroups and individual
-	components drop out of their section, so a query narrows the results inside
-	each section rather than only hiding whole sections. Labels are indexed once
-	per page and cached until the tree changes.
+	Filters a page by text. Sections use TreeFade and individual components drop
+	out of their section, so a query narrows the results inside each section
+	rather than only hiding whole sections. Labels are indexed once per page and
+	cached until the tree changes.
 
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
 
-local Tween = require("../Utils/Tween")
+local PageFade = require("../Utils/PageFade")
 local UUID = require("../Utils/UUID")
 
 local SearchFilter = {}
@@ -279,14 +279,11 @@ local function showSection(record, animate)
 	end
 	section.Visible = true
 	if not animate then
-		section.GroupTransparency = 0
-		return
-	end
-	if record.hidden then
-		section.GroupTransparency = 1
+		PageFade.Snap(section, 0)
+	else
+		PageFade.Show(section, false)
 	end
 	record.hidden = false
-	Tween.Play(section, "Fast", { GroupTransparency = 0 })
 end
 
 local function hideSection(record, token, page)
@@ -298,7 +295,7 @@ local function hideSection(record, token, page)
 		return
 	end
 	record.hidden = true
-	Tween.Play(section, "Fast", { GroupTransparency = 1 })
+	PageFade.Hide(section, false)
 	task.delay(SECTION_DELAY, function()
 		if tokenByPage[page] ~= token or not section.Parent then
 			return

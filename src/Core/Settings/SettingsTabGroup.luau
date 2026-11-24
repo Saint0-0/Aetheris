@@ -105,7 +105,7 @@ function SettingsTabHandle:Scroller()
 	end)
 
 	-- Content melts into the page at both scroll edges.
-	ScrollFade.Attach(scroller)
+	ScrollFade.AttachOverlay(scroller, "ContentBackgroundColor")
 
 	self._scroller = scroller
 	self._contentParent = scroller
@@ -308,7 +308,7 @@ function SettingsTabGroup:Tab(Settings)
 	Page.Size = UDim2.fromScale(1, 1)
 	Page.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	Page.Visible = true
-	-- One CanvasGroup per page owns the fade; the page itself is never faded.
+	-- One TreeFade layer per page owns the fade; the page itself is never faded.
 	local FadeLayer = PageFade.Layer(self.Content, UUID.Generate())
 	FadeLayer.Visible = false
 	Page.Parent = FadeLayer
@@ -484,7 +484,7 @@ function SettingsTabGroup:SetActiveTab(tab)
 	self:_applyInactiveVisuals(previous)
 	self:_applyActiveVisuals(tab)
 
-	-- Crossfade like the main TabGroup, using one CanvasGroup per page.
+	-- Crossfade like the main TabGroup, one TreeFade layer per page.
 	tab.FadeLayer.Visible = true
 	PageFade.Crossfade(previous.FadeLayer, tab.FadeLayer, function()
 		if previous.FadeLayer then

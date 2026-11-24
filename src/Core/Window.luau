@@ -13,6 +13,7 @@
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Tween = require("../Utils/Tween")
 local PageFade = require("../Utils/PageFade")
@@ -99,6 +100,7 @@ function Window.new(Settings)
 	-- Tracked here because they are not ScreenGui children.
 	local dragInputConnection
 	local resizeInputConnection
+	local resizeStepConnection
 	local minimizeKeyConnection
 	local inputEndedConnection -- Recreated per drag or resize gesture.
 	local clockStopped = false
@@ -126,10 +128,12 @@ function Window.new(Settings)
 		ScreenGui.Parent = playerGui or game:GetService("CoreGui")
 	end
 
-	-- Theme at construction; the CanvasGroup lets PageFade fade the whole shell.
-	local MainFrame = Instance.new("CanvasGroup")
+	-- Plain Frame so the shell is never rasterised into a CanvasGroup texture
+	-- (that 1024px cap is what blurred text as the window widened). PageFade
+	-- walks the tree instead. Page layers marked by PageFade.Layer are skipped
+	-- here so window and page fades never clobber each other.
+	local MainFrame = Instance.new("Frame")
 	MainFrame.Name = UUID.Static("Window")
-	MainFrame.GroupTransparency = 0
 	MainFrame.BorderSizePixel = 0
 	MainFrame.BackgroundColor3 = theme.WindowColor or Color3.fromRGB(15, 15, 15)
 	MainFrame.BackgroundTransparency = theme.WindowTransparency or 0.1
@@ -138,6 +142,7 @@ function Window.new(Settings)
 	MainFrame.Position = UDim2.fromScale(0.013, 0.015)
 	-- Cosmetic only, but kept in sync with the theme stroke.
 	MainFrame.BorderColor3 = theme.StrokeColor or Color3.fromRGB(41, 41, 41)
+	MainFrame:SetAttribute(UUID.Static("SkipFadeRoots"), true)
 	MainFrame.Parent = ScreenGui
 
 	local DragFrame = Instance.new("Frame")
@@ -805,8 +810,9 @@ function Window.new(Settings)
 	-- Auto-mask hides the names at startup; a click then only offers to disable it.
 	local originalDisplayName = DisplayName.Text
 	local originalUsername = Username.Text
-	local function maskOf(text)
-		return string.rep("*", utf8.len(text) or #text)
+	-- A fixed width regardless of name length, so nothing leaks through.
+	local function maskOf()
+		return "********"
 	end
 	local autoMask = SettingsStore.Get("MaskDisplayName") == true
 	-- Session-only mask state, used while auto-mask is off.
@@ -826,15 +832,15 @@ function Window.new(Settings)
 				if not DisplayName.Parent then
 					return
 				end
-				DisplayName.Text = showMask and maskOf(originalDisplayName) or originalDisplayName
-				Username.Text = showMask and maskOf(originalUsername) or originalUsername
+				DisplayName.Text = showMask and maskOf() or originalDisplayName
+				Username.Text = showMask and maskOf() or originalUsername
 				Tween.Play(DisplayName, "Smooth", { TextTransparency = 0.3 })
 				Tween.Play(Username, "Smooth", { TextTransparency = 0.7 })
 				maskFading = false
 			end)
 		else
-			DisplayName.Text = showMask and maskOf(originalDisplayName) or originalDisplayName
-			Username.Text = showMask and maskOf(originalUsername) or originalUsername
+			DisplayName.Text = showMask and maskOf() or originalDisplayName
+			Username.Text = showMask and maskOf() or originalUsername
 		end
 	end
 	-- Startup paint applies auto-mask immediately.
@@ -1222,6 +1228,25 @@ function Window.new(Settings)
 		local resizeHovered = false
 		local resizeStart
 		local startSize
+		local pendingResize -- New size queued for the next frame.
+
+		-- One size write per frame: InputChanged can fire several times per
+		-- frame, and every write re-lays out the tree.
+		local function flushResize()
+			if not pendingResize then
+				return
+			end
+			local size = pendingResize
+			pendingResize = nil
+			MainFrame.Size = UDim2.fromOffset(size.X, size.Y)
+		end
+		local function stopResizeSteps()
+			if resizeStepConnection then
+				flushResize()
+				resizeStepConnection:Disconnect()
+				resizeStepConnection = nil
+			end
+		end
 
 		-- Faint on hover, fully visible while dragging.
 		local function updateResizeVisual()
@@ -1262,6 +1287,7 @@ function Window.new(Settings)
 					then
 						resizing = false
 						updateResizeVisual()
+						stopResizeSteps()
 						if inputEndedConnection then
 							inputEndedConnection:Disconnect()
 							inputEndedConnection = nil
@@ -1283,7 +1309,10 @@ function Window.new(Settings)
 				local minSize = MainFrameSizeConstraint.MinSize
 				local newWidth = math.max(minSize.X, startSize.X + delta.X)
 				local newHeight = math.max(minSize.Y, startSize.Y + delta.Y)
-				MainFrame.Size = UDim2.fromOffset(newWidth, newHeight)
+				pendingResize = Vector2.new(newWidth, newHeight)
+				if not resizeStepConnection then
+					resizeStepConnection = RunService.RenderStepped:Connect(flushResize)
+				end
 			end
 		end)
 	end
@@ -1297,13 +1326,15 @@ function Window.new(Settings)
 	end
 
 	-- GroupTransparency dims the whole pill at rest in one property.
+	local PILL_CROSS = 64 -- Cross-axis size: a 40px button plus hover breathing room.
 	local pill = Instance.new("CanvasGroup")
 	pill.Name = UUID.Generate("MinimizePill")
 	pill.AutomaticSize = Enum.AutomaticSize.None
-	pill.Size = UDim2.fromOffset(56, 56)
+	pill.Size = UDim2.fromOffset(PILL_CROSS, PILL_CROSS)
 
 	local pillLayout -- Forward declaration; created below.
 	local pillScroll -- Forward declaration; created below.
+	local pillPad -- Forward declaration; padding follows the dock axis.
 
 	-- Pill position and tooltip side come from the stored side.
 	local PILL_SIDES = {
@@ -1338,9 +1369,9 @@ function Window.new(Settings)
 		local visible = scrollable and math.min(content, limit) or content
 
 		if horizontal then
-			pill.Size = UDim2.fromOffset(visible + 16, 56)
+			pill.Size = UDim2.fromOffset(visible + 16, PILL_CROSS)
 		else
-			pill.Size = UDim2.fromOffset(56, visible + 16)
+			pill.Size = UDim2.fromOffset(PILL_CROSS, visible + 16)
 		end
 		pillScroll.ScrollingEnabled = scrollable
 		pillScroll.ScrollBarThickness = scrollable and 1 or 0
@@ -1363,6 +1394,17 @@ function Window.new(Settings)
 		if pillScroll then
 			pillScroll.ScrollingDirection = horizontal and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
 			pillScroll.AutomaticCanvasSize = horizontal and Enum.AutomaticSize.X or Enum.AutomaticSize.Y
+		end
+		if pillPad then
+			-- Padding follows the dock: the cross axis carries the breathing
+			-- room a hover-scaled button needs, the main axis stays a thin
+			-- inset so the strip keeps the full content length.
+			local cross = 8
+			local main = 4
+			pillPad.PaddingTop = UDim.new(0, horizontal and cross or main)
+			pillPad.PaddingBottom = UDim.new(0, horizontal and cross or main)
+			pillPad.PaddingLeft = UDim.new(0, horizontal and main or cross)
+			pillPad.PaddingRight = UDim.new(0, horizontal and main or cross)
 		end
 		updatePillSize()
 	end
@@ -1786,7 +1828,9 @@ function Window.new(Settings)
 		end)
 	end)
 
-	local pillPad = Instance.new("UIPadding")
+	pillPad = Instance.new("UIPadding")
+	-- Cross-axis breathing room so hover-scaled buttons never clip while the
+	-- strip scrolls; values are re-applied per dock in applyPillPosition.
 	pillPad.PaddingTop = UDim.new(0, 4)
 	pillPad.PaddingBottom = UDim.new(0, 4)
 	pillPad.PaddingLeft = UDim.new(0, 4)
@@ -2005,6 +2049,20 @@ function Window.new(Settings)
 	-- Only stable states accept a toggle, so spamming the keybind is safe.
 	local minimizeState = "shown"
 
+	-- The page layer actually on screen. Page layers are PageFade roots that the
+	-- shell fade skips, so minimize/restore fades these explicitly; otherwise
+	-- settings content or the active page would stay opaque during the fade.
+	local minimizedPageLayers = {}
+
+	local function visiblePageLayer()
+		local settingsGroup = self.SettingsTabGroup
+		if self.SettingsPages and self.SettingsPages.Visible and settingsGroup and settingsGroup.ActiveTab then
+			return settingsGroup.ActiveTab.FadeLayer
+		end
+		local tab = self.TabGroup and self.TabGroup.ActiveTab
+		return tab and tab.FadeLayer or nil
+	end
+
 	minimizeWindow = function()
 		if minimizeState ~= "shown" then
 			return
@@ -2032,6 +2090,14 @@ function Window.new(Settings)
 					s.Scale = 1
 				end
 			end
+		end
+		-- Page layers are skipped by the shell fade so their own state stays
+		-- intact; fade the visible one alongside the chrome.
+		table.clear(minimizedPageLayers)
+		local activeLayer = visiblePageLayer()
+		if activeLayer and activeLayer.Visible then
+			minimizedPageLayers[#minimizedPageLayers + 1] = activeLayer
+			PageFade.Hide(activeLayer, false, nil, PageFade.WINDOW_PRESET)
 		end
 		-- Reveal the pill only after the window fade completes.
 		PageFade.Hide(MainFrame, false, function()
@@ -2064,6 +2130,19 @@ function Window.new(Settings)
 		tooltip:Hide()
 		-- Reveal the window in parallel with the pill fading out.
 		MainFrame.Visible = true
+		-- Restore every layer the minimize pass hid, not just the one on screen
+		-- now: a settings page can be replaced by a pill click while minimized.
+		for _, layer in ipairs(minimizedPageLayers) do
+			if layer.Parent then
+				PageFade.Show(layer, false, nil, PageFade.WINDOW_PRESET)
+			end
+		end
+		table.clear(minimizedPageLayers)
+		local activeLayer = visiblePageLayer()
+		if activeLayer then
+			activeLayer.Visible = true
+			PageFade.Show(activeLayer, false, nil, PageFade.WINDOW_PRESET)
+		end
 		PageFade.Show(MainFrame, false, function()
 			self._windowFaded = false
 			minimizeState = "shown"
@@ -2071,13 +2150,10 @@ function Window.new(Settings)
 		pillHovered = false
 		applyPillShadow()
 		applyPillStroke()
-		PageFade.Hide(pill, false, function()
-			pill.Visible = false
-			pillScale.Scale = 1
-			pillHovered = false
-			applyPillShadow()
-			applyPillStroke()
-		end)
+		-- The pill is still a CanvasGroup, so fade its GroupTransparency (plus
+		-- the stroke and shadow it skips) rather than running TreeFade over it.
+		Tween.Play(pill, "Fast", { GroupTransparency = 1 })
+		PageFade.FadeDecorations(pill, true, false)
 		Tween.Play(pillScale, "Fast", { Scale = 0.85 })
 		task.delay(0.3, function()
 			pill.Visible = false
@@ -2160,6 +2236,10 @@ function Window.new(Settings)
 		if resizeInputConnection then
 			resizeInputConnection:Disconnect()
 			resizeInputConnection = nil
+		end
+		if resizeStepConnection then
+			resizeStepConnection:Disconnect()
+			resizeStepConnection = nil
 		end
 		if minimizeKeyConnection then
 			minimizeKeyConnection:Disconnect()
@@ -2276,8 +2356,14 @@ function Window.new(Settings)
 
 	ThemeManager.ApplyTheme(self, theme)
 
-	-- Fade the window in from hidden.
+	-- Fade the window in from hidden. Page layers are skipped by the shell fade
+	-- so the active page gets its own fade in parallel, at the same duration.
 	Sound.Play("UIStart")
+	local startupTab = self.TabGroup and self.TabGroup.ActiveTab
+	if startupTab and startupTab.FadeLayer then
+		startupTab.FadeLayer.Visible = true
+		PageFade.Show(startupTab.FadeLayer, false, nil, PageFade.WINDOW_PRESET)
+	end
 	PageFade.Snap(MainFrame, 1)
 	PageFade.Show(MainFrame, false, nil, PageFade.WINDOW_PRESET)
 
@@ -2641,13 +2727,19 @@ function Window:Destroy()
 		self._destroyCallbacks = nil
 	end
 
-	-- One GroupTransparency tween covers every child.
-	local handle = Tween.Play(self.MainFrame, closePreset, { GroupTransparency = 1 })
-	-- The UIShadow needs its own fade.
+	-- Fade the whole shell, page layers included; the window is going away so
+	-- their cached show-state no longer matters.
+	self.MainFrame:SetAttribute(UUID.Static("SkipFadeRoots"), false)
 	if self.MainFrameShadow then
 		Tween.Play(self.MainFrameShadow, closePreset, { Transparency = 1 })
 	end
-	handle.Tween.Completed:Wait()
+	local closed = false
+	PageFade.Hide(self.MainFrame, false, function()
+		closed = true
+	end, closePreset)
+	while not closed do
+		task.wait()
+	end
 
 	Tween.CancelAll(self.MainFrame)
 	self.Base:Destroy()

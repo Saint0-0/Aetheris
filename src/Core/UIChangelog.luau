@@ -10,9 +10,39 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.5.0"
+UIChangelog.Version = "1.6.0"
 
 UIChangelog.Entries = {
+	{
+		Title = "Crisp fades",
+		Description = "Page and window transitions no longer composite through a CanvasGroup, whose 1024px texture cap blurred wide windows and tall sections. A new tree fade walks each element's own transparency instead, so text stays sharp at any size.",
+		Icon = "sparkles",
+		Tint = "blue",
+	},
+	{
+		Title = "Data Table component",
+		Description = "section:DataTable builds a weighted-column table that always fits its section, with live rows, sort updates, per-row colours, an optional action button and a scrolling row cap.",
+		Icon = "table",
+		Tint = "teal",
+	},
+	{
+		Title = "Graph component",
+		Description = "section:Graph draws an animated line graph from straight segments. Push a value each tick and the line slides across the plot, with optional dots, grid lines and a live readout.",
+		Icon = "chart-line",
+		Tint = "purple",
+	},
+	{
+		Title = "Smoother resizing",
+		Description = "Window drag-resizing now coalesces input into one size write per frame, so the layout no longer re-flows several times per frame while the mouse moves.",
+		Icon = "move",
+		Tint = "orange",
+	},
+	{
+		Title = "Detail fixes",
+		Description = "Key entry clips long text, dropdown select-all and clear stay pinned to the right edge, masked names always show eight asterisks, Discord counts read the live widget field, and extra tabs no longer clip inside the minimize pill.",
+		Icon = "wrench",
+		Tint = "yellow",
+	},
 	{
 		Title = "Loading screen refresh",
 		Description = "The key card now shows the running step in a status row with its own icon, a step counter and a live percent chip, over a thin progress rail and a task list that fills in with checks as each step finishes.",

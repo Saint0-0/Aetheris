@@ -177,12 +177,12 @@ function TabGroup:Tab(Settings)
 	ContentScroller.ScrollBarImageColor3 = theme.TertiaryColor
 	-- The fade layer owns visibility; the scroller stays visible inside it.
 	ContentScroller.Visible = true
-	-- One CanvasGroup per tab owns the page fade.
+	-- One TreeFade layer per tab owns the page fade.
 	local FadeLayer = PageFade.Layer(self.Window.TabContent, UUID.Generate("TabFade"))
 	FadeLayer.Visible = false
 	ContentScroller.Parent = FadeLayer
 	-- Content melts into the page at both scroll edges.
-	ScrollFade.Attach(ContentScroller)
+	ScrollFade.AttachOverlay(ContentScroller, "ContentBackgroundColor")
 	local scrollerScrollbarTimer
 	ContentScroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		Tween.Play(ContentScroller, "Fast", { ScrollBarImageTransparency = 0.5 })
@@ -442,7 +442,7 @@ function TabGroup:SetActiveTab(tab)
 	self:_applyTabVisuals(tab, true)
 
 	if self.Window and self.Window._windowFaded then
-		-- Visible does not reset GroupTransparency; snap each layer to its end state.
+		-- Visible does not reset a layer's fade state; snap each one to its end state.
 		for _, other in ipairs(self.Tabs) do
 			if other.FadeLayer then
 				local isTarget = (other == tab)

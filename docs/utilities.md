@@ -9,7 +9,8 @@ The utility modules are the internal engine of Aetheris, and each one can be req
 | [Video Fade](utilities/video-fade.md) | Fades a VideoFrame with a UIGradient, because VideoFrame.Transparency does nothing. |
 | [Icons](utilities/icons.md) | The Lucide icon set as name to rbxassetid, exposed as Aetheris.Icons. |
 | [Odometer](utilities/odometer.md) | Per digit slot reel number roll, used by LiveStat. |
-| [Page Fade](utilities/page-fade.md) | Page transitions through one CanvasGroup.GroupTransparency per page. |
+| [Page Fade](utilities/page-fade.md) | Page transitions through Tree Fade, with no CanvasGroup texture blur. |
+| [Tree Fade](utilities/tree-fade.md) | Fades a whole subtree by its own transparency properties instead of a CanvasGroup. |
 | [KeybindDispatcher](utilities/keybinddispatcher.md) | One shared input listener for every Keybind row. |
 
 ## Requiring a utility

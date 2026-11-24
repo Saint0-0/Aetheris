@@ -335,10 +335,12 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	clearBtn.TextTransparency = 1
 	clearBtn.AutoButtonColor = false
 	clearBtn.BackgroundColor3 = (theme and theme.TertiaryColor) or Color3.fromRGB(100, 116, 139)
-	clearBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+	-- Anchored to the parent's right edge so widening the window does not
+	-- push the pair apart; only the fixed offsets scale.
+	clearBtn.AnchorPoint = Vector2.new(1, 0.5)
 	-- Fixed pixel circle: a scaled size would stretch into an oval on resize.
 	clearBtn.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
-	clearBtn.Position = UDim2.fromScale(0.96018, 0.5)
+	clearBtn.Position = UDim2.new(1, -6, 0.5, 0)
 	clearBtn.Parent = searchArea
 	local clearCorner = Instance.new("UICorner")
 	clearCorner.CornerRadius = UDim.new(1, 0)
@@ -371,10 +373,10 @@ function DropdownPopUp.new(parent, Settings, cleanupCallback)
 	selectAllBtn.TextTransparency = 1
 	selectAllBtn.AutoButtonColor = false
 	selectAllBtn.BackgroundColor3 = (theme and theme.AccentColor) or Color3.fromRGB(96, 165, 250)
-	selectAllBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+	selectAllBtn.AnchorPoint = Vector2.new(1, 0.5)
 	-- Fixed pixel circle, same as the clear button.
 	selectAllBtn.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
-	selectAllBtn.Position = UDim2.fromScale(0.83689, 0.5)
+	selectAllBtn.Position = UDim2.new(1, -(6 + BUTTON_SIZE + 6), 0.5, 0)
 	selectAllBtn.Parent = searchArea
 	local selectAllCorner = Instance.new("UICorner")
 	selectAllCorner.CornerRadius = UDim.new(1, 0)

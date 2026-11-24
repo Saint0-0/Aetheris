@@ -806,9 +806,13 @@ function KeyServices.FetchDiscordStats(guildId)
 	if not data then
 		return nil
 	end
+	-- widget.json returns "presence_count"; "members" is an array of online
+	-- members, not a total, so it only counts when the endpoint ever sends a
+	-- number (some proxies add one).
+	local members = tonumber(data.members)
 	return {
-		Online = tonumber(data.approximate_presence_count),
-		Members = tonumber(data.approximate_member_count),
+		Online = tonumber(data.presence_count) or tonumber(data.approximate_presence_count),
+		Members = members or tonumber(data.approximate_member_count),
 		Icon = type(data.icon) == "string"
 				and ("https://cdn.discordapp.com/icons/" .. tostring(guildId) .. "/" .. data.icon .. ".png")
 			or nil,

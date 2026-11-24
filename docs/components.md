@@ -18,6 +18,8 @@ Most components also share four methods: `:SetName(string)`, `:SetVisible(bool)`
 | [Progress Bar](components/progress-bar.md) | Filled bar for min-to-max values. |
 | [Status](components/status.md) | Heading plus coloured status lines. |
 | [Live Stat](components/live-stat.md) | Big rolling number with a change line. |
+| [Data Table](components/data-table.md) | Weighted-column table with live rows and sorting. |
+| [Graph](components/graph.md) | Animated line graph for streaming values. |
 | [Console](components/console.md) | Scrollback log panel. |
 | [Code View](components/code-view.md) | Highlighted code block, optionally editable. |
 | [Video](components/video.md) | Inline video frame. |
