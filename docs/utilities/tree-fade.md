@@ -43,5 +43,6 @@ end)
 - Every `Set`/`Snap` on a root bumps a generation, so a callback from a superseded fade (a fast tab double-click, a theme switch) does not run.
 - A cancelled tween never reports `Completed`, so each fade arms a fallback timer to keep callers moving.
 - `skipRoots` makes a parent fade ignore registered child roots; this is how the window shell avoids clobbering page layers.
+- Showing uses the property's live theme value (`ThemeLive_*`) when one exists, so a theme switch made while the root was hidden is not reverted by an older captured value. Non-themed properties still restore the value captured on hide.
 - A `CanvasGroup` is captured as one `GroupTransparency` and its children are skipped, so wrapping media in a group is the reliable way to fade it. The `Video` component and video pages in `Carousel` do exactly that.
 - A bare `ViewportFrame` fades through its `ImageTransparency`, which is the one opacity that reaches the rendered 3D image. For group-less trees, videos can still fade through the `<IsVideoFade>` gradient that `Utils/VideoFade` attaches, and a viewport can be covered by a frame tagged `<IsFadeVeil>` (the fade covers it when hiding, uncovers it when showing).

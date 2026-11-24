@@ -173,6 +173,7 @@ function Carousel.new(parent, Settings, theme)
 	indicatorShadow.Transparency = 0.55
 	indicatorShadow.BlurRadius = UDim.new(0, 12)
 	indicatorShadow.Parent = indicator
+	ThemeManager.BindColor(indicatorShadow, "Color", "PopupShadowColor")
 
 	local indicatorLayout = Instance.new("UIListLayout")
 	indicatorLayout.FillDirection = Enum.FillDirection.Horizontal

@@ -34,6 +34,8 @@ function Toggle.new(parent, Settings, ShowNotification, theme)
 		Theme = theme,
 		Clickable = true,
 		LabelWidth = 0.486,
+		-- The on/off state owns the label opacity.
+		BindLabelTransparency = false,
 	})
 
 	local toggleInterractionHolder = Instance.new("Frame")

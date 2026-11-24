@@ -92,6 +92,10 @@ function ComponentRow.new(parent, Settings)
 		label.TextTransparency = 0.45
 	end
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
+	-- State-driven rows (Toggle) own the label opacity and opt out.
+	if Settings.BindLabelTransparency ~= false then
+		ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
+	end
 
 	return row, label
 end

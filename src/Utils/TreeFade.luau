@@ -33,6 +33,19 @@ local generations = setmetatable({}, { __mode = "k" })
 local HIDDEN_ATTRIBUTE = UUID.Static("FadeHidden")
 local VEIL_ATTRIBUTE = UUID.Static("IsFadeVeil")
 
+-- Bound properties mirror their resting theme value in a ThemeLive_ attribute.
+-- A fade captures the value before hiding, so a theme switch while the root is
+-- hidden would leave a stale base; showing must restore the live theme value.
+local liveAttrCache = {}
+local function liveAttr(prop)
+	local attr = liveAttrCache[prop]
+	if not attr then
+		attr = UUID.Static("ThemeLive_" .. prop)
+		liveAttrCache[prop] = attr
+	end
+	return attr
+end
+
 -- Fade modes per entry.
 -- VALUE: a numeric opacity property that fades to 1 when hidden.
 -- VIDEO: a tagged UIGradient whose NumberSequence carries video opacity.
@@ -149,9 +162,19 @@ local function apply(state, hidden, instant, preset)
 	for index = 1, #entries, 4 do
 		local inst, prop, base, mode = entries[index], entries[index + 1], entries[index + 2], entries[index + 3]
 		if inst.Parent then
-			local target = base
+			local target
 			if hidden then
 				target = mode == MODE_VEIL and 0 or 1
+			else
+				target = base
+				-- A themed property may have changed while this root was hidden;
+				-- show the current theme value, not the value captured at hide.
+				if mode == MODE_VALUE then
+					local live = inst:GetAttribute(liveAttr(prop))
+					if type(live) == "number" then
+						target = live
+					end
+				end
 			end
 			Tween.CancelProperty(inst, prop)
 			if mode == MODE_VIDEO then

@@ -432,13 +432,19 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	ThemeManager.BindTransparency(emptyLabel, "TextTransparency", "SecondaryTextTransparency")
 	self._emptyLabel = emptyLabel
 
-	-- Derived values follow theme switches without rebuilding the popup.
-	ThemeManager.OnThemeApplied(function(applied)
-		self._theme = applied
-		stampShellGradient(shellGradient, applied)
-		stampHeaderTile(headTile, headGlyph, applied)
-		shadow.Color = applied.PopupShadowColor or shadow.Color
-	end, popup)
+	-- Derived values follow theme switches without rebuilding the popup; the
+	-- bindings only cover plain properties, these are computed from the theme.
+	local function applyTheme(newTheme)
+		local t = ThemeManager.GetTheme(newTheme)
+		self._theme = t
+		stampShellGradient(shellGradient, t)
+		stampHeaderTile(headTile, headGlyph, t)
+		shadow.Color = t.PopupShadowColor or shadow.Color
+	end
+	self.ApplyTheme = function(_me, newTheme)
+		applyTheme(newTheme)
+	end
+	ThemeManager.OnThemeApplied(applyTheme, popup)
 
 	local function clearChildren(container)
 		for _, child in ipairs(container:GetChildren()) do

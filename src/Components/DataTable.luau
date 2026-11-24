@@ -295,7 +295,9 @@ function DataTable.new(parent, Settings, theme, window)
 		if popup then
 			return popup
 		end
-		popup = DataTablePopUp.new(self._popupParent, { Theme = self._theme })
+		-- Resolve at creation so a popup first opened after a theme switch is
+		-- stamped with the live theme, not the one captured at build time.
+		popup = DataTablePopUp.new(self._popupParent, { Theme = ThemeManager.GetCurrent() })
 		popup.OnSort = function(key)
 			if self._sortBy == key then
 				self._sortDescending = not self._sortDescending
@@ -325,16 +327,23 @@ function DataTable.new(parent, Settings, theme, window)
 	end
 
 	root.MouseButton1Click:Connect(openPopup)
+	-- Hover derives from the live theme; the resting value must follow a
+	-- switch, otherwise unhover jumps to the theme captured at build time.
+	local function restingTransparency()
+		return ThemeManager.Get("ComponentBackgroundTransparency") or 0.985
+	end
+	local function hoverTransparency()
+		return math.max(0, restingTransparency() - 0.035)
+	end
 	root.MouseEnter:Connect(function()
 		if popup and popup.IsOpen then
 			return
 		end
-		Tween.Play(root, "Fast", { BackgroundTransparency = 0.94 })
+		Tween.Play(root, "Fast", { BackgroundTransparency = hoverTransparency() })
 		Tween.Play(chevron, "Fast", { ImageTransparency = 0.1 })
 	end)
 	root.MouseLeave:Connect(function()
-		local base = (theme and theme.ComponentBackgroundTransparency) or 0.985
-		Tween.Play(root, "Fast", { BackgroundTransparency = base })
+		Tween.Play(root, "Fast", { BackgroundTransparency = restingTransparency() })
 		Tween.Play(chevron, "Fast", { ImageTransparency = 0.35 })
 	end)
 

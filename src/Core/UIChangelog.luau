@@ -111,7 +111,7 @@ UIChangelog.Entries = {
 	},
 	{
 		Title = "Live theme details",
-		Description = "The changelog shadow follows theme switches, the dropdown select-all and clear buttons stay circular on resize, and search highlights repaint with the accent.",
+		Description = "The changelog shadow follows theme switches, the dropdown select-all and clear buttons stay circular on resize, and search highlights repaint with the accent. Pages switched while hidden restore the current theme, and DataTable row hover returns to the live resting shade.",
 		Icon = "palette",
 		Tint = "orange",
 	},

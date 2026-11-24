@@ -28,6 +28,13 @@ function ThemeManager.Register(root, component)
 	end
 end
 
+-- Forgets a registered component when it is destroyed before its root.
+function ThemeManager.Unregister(root)
+	if root then
+		ThemeManager._components[root] = nil
+	end
+end
+
 -- A ThemeOverride attribute makes the theme system skip that property.
 local overrideCount = 0
 -- Pinned colours are tracked so a switch re-stamps only them, not the whole tree.
@@ -278,6 +285,10 @@ local function makeHandle(entry)
 			if theme then
 				applyEntry(entry, theme, false)
 			end
+		elseif entry.instance then
+			-- A disabled binding no longer owns the property, so the live value
+			-- must not be used to restore it after a fade capture.
+			entry.instance:SetAttribute(entry.liveAttr, nil)
 		end
 	end
 	function handle:Destroy()
@@ -398,8 +409,10 @@ end
 function ThemeManager.Unbind(instance, property)
 	local byProp = bindingIndex[instance]
 	if byProp and byProp[property] then
-		byProp[property].dropped = true
-		byProp[property].instance = nil
+		local entry = byProp[property]
+		entry.dropped = true
+		entry.instance = nil
+		instance:SetAttribute(entry.liveAttr, nil)
 		byProp[property] = nil
 	end
 end
@@ -407,9 +420,10 @@ end
 function ThemeManager.UnbindInstance(instance)
 	local props = bindingIndex[instance]
 	if props then
-		for _, e in pairs(props) do
-			e.dropped = true
-			e.instance = nil
+		for _, entry in pairs(props) do
+			entry.dropped = true
+			entry.instance = nil
+			instance:SetAttribute(entry.liveAttr, nil)
 		end
 		bindingIndex[instance] = nil
 	end

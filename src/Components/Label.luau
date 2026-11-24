@@ -141,6 +141,8 @@ function Label.new(parent, Settings, theme, window)
 	self._hasCustomTextTransparency = (customTextTransparency ~= nil)
 	local bgTransBinding =
 		ThemeManager.BindTransparency(container, "BackgroundTransparency", "ComponentBackgroundTransparency")
+	ThemeManager.BindColor(container, "BackgroundColor3", "ComponentBackgroundColor")
+	ThemeManager.BindColor(stroke, "Color", "StrokeColor")
 	ThemeManager.BindColor(label, "TextColor3", "PrimaryTextColor")
 	local textTransBinding = ThemeManager.BindTransparency(label, "TextTransparency", "PrimaryTextTransparency")
 	local strokeTransBinding = ThemeManager.BindTransparency(stroke, "Transparency", "StrokeTransparency")
