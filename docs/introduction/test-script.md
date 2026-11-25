@@ -12,7 +12,7 @@ The repository ships with a single demo that builds **every** component at least
 
 **In an executor:** paste the file contents while the game is running.
 
-The require line at the top points at `ReplicatedStorage.Aetheris`. Change it to match wherever you've put the module.
+The bootstrap at the top uses `ReplicatedStorage.Aetheris` when the model is installed and otherwise downloads the latest release from GitHub, so the same file runs in Studio and in an executor without edits.
 
 ## What it covers
 

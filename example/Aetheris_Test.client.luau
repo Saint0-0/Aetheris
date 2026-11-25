@@ -31,8 +31,24 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local Aetheris = require(ReplicatedStorage:WaitForChild("Aetheris").Init, 5)
-	or loadstring(game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau"))()
+-- Use a local ReplicatedStorage.Aetheris when the .rbxm is installed, otherwise
+-- pull the latest release. FindFirstChild matters here: WaitForChild yields
+-- forever when the model is absent (the usual executor case), so the fallback
+-- would never run and no UI would appear.
+local Aetheris
+local installed = ReplicatedStorage:FindFirstChild("Aetheris")
+if installed then
+	local ok, result = pcall(function()
+		return require(installed:FindFirstChild("Init") or installed)
+	end)
+	if ok then
+		Aetheris = result
+	end
+end
+if not Aetheris then
+	local request = game:HttpGet("https://github.com/Saint0-0/Aetheris/releases/latest/download/Aetheris.luau")
+	Aetheris = loadstring(request)()
+end
 local Icons = Aetheris.Icons
 
 -- A missing icon key falls back to the crosshair icon so a typo'd name can't crash the demo.
@@ -447,6 +463,45 @@ demoTable:SetRows({
 	{ id = "foxtrot", Name = "Foxtrot", Score = 7300, Ping = 98, Status = "Trade" },
 })
 
+-- A second table exercises row selection and the multi-button Actions form.
+-- demoTable above keeps its single Action shorthand, which still works.
+local recordsTable
+recordsTable = tableSection:DataTable({
+	Name = "Change Log",
+	MaxRows = 5,
+	Selectable = true,
+	OnRowClick = function(id, row)
+		print("[Demo] DataTable clicked", id, row.Name)
+	end,
+	OnSelectionChanged = function(id, row)
+		print("[Demo] DataTable selected", id or "none", row and row.Name or "")
+	end,
+	Columns = {
+		{ Key = "Name", Label = "ENTRY", Weight = 2 },
+		{ Key = "Status", Label = "STATUS" },
+	},
+	Actions = {
+		{
+			Label = "Edit",
+			Callback = function(id, row)
+				print("[Demo] DataTable edit", id, row.Name)
+			end,
+		},
+		{
+			Label = "Delete",
+			Callback = function(id)
+				recordsTable:RemoveRow(id)
+			end,
+		},
+	},
+})
+
+recordsTable:SetRows({
+	{ id = "rec_alpha", Name = "Alpha", Status = "Open" },
+	{ id = "rec_bravo", Name = "Bravo", Status = "Closed" },
+	{ id = "rec_charlie", Name = "Charlie", Status = "Open" },
+})
+
 local tableControls = statsTab:Section({ Name = "Data Controls", Side = "Right" })
 
 tableControls:Button({
@@ -486,6 +541,23 @@ tableControls:Button({
 				demoTable:SetRowColor(pick._id, Color3.fromRGB(96, 165, 250))
 			end
 		end
+	end,
+})
+
+tableControls:Button({
+	Name = "Select first record",
+	Callback = function()
+		local rows = recordsTable:GetRows()
+		if #rows > 0 then
+			recordsTable:SetSelected(rows[1]._id)
+		end
+	end,
+})
+
+tableControls:Button({
+	Name = "Clear record selection",
+	Callback = function()
+		recordsTable:ClearSelected()
 	end,
 })
 

@@ -26,6 +26,36 @@ DataTable.__index = DataTable
 local CARD_HEIGHT = 58
 local CARD_CORNER = 8
 local MAX_MAX_ROWS = 200
+local MAX_ACTIONS = 3
+
+-- Actions is the multi-button form; Action stays as a one-item shorthand.
+-- A present Actions table wins, even when empty, so callers can clear buttons
+-- without removing the key.
+local function compileActions(settings)
+	local list = {}
+	if type(settings.Actions) == "table" then
+		for _, entry in ipairs(settings.Actions) do
+			if type(entry) == "table" and #list < MAX_ACTIONS then
+				list[#list + 1] = entry
+			end
+		end
+		return list
+	end
+	if type(settings.Action) == "table" then
+		list[1] = settings.Action
+	end
+	return list
+end
+
+local function clampActions(actions)
+	local list = {}
+	for _, entry in ipairs(actions or {}) do
+		if type(entry) == "table" and #list < MAX_ACTIONS then
+			list[#list + 1] = entry
+		end
+	end
+	return list
+end
 
 local function copyRow(source)
 	local row = table.clone(source)
@@ -114,7 +144,12 @@ function DataTable.new(parent, Settings, theme, window)
 	self._striped = Settings.Striped ~= false
 	self._emptyText = Settings.EmptyText or "No rows yet"
 	self._rowColorTransparency = Settings.RowColorTransparency or 0.82
-	self._action = Settings.Action
+	self._actions = compileActions(Settings)
+	self._selectable = Settings.Selectable == true
+	self._onRowClick = Settings.OnRowClick
+	self._onSelectionChanged = Settings.OnSelectionChanged
+	self._selectedColor = typeof(Settings.SelectedColor) == "Color3" and Settings.SelectedColor or nil
+	self._selectedId = nil
 	self._popupParent = resolvePopupParent(window, parent)
 
 	local root = Instance.new("TextButton")
@@ -260,7 +295,9 @@ function DataTable.new(parent, Settings, theme, window)
 			Rows = sortedRows(),
 			SortBy = self._sortBy,
 			SortDescending = self._sortDescending,
-			Action = self._action,
+			Actions = self._actions,
+			SelectedId = self._selectedId,
+			SelectedColor = self._selectedColor,
 			EmptyText = self._emptyText,
 			RowColorTransparency = self._rowColorTransparency,
 			Striped = self._striped,
@@ -291,6 +328,29 @@ function DataTable.new(parent, Settings, theme, window)
 	end
 	self._render = render
 
+	local function setSelection(id, row)
+		if self._selectedId == id then
+			return false
+		end
+		self._selectedId = id
+		if type(self._onSelectionChanged) == "function" then
+			self._onSelectionChanged(id, row and copyRow(row) or nil)
+		end
+		return true
+	end
+
+	local function handleRowClick(row)
+		if type(self._onRowClick) == "function" then
+			self._onRowClick(row._id, copyRow(row))
+		end
+		-- The callback may have removed the row, so only select it when it is
+		-- still the live entry for that id.
+		if self._selectable and self._rowsById[row._id] == row and self._selectedId ~= row._id then
+			setSelection(row._id, row)
+			render()
+		end
+	end
+
 	local function ensurePopup()
 		if popup then
 			return popup
@@ -307,9 +367,14 @@ function DataTable.new(parent, Settings, theme, window)
 			end
 			render()
 		end
-		popup.OnAction = function(id, row)
-			if self._action and self._action.Callback then
-				self._action.Callback(id, row)
+		-- Only wire row clicks when a caller actually asked for them, so plain
+		-- tables keep their previous non-interactive rows.
+		if self._selectable or type(self._onRowClick) == "function" then
+			popup.OnRowClick = function(id)
+				local row = self._rowsById[id]
+				if row then
+					handleRowClick(row)
+				end
 			end
 		end
 		return popup
@@ -366,6 +431,10 @@ function DataTable.new(parent, Settings, theme, window)
 					me._rows[#me._rows + 1] = row
 					me._rowsById[row._id] = row
 				end
+				-- Keep the selection only while its id survives the replacement.
+				if me._selectedId ~= nil and not me._rowsById[me._selectedId] then
+					setSelection(nil, nil)
+				end
 				render()
 				return me
 			end,
@@ -415,6 +484,10 @@ function DataTable.new(parent, Settings, theme, window)
 						break
 					end
 				end
+				-- Removing the selected row leaves nothing selected.
+				if me._selectedId == id then
+					setSelection(nil, nil)
+				end
 				render()
 				return true
 			end,
@@ -422,6 +495,9 @@ function DataTable.new(parent, Settings, theme, window)
 				me._rows = {}
 				me._rowsById = {}
 				me._order = 0
+				if me._selectedId ~= nil then
+					setSelection(nil, nil)
+				end
 				render()
 				return me
 			end,
@@ -471,8 +547,35 @@ function DataTable.new(parent, Settings, theme, window)
 				return me
 			end,
 			SetAction = function(me, action)
-				me._action = action
+				me._actions = type(action) == "table" and { action } or {}
 				render()
+				return me
+			end,
+			SetActions = function(me, actions)
+				me._actions = clampActions(actions)
+				render()
+				return me
+			end,
+			SetSelected = function(me, id)
+				local row = me._rowsById[id]
+				if not row then
+					return false
+				end
+				if me._selectedId ~= id then
+					setSelection(id, row)
+					render()
+				end
+				return true
+			end,
+			GetSelected = function(me)
+				local row = me._selectedId and me._rowsById[me._selectedId]
+				return me._selectedId, row and copyRow(row) or nil
+			end,
+			ClearSelected = function(me)
+				if me._selectedId ~= nil then
+					setSelection(nil, nil)
+					render()
+				end
 				return me
 			end,
 			SetHeaderVisible = function(me, visible)

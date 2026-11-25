@@ -45,8 +45,17 @@ table:SetRows({
 | `SortBy` | string | Column key to sort by on creation. |
 | `SortDescending` | boolean | Sort high to low. |
 | `Action` | table | Optional per-row action button: `{ Label, Callback(id, row) }`. |
+| `Actions` | table | Array of up to three per-row buttons: `{ { Label = "Edit", Callback = function(id, row) end }, ... }`. Takes priority over `Action`; when supplied, `Action` is ignored. |
+| `Selectable` | boolean | Clicking a row selects it. Off by default. |
+| `SelectedColor` | Color3 | Fill for the selected row. Defaults to a subtle accent tint built from the theme. |
+| `OnRowClick` | function | `function(id, row)`, fired on every row click whether `Selectable` is on or off. Action-button clicks do not fire it. |
+| `OnSelectionChanged` | function | `function(id, row)`, fired only when the selected id actually changes. `id` and `row` are `nil` when the selection clears. |
 
 Clicking a column label in the popup sorts by it; clicking the active column again flips the direction. The search field filters across every column's formatted text. A close button in the header (the same circle as the changelog and key screen), click-off and the tab switch all dismiss the popup; the body uses the same thin scrollbar as the rest of the library, and opening the popup plays the shared popup sound.
+
+### Actions
+
+`Action` is shorthand for a one-item `Actions` list. Both forms render right-aligned in each row using the same button style, and callbacks receive `(id, row)` exactly like `Action` always has. `Actions` renders up to three buttons; a missing or empty list renders none. If both options are supplied, `Actions` wins and `Action` is ignored, so a table never shows duplicate buttons. Use `:SetActions(actions)` to replace the list live and `:SetAction(action)` to go back to a single button.
 
 ### Columns
 
@@ -68,6 +77,39 @@ Each row is a plain table with one field per column `Key`. Every row needs a sta
 
 The popup re-renders live: `:UpdateRow()`, `:AddRow()` and `:RemoveRow()` all refresh an open table without closing it.
 
+### Selection
+
+Set `Selectable = true` to let clicks select a row. Selection is keyed by the stable row id: sorting and searching never change it, clicking the already-selected row keeps it selected but still fires `OnRowClick`, and `:SetRows()` keeps the selection while that id exists and clears it otherwise. Removing the selected row (or calling `:ClearRows()`) clears the selection and fires `OnSelectionChanged(nil)`. A selected row uses `SelectedColor`; when it is cleared the row returns to its own `:SetRowColor` value, if any. Action-button clicks never select the row or fire `OnRowClick`.
+
+```lua
+local records = section:DataTable({
+	Name = "Records",
+	Selectable = true,
+	OnRowClick = function(id, row)
+		print("clicked", id, row.Name)
+	end,
+	OnSelectionChanged = function(id, row)
+		print("selected", id, row and row.Name or "none")
+	end,
+	Columns = {
+		{ Key = "Name", Label = "NAME", Weight = 2 },
+		{ Key = "Status", Label = "STATUS" },
+	},
+	Actions = {
+		{ Label = "Edit", Callback = function(id, row) openEditor(row) end },
+		{ Label = "Delete", Callback = function(id) records:RemoveRow(id) end },
+	},
+})
+
+records:SetRows({
+	{ id = "alpha", Name = "Alpha", Status = "Open" },
+	{ id = "bravo", Name = "Bravo", Status = "Closed" },
+})
+
+records:SetSelected("alpha")
+local id, row = records:GetSelected()
+```
+
 ## Methods
 
 | Method | Description |
@@ -88,7 +130,11 @@ The popup re-renders live: `:UpdateRow()`, `:AddRow()` and `:RemoveRow()` all re
 | `:SetMaxRows(number)` | Change the visible row cap. |
 | `:SetEmptyText(string)` | Change the empty-state text. |
 | `:SetColumns(columns)` | Replace the columns and rebuild the header. |
-| `:SetAction(action)` | Replace or remove the per-row action button. |
+| `:SetAction(action)` | Replace the row buttons with one action, or clear them with `nil`. |
+| `:SetActions(actions)` | Replace the row buttons with a list of up to three actions. |
+| `:SetSelected(id)` | Select a row by id. Returns `false` for an unknown id and leaves the current selection alone. |
+| `:GetSelected()` | Returns the selected id and a copy of its row, or `nil`. |
+| `:ClearSelected()` | Clear the selection and fire `OnSelectionChanged(nil)`. |
 | `:SetHeaderVisible(bool)` | Show or hide the header. |
 | `:SetName(string)` | Change the heading. |
 | `:SetVisible(bool)` | Show or hide. |

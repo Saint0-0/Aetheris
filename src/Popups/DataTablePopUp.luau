@@ -47,6 +47,34 @@ local BODY_BOTTOM = 16
 local ROW_H = 34
 local ROW_GAP = 2
 local ACTION_W = 64
+local ACTION_GAP = 6
+local MAX_ACTIONS = 3
+
+-- Right-aligned action strip: N buttons plus the gaps between them and the
+-- row padding. The N=1 case is the original ACTION_W + 18 inset.
+local function actionInset(count)
+	if count <= 0 then
+		return 16
+	end
+	return 18 + count * ACTION_W + (count - 1) * ACTION_GAP
+end
+
+-- Actions is the multi-button form; Action stays as a one-item shorthand.
+local function compileActions(content)
+	local list = {}
+	if type(content.Actions) == "table" then
+		for _, entry in ipairs(content.Actions) do
+			if type(entry) == "table" and #list < MAX_ACTIONS then
+				list[#list + 1] = entry
+			end
+		end
+		return list
+	end
+	if type(content.Action) == "table" then
+		list[1] = content.Action
+	end
+	return list
+end
 
 local function clamp(value, min, max)
 	return math.max(min, math.min(max, value))
@@ -192,6 +220,9 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	self._columns = {}
 	self._rows = {}
 	self._renderedRows = {}
+	self._actions = {}
+	self._selectedId = nil
+	self._selectedColor = nil
 
 	local popup = Instance.new("CanvasGroup")
 	popup.Name = UUID.Generate("DataTablePopup")
@@ -441,6 +472,11 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 		stampShellGradient(shellGradient, t)
 		stampHeaderTile(headTile, headGlyph, t)
 		shadow.Color = t.PopupShadowColor or shadow.Color
+		-- The default selected fill and row text derive from the theme, so a
+		-- switch must repaint the selected row while the popup is open.
+		if self.IsOpen and self._selectedId ~= nil and self._renderRows then
+			self._renderRows()
+		end
 	end
 	self.ApplyTheme = function(_me, newTheme)
 		applyTheme(newTheme)
@@ -501,8 +537,15 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 		local rows = filteredRows()
 		local themeNow = self._theme or ThemeManager.GetTheme(nil)
 		local fallbackText = (themeNow and themeNow.PopupTextColor) or Color3.fromRGB(255, 255, 255)
-		local action = self._action
+		local actions = self._actions or {}
+		local actionCount = #actions
+		local cellsInset = actionInset(actionCount)
 		local rowHeight = self._rowHeight or ROW_H
+		local selectedId = self._selectedId
+		local selectedFill = self._selectedColor or (themeNow and themeNow.AccentColor) or Color3.fromRGB(96, 165, 250)
+		-- Only tables that opted into clicks get a hit target, so a plain
+		-- table keeps its previous non-interactive rows.
+		local clicksEnabled = self.OnRowClick ~= nil
 
 		for index, row in ipairs(rows) do
 			local rowFrame = Instance.new("Frame")
@@ -516,12 +559,30 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 			rowFrame.Parent = body
 			addCorner(rowFrame, UDim.new(0, CORNER_CARD))
 
+			if clicksEnabled then
+				-- First child so the action buttons layered above swallow their
+				-- own clicks before they reach the row.
+				local hit = Instance.new("TextButton")
+				hit.Name = UUID.Generate("DataTablePopupRowHit")
+				hit.BorderSizePixel = 0
+				hit.AutoButtonColor = false
+				hit.BackgroundTransparency = 1
+				hit.Text = ""
+				hit.Size = UDim2.fromScale(1, 1)
+				hit.Parent = rowFrame
+				hit.MouseButton1Click:Connect(function()
+					if self.OnRowClick then
+						self.OnRowClick(row._id, row)
+					end
+				end)
+			end
+
 			local cells = Instance.new("Frame")
 			cells.Name = UUID.Static("RowCells")
 			cells.BorderSizePixel = 0
 			cells.BackgroundTransparency = 1
 			cells.Position = UDim2.fromOffset(8, 0)
-			cells.Size = UDim2.new(1, -(action and ACTION_W + 18 or 16), 1, 0)
+			cells.Size = UDim2.new(1, -cellsInset, 1, 0)
 			cells.Parent = rowFrame
 
 			layoutCells(self._columns, function(column, position, fraction)
@@ -548,26 +609,36 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 				end
 			end)
 
+			local selected = selectedId ~= nil and row._id == selectedId
 			local color = row._color
-			if typeof(color) == "Color3" then
+			local boundBackground = false
+			if selected then
+				rowFrame.BackgroundColor3 = selectedFill
+				rowFrame.BackgroundTransparency = self._rowColorTransparency
+			elseif typeof(color) == "Color3" then
 				rowFrame.BackgroundColor3 = color
 				rowFrame.BackgroundTransparency = self._rowColorTransparency
 			else
 				ThemeManager.BindColor(rowFrame, "BackgroundColor3", "PopupNeutralColor")
+				boundBackground = true
 			end
 
-			if action then
+			local buttonWidth = ACTION_W - 8
+			for actionIndex, entry in ipairs(actions) do
 				local button = Instance.new("TextButton")
 				button.Name = UUID.Generate("DataTablePopupAction")
 				button.BorderSizePixel = 0
 				button.AutoButtonColor = false
 				button.AnchorPoint = Vector2.new(1, 0.5)
-				button.Position = UDim2.new(1, -6, 0.5, 0)
-				button.Size = UDim2.fromOffset(ACTION_W - 8, rowHeight - 10)
+				-- Last action keeps the original -6 inset; earlier ones step
+				-- left by one button plus the shared gap.
+				local rightOffset = 6 + (actionCount - actionIndex) * (buttonWidth + ACTION_GAP)
+				button.Position = UDim2.new(1, -rightOffset, 0.5, 0)
+				button.Size = UDim2.fromOffset(buttonWidth, rowHeight - 10)
 				button.BackgroundColor3 = (themeNow and themeNow.AccentColor) or Color3.fromRGB(96, 165, 250)
 				button.BackgroundTransparency = 0.8
 				button.FontFace = Constants.Font(Enum.FontWeight.SemiBold)
-				button.Text = action.Label or "Action"
+				button.Text = entry.Label or "Action"
 				button.TextSize = 11
 				button.TextColor3 = (themeNow and themeNow.PopupTextColor) or Color3.fromRGB(255, 255, 255)
 				button.TextTransparency = 0.05
@@ -582,13 +653,15 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 					Tween.Play(button, "Fast", { BackgroundTransparency = 0.8 })
 				end)
 				button.MouseButton1Click:Connect(function()
-					if self.OnAction then
+					if type(entry.Callback) == "function" then
+						entry.Callback(row._id, row)
+					elseif self.OnAction then
 						self.OnAction(row._id, row)
 					end
 				end)
 			end
 
-			if typeof(color) ~= "Color3" then
+			if boundBackground then
 				rowFrame.MouseEnter:Connect(function()
 					Tween.Play(rowFrame, "Fast", { BackgroundTransparency = 0.86 })
 				end)
@@ -607,13 +680,13 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 
 	local function buildColumnBar()
 		clearChildren(columnBar)
-		local action = self._action
+		local cellsInset = actionInset(#(self._actions or {}))
 		local cells = Instance.new("Frame")
 		cells.Name = UUID.Static("ColumnCells")
 		cells.BorderSizePixel = 0
 		cells.BackgroundTransparency = 1
 		cells.Position = UDim2.fromOffset(8, 0)
-		cells.Size = UDim2.new(1, -(action and ACTION_W + 18 or 16), 1, 0)
+		cells.Size = UDim2.new(1, -cellsInset, 1, 0)
 		cells.Parent = columnBar
 		layoutCells(self._columns, function(column, position, fraction)
 			local button = Instance.new("TextButton")
@@ -682,7 +755,9 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 		me._rows = content.Rows or {}
 		me._sortBy = content.SortBy
 		me._sortDescending = content.SortDescending == true
-		me._action = content.Action
+		me._actions = compileActions(content)
+		me._selectedId = content.SelectedId
+		me._selectedColor = typeof(content.SelectedColor) == "Color3" and content.SelectedColor or nil
 		me._emptyText = content.EmptyText or "No rows yet"
 		me._rowColorTransparency = content.RowColorTransparency or 0.82
 		me._striped = content.Striped ~= false
