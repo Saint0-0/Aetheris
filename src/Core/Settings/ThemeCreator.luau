@@ -13,6 +13,7 @@ local ThemeManager = require("../../Themes/ThemeManager")
 local CustomThemeManager = require("../../Themes/CustomThemeManager")
 local WallpaperManager = require("../../Utils/WallpaperManager")
 local ThemePreviewPopUp = require("../../Popups/ThemePreviewPopUp")
+local Sound = require("../../Utils/Sound")
 local UUID = require("../../Utils/UUID")
 
 local ThemeCreator = {}
@@ -353,6 +354,8 @@ function ThemeCreator.Build(window, tab)
 				previewPopUp:Close()
 			else
 				previewPopUp:Open(draft)
+				-- Same open cue the dropdown and colour picker popups play.
+				Sound.Play("Notification")
 			end
 		end,
 	})

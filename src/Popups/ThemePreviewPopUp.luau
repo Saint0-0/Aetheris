@@ -596,19 +596,29 @@ function ThemePreviewPopUp:Open(themeData)
 
 	local shell = self._shell
 	local glow = self._elements and self._elements.shellGlow
+	-- The shell stroke and shadow are drawn by the CanvasGroup, not its
+	-- children, so GroupTransparency does not touch them; fade both by hand.
+	local stroke = self._elements and self._elements.shellStroke
 	-- Resting opacity comes from the theme; snap transparent so the fade owns it.
 	local restBackground = shell.BackgroundTransparency
+	local restStroke = stroke and stroke.Transparency or 0
 	shell.Visible = true
 	shell.GroupTransparency = 1
 	shell.BackgroundTransparency = 1
 	if glow then
 		glow.Transparency = 1
 	end
+	if stroke then
+		stroke.Transparency = 1
+	end
 	self:_connectOutsideClick()
 
 	Tween.Play(shell, "Fast", { BackgroundTransparency = restBackground, GroupTransparency = 0 })
 	if glow then
 		Tween.Play(glow, "Fast", { Transparency = 0.5 })
+	end
+	if stroke then
+		Tween.Play(stroke, "Fast", { Transparency = restStroke })
 	end
 end
 
@@ -624,11 +634,15 @@ function ThemePreviewPopUp:Close()
 
 	local shell = self._shell
 	local glow = self._elements and self._elements.shellGlow
+	local stroke = self._elements and self._elements.shellStroke
 	if shell then
 		Tween.Play(shell, "Fast", { BackgroundTransparency = 1, GroupTransparency = 1 })
 	end
 	if glow then
 		Tween.Play(glow, "Fast", { Transparency = 1 })
+	end
+	if stroke then
+		Tween.Play(stroke, "Fast", { Transparency = 1 })
 	end
 
 	if self._hideTimer then
