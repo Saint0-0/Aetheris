@@ -1,7 +1,9 @@
 --[[
 	Aetheris/Popups/ThemePreviewPopUp.luau
 
-	Interactive live miniature window preview showing theme preferences on dummy UI components.
+	Live miniature window preview. The miniature itself is the popup: no outer
+	header, just a close control in the window chrome. All labels are bars so
+	the mock reads as a theme card rather than readable text.
 	License: MPL-2.0 - https://mozilla.org/MPL/2.0/
 	Copyright (c) 2026 Saint0-0
 ]]
@@ -9,22 +11,21 @@
 --# selene: allow(undefined_variable)
 
 local Tween = require("../Utils/Tween")
-local Constants = require("../Constants")
 local Icons = require("../Assets/Icons")
 local UUID = require("../Utils/UUID")
 local WallpaperManager = require("../Utils/WallpaperManager")
 
 local ThemePreviewPopUp = {}
 
-local CORNER = 14
-local SHELL_W, SHELL_H = 580, 400
 local SIDEBAR_W = 138
+local POPUP_W, POPUP_H = 548, 328
 local WHITE = Color3.new(1, 1, 1)
 
 -- Close button hover, matching the changelog's icon timing.
 local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local CLOSE_ICON = Icons["circle-x"] or "rbxassetid://76821953846248"
+local SCRIPT_LOGO = "rbxassetid://92458734285074"
 
 local function ramp(points)
 	local keypoints = {}
@@ -48,24 +49,6 @@ local function addStroke(inst, color, transparency)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = inst
 	return stroke
-end
-
-local function makeLabel(parent, name, text, position, size, textSize, weight, color)
-	local label = Instance.new("TextLabel")
-	label.Name = UUID.Static(name)
-	label.BorderSizePixel = 0
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextSize = textSize
-	label.FontFace = Constants.Font(weight or Enum.FontWeight.Medium)
-	label.TextColor3 = color or WHITE
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextYAlignment = Enum.TextYAlignment.Center
-	label.TextTruncate = Enum.TextTruncate.AtEnd
-	label.Position = position
-	label.Size = size
-	label.Parent = parent
-	return label
 end
 
 local function makeFrame(parent, name, position, size)
@@ -100,6 +83,15 @@ function ThemePreviewPopUp.new(parent, window)
 
 	local el = {}
 	self._elements = el
+	local bars = {}
+	el.bars = bars
+
+	local function makeBar(host, name, position, size, tone, radius)
+		local bar = makeFrame(host, name, position, size)
+		addCorner(bar, radius or 3)
+		table.insert(bars, { frame = bar, tone = tone or "text" })
+		return bar
+	end
 
 	local outside = Instance.new("TextButton")
 	outside.Name = UUID.Generate("ThemePreviewOutside")
@@ -112,171 +104,69 @@ function ThemePreviewPopUp.new(parent, window)
 	outside.Parent = parent
 	self._outside = outside
 
-	-- Shell
+	-- The miniature window is the popup itself.
 	local shell = Instance.new("CanvasGroup")
 	shell.Name = UUID.Generate("ThemePreviewShell")
 	shell.BorderSizePixel = 0
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, 0.5)
-	shell.Size = UDim2.fromOffset(SHELL_W, SHELL_H)
+	shell.Size = UDim2.fromOffset(POPUP_W, POPUP_H)
 	shell.ZIndex = 1201
 	shell.Visible = false
 	shell.GroupTransparency = 1
+	-- Sink clicks on the chrome so only the outside backdrop dismisses.
+	shell.Active = true
 	shell.Parent = parent
 	self._shell = shell
 	el.shell = shell
 
-	addCorner(shell, CORNER)
+	addCorner(shell, 12)
+	local shellStroke = addStroke(shell, WHITE, 0.92)
+	el.shellStroke = shellStroke
 
-	local shellShadow = Instance.new("UIShadow")
-	shellShadow.BlurRadius = UDim.new(0, 28)
-	shellShadow.Color = Color3.fromRGB(0, 0, 0)
-	shellShadow.Transparency = 0.4
-	shellShadow.Parent = shell
-
-	-- Header row, styled like the other popup shells.
-	local headTile = makeFrame(shell, "PreviewHeadTile", UDim2.fromOffset(16, 13), UDim2.fromOffset(30, 30))
-	addCorner(headTile, 10)
-	el.headTile = headTile
-
-	local headGlyph = makeIcon(
-		headTile,
-		"PreviewHeadGlyph",
-		Icons["palette"] or Icons["paintbrush"],
-		UDim2.fromScale(0.5, 0.5),
-		UDim2.fromOffset(16, 16)
-	)
-	headGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
-	el.headGlyph = headGlyph
-
-	local headTitle = makeLabel(
-		shell,
-		"PreviewHeadTitle",
-		"Theme Preview",
-		UDim2.fromOffset(56, 10),
-		UDim2.new(1, -140, 0, 18),
-		14,
-		Enum.FontWeight.SemiBold,
-		WHITE
-	)
-	el.headTitle = headTitle
-
-	local headSubtitle = makeLabel(
-		shell,
-		"PreviewHeadSubtitle",
-		"Live preview of the draft theme",
-		UDim2.fromOffset(56, 28),
-		UDim2.new(1, -140, 0, 14),
-		10,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	headSubtitle.TextTransparency = 0.25
-	el.headSubtitle = headSubtitle
-
-	local closeBtn = Instance.new("ImageButton")
-	closeBtn.Name = UUID.Static("PreviewClose")
-	closeBtn.BorderSizePixel = 0
-	closeBtn.BackgroundColor3 = WHITE
-	closeBtn.BackgroundTransparency = 0.92
-	closeBtn.AutoButtonColor = false
-	closeBtn.AnchorPoint = Vector2.new(1, 0)
-	closeBtn.Position = UDim2.new(1, -16, 0, 14)
-	closeBtn.Size = UDim2.fromOffset(28, 28)
-	closeBtn.Parent = shell
-	addCorner(closeBtn, 14)
-	el.closeBtn = closeBtn
-
-	local closeIcon =
-		makeIcon(closeBtn, "PreviewCloseIcon", CLOSE_ICON, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(16, 16))
-	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	closeIcon.ImageTransparency = 0.35
-	el.closeIcon = closeIcon
-
-	closeBtn.MouseEnter:Connect(function()
-		Tween.Play(closeBtn, ICON_IN, { BackgroundTransparency = 0.86 })
-		Tween.Play(closeIcon, ICON_IN, { ImageTransparency = 0 })
-	end)
-	closeBtn.MouseLeave:Connect(function()
-		Tween.Play(closeBtn, ICON_OUT, { BackgroundTransparency = 0.92 })
-		Tween.Play(closeIcon, ICON_OUT, { ImageTransparency = 0.35 })
-	end)
-
-	-- Mini Aetheris window
-	local miniWindow = makeFrame(shell, "MiniWindow", UDim2.fromOffset(16, 56), UDim2.new(1, -32, 1, -72))
-	addCorner(miniWindow, 12)
-	local miniStroke = addStroke(miniWindow, WHITE, 0.92)
-	el.miniWindow = miniWindow
-	el.miniStroke = miniStroke
-
-	local miniGlow = Instance.new("UIShadow")
-	miniGlow.BlurRadius = UDim.new(0, 18)
-	miniGlow.Color = WHITE
-	miniGlow.Transparency = 0.7
-	miniGlow.Parent = miniWindow
-	el.miniGlow = miniGlow
+	local shellGlow = Instance.new("UIShadow")
+	shellGlow.BlurRadius = UDim.new(0, 22)
+	shellGlow.Color = WHITE
+	shellGlow.Transparency = 0.68
+	shellGlow.Parent = shell
+	el.shellGlow = shellGlow
 
 	-- Sidebar
-	local sidebar = makeFrame(miniWindow, "MiniSidebar", UDim2.fromOffset(0, 0), UDim2.new(0, SIDEBAR_W, 1, 0))
+	local sidebar = makeFrame(shell, "MiniSidebar", UDim2.fromOffset(0, 0), UDim2.new(0, SIDEBAR_W, 1, 0))
+	sidebar.Active = true
 	addCorner(sidebar, 12)
 	el.sidebar = sidebar
 
-	local logo = makeFrame(sidebar, "MiniLogo", UDim2.fromOffset(12, 12), UDim2.fromOffset(24, 24))
-	addCorner(logo, 7)
+	-- Brand mark: same asset and 40x32 footprint as Window.luau's ScriptLogo.
+	local logo = Instance.new("ImageLabel")
+	logo.Name = UUID.Static("MiniLogo")
+	logo.BorderSizePixel = 0
+	logo.BackgroundTransparency = 1
+	logo.Image = SCRIPT_LOGO
+	logo.Size = UDim2.fromOffset(40, 32)
+	logo.Position = UDim2.fromOffset(12, 12)
+	logo.Parent = sidebar
+	addCorner(logo, 6)
 	el.logo = logo
 
-	local logoText = makeLabel(
-		logo,
-		"MiniLogoText",
-		"A",
-		UDim2.fromScale(0, 0),
-		UDim2.fromScale(1, 1),
-		13,
-		Enum.FontWeight.Bold,
-		WHITE
-	)
-	logoText.TextXAlignment = Enum.TextXAlignment.Center
-	el.logoText = logoText
-
-	local appTitle = makeLabel(
-		sidebar,
-		"MiniAppTitle",
-		"Aetheris",
-		UDim2.fromOffset(44, 11),
-		UDim2.new(1, -56, 0, 14),
-		12,
-		Enum.FontWeight.Bold,
-		WHITE
-	)
-	el.appTitle = appTitle
+	makeBar(sidebar, "MiniAppTitle", UDim2.fromOffset(58, 16), UDim2.fromOffset(52, 8), "title", 4)
 
 	local chips = {}
 	local chipDefs = {
-		{ text = "v1.7", key = "primary", width = 24 },
-		{ text = "Build", key = "secondary", width = 26 },
-		{ text = "DEMO", key = "accent", width = 28 },
+		{ key = "primary", width = 18 },
+		{ key = "secondary", width = 18 },
+		{ key = "accent", width = 18 },
 	}
-	local chipX = 44
+	local chipX = 58
 	for i, def in ipairs(chipDefs) do
-		local chip = makeFrame(sidebar, "MiniChip" .. i, UDim2.fromOffset(chipX, 29), UDim2.fromOffset(def.width, 11))
-		addCorner(chip, 5)
-		local chipText = makeLabel(
-			chip,
-			"MiniChipText" .. i,
-			def.text,
-			UDim2.fromScale(0, 0),
-			UDim2.fromScale(1, 1),
-			7,
-			Enum.FontWeight.Bold,
-			WHITE
-		)
-		chipText.TextXAlignment = Enum.TextXAlignment.Center
-		chips[i] = { frame = chip, label = chipText, key = def.key }
+		local chip = makeFrame(sidebar, "MiniChip" .. i, UDim2.fromOffset(chipX, 30), UDim2.fromOffset(def.width, 8))
+		addCorner(chip, 4)
+		chips[i] = { frame = chip, key = def.key }
 		chipX += def.width + 3
 	end
 	el.chips = chips
 
-	local searchBox = makeFrame(sidebar, "MiniSearch", UDim2.fromOffset(12, 50), UDim2.new(1, -24, 0, 20))
+	local searchBox = makeFrame(sidebar, "MiniSearch", UDim2.fromOffset(12, 54), UDim2.new(1, -24, 0, 20))
 	addCorner(searchBox, 6)
 	el.searchBox = searchBox
 
@@ -284,43 +174,30 @@ function ThemePreviewPopUp.new(parent, window)
 		makeIcon(searchBox, "MiniSearchIcon", Icons["search"], UDim2.fromOffset(7, 5), UDim2.fromOffset(10, 10))
 	el.searchIcon = searchIcon
 
-	local searchText = makeLabel(
-		searchBox,
-		"MiniSearchText",
-		"Search...",
-		UDim2.fromOffset(21, 0),
-		UDim2.new(1, -28, 1, 0),
-		8,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	searchText.TextTransparency = 0.35
-	el.searchText = searchText
+	makeBar(searchBox, "MiniSearchBar", UDim2.fromOffset(24, 7), UDim2.fromOffset(54, 5), "muted", 3)
 
 	local navDefs = {
-		{ text = "Home", icon = Icons["house"], active = true },
-		{ text = "Controls", icon = Icons["sliders-horizontal"], active = false },
-		{ text = "Inputs", icon = Icons["text-cursor"], active = false },
-		{ text = "Feedback", icon = Icons["bell"], active = false },
-		{ text = "Media", icon = Icons["play"], active = false },
+		{ icon = Icons["house"], active = true },
+		{ icon = Icons["sliders-horizontal"], active = false },
+		{ icon = Icons["text-cursor"], active = false },
+		{ icon = Icons["bell"], active = false },
+		{ icon = Icons["play"], active = false },
 	}
 	local navRows = {}
 	for i, def in ipairs(navDefs) do
 		local row =
-			makeFrame(sidebar, "MiniNav" .. i, UDim2.fromOffset(12, 80 + (i - 1) * 25), UDim2.new(1, -24, 0, 22))
+			makeFrame(sidebar, "MiniNav" .. i, UDim2.fromOffset(12, 84 + (i - 1) * 25), UDim2.new(1, -24, 0, 22))
 		addCorner(row, 6)
 		local icon = makeIcon(row, "MiniNavIcon" .. i, def.icon, UDim2.fromOffset(7, 5), UDim2.fromOffset(12, 12))
-		local label = makeLabel(
+		local bar = makeBar(
 			row,
-			"MiniNavText" .. i,
-			def.text,
-			UDim2.fromOffset(25, 0),
-			UDim2.new(1, -33, 1, 0),
-			9,
-			Enum.FontWeight.Medium,
-			WHITE
+			"MiniNavBar" .. i,
+			UDim2.fromOffset(25, 8),
+			UDim2.fromOffset(54, 5),
+			def.active and "active" or "muted",
+			3
 		)
-		navRows[i] = { row = row, icon = icon, label = label, active = def.active }
+		navRows[i] = { row = row, icon = icon, bar = bar, active = def.active }
 	end
 	el.navRows = navRows
 
@@ -336,59 +213,14 @@ function ThemePreviewPopUp.new(parent, window)
 	avatarIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	el.avatarIcon = avatarIcon
 
-	local userName = makeLabel(
-		sidebar,
-		"MiniUserName",
-		"Rosenstein",
-		UDim2.new(0, 38, 1, -29),
-		UDim2.new(1, -62, 0, 11),
-		8,
-		Enum.FontWeight.Bold,
-		WHITE
-	)
-	el.userName = userName
-
-	local userHandle = makeLabel(
-		sidebar,
-		"MiniUserHandle",
-		"@B1EVA",
-		UDim2.new(0, 38, 1, -18),
-		UDim2.new(1, -62, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	userHandle.TextTransparency = 0.25
-	el.userHandle = userHandle
-
-	local userNum1 = makeLabel(
-		sidebar,
-		"MiniUserNum1",
-		"09",
-		UDim2.new(1, -22, 1, -29),
-		UDim2.fromOffset(12, 11),
-		7,
-		Enum.FontWeight.SemiBold,
-		WHITE
-	)
-	userNum1.TextXAlignment = Enum.TextXAlignment.Right
-	el.userNum1 = userNum1
-
-	local userNum2 = makeLabel(
-		sidebar,
-		"MiniUserNum2",
-		"28",
-		UDim2.new(1, -22, 1, -18),
-		UDim2.fromOffset(12, 10),
-		7,
-		Enum.FontWeight.SemiBold,
-		WHITE
-	)
-	userNum2.TextXAlignment = Enum.TextXAlignment.Right
-	el.userNum2 = userNum2
+	makeBar(sidebar, "MiniUserName", UDim2.new(0, 38, 1, -29), UDim2.fromOffset(46, 6), "text", 3)
+	makeBar(sidebar, "MiniUserHandle", UDim2.new(0, 38, 1, -19), UDim2.fromOffset(34, 5), "muted", 3)
+	makeBar(sidebar, "MiniUserNum1", UDim2.new(1, -24, 1, -29), UDim2.fromOffset(12, 5), "muted", 3)
+	makeBar(sidebar, "MiniUserNum2", UDim2.new(1, -21, 1, -19), UDim2.fromOffset(9, 5), "muted", 3)
 
 	-- Content pane
-	local content = makeFrame(miniWindow, "MiniContent", UDim2.fromOffset(SIDEBAR_W, 0), UDim2.new(1, -SIDEBAR_W, 1, 0))
+	local content = makeFrame(shell, "MiniContent", UDim2.fromOffset(SIDEBAR_W, 0), UDim2.new(1, -SIDEBAR_W, 1, 0))
+	content.Active = true
 	addCorner(content, 12)
 	el.content = content
 
@@ -407,32 +239,15 @@ function ThemePreviewPopUp.new(parent, window)
 	melt.Transparency = ramp({ { 0, 0.05 }, { 0.35, 0.25 }, { 0.7, 0.7 }, { 1, 1 } })
 	melt.Parent = miniWallpaper
 
-	local pageTitle = makeLabel(
-		content,
-		"MiniPageTitle",
-		"Home",
-		UDim2.fromOffset(16, 12),
-		UDim2.fromOffset(120, 16),
-		13,
-		Enum.FontWeight.Bold,
-		WHITE
-	)
-	el.pageTitle = pageTitle
+	makeBar(content, "MiniPageTitle", UDim2.fromOffset(16, 14), UDim2.fromOffset(46, 8), "title", 4)
+	makeBar(content, "MiniPageUnderline", UDim2.fromOffset(16, 28), UDim2.fromOffset(22, 2), "accent", 1)
 
-	local pageUnderline = makeFrame(content, "MiniPageUnderline", UDim2.fromOffset(16, 31), UDim2.fromOffset(22, 2))
-	addCorner(pageUnderline, 1)
-	el.pageUnderline = pageUnderline
-
+	-- Window chrome: three decorative dots and a real close control.
 	local controls = {}
-	local controlIcons = { Icons["settings"], Icons["minus"], Icons["square"], Icons["x"] }
-	local controlX = 410 - 16 - (4 * 12 + 3 * 4)
+	local controlIcons = { Icons["settings"], Icons["minus"], Icons["square"] }
 	for i, image in ipairs(controlIcons) do
-		local btn = makeFrame(
-			content,
-			"MiniControl" .. i,
-			UDim2.fromOffset(controlX + (i - 1) * 16, 13),
-			UDim2.fromOffset(12, 12)
-		)
+		local btn =
+			makeFrame(content, "MiniControl" .. i, UDim2.fromOffset(324 + (i - 1) * 16, 15), UDim2.fromOffset(12, 12))
 		addCorner(btn, 4)
 		local icon = makeIcon(btn, "MiniControlIcon" .. i, image, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(8, 8))
 		icon.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -440,23 +255,40 @@ function ThemePreviewPopUp.new(parent, window)
 	end
 	el.controls = controls
 
+	local closeBtn = Instance.new("ImageButton")
+	closeBtn.Name = UUID.Static("PreviewClose")
+	closeBtn.BorderSizePixel = 0
+	closeBtn.BackgroundColor3 = WHITE
+	closeBtn.BackgroundTransparency = 0.92
+	closeBtn.AutoButtonColor = false
+	closeBtn.AnchorPoint = Vector2.new(1, 0)
+	closeBtn.Position = UDim2.new(1, -12, 0, 10)
+	closeBtn.Size = UDim2.fromOffset(22, 22)
+	closeBtn.Parent = content
+	addCorner(closeBtn, 11)
+	el.closeBtn = closeBtn
+
+	local closeIcon =
+		makeIcon(closeBtn, "PreviewCloseIcon", CLOSE_ICON, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(14, 14))
+	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	closeIcon.ImageTransparency = 0.3
+	el.closeIcon = closeIcon
+
+	closeBtn.MouseEnter:Connect(function()
+		Tween.Play(closeBtn, ICON_IN, { BackgroundTransparency = 0.84 })
+		Tween.Play(closeIcon, ICON_IN, { ImageTransparency = 0 })
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		Tween.Play(closeBtn, ICON_OUT, { BackgroundTransparency = 0.92 })
+		Tween.Play(closeIcon, ICON_OUT, { ImageTransparency = 0.3 })
+	end)
+
 	-- Section shells
-	local function makeSection(name, position, size, titleText)
+	local function makeSection(name, position, size)
 		local section = makeFrame(content, name, position, size)
 		addCorner(section, 8)
 		local stroke = addStroke(section, WHITE, 0.92)
-		local title = makeLabel(
-			section,
-			name .. "Title",
-			titleText,
-			UDim2.fromOffset(10, 6),
-			UDim2.new(1, -20, 0, 10),
-			8,
-			Enum.FontWeight.SemiBold,
-			WHITE
-		)
-		title.TextTransparency = 0.15
-		return section, stroke, title
+		return section, stroke
 	end
 
 	local function makeInnerCard(host, name, position, size)
@@ -467,89 +299,33 @@ function ThemePreviewPopUp.new(parent, window)
 	end
 
 	-- Welcome
-	local welcome, welcomeStroke, welcomeTitle =
-		makeSection("MiniWelcome", UDim2.fromOffset(16, 44), UDim2.fromOffset(208, 122), "Welcome")
+	local welcome, welcomeStroke = makeSection("MiniWelcome", UDim2.fromOffset(16, 44), UDim2.fromOffset(208, 122))
 	el.welcome = welcome
 	el.welcomeStroke = welcomeStroke
-	el.welcomeTitle = welcomeTitle
-
-	local welcomeHeading = makeLabel(
-		welcome,
-		"MiniWelcomeHeading",
-		"Aetheris Component Showcase",
-		UDim2.fromOffset(10, 20),
-		UDim2.new(1, -20, 0, 12),
-		9,
-		Enum.FontWeight.Bold,
-		WHITE
-	)
-	el.welcomeHeading = welcomeHeading
-
-	local welcomeBody = makeLabel(
-		welcome,
-		"MiniWelcomeBody",
-		"Every element the library offers, on one screen.",
-		UDim2.fromOffset(10, 34),
-		UDim2.new(1, -20, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	welcomeBody.TextTransparency = 0.2
-	el.welcomeBody = welcomeBody
+	makeBar(welcome, "MiniWelcomeTitle", UDim2.fromOffset(10, 8), UDim2.fromOffset(44, 5), "muted", 3)
+	makeBar(welcome, "MiniWelcomeHeading", UDim2.fromOffset(10, 22), UDim2.fromOffset(120, 7), "title", 3)
+	makeBar(welcome, "MiniWelcomeBody", UDim2.fromOffset(10, 36), UDim2.fromOffset(150, 5), "sub", 3)
+	makeBar(welcome, "MiniWelcomeBody2", UDim2.fromOffset(10, 44), UDim2.fromOffset(108, 5), "sub", 3)
 
 	local welcomeCard, welcomeCardStroke =
-		makeInnerCard(welcome, "MiniWelcomeCard", UDim2.fromOffset(10, 50), UDim2.new(1, -20, 0, 30))
+		makeInnerCard(welcome, "MiniWelcomeCard", UDim2.fromOffset(10, 58), UDim2.new(1, -20, 0, 28))
 	el.welcomeCard = welcomeCard
 	el.welcomeCardStroke = welcomeCardStroke
+	makeBar(welcomeCard, "MiniWelcomeCardBar", UDim2.fromOffset(8, 11), UDim2.fromOffset(92, 5), "text", 3)
 
-	local welcomeCardLabel = makeLabel(
-		welcomeCard,
-		"MiniWelcomeCardLabel",
-		"Bold label with container",
-		UDim2.fromOffset(8, 0),
-		UDim2.new(1, -16, 1, 0),
-		7,
-		Enum.FontWeight.SemiBold,
-		WHITE
-	)
-	el.welcomeCardLabel = welcomeCardLabel
-
-	local welcomePlain = makeLabel(
-		welcome,
-		"MiniWelcomePlain",
-		"Plain label - no container",
-		UDim2.fromOffset(10, 88),
-		UDim2.new(1, -20, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	welcomePlain.TextTransparency = 0.3
-	el.welcomePlain = welcomePlain
+	makeBar(welcome, "MiniWelcomePlain", UDim2.fromOffset(10, 94), UDim2.fromOffset(100, 5), "muted", 3)
 
 	-- Actions
-	local actions, actionsStroke, actionsTitle =
-		makeSection("MiniActions", UDim2.fromOffset(236, 44), UDim2.fromOffset(158, 122), "Actions")
+	local actions, actionsStroke = makeSection("MiniActions", UDim2.fromOffset(236, 44), UDim2.fromOffset(158, 122))
 	el.actions = actions
 	el.actionsStroke = actionsStroke
-	el.actionsTitle = actionsTitle
+	makeBar(actions, "MiniActionsTitle", UDim2.fromOffset(10, 8), UDim2.fromOffset(40, 5), "muted", 3)
 
 	local actionRows = {}
-	local actionDefs = { "Do The Thing", "Open UINotification", "Send a toast" }
-	for i, text in ipairs(actionDefs) do
+	for i = 1, 3 do
 		local row, rowStroke =
 			makeInnerCard(actions, "MiniAction" .. i, UDim2.fromOffset(10, 22 + (i - 1) * 32), UDim2.new(1, -20, 0, 26))
-		local label = makeLabel(
-			row,
-			"MiniActionText" .. i,
-			text,
-			UDim2.fromOffset(8, 0),
-			UDim2.new(1, -28, 1, 0),
-			7,
-			Enum.FontWeight.Medium,
-			WHITE
-		)
+		makeBar(row, "MiniActionBar" .. i, UDim2.fromOffset(8, 10), UDim2.fromOffset(70, 5), "text", 3)
 		local icon = makeIcon(
 			row,
 			"MiniActionIcon" .. i,
@@ -558,16 +334,15 @@ function ThemePreviewPopUp.new(parent, window)
 			UDim2.fromOffset(10, 10)
 		)
 		icon.AnchorPoint = Vector2.new(0, 0.5)
-		actionRows[i] = { row = row, stroke = rowStroke, label = label, icon = icon }
+		actionRows[i] = { row = row, stroke = rowStroke, icon = icon }
 	end
 	el.actionRows = actionRows
 
 	-- Palette
-	local palette, paletteStroke, paletteTitle =
-		makeSection("MiniPalette", UDim2.fromOffset(16, 178), UDim2.fromOffset(208, 122), "Palette")
+	local palette, paletteStroke = makeSection("MiniPalette", UDim2.fromOffset(16, 178), UDim2.fromOffset(208, 122))
 	el.palette = palette
 	el.paletteStroke = paletteStroke
-	el.paletteTitle = paletteTitle
+	makeBar(palette, "MiniPaletteTitle", UDim2.fromOffset(10, 8), UDim2.fromOffset(38, 5), "muted", 3)
 
 	local swatches = {}
 	for i = 1, 4 do
@@ -587,72 +362,26 @@ function ThemePreviewPopUp.new(parent, window)
 	el.paletteBar = paletteBar
 	el.paletteGradient = paletteGradient
 
-	local paletteCaption = makeLabel(
-		palette,
-		"MiniPaletteCaption",
-		"Primary / Secondary / Tertiary / Accent",
-		UDim2.fromOffset(10, 76),
-		UDim2.new(1, -20, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	paletteCaption.TextTransparency = 0.3
-	el.paletteCaption = paletteCaption
+	makeBar(palette, "MiniPaletteCaption", UDim2.fromOffset(10, 78), UDim2.fromOffset(120, 5), "muted", 3)
 
 	-- Secure Mode / API
-	local secure, secureStroke, secureTitle =
-		makeSection("MiniSecure", UDim2.fromOffset(236, 178), UDim2.fromOffset(158, 122), "Secure Mode / API")
+	local secure, secureStroke = makeSection("MiniSecure", UDim2.fromOffset(236, 178), UDim2.fromOffset(158, 122))
 	el.secure = secure
 	el.secureStroke = secureStroke
-	el.secureTitle = secureTitle
-
-	local secureBody = makeLabel(
-		secure,
-		"MiniSecureBody",
-		"Drive the window from your script.",
-		UDim2.fromOffset(10, 20),
-		UDim2.new(1, -20, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	secureBody.TextTransparency = 0.2
-	el.secureBody = secureBody
+	makeBar(secure, "MiniSecureTitle", UDim2.fromOffset(10, 8), UDim2.fromOffset(70, 5), "muted", 3)
+	makeBar(secure, "MiniSecureBody", UDim2.fromOffset(10, 22), UDim2.fromOffset(110, 5), "sub", 3)
 
 	local secureField, secureFieldStroke =
-		makeInnerCard(secure, "MiniSecureField", UDim2.fromOffset(10, 36), UDim2.new(1, -20, 0, 26))
+		makeInnerCard(secure, "MiniSecureField", UDim2.fromOffset(10, 38), UDim2.new(1, -20, 0, 26))
 	el.secureField = secureField
 	el.secureFieldStroke = secureFieldStroke
-
-	local secureLabel = makeLabel(
-		secureField,
-		"MiniSecureLabel",
-		"Live status",
-		UDim2.fromOffset(8, 0),
-		UDim2.new(1, -30, 1, 0),
-		7,
-		Enum.FontWeight.SemiBold,
-		WHITE
-	)
-	el.secureLabel = secureLabel
+	makeBar(secureField, "MiniSecureLabel", UDim2.fromOffset(8, 10), UDim2.fromOffset(60, 5), "text", 3)
 
 	local secureDot = makeFrame(secureField, "MiniSecureDot", UDim2.new(1, -15, 0.5, -3), UDim2.fromOffset(6, 6))
 	addCorner(secureDot, 3)
 	el.secureDot = secureDot
 
-	local secureHint = makeLabel(
-		secure,
-		"MiniSecureHint",
-		"API target",
-		UDim2.fromOffset(10, 72),
-		UDim2.new(1, -20, 0, 10),
-		7,
-		Enum.FontWeight.Medium,
-		WHITE
-	)
-	secureHint.TextTransparency = 0.35
-	el.secureHint = secureHint
+	makeBar(secure, "MiniSecureHint", UDim2.fromOffset(10, 74), UDim2.fromOffset(60, 5), "muted", 3)
 
 	local function dismiss()
 		self:Dismiss()
@@ -682,7 +411,6 @@ function ThemePreviewPopUp:UpdateTheme(t)
 	local inputBg = t.InputBackgroundColor or Color3.fromRGB(40, 40, 46)
 	local text = t.TitleTextColor or t.PrimaryTextColor or Color3.fromRGB(240, 240, 245)
 	local subText = t.SecondaryTextColor or Color3.fromRGB(160, 160, 170)
-	local popupBg = t.PopupBackgroundColor or Color3.fromRGB(22, 22, 26)
 	local popupText = t.PopupTextColor or text
 
 	local sectionBg = t.SectionBackgroundColor or compBg
@@ -698,65 +426,14 @@ function ThemePreviewPopUp:UpdateTheme(t)
 	local searchBg = t.SearchBarBackgroundColor or inputBg
 	local searchTrans = math.clamp(t.SearchBarBackgroundTransparency or 0.5, 0, 0.6)
 
-	el.shell.BackgroundColor3 = popupBg
-	el.headTile.BackgroundColor3 = accent
-	el.headGlyph.ImageColor3 = WHITE
-	el.headTitle.TextColor3 = popupText
-	el.headSubtitle.TextColor3 = subText
-	el.closeBtn.BackgroundColor3 = WHITE
-	el.closeIcon.ImageColor3 = popupText
-
-	el.miniWindow.BackgroundColor3 = windowBg
-	el.miniWindow.BackgroundTransparency = math.clamp(t.WindowTransparency or 0, 0, 0.9)
-	el.miniStroke.Color = sectionStrokeColor
-	el.miniStroke.Transparency = sectionStrokeTrans
-	el.miniGlow.Color = accent
+	el.shell.BackgroundColor3 = windowBg
+	el.shell.BackgroundTransparency = math.clamp(t.WindowTransparency or 0, 0, 0.9)
+	el.shellStroke.Color = sectionStrokeColor
+	el.shellStroke.Transparency = sectionStrokeTrans
+	el.shellGlow.Color = accent
 
 	el.sidebar.BackgroundColor3 = sidebarBg
 	el.sidebar.BackgroundTransparency = math.clamp(t.SidebarTransparency or 0, 0, 0.9)
-
-	el.logo.BackgroundColor3 = accent
-	el.logoText.TextColor3 = WHITE
-	el.appTitle.TextColor3 = text
-
-	local chipColors = { primary = primary, secondary = secondary, accent = accent }
-	for _, chip in ipairs(el.chips) do
-		chip.frame.BackgroundColor3 = chipColors[chip.key] or accent
-		chip.label.TextColor3 = WHITE
-	end
-
-	el.searchBox.BackgroundColor3 = searchBg
-	el.searchBox.BackgroundTransparency = searchTrans
-	el.searchIcon.ImageColor3 = subText
-	el.searchText.TextColor3 = subText
-
-	for _, nav in ipairs(el.navRows) do
-		if nav.active then
-			nav.row.BackgroundColor3 = activeTabBg
-			nav.row.BackgroundTransparency = activeTabTrans
-			nav.icon.ImageColor3 = activeTabText
-			nav.icon.ImageTransparency = 0
-			nav.label.TextColor3 = activeTabText
-			nav.label.TextTransparency = 0
-		else
-			nav.row.BackgroundColor3 = compBg
-			nav.row.BackgroundTransparency = 1
-			nav.icon.ImageColor3 = inactiveTabText
-			nav.icon.ImageTransparency = 0.2
-			nav.label.TextColor3 = inactiveTabText
-			nav.label.TextTransparency = 0.15
-		end
-	end
-
-	el.divider.BackgroundColor3 = sectionStrokeColor
-	el.divider.BackgroundTransparency = math.clamp(t.SectionDividerTransparency or 0.85, 0, 0.95)
-	el.avatar.BackgroundColor3 = compBg
-	el.avatar.BackgroundTransparency = compTrans
-	el.avatarIcon.ImageColor3 = subText
-	el.userName.TextColor3 = text
-	el.userHandle.TextColor3 = subText
-	el.userNum1.TextColor3 = subText
-	el.userNum2.TextColor3 = subText
 
 	el.content.BackgroundColor3 = contentBg
 	el.content.BackgroundTransparency = math.clamp(t.ContentBackgroundTransparency or 0, 0, 0.9)
@@ -769,8 +446,34 @@ function ThemePreviewPopUp:UpdateTheme(t)
 	end)
 	el.miniWallpaper.ImageTransparency = math.clamp(t.WallpaperTransparency or 0.82, 0, 1)
 
-	el.pageTitle.TextColor3 = text
-	el.pageUnderline.BackgroundColor3 = accent
+	local chipColors = { primary = primary, secondary = secondary, accent = accent }
+	for _, chip in ipairs(el.chips) do
+		chip.frame.BackgroundColor3 = chipColors[chip.key] or accent
+	end
+
+	el.searchBox.BackgroundColor3 = searchBg
+	el.searchBox.BackgroundTransparency = searchTrans
+	el.searchIcon.ImageColor3 = subText
+
+	for _, nav in ipairs(el.navRows) do
+		if nav.active then
+			nav.row.BackgroundColor3 = activeTabBg
+			nav.row.BackgroundTransparency = activeTabTrans
+			nav.icon.ImageColor3 = activeTabText
+			nav.icon.ImageTransparency = 0
+		else
+			nav.row.BackgroundColor3 = compBg
+			nav.row.BackgroundTransparency = 1
+			nav.icon.ImageColor3 = inactiveTabText
+			nav.icon.ImageTransparency = 0.2
+		end
+	end
+
+	el.divider.BackgroundColor3 = sectionStrokeColor
+	el.divider.BackgroundTransparency = math.clamp(t.SectionDividerTransparency or 0.85, 0, 0.95)
+	el.avatar.BackgroundColor3 = compBg
+	el.avatar.BackgroundTransparency = compTrans
+	el.avatarIcon.ImageColor3 = subText
 
 	for _, control in ipairs(el.controls) do
 		control.frame.BackgroundColor3 = compBg
@@ -778,35 +481,32 @@ function ThemePreviewPopUp:UpdateTheme(t)
 		control.icon.ImageColor3 = subText
 	end
 
+	el.closeBtn.BackgroundColor3 = WHITE
+	el.closeIcon.ImageColor3 = popupText
+
 	local sections = {
-		{ el.welcome, el.welcomeStroke, el.welcomeTitle },
-		{ el.actions, el.actionsStroke, el.actionsTitle },
-		{ el.palette, el.paletteStroke, el.paletteTitle },
-		{ el.secure, el.secureStroke, el.secureTitle },
+		{ el.welcome, el.welcomeStroke },
+		{ el.actions, el.actionsStroke },
+		{ el.palette, el.paletteStroke },
+		{ el.secure, el.secureStroke },
 	}
 	for _, section in ipairs(sections) do
 		section[1].BackgroundColor3 = sectionBg
 		section[1].BackgroundTransparency = sectionTrans
 		section[2].Color = sectionStrokeColor
 		section[2].Transparency = sectionStrokeTrans
-		section[3].TextColor3 = subText
 	end
 
-	el.welcomeHeading.TextColor3 = text
-	el.welcomeBody.TextColor3 = subText
 	el.welcomeCard.BackgroundColor3 = compBg
 	el.welcomeCard.BackgroundTransparency = compTrans
 	el.welcomeCardStroke.Color = sectionStrokeColor
 	el.welcomeCardStroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
-	el.welcomeCardLabel.TextColor3 = text
-	el.welcomePlain.TextColor3 = subText
 
 	for _, row in ipairs(el.actionRows) do
 		row.row.BackgroundColor3 = compBg
 		row.row.BackgroundTransparency = compTrans
 		row.stroke.Color = sectionStrokeColor
 		row.stroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
-		row.label.TextColor3 = text
 		row.icon.ImageColor3 = subText
 	end
 
@@ -817,16 +517,27 @@ function ThemePreviewPopUp:UpdateTheme(t)
 		swatch.stroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
 	end
 	el.paletteGradient.Color = ColorSequence.new(primary, accent)
-	el.paletteCaption.TextColor3 = subText
 
-	el.secureBody.TextColor3 = subText
 	el.secureField.BackgroundColor3 = inputBg
 	el.secureField.BackgroundTransparency = inputTrans
 	el.secureFieldStroke.Color = sectionStrokeColor
 	el.secureFieldStroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
-	el.secureLabel.TextColor3 = text
 	el.secureDot.BackgroundColor3 = accent
-	el.secureHint.TextColor3 = subText
+
+	-- Bars replace every text label. Tones map to the live theme's text ramp.
+	local toneMap = {
+		title = { color = text, transparency = 0 },
+		text = { color = text, transparency = 0.1 },
+		sub = { color = subText, transparency = 0.2 },
+		muted = { color = subText, transparency = 0.45 },
+		active = { color = activeTabText, transparency = 0 },
+		accent = { color = accent, transparency = 0 },
+	}
+	for _, bar in ipairs(el.bars) do
+		local tone = toneMap[bar.tone] or toneMap.text
+		bar.frame.BackgroundColor3 = tone.color
+		bar.frame.BackgroundTransparency = tone.transparency
+	end
 end
 
 function ThemePreviewPopUp:Open(themeData)
