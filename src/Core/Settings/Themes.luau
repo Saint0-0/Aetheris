@@ -214,14 +214,22 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	image.BorderSizePixel = 0
 	image.BackgroundColor3 = white
 	image.BackgroundTransparency = 1
-	image.Image = WallpaperManager.GetAsset(theme.Wallpaper or name, function(resolved)
-		if image.Parent then
-			image.Image = resolved
-		end
-	end)
 	image.Size = UDim2.fromScale(1, 1)
 	image.ScaleType = Enum.ScaleType.Crop
 	image.Parent = visual
+
+	-- GitHub resolutions arrive later; ignore callbacks from a superseded theme.
+	local wallpaperToken = 0
+	local function applyWallpaper()
+		wallpaperToken += 1
+		local token = wallpaperToken
+		image.Image = WallpaperManager.GetAsset(theme.Wallpaper or name, function(resolved)
+			if token == wallpaperToken and image.Parent then
+				image.Image = resolved
+			end
+		end)
+	end
+	applyWallpaper()
 
 	local imageCorner = Instance.new("UICorner")
 	imageCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
@@ -422,6 +430,41 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		paint(false)
 	end
 
+	-- Re-saved custom themes keep their card but need the new colours, copy
+	-- and wallpaper. Re-stamp instantly so the grid does not flicker.
+	local function refresh(newTheme)
+		if not card.Parent then
+			return
+		end
+		theme = newTheme
+		accent = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
+		textColor = theme.TitleTextColor or theme.PrimaryTextColor or white
+		base = theme.WindowColor or Color3.fromRGB(16, 16, 17)
+
+		fill.BackgroundColor3 = base
+		wash.Color =
+			ColorSequence.new(white, isDark(base) and Color3.new(0.72, 0.72, 0.72) or Color3.new(0.9, 0.9, 0.9))
+		scrim.BackgroundColor3 = base
+		applyWallpaper()
+		title.TextColor3 = textColor
+		desc.TextColor3 = textColor
+		desc.Text = THEME_DESCRIPTIONS[name] or theme.Description or "A cool theme"
+
+		local newPalette = {
+			theme.PrimaryColor or white,
+			theme.SecondaryColor or white,
+			theme.TertiaryColor or white,
+			accent,
+		}
+		for i, dot in ipairs(dots) do
+			dot.BackgroundColor3 = newPalette[i] or accent
+		end
+		shadow.Color = accent
+		if not primed then
+			paint(true)
+		end
+	end
+
 	local function hover(on)
 		hovered = on
 		if primed then
@@ -477,6 +520,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		setActive = setActive,
 		prime = prime,
 		reveal = reveal,
+		refresh = refresh,
 		destroy = function()
 			Tween.CancelAllUnder(card)
 			if card.Parent then
@@ -654,10 +698,17 @@ function Themes.Build(window, tab)
 			seen[name] = true
 		end
 	end
+	-- Custom and future definitions follow the curated order, sorted so the
+	-- grid is deterministic across sessions.
+	local extras = {}
 	for name in pairs(ThemeDefinitions) do
 		if not seen[name] and name ~= "Base" then
-			table.insert(ordered, name)
+			table.insert(extras, name)
 		end
+	end
+	table.sort(extras)
+	for _, name in ipairs(extras) do
+		table.insert(ordered, name)
 	end
 
 	tab._themeCards = {}
@@ -753,13 +804,16 @@ function Themes.Build(window, tab)
 	local unsubscribeCustom = CustomThemeManager.OnThemesChanged(function(customs)
 		for name, themeDef in pairs(customs) do
 			knownCustom[name] = true
-			if not tab._themeCards[name] then
+			local state = tab._themeCards[name]
+			if state then
+				state.refresh(themeDef)
+			else
 				local isActive = (name == tab._activeThemeName)
-				local state = makeCard(pageHolder, name, themeDef, isActive, nextCardOrder, setActive)
+				local newState = makeCard(pageHolder, name, themeDef, isActive, nextCardOrder, setActive)
 				nextCardOrder += 1
-				tab._themeCards[name] = state
-				table.insert(cardStates, state)
-				state.reveal()
+				tab._themeCards[name] = newState
+				table.insert(cardStates, newState)
+				newState.reveal()
 			end
 		end
 

@@ -17,6 +17,75 @@ local UUID = require("../../Utils/UUID")
 
 local ThemeCreator = {}
 
+-- Grouped colour keys exposed by the creator. PrimaryTextColor is loaded and
+-- saved with the rest, but the Primary Text picker writes it alongside
+-- TitleTextColor, so it has no picker of its own.
+local COLOR_GROUPS = {
+	{
+		Name = "Brand",
+		Items = {
+			{ key = "AccentColor", label = "Accent Color" },
+			{ key = "PrimaryColor", label = "Primary Color" },
+			{ key = "SecondaryColor", label = "Secondary Color" },
+			{ key = "TertiaryColor", label = "Tertiary Color" },
+		},
+	},
+	{
+		Name = "Surfaces",
+		Items = {
+			{ key = "WindowColor", label = "Window Background" },
+			{ key = "SidebarColor", label = "Sidebar Background" },
+			{ key = "ContentBackgroundColor", label = "Content Background" },
+			{ key = "SectionBackgroundColor", label = "Section Background" },
+			{ key = "ComponentBackgroundColor", label = "Component Background" },
+			{ key = "InputBackgroundColor", label = "Input Well Background" },
+			{ key = "PopupBackgroundColor", label = "Popup Background" },
+		},
+	},
+	{
+		Name = "Text",
+		Items = {
+			{ key = "TitleTextColor", label = "Primary Text Color" },
+			{ key = "SecondaryTextColor", label = "Secondary Text Color" },
+		},
+	},
+	{
+		Name = "Borders & Controls",
+		Items = {
+			{ key = "StrokeColor", label = "Border / Stroke Color" },
+			{ key = "SectionStrokeColor", label = "Section Stroke Color" },
+			{ key = "ActiveTabButtonColor", label = "Active Tab Button" },
+			{ key = "SearchBarBackgroundColor", label = "Search Bar Background" },
+		},
+	},
+}
+
+local THEME_COLOR_KEYS = { "PrimaryTextColor" }
+for _, group in ipairs(COLOR_GROUPS) do
+	for _, item in ipairs(group.Items) do
+		table.insert(THEME_COLOR_KEYS, item.key)
+	end
+end
+
+-- Carried with the draft so the live preview and saved themes keep the base
+-- preset's depth instead of falling back to opaque surfaces.
+local THEME_STYLE_KEYS = {
+	"WindowTransparency",
+	"SidebarTransparency",
+	"ContentBackgroundTransparency",
+	"ComponentBackgroundTransparency",
+	"InputBackgroundTransparency",
+	"SectionBackgroundTransparency",
+	"SectionStrokeTransparency",
+	"SectionDividerTransparency",
+	"ActiveTabButtonTransparency",
+	"SearchBarBackgroundTransparency",
+	"PrimaryTextTransparency",
+	"SecondaryTextTransparency",
+	"PopupBackgroundTransparency",
+	"WallpaperTransparency",
+}
+
 function ThemeCreator.Build(window, tab)
 	local page = tab.Page
 
@@ -32,26 +101,24 @@ function ThemeCreator.Build(window, tab)
 
 	CustomThemeManager.LoadAll()
 
-	local previewPopUp = ThemePreviewPopUp.new(window.PopUpsFolder or window.Base, window)
+	-- Parent to the window frame so the popup centres on the whole window,
+	-- not on the content pane the PopUps layer mirrors.
+	local previewPopUp = ThemePreviewPopUp.new(window.MainFrame or window.PopUpsFolder or window.Base, window)
 
-	-- Working theme state
+	-- Working theme state: start from the live theme, fall back to Base.
 	local baseTheme = ThemeManager.GetCurrent()
 	local draft = {
 		Name = "My Theme",
 		Description = "Custom theme",
 		BaseTheme = "Base",
 		Wallpaper = "Base",
-		AccentColor = baseTheme.AccentColor or Color3.fromRGB(120, 156, 210),
-		PrimaryColor = baseTheme.PrimaryColor or baseTheme.AccentColor or Color3.fromRGB(120, 156, 210),
-		WindowColor = baseTheme.WindowColor or Color3.fromRGB(18, 18, 20),
-		ContentBackgroundColor = baseTheme.ContentBackgroundColor or Color3.fromRGB(24, 24, 28),
-		ComponentBackgroundColor = baseTheme.ComponentBackgroundColor or Color3.fromRGB(32, 32, 38),
-		InputBackgroundColor = baseTheme.InputBackgroundColor or Color3.fromRGB(40, 40, 46),
-		TitleTextColor = baseTheme.TitleTextColor or Color3.fromRGB(240, 240, 245),
-		PrimaryTextColor = baseTheme.PrimaryTextColor or baseTheme.TitleTextColor or Color3.fromRGB(240, 240, 245),
-		SecondaryTextColor = baseTheme.SecondaryTextColor or Color3.fromRGB(160, 160, 170),
-		StrokeColor = baseTheme.StrokeColor or Color3.fromRGB(60, 60, 70),
 	}
+	for _, key in ipairs(THEME_COLOR_KEYS) do
+		draft[key] = baseTheme[key] or ThemeDefinitions.Base[key]
+	end
+	for _, key in ipairs(THEME_STYLE_KEYS) do
+		draft[key] = baseTheme[key] or ThemeDefinitions.Base[key]
+	end
 
 	local function liveUpdatePreview()
 		if previewPopUp:IsOpen() then
@@ -65,15 +132,8 @@ function ThemeCreator.Build(window, tab)
 	local wpInput
 	local wpDropdown
 	local savedDropdown
-	local cpAccent
-	local cpPrimary
-	local cpWindow
-	local cpContent
-	local cpComponent
-	local cpInput
-	local cpTitle
-	local cpSecondary
-	local cpStroke
+	local presetDropdown
+	local colorPickers = {}
 
 	local function updateControlsFromDraft()
 		if nameInput then
@@ -85,39 +145,18 @@ function ThemeCreator.Build(window, tab)
 		if wpInput then
 			wpInput:SetText(draft.Wallpaper or "")
 		end
-		if cpAccent then
-			cpAccent:SetColor(draft.AccentColor)
-		end
-		if cpPrimary then
-			cpPrimary:SetColor(draft.PrimaryColor)
-		end
-		if cpWindow then
-			cpWindow:SetColor(draft.WindowColor)
-		end
-		if cpContent then
-			cpContent:SetColor(draft.ContentBackgroundColor)
-		end
-		if cpComponent then
-			cpComponent:SetColor(draft.ComponentBackgroundColor)
-		end
-		if cpInput then
-			cpInput:SetColor(draft.InputBackgroundColor)
-		end
-		if cpTitle then
-			cpTitle:SetColor(draft.TitleTextColor)
-		end
-		if cpSecondary then
-			cpSecondary:SetColor(draft.SecondaryTextColor)
-		end
-		if cpStroke then
-			cpStroke:SetColor(draft.StrokeColor)
+		for key, picker in pairs(colorPickers) do
+			if draft[key] then
+				picker:SetColor(draft[key])
+			end
 		end
 		if wpDropdown then
+			-- Deselects when the value is a custom name/asset, leaving the
+			-- text input as the single manual path.
 			wpDropdown:SetValue(draft.Wallpaper, true)
-			local picked = wpDropdown:GetValues()
-			if not picked or #picked == 0 then
-				wpDropdown:SetValue("__manual__", true)
-			end
+		end
+		if presetDropdown then
+			presetDropdown:SetValue(draft.BaseTheme or "Base", true)
 		end
 		liveUpdatePreview()
 	end
@@ -151,26 +190,35 @@ function ThemeCreator.Build(window, tab)
 		table.insert(presetItems, { name = pName, value = pName })
 	end
 
-	profileSection:Dropdown({
+	presetDropdown = profileSection:Dropdown({
 		Name = "Load Base Preset",
 		Items = presetItems,
 		Default = { "Base" },
+		MaxItemsChoosable = 1,
 		NoSave = true,
 		Callback = function(selected)
 			local pick = selected and selected[1]
 			local chosen = (pick and pick.value) or "Base"
 			local src = ThemeDefinitions[chosen] or ThemeDefinitions.Base
 			draft.BaseTheme = chosen
-			draft.AccentColor = src.AccentColor or src.PrimaryColor or draft.AccentColor
-			draft.PrimaryColor = src.PrimaryColor or src.AccentColor or draft.PrimaryColor
-			draft.WindowColor = src.WindowColor or draft.WindowColor
-			draft.ContentBackgroundColor = src.ContentBackgroundColor or draft.ContentBackgroundColor
-			draft.ComponentBackgroundColor = src.ComponentBackgroundColor or draft.ComponentBackgroundColor
-			draft.InputBackgroundColor = src.InputBackgroundColor or draft.InputBackgroundColor
-			draft.TitleTextColor = src.TitleTextColor or src.PrimaryTextColor or draft.TitleTextColor
-			draft.PrimaryTextColor = src.PrimaryTextColor or src.TitleTextColor or draft.PrimaryTextColor
-			draft.SecondaryTextColor = src.SecondaryTextColor or draft.SecondaryTextColor
-			draft.StrokeColor = src.StrokeColor or draft.StrokeColor
+			for _, key in ipairs(THEME_COLOR_KEYS) do
+				local value = src[key] or ThemeDefinitions.Base[key]
+				if value then
+					draft[key] = value
+				end
+			end
+			for _, key in ipairs(THEME_STYLE_KEYS) do
+				local value = src[key]
+				if value == nil then
+					value = ThemeDefinitions.Base[key]
+				end
+				if value ~= nil then
+					draft[key] = value
+				end
+			end
+			-- Accent and Primary fall back to each other on older presets.
+			draft.AccentColor = draft.AccentColor or draft.PrimaryColor
+			draft.PrimaryColor = draft.PrimaryColor or draft.AccentColor
 			-- Theme-name first so local and GitHub wallpapers resolve before the
 			-- built-in asset fallback in WallpaperManager.
 			draft.Wallpaper = chosen
@@ -188,11 +236,12 @@ function ThemeCreator.Build(window, tab)
 
 	local function getWallpaperItems()
 		local files = WallpaperManager.ListLocal()
-		local items = {
-			{ name = "(Custom / Manual Name)", value = "__manual__" },
-		}
+		local items = {}
 		for _, f in ipairs(files) do
 			table.insert(items, { name = f, value = f })
+		end
+		if #items == 0 then
+			table.insert(items, { name = "(No local wallpapers)", value = "__none__" })
 		end
 		return items
 	end
@@ -201,11 +250,17 @@ function ThemeCreator.Build(window, tab)
 		Name = "Local Wallpapers",
 		Items = getWallpaperItems(),
 		Default = { draft.Wallpaper },
+		MaxItemsChoosable = 1,
 		NoSave = true,
 		Callback = function(selected)
 			local pick = selected and selected[1]
 			local val = pick and pick.value
-			if val and val ~= "__manual__" then
+			if val == "__none__" then
+				-- Placeholder is not a wallpaper; restore the typed value.
+				wpDropdown:SetValue(draft.Wallpaper, true)
+				return
+			end
+			if val then
 				draft.Wallpaper = val
 				if wpInput then
 					wpInput:SetText(val)
@@ -222,6 +277,10 @@ function ThemeCreator.Build(window, tab)
 		NoSave = true,
 		Callback = function(val)
 			draft.Wallpaper = val
+			if wpDropdown then
+				-- Keep the dropdown in sync when the typed name matches a file.
+				wpDropdown:SetValue(val, true)
+			end
 			liveUpdatePreview()
 		end,
 	})
@@ -235,6 +294,7 @@ function ThemeCreator.Build(window, tab)
 			local items = getWallpaperItems()
 			if wpDropdown and wpDropdown.SetValues then
 				wpDropdown:SetValues(items, true)
+				wpDropdown:SetValue(draft.Wallpaper, true)
 			end
 			liveUpdatePreview()
 			window:Toast({
@@ -248,96 +308,39 @@ function ThemeCreator.Build(window, tab)
 	-- Section 3: Colors
 	local colorSection = tab:Section({ Name = "Colors & Styling" })
 
-	cpAccent = colorSection:ColorPicker({
-		Name = "Accent Color",
-		Default = draft.AccentColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.AccentColor = c
-			liveUpdatePreview()
-		end,
-	})
+	local function addColorPicker(key, labelText)
+		colorPickers[key] = colorSection:ColorPicker({
+			Name = labelText,
+			Default = draft[key],
+			NoSave = true,
+			Callback = function(c)
+				draft[key] = c
+				-- Title and primary text travel together, as components read
+				-- PrimaryTextColor while the preview reads TitleTextColor.
+				if key == "TitleTextColor" then
+					draft.PrimaryTextColor = c
+				end
+				liveUpdatePreview()
+			end,
+		})
+	end
 
-	cpPrimary = colorSection:ColorPicker({
-		Name = "Primary Color",
-		Default = draft.PrimaryColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.PrimaryColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpWindow = colorSection:ColorPicker({
-		Name = "Window Background",
-		Default = draft.WindowColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.WindowColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpContent = colorSection:ColorPicker({
-		Name = "Content Background",
-		Default = draft.ContentBackgroundColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.ContentBackgroundColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpComponent = colorSection:ColorPicker({
-		Name = "Component Background",
-		Default = draft.ComponentBackgroundColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.ComponentBackgroundColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpInput = colorSection:ColorPicker({
-		Name = "Input Well Background",
-		Default = draft.InputBackgroundColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.InputBackgroundColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpTitle = colorSection:ColorPicker({
-		Name = "Primary Text Color",
-		Default = draft.TitleTextColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.TitleTextColor = c
-			draft.PrimaryTextColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpSecondary = colorSection:ColorPicker({
-		Name = "Secondary Text Color",
-		Default = draft.SecondaryTextColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.SecondaryTextColor = c
-			liveUpdatePreview()
-		end,
-	})
-
-	cpStroke = colorSection:ColorPicker({
-		Name = "Border / Stroke Color",
-		Default = draft.StrokeColor,
-		NoSave = true,
-		Callback = function(c)
-			draft.StrokeColor = c
-			liveUpdatePreview()
-		end,
-	})
+	for groupIndex, group in ipairs(COLOR_GROUPS) do
+		if groupIndex > 1 then
+			colorSection:Divider({ Padding = 6 })
+		end
+		colorSection:Label({
+			Text = group.Name,
+			ShowContainer = false,
+			ShowStroke = false,
+			TextSize = 12,
+			FontWeight = "SemiBold",
+			Padding = { Top = 2, Bottom = 0, Left = 4, Right = 4 },
+		})
+		for _, item in ipairs(group.Items) do
+			addColorPicker(item.key, item.label)
+		end
+	end
 
 	-- Section 4: Actions
 	local actionsSection = tab:Section({ Name = "Actions" })
@@ -349,7 +352,6 @@ function ThemeCreator.Build(window, tab)
 			if previewPopUp:IsOpen() then
 				previewPopUp:Close()
 			else
-				window:_claimPopup(previewPopUp)
 				previewPopUp:Open(draft)
 			end
 		end,
@@ -438,6 +440,7 @@ function ThemeCreator.Build(window, tab)
 		Name = "Saved Custom Themes",
 		Items = getSavedThemeItems(),
 		Default = { "__none__" },
+		MaxItemsChoosable = 1,
 		NoSave = true,
 	})
 
@@ -462,16 +465,16 @@ function ThemeCreator.Build(window, tab)
 				draft.Description = loaded.Description or "Custom theme"
 				draft.BaseTheme = loaded.BaseTheme or "Base"
 				draft.Wallpaper = loaded.Wallpaper or loaded.Name or "Base"
-				draft.AccentColor = loaded.AccentColor
-				draft.PrimaryColor = loaded.PrimaryColor
-				draft.WindowColor = loaded.WindowColor
-				draft.ContentBackgroundColor = loaded.ContentBackgroundColor
-				draft.ComponentBackgroundColor = loaded.ComponentBackgroundColor
-				draft.InputBackgroundColor = loaded.InputBackgroundColor
-				draft.TitleTextColor = loaded.TitleTextColor or loaded.PrimaryTextColor
-				draft.PrimaryTextColor = loaded.PrimaryTextColor or loaded.TitleTextColor
-				draft.SecondaryTextColor = loaded.SecondaryTextColor
-				draft.StrokeColor = loaded.StrokeColor
+				for _, key in ipairs(THEME_COLOR_KEYS) do
+					if loaded[key] then
+						draft[key] = loaded[key]
+					end
+				end
+				for _, key in ipairs(THEME_STYLE_KEYS) do
+					if loaded[key] ~= nil then
+						draft[key] = loaded[key]
+					end
+				end
 				updateControlsFromDraft()
 				window:Toast({
 					Title = "Theme loaded",

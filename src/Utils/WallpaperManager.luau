@@ -107,6 +107,21 @@ local function cleanFileName(path)
 	return name
 end
 
+local IMAGE_EXTENSIONS = {
+	png = true,
+	jpg = true,
+	jpeg = true,
+	webp = true,
+	bmp = true,
+	gif = true,
+	tga = true,
+}
+
+local function isImageFile(name)
+	local ext = string.match(string.lower(name), "%.([%w]+)$")
+	return ext ~= nil and IMAGE_EXTENSIONS[ext] == true
+end
+
 function WallpaperManager.ListLocal()
 	WallpaperManager.EnsureFolders()
 	local list = {}
@@ -125,7 +140,7 @@ function WallpaperManager.ListLocal()
 		end
 		if not isDir then
 			local name = cleanFileName(path)
-			if name ~= "" then
+			if name ~= "" and isImageFile(name) then
 				table.insert(list, name)
 			end
 		end
@@ -151,6 +166,32 @@ local function findLocalFile(query)
 			local ok, exists = pcall(isfile, path)
 			if ok and exists then
 				return path
+			end
+		end
+	end
+	-- Case-insensitive fallback for mixed-case filenames on case-sensitive
+	-- filesystems; the direct probes above only cover exact and lower-case.
+	if typeof(listfiles) == "function" then
+		local wanted = string.lower(query)
+		local listOk, files = pcall(listfiles, WALLPAPERS_FOLDER)
+		if listOk and type(files) == "table" then
+			for _, path in ipairs(files) do
+				local name = string.lower(cleanFileName(path))
+				local matches = name == wanted
+				if not matches then
+					for _, ext in ipairs(LOCAL_EXTENSIONS) do
+						if name == wanted .. string.lower(ext) then
+							matches = true
+							break
+						end
+					end
+				end
+				if matches then
+					local fileOk, exists = pcall(isfile, path)
+					if fileOk and exists then
+						return path
+					end
+				end
 			end
 		end
 	end

@@ -41,6 +41,16 @@ function CustomThemeManager.EnsureFolders()
 	ensureFolder(FOLDER)
 end
 
+local function cleanThemeName(name)
+	if type(name) ~= "string" then
+		return nil
+	end
+	local clean = string.gsub(name, '[/\\:*?"<>|]', "")
+	clean = string.gsub(clean, "^%s+", "")
+	clean = string.gsub(clean, "%s+$", "")
+	return clean
+end
+
 local function colorToTable(color)
 	if typeof(color) == "Color3" then
 		return {
@@ -155,12 +165,9 @@ function CustomThemeManager.GetAll()
 end
 
 function CustomThemeManager.Save(name, themeData, description)
-	if type(name) ~= "string" or name == "" then
+	local cleanName = cleanThemeName(name)
+	if not cleanName or cleanName == "" then
 		return false, "Invalid theme name"
-	end
-	local cleanName = string.gsub(name, '[/\\:*?"<>|]', "")
-	if cleanName == "" then
-		return false, "Invalid characters in theme name"
 	end
 	if not _customThemes[cleanName] and ThemeDefinitions[cleanName] then
 		return false, "A built-in theme already uses this name"
@@ -168,6 +175,9 @@ function CustomThemeManager.Save(name, themeData, description)
 	themeData = type(themeData) == "table" and themeData or {}
 
 	local baseName = type(themeData.BaseTheme) == "string" and themeData.BaseTheme or "Base"
+	if not ThemeDefinitions[baseName] then
+		baseName = "Base"
+	end
 	local base = ThemeDefinitions[baseName] or ThemeDefinitions.Base
 	local fullTheme = table.clone(base)
 	for k, v in pairs(themeData) do

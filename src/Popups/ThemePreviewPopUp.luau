@@ -14,6 +14,7 @@ local Tween = require("../Utils/Tween")
 local Icons = require("../Assets/Icons")
 local UUID = require("../Utils/UUID")
 local WallpaperManager = require("../Utils/WallpaperManager")
+local UserInputService = game:GetService("UserInputService")
 
 local ThemePreviewPopUp = {}
 
@@ -93,17 +94,6 @@ function ThemePreviewPopUp.new(parent, window)
 		return bar
 	end
 
-	local outside = Instance.new("TextButton")
-	outside.Name = UUID.Generate("ThemePreviewOutside")
-	outside.Text = ""
-	outside.BackgroundTransparency = 1
-	outside.BorderSizePixel = 0
-	outside.Size = UDim2.fromScale(1, 1)
-	outside.ZIndex = 1200
-	outside.Visible = false
-	outside.Parent = parent
-	self._outside = outside
-
 	-- The miniature window is the popup itself.
 	local shell = Instance.new("CanvasGroup")
 	shell.Name = UUID.Generate("ThemePreviewShell")
@@ -114,7 +104,7 @@ function ThemePreviewPopUp.new(parent, window)
 	shell.ZIndex = 1201
 	shell.Visible = false
 	shell.GroupTransparency = 1
-	-- Sink clicks on the chrome so only the outside backdrop dismisses.
+	-- Sink clicks on the chrome; only a click outside the rect dismisses.
 	shell.Active = true
 	shell.Parent = parent
 	self._shell = shell
@@ -383,11 +373,9 @@ function ThemePreviewPopUp.new(parent, window)
 
 	makeBar(secure, "MiniSecureHint", UDim2.fromOffset(10, 74), UDim2.fromOffset(60, 5), "muted", 3)
 
-	local function dismiss()
+	closeBtn.MouseButton1Click:Connect(function()
 		self:Dismiss()
-	end
-	outside.MouseButton1Click:Connect(dismiss)
-	closeBtn.MouseButton1Click:Connect(dismiss)
+	end)
 
 	return self
 end
@@ -438,9 +426,12 @@ function ThemePreviewPopUp:UpdateTheme(t)
 	el.content.BackgroundColor3 = contentBg
 	el.content.BackgroundTransparency = math.clamp(t.ContentBackgroundTransparency or 0, 0, 0.9)
 
+	-- Async GitHub resolutions must not overwrite a newer theme's wallpaper.
+	self._wallpaperToken = (self._wallpaperToken or 0) + 1
+	local wallpaperToken = self._wallpaperToken
 	local wp = t.Wallpaper or t.Name
 	el.miniWallpaper.Image = WallpaperManager.GetAsset(wp, function(resolved)
-		if el.miniWallpaper and el.miniWallpaper.Parent then
+		if wallpaperToken == self._wallpaperToken and el.miniWallpaper and el.miniWallpaper.Parent then
 			el.miniWallpaper.Image = resolved
 		end
 	end)
@@ -540,6 +531,51 @@ function ThemePreviewPopUp:UpdateTheme(t)
 	end
 end
 
+-- Mirrors DropdownPopUp: clicks are hit-tested against the popup rect instead
+-- of a full-screen backdrop, so the whole window stays interactive.
+function ThemePreviewPopUp:_connectOutsideClick()
+	if self._outsideConn then
+		return
+	end
+	self._outsideConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		local inputType = input.UserInputType
+		if inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if not self._open or not self._shell or not self._shell.Visible then
+			return
+		end
+		local p = input.Position
+		local pos = self._shell.AbsolutePosition
+		local size = self._shell.AbsoluteSize
+		local inside = p.X >= pos.X and p.X <= pos.X + size.X and p.Y >= pos.Y and p.Y <= pos.Y + size.Y
+		if not inside then
+			local playerGui = self._shell:FindFirstAncestorOfClass("PlayerGui")
+			if playerGui then
+				for _, obj in ipairs(playerGui:GetGuiObjectsAtPosition(p.X, p.Y)) do
+					if obj == self._shell or obj:IsDescendantOf(self._shell) then
+						inside = true
+						break
+					end
+				end
+			end
+		end
+		if not inside then
+			self:Close()
+		end
+	end)
+end
+
+function ThemePreviewPopUp:_disconnectOutsideClick()
+	if self._outsideConn then
+		self._outsideConn:Disconnect()
+		self._outsideConn = nil
+	end
+end
+
 function ThemePreviewPopUp:Open(themeData)
 	if self._open then
 		if themeData then
@@ -553,15 +589,27 @@ function ThemePreviewPopUp:Open(themeData)
 	end
 	self:UpdateTheme(themeData)
 
-	self._outside.Visible = true
-	self._shell.Visible = true
-	self._shell.GroupTransparency = 1
-	self._shell.Position = UDim2.new(0.5, 0, 0.5, 14)
+	if self._hideTimer then
+		task.cancel(self._hideTimer)
+		self._hideTimer = nil
+	end
 
-	Tween.Play(self._shell, "Enter", {
-		GroupTransparency = 0,
-		Position = UDim2.fromScale(0.5, 0.5),
-	})
+	local shell = self._shell
+	local glow = self._elements and self._elements.shellGlow
+	-- Resting opacity comes from the theme; snap transparent so the fade owns it.
+	local restBackground = shell.BackgroundTransparency
+	shell.Visible = true
+	shell.GroupTransparency = 1
+	shell.BackgroundTransparency = 1
+	if glow then
+		glow.Transparency = 1
+	end
+	self:_connectOutsideClick()
+
+	Tween.Play(shell, "Fast", { BackgroundTransparency = restBackground, GroupTransparency = 0 })
+	if glow then
+		Tween.Play(glow, "Fast", { Transparency = 0.5 })
+	end
 end
 
 function ThemePreviewPopUp:Close()
@@ -572,16 +620,26 @@ function ThemePreviewPopUp:Close()
 	if self._window and self._window._activePopUp == self then
 		self._window._activePopUp = nil
 	end
-	self._outside.Visible = false
+	self:_disconnectOutsideClick()
 
-	Tween.Play(self._shell, "Exit", {
-		GroupTransparency = 1,
-		Position = UDim2.new(0.5, 0, 0.5, 14),
-	})
-	task.delay(0.3, function()
+	local shell = self._shell
+	local glow = self._elements and self._elements.shellGlow
+	if shell then
+		Tween.Play(shell, "Fast", { BackgroundTransparency = 1, GroupTransparency = 1 })
+	end
+	if glow then
+		Tween.Play(glow, "Fast", { Transparency = 1 })
+	end
+
+	if self._hideTimer then
+		task.cancel(self._hideTimer)
+		self._hideTimer = nil
+	end
+	self._hideTimer = task.delay(0.35, function()
 		if not self._open and self._shell then
 			self._shell.Visible = false
 		end
+		self._hideTimer = nil
 	end)
 end
 
@@ -594,13 +652,18 @@ function ThemePreviewPopUp:IsOpen()
 end
 
 function ThemePreviewPopUp:Destroy()
+	self._open = false
+	if self._window and self._window._activePopUp == self then
+		self._window._activePopUp = nil
+	end
+	self:_disconnectOutsideClick()
+	if self._hideTimer then
+		task.cancel(self._hideTimer)
+		self._hideTimer = nil
+	end
 	if self._shell then
 		self._shell:Destroy()
 		self._shell = nil
-	end
-	if self._outside then
-		self._outside:Destroy()
-		self._outside = nil
 	end
 	self._elements = nil
 end
