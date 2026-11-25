@@ -146,7 +146,11 @@ end
 
 local function makeCard(parent, name, theme, active, order, onActivate)
 	local white = Color3.new(1, 1, 1)
-	local HOVER_SCALE, PRESS_SCALE = 1.015, 0.965
+	-- Whole-pixel lift only: UIScale blurs the card's text at fractional
+	-- scales, so the pill's spring is recreated by moving the visual wrapper.
+	local REST_POS = UDim2.fromScale(0.5, 0.5)
+	local HOVER_POS = UDim2.new(0.5, 0, 0.5, -4)
+	local PRESS_POS = UDim2.new(0.5, 0, 0.5, -1)
 	local accent = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	local textColor = theme.TitleTextColor or theme.PrimaryTextColor or white
 	local base = theme.WindowColor or Color3.fromRGB(16, 16, 17)
@@ -166,20 +170,17 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	corner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	corner.Parent = card
 
-	-- Inner visual wrapper: scaling it cannot reflow the grid, unlike scaling
-	-- the card itself under AutomaticCanvasSize.
+	-- Inner visual wrapper: moving it cannot reflow the grid, unlike scaling
+	-- the card itself under AutomaticCanvasSize. No UIScale here, because a
+	-- fractional scale renders the card's text blurry.
 	local visual = Instance.new("Frame")
 	visual.Name = UUID.Static("CardVisual")
 	visual.BorderSizePixel = 0
 	visual.BackgroundTransparency = 1
 	visual.AnchorPoint = Vector2.new(0.5, 0.5)
-	visual.Position = UDim2.fromScale(0.5, 0.5)
+	visual.Position = REST_POS
 	visual.Size = UDim2.fromScale(1, 1)
 	visual.Parent = card
-
-	local visualScale = Instance.new("UIScale")
-	visualScale.Scale = 1
-	visualScale.Parent = visual
 
 	-- Card fill, washed from top-light to bottom-dark.
 	local fill = Instance.new("Frame")
@@ -386,7 +387,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	local function prime()
 		primed = true
 		Tween.CancelAllUnder(card)
-		visualScale.Scale = 1
+		visual.Position = REST_POS
 		card.Active = false
 		fill.BackgroundTransparency = 1
 		scrim.BackgroundTransparency = 1
@@ -407,6 +408,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		end
 		primed = false
 		card.Active = true
+		visual.Position = hovered and HOVER_POS or REST_POS
 		Tween.Play(fill, SETTLE, { BackgroundTransparency = 0 })
 		Tween.Play(scrim, SETTLE, { BackgroundTransparency = 0 })
 		paint(false, SETTLE)
@@ -434,28 +436,28 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	card.MouseEnter:Connect(function()
 		hover(true)
 		if not primed then
-			Tween.Play(visualScale, "HoverIn", { Scale = HOVER_SCALE })
+			Tween.Play(visual, "HoverIn", { Position = HOVER_POS })
 		end
 	end)
 	card.MouseLeave:Connect(function()
 		hover(false)
 		if not primed then
-			Tween.Play(visualScale, "HoverOut", { Scale = 1 })
+			Tween.Play(visual, "HoverOut", { Position = REST_POS })
 		end
 	end)
-	-- Press scales the inner wrapper; the card's layout slot never changes.
+	-- Press dips the lifted wrapper and springs back on release.
 	card.MouseButton1Down:Connect(function()
 		if primed then
 			return
 		end
-		Tween.Play(visualScale, "Fast", { Scale = PRESS_SCALE })
+		Tween.Play(visual, "PressIn", { Position = PRESS_POS })
 		Tween.Play(lift, "PressIn", { BackgroundTransparency = 0.9 })
 	end)
 	card.MouseButton1Up:Connect(function()
 		if primed then
 			return
 		end
-		Tween.Play(visualScale, "HoverIn", { Scale = hovered and HOVER_SCALE or 1 })
+		Tween.Play(visual, "PressOut", { Position = hovered and HOVER_POS or REST_POS })
 		paint(false)
 	end)
 

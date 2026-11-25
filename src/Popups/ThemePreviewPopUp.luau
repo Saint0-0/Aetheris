@@ -15,8 +15,16 @@ local UUID = require("../Utils/UUID")
 local WallpaperManager = require("../Utils/WallpaperManager")
 
 local ThemePreviewPopUp = {}
-local TILE = 28
-local CORNER = 12
+
+local CORNER = 14
+local SHELL_W, SHELL_H = 580, 400
+local SIDEBAR_W = 138
+local WHITE = Color3.new(1, 1, 1)
+
+-- Close button hover, matching the changelog's icon timing.
+local ICON_IN = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local ICON_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local CLOSE_ICON = Icons["circle-x"] or "rbxassetid://76821953846248"
 
 local function ramp(points)
 	local keypoints = {}
@@ -26,12 +34,72 @@ local function ramp(points)
 	return NumberSequence.new(keypoints)
 end
 
+local function addCorner(inst, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = inst
+	return corner
+end
+
+local function addStroke(inst, color, transparency)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Transparency = transparency
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = inst
+	return stroke
+end
+
+local function makeLabel(parent, name, text, position, size, textSize, weight, color)
+	local label = Instance.new("TextLabel")
+	label.Name = UUID.Static(name)
+	label.BorderSizePixel = 0
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextSize = textSize
+	label.FontFace = Constants.Font(weight or Enum.FontWeight.Medium)
+	label.TextColor3 = color or WHITE
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextYAlignment = Enum.TextYAlignment.Center
+	label.TextTruncate = Enum.TextTruncate.AtEnd
+	label.Position = position
+	label.Size = size
+	label.Parent = parent
+	return label
+end
+
+local function makeFrame(parent, name, position, size)
+	local frame = Instance.new("Frame")
+	frame.Name = UUID.Static(name)
+	frame.BorderSizePixel = 0
+	frame.Position = position
+	frame.Size = size
+	frame.Parent = parent
+	return frame
+end
+
+local function makeIcon(parent, name, image, position, size)
+	local icon = Instance.new("ImageLabel")
+	icon.Name = UUID.Static(name)
+	icon.BorderSizePixel = 0
+	icon.BackgroundTransparency = 1
+	icon.Image = image
+	icon.ImageColor3 = WHITE
+	icon.Position = position
+	icon.Size = size
+	icon.Parent = parent
+	return icon
+end
+
 function ThemePreviewPopUp.new(parent, window)
 	local self = setmetatable({}, { __index = ThemePreviewPopUp })
 	self._parent = parent
 	self._window = window
 	self._open = false
 	self._theme = {}
+
+	local el = {}
+	self._elements = el
 
 	local outside = Instance.new("TextButton")
 	outside.Name = UUID.Generate("ThemePreviewOutside")
@@ -44,434 +112,547 @@ function ThemePreviewPopUp.new(parent, window)
 	outside.Parent = parent
 	self._outside = outside
 
+	-- Shell
 	local shell = Instance.new("CanvasGroup")
 	shell.Name = UUID.Generate("ThemePreviewShell")
 	shell.BorderSizePixel = 0
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, 0.5)
-	shell.Size = UDim2.fromOffset(460, 310)
+	shell.Size = UDim2.fromOffset(SHELL_W, SHELL_H)
 	shell.ZIndex = 1201
 	shell.Visible = false
 	shell.GroupTransparency = 1
 	shell.Parent = parent
 	self._shell = shell
+	el.shell = shell
 
-	local shellCorner = Instance.new("UICorner")
-	shellCorner.CornerRadius = UDim.new(0, CORNER)
-	shellCorner.Parent = shell
+	addCorner(shell, CORNER)
 
 	local shellShadow = Instance.new("UIShadow")
-	shellShadow.BlurRadius = UDim.new(0, 24)
+	shellShadow.BlurRadius = UDim.new(0, 28)
 	shellShadow.Color = Color3.fromRGB(0, 0, 0)
-	shellShadow.Transparency = 0.45
+	shellShadow.Transparency = 0.4
 	shellShadow.Parent = shell
 
-	-- Header bar
-	local head = Instance.new("Frame")
-	head.Name = UUID.Static("PreviewHead")
-	head.BorderSizePixel = 0
-	head.BackgroundTransparency = 1
-	head.Size = UDim2.new(1, 0, 0, 42)
-	head.Position = UDim2.fromOffset(0, 0)
-	head.Parent = shell
+	-- Header row, styled like the other popup shells.
+	local headTile = makeFrame(shell, "PreviewHeadTile", UDim2.fromOffset(16, 13), UDim2.fromOffset(30, 30))
+	addCorner(headTile, 10)
+	el.headTile = headTile
 
-	local headTile = Instance.new("Frame")
-	headTile.Name = UUID.Static("HeadTile")
-	headTile.BorderSizePixel = 0
-	headTile.Size = UDim2.fromOffset(TILE, TILE)
-	headTile.Position = UDim2.fromOffset(14, 7)
-	headTile.Parent = head
-
-	local headTileCorner = Instance.new("UICorner")
-	headTileCorner.CornerRadius = UDim.new(0, 8)
-	headTileCorner.Parent = headTile
-
-	local headGlyph = Instance.new("ImageLabel")
-	headGlyph.Name = UUID.Static("HeadGlyph")
-	headGlyph.BorderSizePixel = 0
-	headGlyph.BackgroundTransparency = 1
+	local headGlyph = makeIcon(
+		headTile,
+		"PreviewHeadGlyph",
+		Icons["palette"] or Icons["paintbrush"],
+		UDim2.fromScale(0.5, 0.5),
+		UDim2.fromOffset(16, 16)
+	)
 	headGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
-	headGlyph.Position = UDim2.fromScale(0.5, 0.5)
-	headGlyph.Size = UDim2.fromOffset(16, 16)
-	headGlyph.Image = Icons["eye"] or "rbxassetid://8445470392"
-	headGlyph.Parent = headTile
+	el.headGlyph = headGlyph
 
-	local headTitle = Instance.new("TextLabel")
-	headTitle.Name = UUID.Static("HeadTitle")
-	headTitle.BorderSizePixel = 0
-	headTitle.BackgroundTransparency = 1
-	headTitle.FontFace = Constants.Font(Enum.FontWeight.Bold)
-	headTitle.TextSize = 14
-	headTitle.TextXAlignment = Enum.TextXAlignment.Left
-	headTitle.Text = "Live Theme Preview"
-	headTitle.Position = UDim2.fromOffset(50, 7)
-	headTitle.Size = UDim2.new(1, -95, 0, TILE)
-	headTitle.Parent = head
+	local headTitle = makeLabel(
+		shell,
+		"PreviewHeadTitle",
+		"Theme Preview",
+		UDim2.fromOffset(56, 10),
+		UDim2.new(1, -140, 0, 18),
+		14,
+		Enum.FontWeight.SemiBold,
+		WHITE
+	)
+	el.headTitle = headTitle
 
-	local closeBtn = Instance.new("TextButton")
-	closeBtn.Name = UUID.Static("CloseBtn")
+	local headSubtitle = makeLabel(
+		shell,
+		"PreviewHeadSubtitle",
+		"Live preview of the draft theme",
+		UDim2.fromOffset(56, 28),
+		UDim2.new(1, -140, 0, 14),
+		10,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	headSubtitle.TextTransparency = 0.25
+	el.headSubtitle = headSubtitle
+
+	local closeBtn = Instance.new("ImageButton")
+	closeBtn.Name = UUID.Static("PreviewClose")
 	closeBtn.BorderSizePixel = 0
-	closeBtn.Text = ""
-	closeBtn.AnchorPoint = Vector2.new(1, 0.5)
-	closeBtn.Position = UDim2.new(1, -12, 0.5, 0)
-	closeBtn.Size = UDim2.fromOffset(26, 26)
-	closeBtn.Parent = head
+	closeBtn.BackgroundColor3 = WHITE
+	closeBtn.BackgroundTransparency = 0.92
+	closeBtn.AutoButtonColor = false
+	closeBtn.AnchorPoint = Vector2.new(1, 0)
+	closeBtn.Position = UDim2.new(1, -16, 0, 14)
+	closeBtn.Size = UDim2.fromOffset(28, 28)
+	closeBtn.Parent = shell
+	addCorner(closeBtn, 14)
+	el.closeBtn = closeBtn
 
-	local closeCorner = Instance.new("UICorner")
-	closeCorner.CornerRadius = UDim.new(1, 0)
-	closeCorner.Parent = closeBtn
-
-	local closeIcon = Instance.new("ImageLabel")
-	closeIcon.BorderSizePixel = 0
-	closeIcon.BackgroundTransparency = 1
+	local closeIcon =
+		makeIcon(closeBtn, "PreviewCloseIcon", CLOSE_ICON, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(16, 16))
 	closeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	closeIcon.Position = UDim2.fromScale(0.5, 0.5)
-	closeIcon.Size = UDim2.fromOffset(14, 14)
-	closeIcon.Image = Icons["x"]
-	closeIcon.Parent = closeBtn
+	closeIcon.ImageTransparency = 0.35
+	el.closeIcon = closeIcon
 
-	-- Mini window container
-	local miniWindow = Instance.new("Frame")
-	miniWindow.Name = UUID.Static("MiniWindow")
-	miniWindow.BorderSizePixel = 0
-	miniWindow.Position = UDim2.fromOffset(12, 44)
-	miniWindow.Size = UDim2.new(1, -24, 1, -56)
-	miniWindow.Parent = shell
+	closeBtn.MouseEnter:Connect(function()
+		Tween.Play(closeBtn, ICON_IN, { BackgroundTransparency = 0.86 })
+		Tween.Play(closeIcon, ICON_IN, { ImageTransparency = 0 })
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		Tween.Play(closeBtn, ICON_OUT, { BackgroundTransparency = 0.92 })
+		Tween.Play(closeIcon, ICON_OUT, { ImageTransparency = 0.35 })
+	end)
 
-	local miniCorner = Instance.new("UICorner")
-	miniCorner.CornerRadius = UDim.new(0, 10)
-	miniCorner.Parent = miniWindow
+	-- Mini Aetheris window
+	local miniWindow = makeFrame(shell, "MiniWindow", UDim2.fromOffset(16, 56), UDim2.new(1, -32, 1, -72))
+	addCorner(miniWindow, 12)
+	local miniStroke = addStroke(miniWindow, WHITE, 0.92)
+	el.miniWindow = miniWindow
+	el.miniStroke = miniStroke
 
-	-- Mini Sidebar
-	local miniSidebar = Instance.new("Frame")
-	miniSidebar.Name = UUID.Static("MiniSidebar")
-	miniSidebar.BorderSizePixel = 0
-	miniSidebar.Size = UDim2.new(0, 42, 1, 0)
-	miniSidebar.Position = UDim2.fromOffset(0, 0)
-	miniSidebar.Parent = miniWindow
+	local miniGlow = Instance.new("UIShadow")
+	miniGlow.BlurRadius = UDim.new(0, 18)
+	miniGlow.Color = WHITE
+	miniGlow.Transparency = 0.7
+	miniGlow.Parent = miniWindow
+	el.miniGlow = miniGlow
 
-	local sidebarCorner = Instance.new("UICorner")
-	sidebarCorner.CornerRadius = UDim.new(0, 10)
-	sidebarCorner.Parent = miniSidebar
+	-- Sidebar
+	local sidebar = makeFrame(miniWindow, "MiniSidebar", UDim2.fromOffset(0, 0), UDim2.new(0, SIDEBAR_W, 1, 0))
+	addCorner(sidebar, 12)
+	el.sidebar = sidebar
 
-	local miniTabs = {}
-	for i = 1, 3 do
-		local tab = Instance.new("Frame")
-		tab.Name = UUID.Generate("MiniTab")
-		tab.BorderSizePixel = 0
-		tab.AnchorPoint = Vector2.new(0.5, 0)
-		tab.Position = UDim2.new(0.5, 0, 0, 12 + (i - 1) * 32)
-		tab.Size = UDim2.fromOffset(26, 26)
-		tab.Parent = miniSidebar
+	local logo = makeFrame(sidebar, "MiniLogo", UDim2.fromOffset(12, 12), UDim2.fromOffset(24, 24))
+	addCorner(logo, 7)
+	el.logo = logo
 
-		local tabCorner = Instance.new("UICorner")
-		tabCorner.CornerRadius = UDim.new(1, 0)
-		tabCorner.Parent = tab
+	local logoText = makeLabel(
+		logo,
+		"MiniLogoText",
+		"A",
+		UDim2.fromScale(0, 0),
+		UDim2.fromScale(1, 1),
+		13,
+		Enum.FontWeight.Bold,
+		WHITE
+	)
+	logoText.TextXAlignment = Enum.TextXAlignment.Center
+	el.logoText = logoText
 
-		local tabDot = Instance.new("Frame")
-		tabDot.BorderSizePixel = 0
-		tabDot.AnchorPoint = Vector2.new(0.5, 0.5)
-		tabDot.Position = UDim2.fromScale(0.5, 0.5)
-		tabDot.Size = UDim2.fromOffset(10, 10)
-		tabDot.Parent = tab
+	local appTitle = makeLabel(
+		sidebar,
+		"MiniAppTitle",
+		"Aetheris",
+		UDim2.fromOffset(44, 11),
+		UDim2.new(1, -56, 0, 14),
+		12,
+		Enum.FontWeight.Bold,
+		WHITE
+	)
+	el.appTitle = appTitle
 
-		local tabDotCorner = Instance.new("UICorner")
-		tabDotCorner.CornerRadius = UDim.new(1, 0)
-		tabDotCorner.Parent = tabDot
-
-		table.insert(miniTabs, { tab = tab, dot = tabDot, active = (i == 1) })
+	local chips = {}
+	local chipDefs = {
+		{ text = "v1.7", key = "primary", width = 24 },
+		{ text = "Build", key = "secondary", width = 26 },
+		{ text = "DEMO", key = "accent", width = 28 },
+	}
+	local chipX = 44
+	for i, def in ipairs(chipDefs) do
+		local chip = makeFrame(sidebar, "MiniChip" .. i, UDim2.fromOffset(chipX, 29), UDim2.fromOffset(def.width, 11))
+		addCorner(chip, 5)
+		local chipText = makeLabel(
+			chip,
+			"MiniChipText" .. i,
+			def.text,
+			UDim2.fromScale(0, 0),
+			UDim2.fromScale(1, 1),
+			7,
+			Enum.FontWeight.Bold,
+			WHITE
+		)
+		chipText.TextXAlignment = Enum.TextXAlignment.Center
+		chips[i] = { frame = chip, label = chipText, key = def.key }
+		chipX += def.width + 3
 	end
+	el.chips = chips
 
-	-- Content Area
-	local miniContent = Instance.new("Frame")
-	miniContent.Name = UUID.Static("MiniContent")
-	miniContent.BorderSizePixel = 0
-	miniContent.Position = UDim2.fromOffset(44, 0)
-	miniContent.Size = UDim2.new(1, -44, 1, 0)
-	miniContent.Parent = miniWindow
+	local searchBox = makeFrame(sidebar, "MiniSearch", UDim2.fromOffset(12, 50), UDim2.new(1, -24, 0, 20))
+	addCorner(searchBox, 6)
+	el.searchBox = searchBox
 
-	local contentCorner = Instance.new("UICorner")
-	contentCorner.CornerRadius = UDim.new(0, 10)
-	contentCorner.Parent = miniContent
+	local searchIcon =
+		makeIcon(searchBox, "MiniSearchIcon", Icons["search"], UDim2.fromOffset(7, 5), UDim2.fromOffset(10, 10))
+	el.searchIcon = searchIcon
 
-	-- Wallpaper layer
+	local searchText = makeLabel(
+		searchBox,
+		"MiniSearchText",
+		"Search...",
+		UDim2.fromOffset(21, 0),
+		UDim2.new(1, -28, 1, 0),
+		8,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	searchText.TextTransparency = 0.35
+	el.searchText = searchText
+
+	local navDefs = {
+		{ text = "Home", icon = Icons["house"], active = true },
+		{ text = "Controls", icon = Icons["sliders-horizontal"], active = false },
+		{ text = "Inputs", icon = Icons["text-cursor"], active = false },
+		{ text = "Feedback", icon = Icons["bell"], active = false },
+		{ text = "Media", icon = Icons["play"], active = false },
+	}
+	local navRows = {}
+	for i, def in ipairs(navDefs) do
+		local row =
+			makeFrame(sidebar, "MiniNav" .. i, UDim2.fromOffset(12, 80 + (i - 1) * 25), UDim2.new(1, -24, 0, 22))
+		addCorner(row, 6)
+		local icon = makeIcon(row, "MiniNavIcon" .. i, def.icon, UDim2.fromOffset(7, 5), UDim2.fromOffset(12, 12))
+		local label = makeLabel(
+			row,
+			"MiniNavText" .. i,
+			def.text,
+			UDim2.fromOffset(25, 0),
+			UDim2.new(1, -33, 1, 0),
+			9,
+			Enum.FontWeight.Medium,
+			WHITE
+		)
+		navRows[i] = { row = row, icon = icon, label = label, active = def.active }
+	end
+	el.navRows = navRows
+
+	local divider = makeFrame(sidebar, "MiniDivider", UDim2.new(0, 12, 1, -38), UDim2.new(1, -24, 0, 1))
+	el.divider = divider
+
+	local avatar = makeFrame(sidebar, "MiniAvatar", UDim2.new(0, 12, 1, -28), UDim2.fromOffset(20, 20))
+	addCorner(avatar, 6)
+	el.avatar = avatar
+
+	local avatarIcon =
+		makeIcon(avatar, "MiniAvatarIcon", Icons["user"], UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(11, 11))
+	avatarIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	el.avatarIcon = avatarIcon
+
+	local userName = makeLabel(
+		sidebar,
+		"MiniUserName",
+		"Rosenstein",
+		UDim2.new(0, 38, 1, -29),
+		UDim2.new(1, -62, 0, 11),
+		8,
+		Enum.FontWeight.Bold,
+		WHITE
+	)
+	el.userName = userName
+
+	local userHandle = makeLabel(
+		sidebar,
+		"MiniUserHandle",
+		"@B1EVA",
+		UDim2.new(0, 38, 1, -18),
+		UDim2.new(1, -62, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	userHandle.TextTransparency = 0.25
+	el.userHandle = userHandle
+
+	local userNum1 = makeLabel(
+		sidebar,
+		"MiniUserNum1",
+		"09",
+		UDim2.new(1, -22, 1, -29),
+		UDim2.fromOffset(12, 11),
+		7,
+		Enum.FontWeight.SemiBold,
+		WHITE
+	)
+	userNum1.TextXAlignment = Enum.TextXAlignment.Right
+	el.userNum1 = userNum1
+
+	local userNum2 = makeLabel(
+		sidebar,
+		"MiniUserNum2",
+		"28",
+		UDim2.new(1, -22, 1, -18),
+		UDim2.fromOffset(12, 10),
+		7,
+		Enum.FontWeight.SemiBold,
+		WHITE
+	)
+	userNum2.TextXAlignment = Enum.TextXAlignment.Right
+	el.userNum2 = userNum2
+
+	-- Content pane
+	local content = makeFrame(miniWindow, "MiniContent", UDim2.fromOffset(SIDEBAR_W, 0), UDim2.new(1, -SIDEBAR_W, 1, 0))
+	addCorner(content, 12)
+	el.content = content
+
 	local miniWallpaper = Instance.new("ImageLabel")
 	miniWallpaper.Name = UUID.Static("MiniWallpaper")
 	miniWallpaper.BorderSizePixel = 0
 	miniWallpaper.BackgroundTransparency = 1
 	miniWallpaper.Size = UDim2.fromScale(1, 1)
 	miniWallpaper.ScaleType = Enum.ScaleType.Crop
-	miniWallpaper.Parent = miniContent
-
-	local wallpaperCorner = Instance.new("UICorner")
-	wallpaperCorner.CornerRadius = UDim.new(0, 10)
-	wallpaperCorner.Parent = miniWallpaper
+	miniWallpaper.Parent = content
+	addCorner(miniWallpaper, 12)
+	el.miniWallpaper = miniWallpaper
 
 	local melt = Instance.new("UIGradient")
 	melt.Rotation = 90
-	melt.Transparency = ramp({ { 0, 0.1 }, { 0.4, 0.4 }, { 0.7, 0.8 }, { 1, 1 } })
+	melt.Transparency = ramp({ { 0, 0.05 }, { 0.35, 0.25 }, { 0.7, 0.7 }, { 1, 1 } })
 	melt.Parent = miniWallpaper
 
-	-- Cards container
-	local cardList = Instance.new("Frame")
-	cardList.BorderSizePixel = 0
-	cardList.BackgroundTransparency = 1
-	cardList.Position = UDim2.fromOffset(10, 10)
-	cardList.Size = UDim2.new(1, -20, 1, -20)
-	cardList.Parent = miniContent
+	local pageTitle = makeLabel(
+		content,
+		"MiniPageTitle",
+		"Home",
+		UDim2.fromOffset(16, 12),
+		UDim2.fromOffset(120, 16),
+		13,
+		Enum.FontWeight.Bold,
+		WHITE
+	)
+	el.pageTitle = pageTitle
 
-	local cardLayout = Instance.new("UIListLayout")
-	cardLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	cardLayout.Padding = UDim.new(0, 8)
-	cardLayout.Parent = cardList
+	local pageUnderline = makeFrame(content, "MiniPageUnderline", UDim2.fromOffset(16, 31), UDim2.fromOffset(22, 2))
+	addCorner(pageUnderline, 1)
+	el.pageUnderline = pageUnderline
 
-	-- Mini Card 1: Stat Hero
-	local card1 = Instance.new("Frame")
-	card1.BorderSizePixel = 0
-	card1.Size = UDim2.new(1, 0, 0, 50)
-	card1.LayoutOrder = 1
-	card1.Parent = cardList
+	local controls = {}
+	local controlIcons = { Icons["settings"], Icons["minus"], Icons["square"], Icons["x"] }
+	local controlX = 410 - 16 - (4 * 12 + 3 * 4)
+	for i, image in ipairs(controlIcons) do
+		local btn = makeFrame(
+			content,
+			"MiniControl" .. i,
+			UDim2.fromOffset(controlX + (i - 1) * 16, 13),
+			UDim2.fromOffset(12, 12)
+		)
+		addCorner(btn, 4)
+		local icon = makeIcon(btn, "MiniControlIcon" .. i, image, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(8, 8))
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		controls[i] = { frame = btn, icon = icon }
+	end
+	el.controls = controls
 
-	local c1Corner = Instance.new("UICorner")
-	c1Corner.CornerRadius = UDim.new(0, 8)
-	c1Corner.Parent = card1
+	-- Section shells
+	local function makeSection(name, position, size, titleText)
+		local section = makeFrame(content, name, position, size)
+		addCorner(section, 8)
+		local stroke = addStroke(section, WHITE, 0.92)
+		local title = makeLabel(
+			section,
+			name .. "Title",
+			titleText,
+			UDim2.fromOffset(10, 6),
+			UDim2.new(1, -20, 0, 10),
+			8,
+			Enum.FontWeight.SemiBold,
+			WHITE
+		)
+		title.TextTransparency = 0.15
+		return section, stroke, title
+	end
 
-	local c1AccentBar = Instance.new("Frame")
-	c1AccentBar.BorderSizePixel = 0
-	c1AccentBar.Position = UDim2.fromOffset(8, 10)
-	c1AccentBar.Size = UDim2.fromOffset(3, 30)
-	c1AccentBar.Parent = card1
+	local function makeInnerCard(host, name, position, size)
+		local card = makeFrame(host, name, position, size)
+		addCorner(card, 6)
+		local stroke = addStroke(card, WHITE, 0.94)
+		return card, stroke
+	end
 
-	local c1BarCorner = Instance.new("UICorner")
-	c1BarCorner.CornerRadius = UDim.new(1, 0)
-	c1BarCorner.Parent = c1AccentBar
+	-- Welcome
+	local welcome, welcomeStroke, welcomeTitle =
+		makeSection("MiniWelcome", UDim2.fromOffset(16, 44), UDim2.fromOffset(208, 122), "Welcome")
+	el.welcome = welcome
+	el.welcomeStroke = welcomeStroke
+	el.welcomeTitle = welcomeTitle
 
-	local c1Line1 = Instance.new("Frame")
-	c1Line1.BorderSizePixel = 0
-	c1Line1.Position = UDim2.fromOffset(18, 14)
-	c1Line1.Size = UDim2.fromOffset(110, 8)
-	c1Line1.Parent = card1
+	local welcomeHeading = makeLabel(
+		welcome,
+		"MiniWelcomeHeading",
+		"Aetheris Component Showcase",
+		UDim2.fromOffset(10, 20),
+		UDim2.new(1, -20, 0, 12),
+		9,
+		Enum.FontWeight.Bold,
+		WHITE
+	)
+	el.welcomeHeading = welcomeHeading
 
-	local c1L1Corner = Instance.new("UICorner")
-	c1L1Corner.CornerRadius = UDim.new(0, 4)
-	c1L1Corner.Parent = c1Line1
+	local welcomeBody = makeLabel(
+		welcome,
+		"MiniWelcomeBody",
+		"Every element the library offers, on one screen.",
+		UDim2.fromOffset(10, 34),
+		UDim2.new(1, -20, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	welcomeBody.TextTransparency = 0.2
+	el.welcomeBody = welcomeBody
 
-	local c1Line2 = Instance.new("Frame")
-	c1Line2.BorderSizePixel = 0
-	c1Line2.Position = UDim2.fromOffset(18, 28)
-	c1Line2.Size = UDim2.fromOffset(70, 6)
-	c1Line2.Parent = card1
+	local welcomeCard, welcomeCardStroke =
+		makeInnerCard(welcome, "MiniWelcomeCard", UDim2.fromOffset(10, 50), UDim2.new(1, -20, 0, 30))
+	el.welcomeCard = welcomeCard
+	el.welcomeCardStroke = welcomeCardStroke
 
-	local c1L2Corner = Instance.new("UICorner")
-	c1L2Corner.CornerRadius = UDim.new(0, 3)
-	c1L2Corner.Parent = c1Line2
+	local welcomeCardLabel = makeLabel(
+		welcomeCard,
+		"MiniWelcomeCardLabel",
+		"Bold label with container",
+		UDim2.fromOffset(8, 0),
+		UDim2.new(1, -16, 1, 0),
+		7,
+		Enum.FontWeight.SemiBold,
+		WHITE
+	)
+	el.welcomeCardLabel = welcomeCardLabel
 
-	local c1Chip = Instance.new("Frame")
-	c1Chip.BorderSizePixel = 0
-	c1Chip.AnchorPoint = Vector2.new(1, 0.5)
-	c1Chip.Position = UDim2.new(1, -12, 0.5, 0)
-	c1Chip.Size = UDim2.fromOffset(45, 18)
-	c1Chip.Parent = card1
+	local welcomePlain = makeLabel(
+		welcome,
+		"MiniWelcomePlain",
+		"Plain label - no container",
+		UDim2.fromOffset(10, 88),
+		UDim2.new(1, -20, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	welcomePlain.TextTransparency = 0.3
+	el.welcomePlain = welcomePlain
 
-	local c1ChipCorner = Instance.new("UICorner")
-	c1ChipCorner.CornerRadius = UDim.new(1, 0)
-	c1ChipCorner.Parent = c1Chip
+	-- Actions
+	local actions, actionsStroke, actionsTitle =
+		makeSection("MiniActions", UDim2.fromOffset(236, 44), UDim2.fromOffset(158, 122), "Actions")
+	el.actions = actions
+	el.actionsStroke = actionsStroke
+	el.actionsTitle = actionsTitle
 
-	local c1ChipDot = Instance.new("Frame")
-	c1ChipDot.BorderSizePixel = 0
-	c1ChipDot.AnchorPoint = Vector2.new(0.5, 0.5)
-	c1ChipDot.Position = UDim2.fromScale(0.5, 0.5)
-	c1ChipDot.Size = UDim2.fromOffset(20, 6)
-	c1ChipDot.Parent = c1Chip
+	local actionRows = {}
+	local actionDefs = { "Do The Thing", "Open UINotification", "Send a toast" }
+	for i, text in ipairs(actionDefs) do
+		local row, rowStroke =
+			makeInnerCard(actions, "MiniAction" .. i, UDim2.fromOffset(10, 22 + (i - 1) * 32), UDim2.new(1, -20, 0, 26))
+		local label = makeLabel(
+			row,
+			"MiniActionText" .. i,
+			text,
+			UDim2.fromOffset(8, 0),
+			UDim2.new(1, -28, 1, 0),
+			7,
+			Enum.FontWeight.Medium,
+			WHITE
+		)
+		local icon = makeIcon(
+			row,
+			"MiniActionIcon" .. i,
+			Icons["mouse-pointer"],
+			UDim2.new(1, -18, 0.5, 0),
+			UDim2.fromOffset(10, 10)
+		)
+		icon.AnchorPoint = Vector2.new(0, 0.5)
+		actionRows[i] = { row = row, stroke = rowStroke, label = label, icon = icon }
+	end
+	el.actionRows = actionRows
 
-	local c1DotCorner = Instance.new("UICorner")
-	c1DotCorner.CornerRadius = UDim.new(1, 0)
-	c1DotCorner.Parent = c1ChipDot
+	-- Palette
+	local palette, paletteStroke, paletteTitle =
+		makeSection("MiniPalette", UDim2.fromOffset(16, 178), UDim2.fromOffset(208, 122), "Palette")
+	el.palette = palette
+	el.paletteStroke = paletteStroke
+	el.paletteTitle = paletteTitle
 
-	-- Mini Card 2: Interactive Controls
-	local card2 = Instance.new("Frame")
-	card2.BorderSizePixel = 0
-	card2.Size = UDim2.new(1, 0, 0, 116)
-	card2.LayoutOrder = 2
-	card2.Parent = cardList
+	local swatches = {}
+	for i = 1, 4 do
+		local swatch =
+			makeFrame(palette, "MiniSwatch" .. i, UDim2.fromOffset(10 + (i - 1) * 32, 24), UDim2.fromOffset(26, 26))
+		addCorner(swatch, 6)
+		local stroke = addStroke(swatch, WHITE, 0.9)
+		swatches[i] = { frame = swatch, stroke = stroke }
+	end
+	el.swatches = swatches
 
-	local c2Corner = Instance.new("UICorner")
-	c2Corner.CornerRadius = UDim.new(0, 8)
-	c2Corner.Parent = card2
+	local paletteBar = makeFrame(palette, "MiniPaletteBar", UDim2.fromOffset(10, 58), UDim2.new(1, -20, 0, 10))
+	addCorner(paletteBar, 5)
+	local paletteGradient = Instance.new("UIGradient")
+	paletteGradient.Rotation = 0
+	paletteGradient.Parent = paletteBar
+	el.paletteBar = paletteBar
+	el.paletteGradient = paletteGradient
 
-	-- Toggle row
-	local tRow = Instance.new("Frame")
-	tRow.BorderSizePixel = 0
-	tRow.BackgroundTransparency = 1
-	tRow.Position = UDim2.fromOffset(10, 8)
-	tRow.Size = UDim2.new(1, -20, 0, 20)
-	tRow.Parent = card2
+	local paletteCaption = makeLabel(
+		palette,
+		"MiniPaletteCaption",
+		"Primary / Secondary / Tertiary / Accent",
+		UDim2.fromOffset(10, 76),
+		UDim2.new(1, -20, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	paletteCaption.TextTransparency = 0.3
+	el.paletteCaption = paletteCaption
 
-	local tLine = Instance.new("Frame")
-	tLine.BorderSizePixel = 0
-	tLine.AnchorPoint = Vector2.new(0, 0.5)
-	tLine.Position = UDim2.fromScale(0, 0.5)
-	tLine.Size = UDim2.fromOffset(100, 6)
-	tLine.Parent = tRow
+	-- Secure Mode / API
+	local secure, secureStroke, secureTitle =
+		makeSection("MiniSecure", UDim2.fromOffset(236, 178), UDim2.fromOffset(158, 122), "Secure Mode / API")
+	el.secure = secure
+	el.secureStroke = secureStroke
+	el.secureTitle = secureTitle
 
-	local tLineCorner = Instance.new("UICorner")
-	tLineCorner.CornerRadius = UDim.new(0, 3)
-	tLineCorner.Parent = tLine
+	local secureBody = makeLabel(
+		secure,
+		"MiniSecureBody",
+		"Drive the window from your script.",
+		UDim2.fromOffset(10, 20),
+		UDim2.new(1, -20, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	secureBody.TextTransparency = 0.2
+	el.secureBody = secureBody
 
-	local tTrack = Instance.new("Frame")
-	tTrack.BorderSizePixel = 0
-	tTrack.AnchorPoint = Vector2.new(1, 0.5)
-	tTrack.Position = UDim2.fromScale(1, 0.5)
-	tTrack.Size = UDim2.fromOffset(28, 14)
-	tTrack.Parent = tRow
+	local secureField, secureFieldStroke =
+		makeInnerCard(secure, "MiniSecureField", UDim2.fromOffset(10, 36), UDim2.new(1, -20, 0, 26))
+	el.secureField = secureField
+	el.secureFieldStroke = secureFieldStroke
 
-	local tTrackCorner = Instance.new("UICorner")
-	tTrackCorner.CornerRadius = UDim.new(1, 0)
-	tTrackCorner.Parent = tTrack
+	local secureLabel = makeLabel(
+		secureField,
+		"MiniSecureLabel",
+		"Live status",
+		UDim2.fromOffset(8, 0),
+		UDim2.new(1, -30, 1, 0),
+		7,
+		Enum.FontWeight.SemiBold,
+		WHITE
+	)
+	el.secureLabel = secureLabel
 
-	local tThumb = Instance.new("Frame")
-	tThumb.BorderSizePixel = 0
-	tThumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	tThumb.AnchorPoint = Vector2.new(1, 0.5)
-	tThumb.Position = UDim2.new(1, -2, 0.5, 0)
-	tThumb.Size = UDim2.fromOffset(10, 10)
-	tThumb.Parent = tTrack
+	local secureDot = makeFrame(secureField, "MiniSecureDot", UDim2.new(1, -15, 0.5, -3), UDim2.fromOffset(6, 6))
+	addCorner(secureDot, 3)
+	el.secureDot = secureDot
 
-	local tThumbCorner = Instance.new("UICorner")
-	tThumbCorner.CornerRadius = UDim.new(1, 0)
-	tThumbCorner.Parent = tThumb
-
-	-- Slider row
-	local sRow = Instance.new("Frame")
-	sRow.BorderSizePixel = 0
-	sRow.BackgroundTransparency = 1
-	sRow.Position = UDim2.fromOffset(10, 36)
-	sRow.Size = UDim2.new(1, -20, 0, 26)
-	sRow.Parent = card2
-
-	local sLine = Instance.new("Frame")
-	sLine.BorderSizePixel = 0
-	sLine.Position = UDim2.fromOffset(0, 0)
-	sLine.Size = UDim2.fromOffset(80, 6)
-	sLine.Parent = sRow
-
-	local sLineCorner = Instance.new("UICorner")
-	sLineCorner.CornerRadius = UDim.new(0, 3)
-	sLineCorner.Parent = sLine
-
-	local sRail = Instance.new("Frame")
-	sRail.BorderSizePixel = 0
-	sRail.Position = UDim2.fromOffset(0, 14)
-	sRail.Size = UDim2.new(1, 0, 0, 5)
-	sRail.Parent = sRow
-
-	local sRailCorner = Instance.new("UICorner")
-	sRailCorner.CornerRadius = UDim.new(1, 0)
-	sRailCorner.Parent = sRail
-
-	local sFill = Instance.new("Frame")
-	sFill.BorderSizePixel = 0
-	sFill.Size = UDim2.fromScale(0.65, 1)
-	sFill.Parent = sRail
-
-	local sFillCorner = Instance.new("UICorner")
-	sFillCorner.CornerRadius = UDim.new(1, 0)
-	sFillCorner.Parent = sFill
-
-	local sKnob = Instance.new("Frame")
-	sKnob.BorderSizePixel = 0
-	sKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	sKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-	sKnob.Position = UDim2.fromScale(1, 0.5)
-	sKnob.Size = UDim2.fromOffset(10, 10)
-	sKnob.Parent = sFill
-
-	local sKnobCorner = Instance.new("UICorner")
-	sKnobCorner.CornerRadius = UDim.new(1, 0)
-	sKnobCorner.Parent = sKnob
-
-	-- Button & Well row
-	local bRow = Instance.new("Frame")
-	bRow.BorderSizePixel = 0
-	bRow.BackgroundTransparency = 1
-	bRow.Position = UDim2.fromOffset(10, 72)
-	bRow.Size = UDim2.new(1, -20, 0, 28)
-	bRow.Parent = card2
-
-	local mBtn = Instance.new("Frame")
-	mBtn.BorderSizePixel = 0
-	mBtn.Size = UDim2.fromOffset(80, 24)
-	mBtn.Parent = bRow
-
-	local mBtnCorner = Instance.new("UICorner")
-	mBtnCorner.CornerRadius = UDim.new(0, 6)
-	mBtnCorner.Parent = mBtn
-
-	local mBtnPill = Instance.new("Frame")
-	mBtnPill.BorderSizePixel = 0
-	mBtnPill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	mBtnPill.AnchorPoint = Vector2.new(0.5, 0.5)
-	mBtnPill.Position = UDim2.fromScale(0.5, 0.5)
-	mBtnPill.Size = UDim2.fromOffset(40, 6)
-	mBtnPill.Parent = mBtn
-
-	local mPillCorner = Instance.new("UICorner")
-	mPillCorner.CornerRadius = UDim.new(1, 0)
-	mPillCorner.Parent = mBtnPill
-
-	local mWell = Instance.new("Frame")
-	mWell.BorderSizePixel = 0
-	mWell.AnchorPoint = Vector2.new(1, 0)
-	mWell.Position = UDim2.fromScale(1, 0)
-	mWell.Size = UDim2.new(1, -95, 0, 24)
-	mWell.Parent = bRow
-
-	local mWellCorner = Instance.new("UICorner")
-	mWellCorner.CornerRadius = UDim.new(0, 6)
-	mWellCorner.Parent = mWell
-
-	local mWellLine = Instance.new("Frame")
-	mWellLine.BorderSizePixel = 0
-	mWellLine.AnchorPoint = Vector2.new(0, 0.5)
-	mWellLine.Position = UDim2.new(0, 8, 0.5, 0)
-	mWellLine.Size = UDim2.fromOffset(60, 6)
-	mWellLine.Parent = mWell
-
-	local mWellLineCorner = Instance.new("UICorner")
-	mWellLineCorner.CornerRadius = UDim.new(0, 3)
-	mWellLineCorner.Parent = mWellLine
-
-	self._elements = {
-		shell = shell,
-		head = head,
-		headTile = headTile,
-		headGlyph = headGlyph,
-		headTitle = headTitle,
-		closeBtn = closeBtn,
-		closeIcon = closeIcon,
-		miniWindow = miniWindow,
-		miniSidebar = miniSidebar,
-		miniTabs = miniTabs,
-		miniContent = miniContent,
-		miniWallpaper = miniWallpaper,
-		card1 = card1,
-		c1AccentBar = c1AccentBar,
-		c1Line1 = c1Line1,
-		c1Line2 = c1Line2,
-		c1Chip = c1Chip,
-		c1ChipDot = c1ChipDot,
-		card2 = card2,
-		tLine = tLine,
-		tTrack = tTrack,
-		tThumb = tThumb,
-		sLine = sLine,
-		sRail = sRail,
-		sFill = sFill,
-		mBtn = mBtn,
-		mBtnPill = mBtnPill,
-		mWell = mWell,
-		mWellLine = mWellLine,
-	}
+	local secureHint = makeLabel(
+		secure,
+		"MiniSecureHint",
+		"API target",
+		UDim2.fromOffset(10, 72),
+		UDim2.new(1, -20, 0, 10),
+		7,
+		Enum.FontWeight.Medium,
+		WHITE
+	)
+	secureHint.TextTransparency = 0.35
+	el.secureHint = secureHint
 
 	local function dismiss()
 		self:Dismiss()
@@ -489,41 +670,96 @@ function ThemePreviewPopUp:UpdateTheme(t)
 		return
 	end
 
-	local accent = t.AccentColor or Color3.fromRGB(120, 156, 210)
+	t = t or {}
+	local accent = t.AccentColor or t.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	local primary = t.PrimaryColor or accent
+	local secondary = t.SecondaryColor or primary
+	local tertiary = t.TertiaryColor or Color3.fromRGB(150, 150, 150)
 	local windowBg = t.WindowColor or Color3.fromRGB(18, 18, 20)
-	local contentBg = t.ContentBackgroundColor or Color3.fromRGB(24, 24, 28)
+	local sidebarBg = t.SidebarColor or windowBg
+	local contentBg = t.ContentBackgroundColor or windowBg
 	local compBg = t.ComponentBackgroundColor or Color3.fromRGB(32, 32, 38)
 	local inputBg = t.InputBackgroundColor or Color3.fromRGB(40, 40, 46)
 	local text = t.TitleTextColor or t.PrimaryTextColor or Color3.fromRGB(240, 240, 245)
 	local subText = t.SecondaryTextColor or Color3.fromRGB(160, 160, 170)
 	local popupBg = t.PopupBackgroundColor or Color3.fromRGB(22, 22, 26)
+	local popupText = t.PopupTextColor or text
+
+	local sectionBg = t.SectionBackgroundColor or compBg
+	local sectionTrans = math.clamp(t.SectionBackgroundTransparency or 0.9, 0, 0.9)
+	local sectionStrokeColor = t.SectionStrokeColor or WHITE
+	local sectionStrokeTrans = math.clamp(t.SectionStrokeTransparency or 0.92, 0, 0.92)
+	local compTrans = math.clamp(t.ComponentBackgroundTransparency or 0.7, 0, 0.88)
+	local inputTrans = math.clamp(t.InputBackgroundTransparency or 0.4, 0, 0.6)
+	local activeTabBg = t.ActiveTabButtonColor or WHITE
+	local activeTabTrans = math.clamp(t.ActiveTabButtonTransparency or 0.85, 0, 0.85)
+	local activeTabText = t.ActiveTabTextColor or text
+	local inactiveTabText = t.InactiveTabTextColor or subText
+	local searchBg = t.SearchBarBackgroundColor or inputBg
+	local searchTrans = math.clamp(t.SearchBarBackgroundTransparency or 0.5, 0, 0.6)
 
 	el.shell.BackgroundColor3 = popupBg
-	el.headTitle.TextColor3 = text
 	el.headTile.BackgroundColor3 = accent
-	el.headGlyph.ImageColor3 = Color3.fromRGB(255, 255, 255)
-
-	el.closeBtn.BackgroundColor3 = inputBg
-	el.closeIcon.ImageColor3 = subText
+	el.headGlyph.ImageColor3 = WHITE
+	el.headTitle.TextColor3 = popupText
+	el.headSubtitle.TextColor3 = subText
+	el.closeBtn.BackgroundColor3 = WHITE
+	el.closeIcon.ImageColor3 = popupText
 
 	el.miniWindow.BackgroundColor3 = windowBg
-	el.miniSidebar.BackgroundColor3 = t.SidebarBackgroundColor or windowBg
-	el.miniContent.BackgroundColor3 = contentBg
+	el.miniWindow.BackgroundTransparency = math.clamp(t.WindowTransparency or 0, 0, 0.9)
+	el.miniStroke.Color = sectionStrokeColor
+	el.miniStroke.Transparency = sectionStrokeTrans
+	el.miniGlow.Color = accent
 
-	for _, tabItem in ipairs(el.miniTabs) do
-		if tabItem.active then
-			tabItem.tab.BackgroundColor3 = t.ActiveTabButtonColor or primary
-			tabItem.tab.BackgroundTransparency = 0
-			tabItem.dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-			tabItem.dot.BackgroundTransparency = 0
+	el.sidebar.BackgroundColor3 = sidebarBg
+	el.sidebar.BackgroundTransparency = math.clamp(t.SidebarTransparency or 0, 0, 0.9)
+
+	el.logo.BackgroundColor3 = accent
+	el.logoText.TextColor3 = WHITE
+	el.appTitle.TextColor3 = text
+
+	local chipColors = { primary = primary, secondary = secondary, accent = accent }
+	for _, chip in ipairs(el.chips) do
+		chip.frame.BackgroundColor3 = chipColors[chip.key] or accent
+		chip.label.TextColor3 = WHITE
+	end
+
+	el.searchBox.BackgroundColor3 = searchBg
+	el.searchBox.BackgroundTransparency = searchTrans
+	el.searchIcon.ImageColor3 = subText
+	el.searchText.TextColor3 = subText
+
+	for _, nav in ipairs(el.navRows) do
+		if nav.active then
+			nav.row.BackgroundColor3 = activeTabBg
+			nav.row.BackgroundTransparency = activeTabTrans
+			nav.icon.ImageColor3 = activeTabText
+			nav.icon.ImageTransparency = 0
+			nav.label.TextColor3 = activeTabText
+			nav.label.TextTransparency = 0
 		else
-			tabItem.tab.BackgroundColor3 = compBg
-			tabItem.tab.BackgroundTransparency = 0.5
-			tabItem.dot.BackgroundColor3 = subText
-			tabItem.dot.BackgroundTransparency = 0.5
+			nav.row.BackgroundColor3 = compBg
+			nav.row.BackgroundTransparency = 1
+			nav.icon.ImageColor3 = inactiveTabText
+			nav.icon.ImageTransparency = 0.2
+			nav.label.TextColor3 = inactiveTabText
+			nav.label.TextTransparency = 0.15
 		end
 	end
+
+	el.divider.BackgroundColor3 = sectionStrokeColor
+	el.divider.BackgroundTransparency = math.clamp(t.SectionDividerTransparency or 0.85, 0, 0.95)
+	el.avatar.BackgroundColor3 = compBg
+	el.avatar.BackgroundTransparency = compTrans
+	el.avatarIcon.ImageColor3 = subText
+	el.userName.TextColor3 = text
+	el.userHandle.TextColor3 = subText
+	el.userNum1.TextColor3 = subText
+	el.userNum2.TextColor3 = subText
+
+	el.content.BackgroundColor3 = contentBg
+	el.content.BackgroundTransparency = math.clamp(t.ContentBackgroundTransparency or 0, 0, 0.9)
 
 	local wp = t.Wallpaper or t.Name
 	el.miniWallpaper.Image = WallpaperManager.GetAsset(wp, function(resolved)
@@ -531,25 +767,66 @@ function ThemePreviewPopUp:UpdateTheme(t)
 			el.miniWallpaper.Image = resolved
 		end
 	end)
-	el.miniWallpaper.ImageTransparency = t.WallpaperTransparency or 0.82
+	el.miniWallpaper.ImageTransparency = math.clamp(t.WallpaperTransparency or 0.82, 0, 1)
 
-	el.card1.BackgroundColor3 = compBg
-	el.c1AccentBar.BackgroundColor3 = accent
-	el.c1Line1.BackgroundColor3 = text
-	el.c1Line2.BackgroundColor3 = subText
-	el.c1Chip.BackgroundColor3 = accent
-	el.c1Chip.BackgroundTransparency = 0.8
-	el.c1ChipDot.BackgroundColor3 = accent
+	el.pageTitle.TextColor3 = text
+	el.pageUnderline.BackgroundColor3 = accent
 
-	el.card2.BackgroundColor3 = compBg
-	el.tLine.BackgroundColor3 = text
-	el.tTrack.BackgroundColor3 = accent
-	el.sLine.BackgroundColor3 = text
-	el.sRail.BackgroundColor3 = inputBg
-	el.sFill.BackgroundColor3 = accent
-	el.mBtn.BackgroundColor3 = primary
-	el.mWell.BackgroundColor3 = inputBg
-	el.mWellLine.BackgroundColor3 = subText
+	for _, control in ipairs(el.controls) do
+		control.frame.BackgroundColor3 = compBg
+		control.frame.BackgroundTransparency = math.clamp(compTrans + 0.05, 0, 0.95)
+		control.icon.ImageColor3 = subText
+	end
+
+	local sections = {
+		{ el.welcome, el.welcomeStroke, el.welcomeTitle },
+		{ el.actions, el.actionsStroke, el.actionsTitle },
+		{ el.palette, el.paletteStroke, el.paletteTitle },
+		{ el.secure, el.secureStroke, el.secureTitle },
+	}
+	for _, section in ipairs(sections) do
+		section[1].BackgroundColor3 = sectionBg
+		section[1].BackgroundTransparency = sectionTrans
+		section[2].Color = sectionStrokeColor
+		section[2].Transparency = sectionStrokeTrans
+		section[3].TextColor3 = subText
+	end
+
+	el.welcomeHeading.TextColor3 = text
+	el.welcomeBody.TextColor3 = subText
+	el.welcomeCard.BackgroundColor3 = compBg
+	el.welcomeCard.BackgroundTransparency = compTrans
+	el.welcomeCardStroke.Color = sectionStrokeColor
+	el.welcomeCardStroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
+	el.welcomeCardLabel.TextColor3 = text
+	el.welcomePlain.TextColor3 = subText
+
+	for _, row in ipairs(el.actionRows) do
+		row.row.BackgroundColor3 = compBg
+		row.row.BackgroundTransparency = compTrans
+		row.stroke.Color = sectionStrokeColor
+		row.stroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
+		row.label.TextColor3 = text
+		row.icon.ImageColor3 = subText
+	end
+
+	local swatchColors = { primary, secondary, tertiary, accent }
+	for i, swatch in ipairs(el.swatches) do
+		swatch.frame.BackgroundColor3 = swatchColors[i] or accent
+		swatch.stroke.Color = sectionStrokeColor
+		swatch.stroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
+	end
+	el.paletteGradient.Color = ColorSequence.new(primary, accent)
+	el.paletteCaption.TextColor3 = subText
+
+	el.secureBody.TextColor3 = subText
+	el.secureField.BackgroundColor3 = inputBg
+	el.secureField.BackgroundTransparency = inputTrans
+	el.secureFieldStroke.Color = sectionStrokeColor
+	el.secureFieldStroke.Transparency = math.clamp(sectionStrokeTrans + 0.02, 0, 0.95)
+	el.secureLabel.TextColor3 = text
+	el.secureDot.BackgroundColor3 = accent
+	el.secureHint.TextColor3 = subText
 end
 
 function ThemePreviewPopUp:Open(themeData)
