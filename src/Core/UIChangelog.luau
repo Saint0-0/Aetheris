@@ -10,9 +10,27 @@
 local UIChangelog = {}
 
 -- Compared against the stored UIChangeLogVersion to gate the auto-show.
-UIChangelog.Version = "1.7.0"
+UIChangelog.Version = "1.8.0"
 
 UIChangelog.Entries = {
+	{
+		Title = "Data Table row selection",
+		Description = "DataTable gains Selectable, SelectedColor, OnRowClick and OnSelectionChanged, plus SetSelected, GetSelected and ClearSelected. Selection follows the stable row id, survives sorting and searching, clears when the row is removed, and updates live while the popup is open.",
+		Icon = "mouse-pointer-click",
+		Tint = "blue",
+	},
+	{
+		Title = "Multiple row actions",
+		Description = "A new Actions list renders up to three right-aligned buttons per row, with Action kept as a one-item shorthand. When both are supplied Actions wins, and SetActions replaces the list live without closing the popup.",
+		Icon = "list-checks",
+		Tint = "teal",
+	},
+	{
+		Title = "Executor bootstrap fix",
+		Description = "The demo now checks for ReplicatedStorage.Aetheris with FindFirstChild before requiring it and falls back to the latest release, so a missing local install no longer yields forever in executors.",
+		Icon = "terminal",
+		Tint = "orange",
+	},
 	{
 		Title = "Theme Creator",
 		Description = "A new settings page builds custom palettes from 17 colour pickers, grouped into Brand, Surfaces, Text and Borders. Load a base preset, tune each surface, then save the result to Aetheris/Custom Themes as JSON. Saved themes join the theme gallery and the theme switch.",
