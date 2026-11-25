@@ -30,6 +30,7 @@ local DropdownPopUp = require("../Popups/DropdownPopUp")
 local ColorPickerPopUp = require("../Popups/ColorPickerPopUp")
 local Tooltip = require("../Components/Tooltip")
 local ThemeManager = require("../Themes/ThemeManager")
+local WallpaperManager = require("../Utils/WallpaperManager")
 local SearchFilter = require("./SearchFilter")
 local SettingsTabGroup = require("./Settings/SettingsTabGroup")
 local SettingsSystem = require("./Settings/PageBuilder")
@@ -84,6 +85,9 @@ function Window.new(Settings)
 
 	local resolvedTheme = ThemeManager.GetTheme(Settings.Theme)
 	local theme = resolvedTheme
+	-- Wallpapers resolve by theme name first, so keep the name available
+	-- before the window object exists.
+	local activeThemeName = type(Settings.Theme) == "string" and Settings.Theme or ThemeManager.DefaultTheme
 
 	local player = Players.LocalPlayer
 	local secureMode = Settings.AETHERIS_SECUREMODE == true
@@ -311,7 +315,25 @@ function Window.new(Settings)
 
 	-- Art follows the active theme; transparency comes from UI Settings.
 	local function refreshWallpapers(t)
-		local image = t.Wallpaper or Constants.FallbackImage
+		t = t or {}
+		-- Native themes carry no Wallpaper field, so their name keys the local,
+		-- GitHub and built-in fallback registries. Custom themes may override
+		-- with a filename or explicit asset id.
+		local wallpaperKey = t.Wallpaper
+		if wallpaperKey == nil or wallpaperKey == "" then
+			wallpaperKey = t.Name
+		end
+		if wallpaperKey == nil or wallpaperKey == "" then
+			wallpaperKey = (self and self._themeName) or activeThemeName
+		end
+		local image = WallpaperManager.GetAsset(wallpaperKey, function(resolved)
+			if windowWallpaper then
+				windowWallpaper.Image = resolved
+			end
+			if contentWallpaper then
+				contentWallpaper.Image = resolved
+			end
+		end)
 		local trans = math.clamp(SettingsStore.Get("WallpaperTransparency") or 0.85, 0, 1)
 		windowWallpaper.Image = image
 		windowWallpaper.ImageTransparency = trans
@@ -325,6 +347,7 @@ function Window.new(Settings)
 	-- Accent bloom behind the window, above the content fill.
 	local aurora = Aurora.new(MainFrame, {
 		Theme = theme,
+		CornerRadius = MainFrameCorner.CornerRadius,
 		Enabled = SettingsStore.Get("AuroraEnabled") ~= false,
 		Transparency = SettingsStore.Get("AuroraTransparency"),
 	})
@@ -1194,11 +1217,7 @@ function Window.new(Settings)
 	end
 
 	-- Original theme name, used to mark the active card.
-	if type(Settings.Theme) == "string" then
-		self._themeName = Settings.Theme
-	else
-		self._themeName = ThemeManager.DefaultTheme
-	end
+	self._themeName = activeThemeName
 
 	-- Only a single letter is uppercased; key names match Enum.KeyCode.Name.
 	local mk = Settings.MinimizeKey
@@ -1327,6 +1346,7 @@ function Window.new(Settings)
 
 	-- GroupTransparency dims the whole pill at rest in one property.
 	local PILL_CROSS = 64 -- Cross-axis size: a 40px button plus hover breathing room.
+	local PILL_MAIN_PAD = 15 -- Blank travel at each end so hover-scaled icons never clip.
 	local pill = Instance.new("CanvasGroup")
 	pill.Name = UUID.Generate("MinimizePill")
 	pill.AutomaticSize = Enum.AutomaticSize.None
@@ -1357,6 +1377,8 @@ function Window.new(Settings)
 		local horizontal = (side == "top" or side == "bottom")
 		local count = (self.TabGroup and #self.TabGroup.Tabs) or 0
 		local content = count > 0 and (count * 40 + (count - 1) * 8) or 40
+		-- The canvas is computed by hand, so it carries the main-axis padding.
+		local canvas = content + PILL_MAIN_PAD * 2
 
 		local viewport = ScreenGui.AbsoluteSize
 		if viewport.X <= 0 or viewport.Y <= 0 then
@@ -1366,13 +1388,16 @@ function Window.new(Settings)
 		-- Seven tabs fit; an eighth turns the pill into a scroller.
 		local scrollable = count > 7
 		local limit = horizontal and math.max(160, viewport.X * 0.8) or math.max(160, viewport.Y * 0.6)
-		local visible = scrollable and math.min(content, limit) or content
+		local visible = scrollable and math.min(canvas, limit) or canvas
 
 		if horizontal then
 			pill.Size = UDim2.fromOffset(visible + 8, PILL_CROSS)
+			pillScroll.CanvasSize = UDim2.fromOffset(canvas, 0)
 		else
 			pill.Size = UDim2.fromOffset(PILL_CROSS, visible + 8)
+			pillScroll.CanvasSize = UDim2.fromOffset(0, canvas)
 		end
+		pillScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
 		pillScroll.ScrollingEnabled = scrollable
 		pillScroll.ScrollBarThickness = scrollable and 1 or 0
 		if not scrollable then
@@ -1390,18 +1415,20 @@ function Window.new(Settings)
 		local horizontal = (side == "top" or side == "bottom")
 		if pillLayout then
 			pillLayout.FillDirection = horizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical
+			pillLayout.HorizontalAlignment = horizontal and Enum.HorizontalAlignment.Left
+				or Enum.HorizontalAlignment.Center
+			pillLayout.VerticalAlignment = horizontal and Enum.VerticalAlignment.Center or Enum.VerticalAlignment.Top
 		end
 		if pillScroll then
 			pillScroll.ScrollingDirection = horizontal and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
-			pillScroll.AutomaticCanvasSize = horizontal and Enum.AutomaticSize.X or Enum.AutomaticSize.Y
+			pillScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
 		end
 		if pillPad then
 			-- Padding follows the dock: the cross axis carries the breathing
-			-- room a hover-scaled button needs, the main axis stays at zero.
-			-- AutomaticCanvasSize counts padding, so any main-axis padding
-			-- adds blank travel past the last tab when the strip scrolls.
+			-- room a hover-scaled button needs, the main axis pads both ends so
+			-- the first and last icon never clip against the pill edge.
 			local cross = 8
-			local main = 0
+			local main = PILL_MAIN_PAD
 			pillPad.PaddingTop = UDim.new(0, horizontal and cross or main)
 			pillPad.PaddingBottom = UDim.new(0, horizontal and cross or main)
 			pillPad.PaddingLeft = UDim.new(0, horizontal and main or cross)
@@ -1807,7 +1834,7 @@ function Window.new(Settings)
 	pillScroll.ScrollBarImageTransparency = 1
 	pillScroll.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
 	pillScroll.ScrollingDirection = Enum.ScrollingDirection.Y
-	pillScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	pillScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
 	pillScroll.CanvasSize = UDim2.fromScale(0, 0)
 	pillScroll.Size = UDim2.new(1, -8, 1, -8)
 	pillScroll.Position = UDim2.fromOffset(4, 4)
@@ -1840,7 +1867,7 @@ function Window.new(Settings)
 	pillLayout = Instance.new("UIListLayout")
 	pillLayout.Padding = UDim.new(0, 8)
 	pillLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	pillLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	pillLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 	pillLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	pillLayout.Parent = pillScroll
 	applyPillPosition()
@@ -2647,6 +2674,10 @@ function Window:SetTheme(themeInput)
 		self._themeName = themeInput
 		-- Named themes persist; custom tables are session-only.
 		SettingsStore.Set("Theme", themeInput)
+	elseif type(themeInput) == "table" then
+		if type(themeInput.Name) == "string" and themeInput.Name ~= "" then
+			self._themeName = themeInput.Name
+		end
 	end
 	-- Crossfades colors and invokes Window:ApplyTheme.
 	ThemeManager.UpdateTheme(self, themeInput)

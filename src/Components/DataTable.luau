@@ -297,7 +297,7 @@ function DataTable.new(parent, Settings, theme, window)
 		end
 		-- Resolve at creation so a popup first opened after a theme switch is
 		-- stamped with the live theme, not the one captured at build time.
-		popup = DataTablePopUp.new(self._popupParent, { Theme = ThemeManager.GetCurrent() })
+		popup = DataTablePopUp.new(self._popupParent, { Theme = ThemeManager.GetCurrent(), Window = window })
 		popup.OnSort = function(key)
 			if self._sortBy == key then
 				self._sortDescending = not self._sortDescending

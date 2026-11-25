@@ -57,7 +57,7 @@ local function makeRoot(parent, opts)
 	root.Parent = parent
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = opts.CornerRadius or UDim.new(0, 6)
+	corner.CornerRadius = opts.CornerRadius or UDim.new(0, 12)
 	corner.Parent = root
 	return root
 end
@@ -164,34 +164,34 @@ end
 local BLOBS = {
 	{
 		colorKey = "AccentColor",
-		x = 0.03,
-		y = 0.92,
-		toX = 0.18,
-		toY = 0.76,
-		size = 0.95,
-		toSize = 1.02,
+		x = 0.14,
+		y = 0.82,
+		toX = 0.24,
+		toY = 0.72,
+		size = 0.68,
+		toSize = 0.74,
 		duration = 28,
 		intensity = 1,
 	},
 	{
 		colorKey = "PrimaryColor",
-		x = 0.97,
-		y = 0.04,
-		toX = 0.8,
-		toY = 0.2,
-		size = 0.78,
-		toSize = 0.84,
+		x = 0.86,
+		y = 0.15,
+		toX = 0.76,
+		toY = 0.25,
+		size = 0.58,
+		toSize = 0.64,
 		duration = 33,
 		intensity = 0.72,
 	},
 	{
 		colorKey = "AccentColor",
-		x = 1.02,
-		y = 0.94,
-		toX = 0.82,
-		toY = 0.74,
-		size = 0.6,
-		toSize = 0.66,
+		x = 0.85,
+		y = 0.82,
+		toX = 0.74,
+		toY = 0.72,
+		size = 0.46,
+		toSize = 0.52,
 		duration = 24,
 		intensity = 0.62,
 	},

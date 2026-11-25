@@ -37,7 +37,7 @@ local UUID = require("../Utils/UUID")
 local Section = {}
 Section.__index = Section
 
--- Section card: wash fill, top-lit rim, radius 6, SemiBold 13 title.
+-- Section card: wash fill, radius 6, SemiBold 13 title.
 local CORNER_SECTION = 6
 local AURORA_TINT = 0.14
 
@@ -105,23 +105,6 @@ function Section.new(parent, Settings, theme, window, noSave)
 	fillGradient.Name = UUID.Static("SectionFill")
 	stampFillGradient(fillGradient, theme)
 	fillGradient.Parent = frame
-	-- Prefer the section stroke keys; general stroke keys are the fallback.
-	local stroke = Instance.new("UIStroke")
-	stroke.Name = UUID.Static("SectionUIStroke")
-	stroke.Transparency = theme.SectionStrokeTransparency or theme.StrokeTransparency or 0.985
-	stroke.Color = theme.SectionStrokeColor or theme.StrokeColor or Color3.fromRGB(255, 255, 255)
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = frame
-	-- The rim ramp keeps the top edge painted and fades the sides and bottom.
-	local rim = Instance.new("UIGradient")
-	rim.Name = UUID.Static("SectionRim")
-	rim.Rotation = 90
-	rim.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.4, 0.55),
-		NumberSequenceKeypoint.new(1, 0.7),
-	})
-	rim.Parent = stroke
 	local layout = Instance.new("UIListLayout")
 	layout.Name = UUID.Static("SectionUIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -162,8 +145,6 @@ function Section.new(parent, Settings, theme, window, noSave)
 	-- Themed properties are bindings, so the section crossfades on theme switch.
 	ThemeManager.BindColor(frame, "BackgroundColor3", "SectionBackgroundColor")
 	ThemeManager.BindTransparency(frame, "BackgroundTransparency", "SectionBackgroundTransparency")
-	ThemeManager.BindColor(stroke, "Color", "SectionStrokeColor")
-	ThemeManager.BindTransparency(stroke, "Transparency", "SectionStrokeTransparency")
 	if self.Title then
 		ThemeManager.BindColor(self.Title, "TextColor3", "TitleTextColor")
 	end

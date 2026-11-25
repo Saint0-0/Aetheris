@@ -187,6 +187,7 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 	local self = setmetatable({}, DataTablePopUp)
 	self._theme = theme
 	self._parent = parent
+	self._window = Settings.Window
 	self._query = ""
 	self._columns = {}
 	self._rows = {}
@@ -746,6 +747,11 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 		if not me.Popup then
 			return
 		end
+		-- Claiming here covers direct popup use as well as the DataTable card
+		-- path, so two tables can never stack on screen.
+		if me._window and me._window._claimPopup then
+			me._window:_claimPopup(me)
+		end
 		if me._hideTimer then
 			task.cancel(me._hideTimer)
 			me._hideTimer = nil
@@ -782,6 +788,9 @@ function DataTablePopUp.new(parent, Settings, _cleanupCallback)
 			return
 		end
 		me.IsOpen = false
+		if me._window and me._window._activePopUp == me then
+			me._window._activePopUp = nil
+		end
 		me:_disconnectOutsideClick()
 		if me._searchField then
 			me._searchField:ReleaseFocus()

@@ -9,7 +9,8 @@
 
 local ThemeDefinitions = require("../../Themes/ThemeDefinitions")
 local ThemeManager = require("../../Themes/ThemeManager")
-local FallbackImage = require("../../Constants").FallbackImage
+local CustomThemeManager = require("../../Themes/CustomThemeManager")
+local WallpaperManager = require("../../Utils/WallpaperManager")
 local PageAwareness = require("../../Utils/PageAwareness")
 local ScrollFade = require("../../Utils/ScrollFade")
 local Tween = require("../../Utils/Tween")
@@ -145,6 +146,7 @@ end
 
 local function makeCard(parent, name, theme, active, order, onActivate)
 	local white = Color3.new(1, 1, 1)
+	local HOVER_SCALE, PRESS_SCALE = 1.015, 0.965
 	local accent = theme.AccentColor or theme.PrimaryColor or Color3.fromRGB(120, 156, 210)
 	local textColor = theme.TitleTextColor or theme.PrimaryTextColor or white
 	local base = theme.WindowColor or Color3.fromRGB(16, 16, 17)
@@ -164,7 +166,20 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	corner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	corner.Parent = card
 
-	-- No per-card UIScale; a scale under the automatic canvas reflows descendants.
+	-- Inner visual wrapper: scaling it cannot reflow the grid, unlike scaling
+	-- the card itself under AutomaticCanvasSize.
+	local visual = Instance.new("Frame")
+	visual.Name = UUID.Static("CardVisual")
+	visual.BorderSizePixel = 0
+	visual.BackgroundTransparency = 1
+	visual.AnchorPoint = Vector2.new(0.5, 0.5)
+	visual.Position = UDim2.fromScale(0.5, 0.5)
+	visual.Size = UDim2.fromScale(1, 1)
+	visual.Parent = card
+
+	local visualScale = Instance.new("UIScale")
+	visualScale.Scale = 1
+	visualScale.Parent = visual
 
 	-- Card fill, washed from top-light to bottom-dark.
 	local fill = Instance.new("Frame")
@@ -173,7 +188,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	fill.BackgroundColor3 = base
 	fill.BackgroundTransparency = 0
 	fill.Size = UDim2.fromScale(1, 1)
-	fill.Parent = card
+	fill.Parent = visual
 
 	local fillCorner = Instance.new("UICorner")
 	fillCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
@@ -198,10 +213,14 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	image.BorderSizePixel = 0
 	image.BackgroundColor3 = white
 	image.BackgroundTransparency = 1
-	image.Image = theme.Wallpaper or FallbackImage
+	image.Image = WallpaperManager.GetAsset(theme.Wallpaper or name, function(resolved)
+		if image.Parent then
+			image.Image = resolved
+		end
+	end)
 	image.Size = UDim2.fromScale(1, 1)
 	image.ScaleType = Enum.ScaleType.Crop
-	image.Parent = card
+	image.Parent = visual
 
 	local imageCorner = Instance.new("UICorner")
 	imageCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
@@ -219,7 +238,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	scrim.BackgroundColor3 = base
 	scrim.BackgroundTransparency = 0
 	scrim.Size = UDim2.fromScale(1, 1)
-	scrim.Parent = card
+	scrim.Parent = visual
 
 	local scrimCorner = Instance.new("UICorner")
 	scrimCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
@@ -243,7 +262,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	title.Size = UDim2.new(1, -28, 0, 18)
 	title.Position = UDim2.fromOffset(14, 45)
 	title.Text = name
-	title.Parent = card
+	title.Parent = visual
 
 	local desc = Instance.new("TextLabel")
 	desc.Name = UUID.Static("ThemeDescription")
@@ -257,8 +276,8 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	desc.AnchorPoint = Vector2.new(0, 0.5)
 	desc.Size = UDim2.new(1, -28, 0, 14)
 	desc.Position = UDim2.fromOffset(14, 61)
-	desc.Text = THEME_DESCRIPTIONS[name] or "A cool theme"
-	desc.Parent = card
+	desc.Text = THEME_DESCRIPTIONS[name] or theme.Description or "A cool theme"
+	desc.Parent = visual
 
 	-- Palette swatches over the image, top-right.
 	local dotsHolder = Instance.new("Frame")
@@ -269,7 +288,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	dotsHolder.AnchorPoint = Vector2.new(1, 0)
 	dotsHolder.Position = UDim2.new(1, -14, 0, 14)
 	dotsHolder.Size = UDim2.fromOffset(45, 9)
-	dotsHolder.Parent = card
+	dotsHolder.Parent = visual
 
 	local dotsLayout = Instance.new("UIListLayout")
 	dotsLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -308,24 +327,11 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	lift.BackgroundColor3 = white
 	lift.BackgroundTransparency = 1
 	lift.Size = UDim2.fromScale(1, 1)
-	lift.Parent = card
+	lift.Parent = visual
 
 	local liftCorner = Instance.new("UICorner")
 	liftCorner.CornerRadius = UDim.new(0, CARD_RADIUS)
 	liftCorner.Parent = lift
-
-	-- Inactive rim is a white top-edge ramp; active is flat accent.
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = white
-	stroke.Transparency = 1
-	stroke.Thickness = 1
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = card
-
-	local rim = Instance.new("UIGradient")
-	rim.Rotation = 90
-	rim.Transparency = ramp({ { 0, 0.84 }, { 0.22, 0.95 }, { 0.4, 1 }, { 1, 1 } })
-	rim.Parent = stroke
 
 	local hovered = false
 	local primed = false
@@ -373,17 +379,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 			apply(dot, "BackgroundTransparency", dotT)
 		end
 		apply(lift, "BackgroundTransparency", hovered and 0.95 or 1)
-
-		-- The rim swap cannot interpolate, so only its transparency is tweened.
-		if active then
-			rim.Parent = nil
-			stroke.Color = accent
-		else
-			stroke.Color = white
-			rim.Parent = stroke
-		end
-		apply(stroke, "Transparency", active and 0.55 or 0)
-
 		applyShadow(active and 0.45 or (hovered and 0.35 or 1), instant, info)
 	end
 
@@ -391,6 +386,7 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	local function prime()
 		primed = true
 		Tween.CancelAllUnder(card)
+		visualScale.Scale = 1
 		card.Active = false
 		fill.BackgroundTransparency = 1
 		scrim.BackgroundTransparency = 1
@@ -401,7 +397,6 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 			dot.BackgroundTransparency = 1
 		end
 		lift.BackgroundTransparency = 1
-		stroke.Transparency = 1
 		shadow.Transparency = 1
 		shadow.Enabled = false
 	end
@@ -438,21 +433,29 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 	end)
 	card.MouseEnter:Connect(function()
 		hover(true)
+		if not primed then
+			Tween.Play(visualScale, "HoverIn", { Scale = HOVER_SCALE })
+		end
 	end)
 	card.MouseLeave:Connect(function()
 		hover(false)
+		if not primed then
+			Tween.Play(visualScale, "HoverOut", { Scale = 1 })
+		end
 	end)
-	-- Press tints the lift white instead of scaling, which reflowed labels.
+	-- Press scales the inner wrapper; the card's layout slot never changes.
 	card.MouseButton1Down:Connect(function()
 		if primed then
 			return
 		end
+		Tween.Play(visualScale, "Fast", { Scale = PRESS_SCALE })
 		Tween.Play(lift, "PressIn", { BackgroundTransparency = 0.9 })
 	end)
 	card.MouseButton1Up:Connect(function()
 		if primed then
 			return
 		end
+		Tween.Play(visualScale, "HoverIn", { Scale = hovered and HOVER_SCALE or 1 })
 		paint(false)
 	end)
 
@@ -472,12 +475,20 @@ local function makeCard(parent, name, theme, active, order, onActivate)
 		setActive = setActive,
 		prime = prime,
 		reveal = reveal,
+		destroy = function()
+			Tween.CancelAllUnder(card)
+			if card.Parent then
+				card:Destroy()
+			end
+		end,
 	}
 end
 
 function Themes.Build(window, tab)
 	local page = tab.Page
 	local pageTheme = ThemeManager.GetTheme(tab._theme)
+
+	CustomThemeManager.LoadAll()
 
 	-- Fixed layout: top-anchored, minus the docked tab bar reserve.
 	page.Size = UDim2.new(1, 0, 1, -Constants.SettingsBottomReserve)
@@ -502,17 +513,54 @@ function Themes.Build(window, tab)
 	pageTitle.Position = UDim2.fromScale(0, 0)
 	pageTitle.Parent = page
 
-	-- Ghost chip naming the current theme, right-aligned.
+	-- Right-aligned action row: Theme Creator button, then the active-theme chip.
+	local headerRow = Instance.new("Frame")
+	headerRow.Name = UUID.Static("ThemeHeaderActions")
+	headerRow.BorderSizePixel = 0
+	headerRow.BackgroundTransparency = 1
+	headerRow.AnchorPoint = Vector2.new(1, 0.5)
+	headerRow.Position = UDim2.fromScale(1, 0.034245)
+	headerRow.Size = UDim2.fromOffset(0, 20)
+	headerRow.AutomaticSize = Enum.AutomaticSize.X
+	headerRow.Parent = page
+
+	local headerLayout = Instance.new("UIListLayout")
+	headerLayout.FillDirection = Enum.FillDirection.Horizontal
+	headerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	headerLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	headerLayout.Padding = UDim.new(0, 5)
+	headerLayout.Parent = headerRow
+
+	local createBtn = Instance.new("TextButton")
+	createBtn.Name = UUID.Static("CreateThemeButton")
+	createBtn.BorderSizePixel = 0
+	createBtn.AutoButtonColor = false
+	createBtn.Size = UDim2.fromOffset(108, 20)
+	createBtn.BackgroundColor3 = pageTheme.AccentColor or Color3.fromRGB(120, 156, 210)
+	createBtn.BackgroundTransparency = 0.82
+	createBtn.Text = "+ Theme Creator"
+	createBtn.FontFace = Constants.Font(Enum.FontWeight.Bold)
+	createBtn.TextSize = 11
+	createBtn.TextColor3 = pageTheme.AccentColor or Color3.fromRGB(120, 156, 210)
+	createBtn.Parent = headerRow
+
+	local createCorner = Instance.new("UICorner")
+	createCorner.CornerRadius = UDim.new(0.5, 0)
+	createCorner.Parent = createBtn
+
+	createBtn.MouseButton1Click:Connect(function()
+		window:NavigateTo("Theme Creator")
+	end)
+
+	-- Ghost chip naming the current theme.
 	local chip = Instance.new("Frame")
 	chip.Name = UUID.Static("CurrentThemeChip")
 	chip.BorderSizePixel = 0
-	chip.AnchorPoint = Vector2.new(1, 0.5)
-	chip.Position = UDim2.fromScale(1, 0.034245)
 	chip.Size = UDim2.fromOffset(0, 20)
 	chip.AutomaticSize = Enum.AutomaticSize.X
 	chip.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	chip.BackgroundTransparency = 1
-	chip.Parent = page
+	chip.Parent = headerRow
 
 	local chipCorner = Instance.new("UICorner")
 	chipCorner.CornerRadius = UDim.new(0.5, 0)
@@ -674,6 +722,10 @@ function Themes.Build(window, tab)
 		chipStroke.Color = t.TitleTextColor or chipStroke.Color
 		chipName.TextColor3 = t.TitleTextColor or chipName.TextColor3
 		pageHolder.ScrollBarImageColor3 = t.TertiaryColor or pageHolder.ScrollBarImageColor3
+		if createBtn then
+			createBtn.BackgroundColor3 = t.AccentColor or Color3.fromRGB(120, 156, 210)
+			createBtn.TextColor3 = t.AccentColor or Color3.fromRGB(120, 156, 210)
+		end
 
 		-- External theme switches skip the card path, so re-sync the chip here.
 		local name = window._themeName
@@ -690,6 +742,52 @@ function Themes.Build(window, tab)
 		end
 	end
 	ThemeManager.Register(page, themesPageComponent)
+
+	local knownCustom = {}
+	for customName in pairs(CustomThemeManager.GetAll()) do
+		knownCustom[customName] = true
+	end
+	local nextCardOrder = #cardStates + 1
+	local unsubscribeCustom = CustomThemeManager.OnThemesChanged(function(customs)
+		for name, themeDef in pairs(customs) do
+			knownCustom[name] = true
+			if not tab._themeCards[name] then
+				local isActive = (name == tab._activeThemeName)
+				local state = makeCard(pageHolder, name, themeDef, isActive, nextCardOrder, setActive)
+				nextCardOrder += 1
+				tab._themeCards[name] = state
+				table.insert(cardStates, state)
+				state.reveal()
+			end
+		end
+
+		-- Deleted customs drop their gallery card; a deleted active theme falls
+		-- back to the default before its card disappears.
+		for name in pairs(knownCustom) do
+			if not customs[name] then
+				knownCustom[name] = nil
+				local state = tab._themeCards[name]
+				if state then
+					tab._themeCards[name] = nil
+					for i = #cardStates, 1, -1 do
+						if cardStates[i] == state then
+							table.remove(cardStates, i)
+							break
+						end
+					end
+					if tab._activeThemeName == name then
+						window:SetTheme(ThemeManager.DefaultTheme)
+					end
+					state.destroy()
+				end
+			end
+		end
+	end)
+	window:OnDestroy(function()
+		if type(unsubscribeCustom) == "function" then
+			unsubscribeCustom()
+		end
+	end)
 
 	return page
 end

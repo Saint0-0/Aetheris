@@ -38,6 +38,9 @@ TweenUtil.Presets = {
 	WindowToggleSnappy = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	-- Shell fade for window open, close and minimize.
 	WindowFade = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- Modal shell rise and fall.
+	Enter = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Exit = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 }
 
 local activeTweens = setmetatable({}, { __mode = "k" })

@@ -14,6 +14,18 @@ UIChangelog.Version = "1.7.0"
 
 UIChangelog.Entries = {
 	{
+		Title = "Theme Creator",
+		Description = "A new settings page builds custom palettes with colour pickers, base presets and a live miniature preview, then saves them to Aetheris/Custom Themes. Saved themes join the gallery and the theme switch.",
+		Icon = "paintbrush",
+		Tint = "purple",
+	},
+	{
+		Title = "Local and GitHub wallpapers",
+		Description = "Theme wallpapers now check Aetheris/Wallpapers first, then the repository's assets/wallpapers folder, and fall back to the built-in assets. Type a filename in the Theme Creator to preview it live.",
+		Icon = "wallpaper",
+		Tint = "teal",
+	},
+	{
 		Title = "Fading video and viewports",
 		Description = "VideoFrames now sit in a media CanvasGroup and ViewportFrames fade through their own ImageTransparency, so page switches and the carousel crossfade fade the rendered media itself instead of letting it pop in or out.",
 		Icon = "video",

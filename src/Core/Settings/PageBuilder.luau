@@ -8,6 +8,7 @@
 ]]
 
 local Themes = require("./Themes")
+local ThemeCreator = require("./ThemeCreator")
 local UISettings = require("./UISettings")
 local Configs = require("./Configs")
 local Info = require("./Info")
@@ -24,6 +25,12 @@ function SettingsInit.BuildDefaultPages(window)
 		Active = true,
 	})
 	Themes.Build(window, themesTab)
+
+	local themeCreatorTab = group:Tab({
+		Name = "Theme Creator",
+		Icon = Icons["paintbrush"] or "rbxassetid://125572663700289",
+	})
+	ThemeCreator.Build(window, themeCreatorTab)
 
 	local uiTab = group:Tab({
 		Name = "UI Settings",

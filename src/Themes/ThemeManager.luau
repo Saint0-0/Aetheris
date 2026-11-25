@@ -524,6 +524,16 @@ function ThemeManager.GetTheme(themeInput)
 	return theme
 end
 
+function ThemeManager.RegisterTheme(name, themeTable)
+	ThemeDefinitions[name] = themeTable
+	themeMemo[name] = nil
+end
+
+function ThemeManager.UnregisterTheme(name)
+	ThemeDefinitions[name] = nil
+	themeMemo[name] = nil
+end
+
 -- Pushes onto each tab entry too, so tab-switch handlers read the live theme.
 function ThemeManager.SyncTheme(target, theme)
 	if not target then

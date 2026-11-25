@@ -180,6 +180,9 @@ function Dropdown.new(parent, Settings, ShowPopup, theme)
 			GetSelected = function()
 				return selectedItems
 			end,
+			GetValues = function()
+				return selectedItems
+			end,
 			SetValues = function(_, newItems, keepSelection)
 				items = type(newItems) == "table" and newItems or {}
 				local valid = {}
