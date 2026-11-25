@@ -39,8 +39,8 @@ Thumbs.db
 # Local working plan (review copy, not committed)
 /plan.md
 
-# Local-only upload assets (wallpapers/aurora are pushed to Roblox by hand)
-/assets/wallpapers/
+# Local-only upload assets (aurora is pushed to Roblox by hand).
+# assets/wallpapers/ is committed: WallpaperManager serves it from GitHub.
 /assets/aurora/
 
 # Third-party UI reference material (never shipped)
